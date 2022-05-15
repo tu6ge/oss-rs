@@ -1,17 +1,11 @@
-use oss::abc;
 
 use oss::auth;
+use oss::client;
+use oss::auth::VERB;
+use reqwest::Method;
 
 fn main() {
-    
-    let auth = auth::Auth{
-        access_key_id:"abc",
-        access_key_secret:"cde",
-        verb: auth::VERB::POST,
-        content_md5:"test_md5",
-        content_type:"application/octet-stream",
-        date: "2022-11-22 22:33:33",
-        canonicalized_resource: "abc",
-    };
-    println!("Hello, {}!", auth.sign());
+    let client = client::Client::new("abc","cde", "bar");
+    let response = client.builder(VERB(Method::GET), "https://oss-cn-hangzhou.aliyuncs.com").unwrap();
+    println!("{}", response);
 }

@@ -3,6 +3,7 @@
 pub mod auth;
 pub mod bucket;
 pub mod object;
+pub mod client;
 
 pub fn abc()->i32{
     2

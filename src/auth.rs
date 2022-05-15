@@ -3,37 +3,39 @@
 
 use sha1::Sha1;
 use hmac::{Hmac, Mac};
-use base64::{encode, decode};
+use base64::{encode};
+use reqwest::{Method};
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+use std::collections::HashMap;
 // use http::Method;
+
+#[derive(Clone)]
+pub struct VERB(pub Method);
 
 pub struct Auth<'a>{
   pub access_key_id: &'a str,
   pub access_key_secret: &'a str,
   pub verb: VERB,
-  pub content_md5: &'a str,
-  pub content_type: &'a str,
+  pub content_md5: Option<&'a str>,
+  pub content_type: Option<&'a str>,
   pub date: &'a str, // TODO
   // pub canonicalized_oss_headers: &'a str, // TODO
   pub canonicalized_resource: &'a str,
 }
 
-#[derive(Copy,Clone)]
-pub enum VERB {
-  PUT,
-  GET,
-  POST,
-  HEAD,
-  DELETE,
-}
-
 impl From<VERB> for String {
   fn from(verb: VERB) -> Self {
-    match verb {
-      VERB::PUT => "PUT".into(),
-      VERB::GET => "GET".into(),
-      VERB::POST => "POST".into(),
-      VERB::HEAD => "HEAD".into(),
-      VERB::DELETE => "DELETE".into(),
+    match verb.0 {
+      Method::GET => "GET".into(),
+      Method::POST => "POST".into(),
+      Method::PUT => "PUT".into(),
+      Method::DELETE => "DELETE".into(),
+      Method::HEAD => "HEAD".into(),
+      Method::OPTIONS => "OPTIONS".into(),
+      Method::CONNECT => "CONNECT".into(),
+      Method::PATCH => "PATCH".into(),
+      Method::TRACE => "TRACE".into(),
+      _ => "".into(),
     }
   }
 }
@@ -42,9 +44,18 @@ type HmacSha1 = Hmac<Sha1>;
 
 impl<'a> Auth<'a> {
   pub fn sign(&self) -> String {
-    let str: String = String::from(self.verb)
-      + self.content_md5 + "\n"
-      + self.content_type + "\n"
+    let method = self.verb.0.to_string();
+    let str: String = method
+      + match self.content_md5 {
+        Some(str)=> str,
+        None => ""
+      } 
+      + "\n"
+      + match self.content_type {
+        Some(str) => str,
+        None => ""
+      }
+      + "\n"
       + self.date + "\n"
       + self.canonicalized_resource;
     
@@ -60,4 +71,35 @@ impl<'a> Auth<'a> {
 
     encode(sha1)
   }
+
+}
+
+impl<'a> From<Auth<'a>> for HeaderMap {
+  fn from(auth: Auth<'a>) -> Self {
+    let mut map= HeaderMap::with_capacity(7);
+
+    map.insert(self::to_name("AccessKeyId"), self::to_value(auth.access_key_id));
+    map.insert(self::to_name("SecretAccessKey"), self::to_value(auth.access_key_secret));
+    map.insert(self::to_name("VERB"), auth.verb.0.to_string().parse().unwrap());
+    if let Some(a) = auth.content_md5 {
+      map.insert(self::to_name("Content-MD5"),self::to_value(a));
+    }
+    if let Some(a) = auth.content_type {
+      map.insert(self::to_name("Content-Type"),self::to_value(a));
+    }
+    map.insert(self::to_name("Date"),self::to_value(auth.date));
+    map.insert(self::to_name("CanonicalizedResource"), self::to_value(auth.canonicalized_resource));
+
+    map
+  }
+
+  
+}
+
+fn to_name(name: &str) -> HeaderName{
+  HeaderName::from_bytes(name.as_bytes()).unwrap()
+}
+
+fn to_value(value: &str) -> HeaderValue{
+  value.parse().unwrap()
 }
