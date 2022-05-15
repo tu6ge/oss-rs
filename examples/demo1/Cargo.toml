@@ -8,6 +8,3 @@ publish = false
 
 [dependencies]
 oss = {path="../.."}
-
-# TODO 
-reqwest = {version ="0.11.10", features= ["blocking"]}

@@ -1,5 +1,5 @@
 
-use std::collections::HashMap;
+
 use reqwest::{blocking,ClientBuilder,Method,Url,header};
 
 use crate::auth::{Auth,VERB};

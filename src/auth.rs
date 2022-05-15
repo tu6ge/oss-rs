@@ -23,6 +23,35 @@ pub struct Auth<'a>{
   pub canonicalized_resource: &'a str,
 }
 
+impl VERB {
+  /// GET
+  pub const GET: VERB = VERB(Method::GET);
+
+  /// POST
+  pub const POST: VERB = VERB(Method::POST);
+
+  /// PUT
+  pub const PUT: VERB = VERB(Method::PUT);
+
+  /// DELETE
+  pub const DELETE: VERB = VERB(Method::DELETE);
+
+  /// HEAD
+  pub const HEAD: VERB = VERB(Method::HEAD);
+
+  /// OPTIONS
+  pub const OPTIONS: VERB = VERB(Method::OPTIONS);
+
+  /// CONNECT
+  pub const CONNECT: VERB = VERB(Method::CONNECT);
+
+  /// PATCH
+  pub const PATCH: VERB = VERB(Method::PATCH);
+
+  /// TRACE
+  pub const TRACE: VERB = VERB(Method::TRACE);
+}
+
 impl From<VERB> for String {
   fn from(verb: VERB) -> Self {
     match verb.0 {
