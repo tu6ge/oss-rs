@@ -1,0 +1,15 @@
+[package]
+name = "oss"
+version = "0.1.0"
+edition = "2021"
+resolver = "2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+members = ["examples/demo1"]
+
+[dependencies]
+hmac = "0.12.1"
+sha1 = "0.10.1"
+base64 = "0.13.0"
