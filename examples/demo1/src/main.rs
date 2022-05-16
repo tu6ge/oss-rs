@@ -5,6 +5,7 @@ use oss::auth::VERB;
 
 fn main() {
     let client = client::Client::new("abc","cde", "bar");
-    let response = client.builder(VERB::GET, "https://oss-cn-hangzhou.aliyuncs.com").unwrap();
-    println!("{}", response);
+    let headers = None;
+    let response = client.request(VERB::GET, "https://oss-cn-hangzhou.aliyuncs.com",headers).unwrap();
+    println!("{}", response.text().unwrap());
 }
