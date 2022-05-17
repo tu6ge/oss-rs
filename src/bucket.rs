@@ -1,35 +1,72 @@
-extern crate xml;
 
 use crate::client::Client;
 use crate::auth::VERB;
 use std::fs::File;
 use std::io::BufReader;
 
-use xml::reader::{EventReader, XmlEvent};
+use serde_derive::{Deserialize, Serialize};
+use serde_xml_rs::{from_str, to_string};
 
-#[derive(Default)]
-pub struct Bucket<'a>{
-  // bucket_info: Option<Bucket<'b>>,
-  // bucket: Option<Bucket<'c>>,
-  pub creation_date: &'a str,
-  pub extranet_endpoint: &'a str,
-  pub intranet_endpoint: &'a str,
-  pub location: &'a str,
-  pub name: &'a str,
-  // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
-  pub id: &'a str,
-  pub display_name: &'a str,
-  // access_control_list;
-  pub grant: Grant,
-  pub data_redundancy_type: DataRedundancyType,
-  pub storage_class: &'a str,
-  pub versioning: &'a str,
-  // ServerSideEncryptionRule,
-  // ApplyServerSideEncryptionByDefault,
-  pub sse_algorithm: &'a str,
-  pub kms_master_key_id: Option<&'a str>,
-  pub cross_region_replication: &'a str,
-  pub transfer_acceleration: &'a str,
+// #[derive(Default)]
+// pub struct Bucket<'a>{
+//   // bucket_info: Option<Bucket<'b>>,
+//   // bucket: Option<Bucket<'c>>,
+//   pub creation_date: &'a str,
+//   pub extranet_endpoint: &'a str,
+//   pub intranet_endpoint: &'a str,
+//   pub location: &'a str,
+//   pub name: &'a str,
+//   // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
+//   pub id: &'a str,
+//   pub display_name: &'a str,
+//   // access_control_list;
+//   pub grant: Grant,
+//   pub data_redundancy_type: DataRedundancyType,
+//   pub storage_class: &'a str,
+//   pub versioning: &'a str,
+//   // ServerSideEncryptionRule,
+//   // ApplyServerSideEncryptionByDefault,
+//   pub sse_algorithm: &'a str,
+//   pub kms_master_key_id: Option<&'a str>,
+//   pub cross_region_replication: &'a str,
+//   pub transfer_acceleration: &'a str,
+// }
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct Owner {
+  ID: String,
+  DisplayName: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct Comment {
+  #[serde(rename = "$value")]
+  value: Option<String>
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct CreationDate {
+  #[serde(rename = "$value")]
+  value: String
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct Bucket {
+  #[serde(rename(serialize = "Comment"))]
+  Comment: String,
+  CreationDate: String,
+  ExtranetEndpoint: String,
+  IntranetEndpoint: String,
+  Location: String,
+  Name: String,
+  Region: String,
+  StorageClass: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+struct ListAllMyBucketsResult{
+  #[serde(rename = "$value")]
+  value: Vec<Bucket>
 }
 
 impl Client<'_> {
@@ -58,40 +95,15 @@ assert_eq!(first, "abc");
     // let headers = None;
     // let response = self.builder(VERB::GET, "https://oss-cn-shanghai.aliyuncs.com", headers);
     // println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
-    let file = File::open("../../tests/buckets.xml").unwrap();
-    let file = BufReader::new(file);
 
-    let parser = EventReader::new(file);
+    let mut file = File::open("../../tests/buckets.xml").unwrap();
+    let mut content = String::new();
+    std::io::Read::read_to_string(&mut file, &mut content).unwrap();
+    content = content.replace(r#"<?xml version="1.0" encoding="UTF-8"?>"#, "");
+    //println!("file: {}", content);
 
-    let mut depth = 0;
-    let mut buckets: Vec<(String,String)> = Vec::new();
-    let mut bucket: (String,String) = ("".to_string(), "".to_string());
-    let mut content: String = "".to_string();
-    for e in parser {
-        match e {
-            Ok(XmlEvent::EndElement { name }) => {
-                if name.to_string() == "CreationDate".to_string() {
-                  bucket.0 = content.clone();
-                }else if name.to_string() == "IntranetEndpoint".to_string(){
-                  bucket.1 = content.clone();
-                }else if name.to_string() == "Bucket".to_string() {
-                  buckets.push(bucket);
-                  bucket = ("".to_string(), "".to_string());
-                }
-            }
-            Ok(XmlEvent::Characters(name)) => {
-                content = name.to_string()
-            }
-            Err(e) => {
-                println!("Error: {}", e);
-                break;
-            }
-            _ => {}
-        }
-    }
-
-    println!("{:?}", buckets);
-
+    let result: ListAllMyBucketsResult = from_str(&content).unwrap();
+    println!("result: {:?}", result);
 
     Some(vec!("abc".to_string()))
   }
