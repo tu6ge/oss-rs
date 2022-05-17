@@ -30,9 +30,13 @@ pub struct Bucket<'a>{
 impl Client<'_> {
 
   /** # 获取 buiket 列表
-      ## Examples1
+      # Examples1
 ```
-let key_id      = env::var("ALIYUN_KEY_ID").unwrap().to_owned();
+use dotenv::dotenv;
+use std::env;
+use aliyun_oss_client::client;
+
+let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
 let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
 let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
 let bucket      = env::var("ALIYUN_BUCKET").unwrap();
@@ -40,7 +44,10 @@ let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
 
 let response = client.get_bucket_list().unwrap();
+let first = response.first().unwrap();
+assert_eq!(first, "abc");
 ```
+
   */
   pub fn get_bucket_list(&self) -> Option<Vec<String>> {
     let headers = None;
