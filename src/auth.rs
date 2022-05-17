@@ -17,7 +17,7 @@ pub struct Auth<'a>{
   pub verb: VERB,
   pub content_md5: Option<&'a str>,
   pub content_type: Option<&'a str>,
-  pub date: &'a str, // TODO
+  pub date: &'a str,
   // pub canonicalized_oss_headers: &'a str, // TODO
   pub canonicalized_resource: &'a str,
   pub headers: Option<HeaderMap>,
@@ -95,7 +95,7 @@ impl<'a> Auth<'a> {
     map.insert(self::to_name("CanonicalizedResource"), self::to_value(self.canonicalized_resource));
 
     let sign = self.sign();
-    let sign = "OSS ".to_owned() + &sign;
+    let sign = format!("OSS {}:{}", self.access_key_id, &sign);
     map.insert(self::to_name("Authorization"), sign.parse().unwrap());
 
     map
@@ -116,25 +116,25 @@ impl<'a> Auth<'a> {
     let mut content = String::new();
 
     let str: String = method
+      + "\n"
       + match self.content_md5 {
         Some(str)=> {
           content.clear();
           content.push_str(str);
-          content.push_str("\n");
           &content
         },
         None => ""
       }
-      
+      + "\n"
       + match self.content_type {
         Some(str) => {
           content.clear();
           content.push_str(str);
-          content.push_str("\n");
           &content
         },
         None => ""
       }
+      + "\n"
       + self.date + "\n"
       + match self.header_str() {
         Some(str) => {
@@ -144,7 +144,7 @@ impl<'a> Auth<'a> {
           &content
         },
         None => ""
-      } 
+      }
       + self.canonicalized_resource;
     
     let secret = self.access_key_secret.as_bytes();

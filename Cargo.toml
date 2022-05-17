@@ -1,5 +1,5 @@
 [package]
-name = "oss"
+name = "aliyun-oss-client"
 version = "0.1.0"
 edition = "2021"
 resolver = "2"
@@ -15,3 +15,6 @@ sha1 = "0.10.1"
 base64 = "0.13.0"
 reqwest = {version ="0.11.10", features= ["blocking"]}
 chrono = "0.4"
+
+[dev-dependencies]
+dotenv = "0.10.1"
