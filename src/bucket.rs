@@ -1,6 +1,11 @@
+extern crate xml;
 
 use crate::client::Client;
 use crate::auth::VERB;
+use std::fs::File;
+use std::io::BufReader;
+
+use xml::reader::{EventReader, XmlEvent};
 
 #[derive(Default)]
 pub struct Bucket<'a>{
@@ -50,13 +55,53 @@ assert_eq!(first, "abc");
 
   */
   pub fn get_bucket_list(&self) -> Option<Vec<String>> {
-    let headers = None;
-    println!("get_bucket_list {}", self.endpoint);
-    let response = self.builder(VERB::GET, "https://oss-cn-shanghai.aliyuncs.com", headers);
-    println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
+    // let headers = None;
+    // let response = self.builder(VERB::GET, "https://oss-cn-shanghai.aliyuncs.com", headers);
+    // println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
+    let file = File::open("../../tests/buckets.xml").unwrap();
+    let file = BufReader::new(file);
+
+    let parser = EventReader::new(file);
+
+    let mut depth = 0;
+    let mut buckets: Vec<(String,String)> = Vec::new();
+    let mut bucket: (String,String) = ("".to_string(), "".to_string());
+    let mut content: String = "".to_string();
+    for e in parser {
+        match e {
+            Ok(XmlEvent::EndElement { name }) => {
+                if name.to_string() == "CreationDate".to_string() {
+                  bucket.0 = content.clone();
+                }else if name.to_string() == "IntranetEndpoint".to_string(){
+                  bucket.1 = content.clone();
+                }else if name.to_string() == "Bucket".to_string() {
+                  buckets.push(bucket);
+                  bucket = ("".to_string(), "".to_string());
+                }
+            }
+            Ok(XmlEvent::Characters(name)) => {
+                content = name.to_string()
+            }
+            Err(e) => {
+                println!("Error: {}", e);
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    println!("{:?}", buckets);
+
+
     Some(vec!("abc".to_string()))
   }
 
+}
+
+fn indent(size: usize) -> String {
+  const INDENT: &'static str = "    ";
+  (0..size).map(|_| INDENT)
+           .fold(String::with_capacity(size*INDENT.len()), |r, s| r + s)
 }
 
 pub enum Grant{
