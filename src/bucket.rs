@@ -1,75 +1,185 @@
 
 use crate::client::Client;
 use crate::auth::VERB;
-use std::fs::File;
+use std::{fs::File, error::Error};
 use std::io::BufReader;
 
-use serde_derive::{Deserialize, Serialize};
-use serde_xml_rs::{from_str, to_string};
+use quick_xml::{events::Event, Reader};
 
-// #[derive(Default)]
-// pub struct Bucket<'a>{
-//   // bucket_info: Option<Bucket<'b>>,
-//   // bucket: Option<Bucket<'c>>,
-//   pub creation_date: &'a str,
-//   pub extranet_endpoint: &'a str,
-//   pub intranet_endpoint: &'a str,
-//   pub location: &'a str,
-//   pub name: &'a str,
-//   // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
-//   pub id: &'a str,
-//   pub display_name: &'a str,
-//   // access_control_list;
-//   pub grant: Grant,
-//   pub data_redundancy_type: DataRedundancyType,
-//   pub storage_class: &'a str,
-//   pub versioning: &'a str,
-//   // ServerSideEncryptionRule,
-//   // ApplyServerSideEncryptionByDefault,
-//   pub sse_algorithm: &'a str,
-//   pub kms_master_key_id: Option<&'a str>,
-//   pub cross_region_replication: &'a str,
-//   pub transfer_acceleration: &'a str,
-// }
+#[derive(Clone, Debug)]
+pub struct ListBuckets {
+    prefix: Option<String>,
+    marker: Option<String>,
+    max_keys: Option<String>,
+    is_truncated: bool,
+    next_marker: Option<String>,
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct Owner {
-  ID: String,
-  DisplayName: String,
+    id: Option<String>,
+    display_name: Option<String>,
+
+    buckets: Vec<Bucket>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct Comment {
-  #[serde(rename = "$value")]
-  value: Option<String>
+impl ListBuckets {
+  pub fn new(
+    prefix: Option<String>, 
+    marker: Option<String>,
+    max_keys: Option<String>,
+    is_truncated: bool,
+    next_marker: Option<String>,
+    id: Option<String>,
+    display_name: Option<String>,
+    buckets: Vec<Bucket>,
+  ) -> ListBuckets {
+    ListBuckets {
+      prefix,
+      marker,
+      max_keys,
+      is_truncated,
+      next_marker,
+      id,
+      display_name,
+      buckets
+    }
+  }
+
+  pub fn from_xml(xml: String) -> Result<ListBuckets, Box<dyn Error>> {
+    let mut result = Vec::new();
+    let mut reader = Reader::from_str(xml.as_str());
+    reader.trim_text(true);
+    let mut buf = Vec::new();
+
+    let mut prefix = String::new();
+    let mut marker = String::new();
+    let mut max_keys = String::new();
+    let mut is_truncated = false;
+    let mut next_marker = String::new();
+    let mut id = String::new();
+    let mut display_name = String::new();
+
+    let mut name = String::new();
+    let mut location = String::new();
+    let mut creation_date = String::new();
+    let mut extranet_endpoint = String::new();
+    let mut intranet_endpoint = String::new();
+    let mut storage_class = String::new();
+
+    let list_buckets;
+
+    loop {
+        match reader.read_event(&mut buf) {
+            Ok(Event::Start(ref e)) => match e.name() {
+                b"Prefix" => prefix = reader.read_text(e.name(), &mut Vec::new())?,
+                b"Marker" => marker = reader.read_text(e.name(), &mut Vec::new())?,
+                b"MaxKeys" => max_keys = reader.read_text(e.name(), &mut Vec::new())?,
+                b"IsTruncated" => {
+                    is_truncated = reader.read_text(e.name(), &mut Vec::new())? == "true"
+                }
+                b"NextMarker" => next_marker = reader.read_text(e.name(), &mut Vec::new())?,
+                b"ID" => id = reader.read_text(e.name(), &mut Vec::new())?,
+                b"DisplayName" => display_name = reader.read_text(e.name(), &mut Vec::new())?,
+
+                b"Bucket" => {
+                    name.clear();
+                    location.clear();
+                    creation_date.clear();
+                    extranet_endpoint.clear();
+                    intranet_endpoint.clear();
+                    storage_class.clear();
+                }
+
+                b"Name" => name = reader.read_text(e.name(), &mut Vec::new())?,
+                b"CreationDate" => creation_date = reader.read_text(e.name(), &mut Vec::new())?,
+                b"ExtranetEndpoint" => {
+                    extranet_endpoint = reader.read_text(e.name(), &mut Vec::new())?
+                }
+                b"IntranetEndpoint" => {
+                    intranet_endpoint = reader.read_text(e.name(), &mut Vec::new())?
+                }
+                b"Location" => location = reader.read_text(e.name(), &mut Vec::new())?,
+                b"StorageClass" => {
+                    storage_class = reader.read_text(e.name(), &mut Vec::new())?
+                }
+                _ => (),
+            },
+            Ok(Event::End(ref e)) if e.name() == b"Bucket" => {
+                let bucket = Bucket::new(
+                    name.clone(),
+                    creation_date.clone(),
+                    location.clone(),
+                    extranet_endpoint.clone(),
+                    intranet_endpoint.clone(),
+                    storage_class.clone(),
+                );
+                result.push(bucket);
+            }
+            Ok(Event::Eof) => {
+                list_buckets = ListBuckets::new(
+                    string2option(prefix),
+                    string2option(marker),
+                    string2option(max_keys),
+                    is_truncated,
+                    string2option(next_marker),
+                    string2option(id),
+                    string2option(display_name),
+                    result,
+                );
+                break;
+            } // exits the loop when reaching end of file
+            Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+            _ => (), // There are several other `Event`s we do not consider here
+        }
+        buf.clear();
+    }
+    Ok(list_buckets)
+  }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct CreationDate {
-  #[serde(rename = "$value")]
-  value: String
+#[derive(Default, Clone, Debug)]
+pub struct Bucket{
+  // bucket_info: Option<Bucket<'b>>,
+  // bucket: Option<Bucket<'c>>,
+  pub creation_date: String,
+  pub extranet_endpoint: String,
+  pub intranet_endpoint: String,
+  pub location: String,
+  pub name: String,
+  // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
+  // access_control_list;
+  // pub grant: Grant,
+  // pub data_redundancy_type: DataRedundancyType,
+  pub storage_class: String,
+  // pub versioning: &'a str,
+  // ServerSideEncryptionRule,
+  // ApplyServerSideEncryptionByDefault,
+  // pub sse_algorithm: &'a str,
+  // pub kms_master_key_id: Option<&'a str>,
+  // pub cross_region_replication: &'a str,
+  // pub transfer_acceleration: &'a str,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct Bucket {
-  #[serde(rename(serialize = "Comment"))]
-  Comment: String,
-  CreationDate: String,
-  ExtranetEndpoint: String,
-  IntranetEndpoint: String,
-  Location: String,
-  Name: String,
-  Region: String,
-  StorageClass: String,
+impl Bucket {
+  pub fn new(
+    name: String,
+    creation_date: String,
+    location: String,
+    extranet_endpoint: String,
+    intranet_endpoint: String,
+    storage_class: String
+  ) -> Bucket {
+    Bucket {
+      name,
+      creation_date,
+      location,
+      extranet_endpoint,
+      intranet_endpoint,
+      storage_class,
+    }
+  }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct ListAllMyBucketsResult{
-  #[serde(rename = "$value")]
-  value: Vec<Bucket>
-}
 
-impl Client<'_> {
+impl<'a> Client<'a> {
 
   /** # 获取 buiket 列表
       # Examples1
@@ -91,29 +201,27 @@ assert_eq!(first, "abc");
 ```
 
   */
-  pub fn get_bucket_list(&self) -> Option<Vec<String>> {
-    // let headers = None;
-    // let response = self.builder(VERB::GET, "https://oss-cn-shanghai.aliyuncs.com", headers);
-    // println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
+  pub fn get_bucket_list(&self) -> Result<ListBuckets, Box<dyn Error>> {
+    let headers = None;
+    let response = self.builder(VERB::GET, "https://oss-cn-shanghai.aliyuncs.com", headers);
+    //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
+    let content = response.send().unwrap().text().unwrap();
 
-    let mut file = File::open("../../tests/buckets.xml").unwrap();
-    let mut content = String::new();
-    std::io::Read::read_to_string(&mut file, &mut content).unwrap();
-    content = content.replace(r#"<?xml version="1.0" encoding="UTF-8"?>"#, "");
-    //println!("file: {}", content);
+    let result = ListBuckets::from_xml(content);
+    //println!("file: {:?}", result);
 
-    let result: ListAllMyBucketsResult = from_str(&content).unwrap();
-    println!("result: {:?}", result);
-
-    Some(vec!("abc".to_string()))
+    result
   }
+
+  
 
 }
 
-fn indent(size: usize) -> String {
-  const INDENT: &'static str = "    ";
-  (0..size).map(|_| INDENT)
-           .fold(String::with_capacity(size*INDENT.len()), |r, s| r + s)
+fn string2option(string: String) -> Option<String> {
+  if string.len() == 0 {
+    return None
+  }
+  Some(string)
 }
 
 pub enum Grant{
