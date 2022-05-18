@@ -1,7 +1,5 @@
 
-use oss::auth;
-use oss::client;
-use oss::auth::VERB;
+use aliyun_oss_client::client;
 
 extern crate dotenv;
 

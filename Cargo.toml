@@ -7,7 +7,6 @@ resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["examples/demo1"]
 
 [dependencies]
 hmac = "0.12.1"
