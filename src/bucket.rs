@@ -1,5 +1,5 @@
 
-use crate::client::Client;
+use crate::client::{Client, OssObject};
 use crate::auth::VERB;
 use std::{fs::File, error::Error};
 use std::io::BufReader;
@@ -42,8 +42,11 @@ impl ListBuckets {
       buckets
     }
   }
+}
 
-  pub fn from_xml(xml: String) -> Result<ListBuckets, Box<dyn Error>> {
+impl OssObject for ListBuckets  {
+
+  fn from_xml(xml: String) -> Result<ListBuckets, Box<dyn Error>> {
     let mut result = Vec::new();
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
@@ -134,6 +137,8 @@ impl ListBuckets {
     Ok(list_buckets)
   }
 }
+
+
 
 #[derive(Default, Clone, Debug)]
 pub struct Bucket{

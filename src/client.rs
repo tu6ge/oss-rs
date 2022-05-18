@@ -1,12 +1,15 @@
 
 
 
-use reqwest::blocking::{self,Response,RequestBuilder};
+use std::error::Error;
+
+use reqwest::blocking::{self,RequestBuilder};
 use reqwest::header::{HeaderMap};
 
 use crate::auth::{Auth,VERB};
 use chrono::prelude::*;
 
+/// # 构造请求的客户端结构体
 pub struct Client<'a>{
   access_key_id: &'a str,
   access_key_secret: &'a str,
@@ -34,13 +37,23 @@ impl<'a> Client<'a> {
     }
   }
 
-  /// 获取当前时间段 GMT 格式
+  /// # 获取当前时间段 GMT 格式
   pub fn date(&self) -> String {
     let now: DateTime<Utc> = Utc::now();
     now.format("%a, %d %b %Y %T GMT").to_string()
   }
 
-  /// 向 OSS 发送请求的封装
+  /// # 向 OSS 发送请求的封装
+  /// 参数包含请求的：
+  /// 
+  /// - method
+  /// - url
+  /// - headers (可选)
+  /// 
+  /// 返回值是一个 reqwest 的请求创建器 `reqwest::blocking::RequestBuilder`
+  /// 
+  /// 返回后，可以再加请求参数，然后可选的进行发起请求
+  /// 
   pub fn builder(&self, method: VERB, url: &str, headers: Option<HeaderMap>) -> RequestBuilder{
     let client = blocking::Client::new();
 
@@ -60,4 +73,12 @@ impl<'a> Client<'a> {
     client.request(method.0, url)
       .headers(all_headers)
   }
+}
+
+/// # OSS 对象的特征
+/// 里面包含对象必须实现的接口
+pub trait OssObject {
+
+  /// # 将 xml 转换成 OSS 结构体的接口
+  fn from_xml(xml: String) -> Result<Self, Box<dyn Error>> where Self: Sized;
 }
