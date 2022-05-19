@@ -3,6 +3,7 @@ use crate::client::{Client, OssObject};
 use crate::auth::VERB;
 use std::{fs::File, error::Error};
 use std::io::BufReader;
+use chrono::prelude::*;
 
 use quick_xml::{events::Event, Reader};
 
@@ -109,15 +110,16 @@ impl OssObject for ListBuckets  {
                 _ => (),
             },
             Ok(Event::End(ref e)) if e.name() == b"Bucket" => {
-                let bucket = Bucket::new(
-                    name.clone(),
-                    creation_date.clone(),
-                    location.clone(),
-                    extranet_endpoint.clone(),
-                    intranet_endpoint.clone(),
-                    storage_class.clone(),
-                );
-                result.push(bucket);
+              let in_creation_date = &creation_date.parse::<DateTime<Utc>>()?;
+              let bucket = Bucket::new(
+                  name.clone(),
+                  in_creation_date.clone(),
+                  location.clone(),
+                  extranet_endpoint.clone(),
+                  intranet_endpoint.clone(),
+                  storage_class.clone(),
+              );
+              result.push(bucket);
             }
             Ok(Event::Eof) => {
                 list_buckets = ListBuckets::new(
@@ -143,11 +145,11 @@ impl OssObject for ListBuckets  {
 
 
 
-#[derive(Default, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Bucket{
   // bucket_info: Option<Bucket<'b>>,
   // bucket: Option<Bucket<'c>>,
-  pub creation_date: String,
+  pub creation_date: DateTime<Utc>,
   pub extranet_endpoint: String,
   pub intranet_endpoint: String,
   pub location: String,
@@ -169,7 +171,7 @@ pub struct Bucket{
 impl Bucket {
   pub fn new(
     name: String,
-    creation_date: String,
+    creation_date: DateTime<Utc>,
     location: String,
     extranet_endpoint: String,
     intranet_endpoint: String,
