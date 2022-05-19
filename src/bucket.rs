@@ -50,7 +50,10 @@ impl OssObject for ListBuckets  {
     let mut result = Vec::new();
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
-    let mut buf = Vec::new();
+    let mut buf = Vec::with_capacity(xml.len());
+
+    // 备注： oss-cn-shanghai-internal.aliyuncs.com 长度是 37，避免重新分配内存
+    let mut skip_buf = Vec::with_capacity(45);
 
     let mut prefix = String::new();
     let mut marker = String::new();
@@ -72,15 +75,15 @@ impl OssObject for ListBuckets  {
     loop {
         match reader.read_event(&mut buf) {
             Ok(Event::Start(ref e)) => match e.name() {
-                b"Prefix" => prefix = reader.read_text(e.name(), &mut Vec::new())?,
-                b"Marker" => marker = reader.read_text(e.name(), &mut Vec::new())?,
-                b"MaxKeys" => max_keys = reader.read_text(e.name(), &mut Vec::new())?,
+                b"Prefix" => prefix = reader.read_text(e.name(), &mut skip_buf)?,
+                b"Marker" => marker = reader.read_text(e.name(), &mut skip_buf)?,
+                b"MaxKeys" => max_keys = reader.read_text(e.name(), &mut skip_buf)?,
                 b"IsTruncated" => {
-                    is_truncated = reader.read_text(e.name(), &mut Vec::new())? == "true"
+                    is_truncated = reader.read_text(e.name(), &mut skip_buf)? == "true"
                 }
-                b"NextMarker" => next_marker = reader.read_text(e.name(), &mut Vec::new())?,
-                b"ID" => id = reader.read_text(e.name(), &mut Vec::new())?,
-                b"DisplayName" => display_name = reader.read_text(e.name(), &mut Vec::new())?,
+                b"NextMarker" => next_marker = reader.read_text(e.name(), &mut skip_buf)?,
+                b"ID" => id = reader.read_text(e.name(), &mut skip_buf)?,
+                b"DisplayName" => display_name = reader.read_text(e.name(), &mut skip_buf)?,
 
                 b"Bucket" => {
                     name.clear();
@@ -91,17 +94,17 @@ impl OssObject for ListBuckets  {
                     storage_class.clear();
                 }
 
-                b"Name" => name = reader.read_text(e.name(), &mut Vec::new())?,
-                b"CreationDate" => creation_date = reader.read_text(e.name(), &mut Vec::new())?,
+                b"Name" => name = reader.read_text(e.name(), &mut skip_buf)?,
+                b"CreationDate" => creation_date = reader.read_text(e.name(), &mut skip_buf)?,
                 b"ExtranetEndpoint" => {
-                    extranet_endpoint = reader.read_text(e.name(), &mut Vec::new())?
+                    extranet_endpoint = reader.read_text(e.name(), &mut skip_buf)?
                 }
                 b"IntranetEndpoint" => {
-                    intranet_endpoint = reader.read_text(e.name(), &mut Vec::new())?
+                    intranet_endpoint = reader.read_text(e.name(), &mut skip_buf)?
                 }
-                b"Location" => location = reader.read_text(e.name(), &mut Vec::new())?,
+                b"Location" => location = reader.read_text(e.name(), &mut skip_buf)?,
                 b"StorageClass" => {
-                    storage_class = reader.read_text(e.name(), &mut Vec::new())?
+                    storage_class = reader.read_text(e.name(), &mut skip_buf)?
                 }
                 _ => (),
             },
@@ -222,6 +225,7 @@ assert_eq!(first, "abc");
 
 }
 
+#[inline]
 fn string2option(string: String) -> Option<String> {
   if string.len() == 0 {
     return None
