@@ -14,8 +14,8 @@ fn main() {
     let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
     let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-    let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
+    let client = client::Client::new(&key_id,&key_secret, &endpoint, "");
     //let headers = None;
     let response = client.get_bucket_list().unwrap();
-    println!("{:?}", response);
+    println!("buckets list: {:?}", response);
 }

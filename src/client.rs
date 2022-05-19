@@ -8,6 +8,7 @@ use reqwest::header::{HeaderMap};
 
 use crate::auth::{Auth,VERB};
 use chrono::prelude::*;
+use url::Url;
 
 /// # 构造请求的客户端结构体
 pub struct Client<'a>{
@@ -31,10 +32,20 @@ impl<'a> Client<'a> {
   // TODO
   pub fn canonicalized_resource(&self) -> String{
     if self.bucket.len()>0 {
-      format!("/{}/", self.bucket)
+      format!("/{}/?bucketInfo", self.bucket)
     }else{
       "/".to_string()
     }
+  }
+
+  pub fn get_bucket_url(&self) -> Result<Url, Box<dyn Error>>{
+    let mut url = Url::parse(self.endpoint).ok().expect("Invalid endpoint");
+    
+    let bucket_url = self.bucket.to_string() + "." + &url.host().unwrap().to_string();
+
+    url.set_host(Some(&bucket_url)).expect("get bucket url failed");
+    
+    Ok(url)
   }
 
   /// # 获取当前时间段 GMT 格式

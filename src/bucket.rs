@@ -2,8 +2,8 @@
 use crate::client::{Client, OssObject};
 use crate::auth::VERB;
 use std::{fs::File, error::Error};
-use std::io::BufReader;
 use chrono::prelude::*;
+use url::Url;
 
 use quick_xml::{events::Event, Reader};
 
@@ -213,18 +213,24 @@ assert_eq!(first, "abc");
   */
   pub fn get_bucket_list(&self) -> Result<ListBuckets, Box<dyn Error>> {
     let headers = None;
-    let response = self.builder(VERB::GET, "https://oss-cn-shanghai.aliyuncs.com", headers);
+    let response = self.builder(VERB::GET, self.endpoint, headers);
     //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
     let content = response.send().unwrap().text().unwrap();
 
-    let result = ListBuckets::from_xml(content);
-    //println!("file: {:?}", result);
-
-    result
+    ListBuckets::from_xml(content)
   }
 
-  
+  pub fn get_bucket_info(&self) -> Result<String, Box<dyn Error>> {
+    let headers = None;
+    let mut bucket_url = self.get_bucket_url().unwrap();
+    bucket_url.set_query(Some("bucketInfo"));
 
+    let response = self.builder(VERB::GET, &bucket_url.to_string(), headers);
+    //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
+    let content = response.send().unwrap().text().unwrap();
+
+    Ok(content)
+  }
 }
 
 #[inline]
