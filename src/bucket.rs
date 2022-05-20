@@ -52,24 +52,26 @@ impl OssObject for ListBuckets  {
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
     let mut buf = Vec::with_capacity(xml.len());
-
-    // 备注： oss-cn-shanghai-internal.aliyuncs.com 长度是 37，避免重新分配内存
-    let mut skip_buf = Vec::with_capacity(45);
+    let mut skip_buf = Vec::with_capacity(xml.len());
 
     let mut prefix = String::new();
     let mut marker = String::new();
     let mut max_keys = String::new();
     let mut is_truncated = false;
     let mut next_marker = String::new();
-    let mut id = String::new();
-    let mut display_name = String::new();
+    let mut id = String::with_capacity(8);
+    let mut display_name = String::with_capacity(8);
 
     let mut name = String::new();
     let mut location = String::new();
-    let mut creation_date = String::new();
-    let mut extranet_endpoint = String::new();
-    let mut intranet_endpoint = String::new();
-    let mut storage_class = String::new();
+    let mut creation_date = String::with_capacity(20);
+    
+    // 目前最长的可用区 zhangjiakou 13 ，剩余部分总共 20 
+    let mut extranet_endpoint = String::with_capacity(33);
+    // 上一个长度 + 9 （-internal）
+    let mut intranet_endpoint = String::with_capacity(42);
+    // 最长的值 ColdArchive 11
+    let mut storage_class = String::with_capacity(11);
 
     let list_buckets;
 
@@ -307,7 +309,7 @@ pub enum Location {
   CnShanghai,
   CnQingdao,
   CnBeijing,
-  CnZhangjiakou, // 张家口
+  CnZhangjiakou, // 张家口 lenght=13
   CnHongkong,
   CnShenzhen,
   UsWest1,
