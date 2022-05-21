@@ -3,8 +3,10 @@
 
 use std::error::Error;
 
-use reqwest::blocking::{self,RequestBuilder};
+use reqwest::blocking::{self,RequestBuilder,Response};
 use reqwest::header::{HeaderMap};
+use reqwest::Result as ReqwestResult;
+use reqwest::Error as ReqwestError;
 
 use crate::auth::{Auth,VERB};
 use chrono::prelude::*;
@@ -20,6 +22,8 @@ pub struct Client<'a>{
 }
 
 impl<'a> Client<'a> {
+  pub const ERROR_REQUEST_ALIYUN_API: &'a str = "request aliyun api fail";
+
   pub fn new(access_key_id: &'a str, access_key_secret: &'a str, endpoint: &'a str, bucket: &'a str) -> Client<'a> {
     Client{
       access_key_id,
@@ -29,16 +33,32 @@ impl<'a> Client<'a> {
     }
   }
 
-  // TODO
-  pub fn canonicalized_resource(&self) -> String{
-    if self.bucket.len()>0 {
-      format!("/{}/?bucketInfo", self.bucket)
-    }else{
-      "/".to_string()
+  /// # 返回用于签名的 canonicalized_resource 值
+  pub fn canonicalized_resource(&self, url: &Url) -> String{
+    if self.bucket.len()==0 {
+      return "/".to_string()
     }
+    if url.query().unwrap().len() ==0 {
+      return format!("/{}/", self.bucket)
+    }
+
+    match url.query() {
+      Some(query) => {
+        // acl、uploads、location、cors、logging、website、referer、lifecycle、delete、append、tagging、objectMeta、uploadId、
+        // partNumber、security-token、position、img、style、styleName、replication、replicationProgress、replicationLocation、cname、bucketInfo、
+        // comp、qos、live、status、vod、startTime、endTime、symlink、x-oss-process
+        if query == "acl"
+        || query == "bucketInfo"{
+          return format!("/{}/?{}", self.bucket, query)
+        }
+      },
+      None => ()
+    }
+
+    format!("/{}/", self.bucket)
   }
 
-  pub fn get_bucket_url(&self) -> Result<Url, Box<dyn Error>>{
+  pub fn get_bucket_url(&self) -> Result<Url>{
     let mut url = Url::parse(self.endpoint).ok().expect("Invalid endpoint");
     
     let bucket_url = self.bucket.to_string() + "." + &url.host().unwrap().to_string();
@@ -65,7 +85,7 @@ impl<'a> Client<'a> {
   /// 
   /// 返回后，可以再加请求参数，然后可选的进行发起请求
   /// 
-  pub fn builder(&self, method: VERB, url: &str, headers: Option<HeaderMap>) -> RequestBuilder{
+  pub fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>) -> RequestBuilder{
     let client = blocking::Client::new();
 
     let auth = Auth{
@@ -75,14 +95,36 @@ impl<'a> Client<'a> {
       date: &self.date(),
       content_type: None,
       content_md5: None,
-      canonicalized_resource: &self.canonicalized_resource(),
+      canonicalized_resource: &self.canonicalized_resource(&url),
       headers: headers,
     };
 
     let all_headers: HeaderMap = auth.get_headers();
 
-    client.request(method.0, url)
+    client.request(method.0, url.to_string())
       .headers(all_headers)
+  }
+
+  /// # 错误处理
+  /// 如果请求接口没有返回 200 状态，则触发 panic 
+  /// 
+  /// 并打印状态码和 x-oss-request-id
+  pub fn handle_error(response: &Response)
+  {
+    let status = response.status();
+    if status != 200 {
+      let headers = response.headers();
+      let request_id = headers.get("x-oss-request-id").unwrap().to_str().unwrap();
+      panic!("aliyun response error, http status: {}, x-oss-request-id: {}", status, request_id);
+    }
+  }
+
+  #[inline]
+  pub fn string2option(string: String) -> Option<String> {
+    if string.len() == 0 {
+      return None
+    }
+    Some(string)
   }
 }
 
@@ -91,5 +133,9 @@ impl<'a> Client<'a> {
 pub trait OssObject {
 
   /// # 将 xml 转换成 OSS 结构体的接口
-  fn from_xml(xml: String) -> Result<Self, Box<dyn Error>> where Self: Sized;
+  fn from_xml(xml: String) -> Result<Self> where Self: Sized;
 }
+
+
+
+pub type Result<T> = std::result::Result<T, Box<dyn Error>>;

@@ -1,7 +1,6 @@
 
-use crate::client::{Client, OssObject};
+use crate::client::{Client, OssObject, Result};
 use crate::auth::VERB;
-use std::{fs::File, error::Error};
 use chrono::prelude::*;
 use url::Url;
 
@@ -47,7 +46,7 @@ impl ListBuckets {
 
 impl OssObject for ListBuckets  {
 
-  fn from_xml(xml: String) -> Result<ListBuckets, Box<dyn Error>> {
+  fn from_xml(xml: String) -> Result<ListBuckets> {
     let mut result = Vec::new();
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
@@ -125,13 +124,13 @@ impl OssObject for ListBuckets  {
             }
             Ok(Event::Eof) => {
                 list_buckets = ListBuckets::new(
-                    string2option(prefix),
-                    string2option(marker),
-                    string2option(max_keys),
+                    Client::string2option(prefix),
+                    Client::string2option(marker),
+                    Client::string2option(max_keys),
                     is_truncated,
-                    string2option(next_marker),
-                    string2option(id),
-                    string2option(display_name),
+                    Client::string2option(next_marker),
+                    Client::string2option(id),
+                    Client::string2option(display_name),
                     result,
                 );
                 break;
@@ -159,7 +158,7 @@ pub struct Bucket{
   // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
   // access_control_list;
   // pub grant: Grant,
-  // pub data_redundancy_type: DataRedundancyType,
+  // pub data_redundancy_type: Option<DataRedundancyType>,
   pub storage_class: String,
   // pub versioning: &'a str,
   // ServerSideEncryptionRule,
@@ -182,11 +181,71 @@ impl Bucket {
     Bucket {
       name,
       creation_date,
+      // data_redundancy_type: None,
       location,
       extranet_endpoint,
       intranet_endpoint,
       storage_class,
     }
+  }
+}
+
+impl OssObject for Bucket {
+
+  fn from_xml(xml: String) -> Result<Self>{
+    let mut reader = Reader::from_str(xml.as_str());
+    reader.trim_text(true);
+    let mut buf = Vec::with_capacity(xml.len());
+    let mut skip_buf = Vec::with_capacity(xml.len());
+
+    let mut name = String::new();
+    let mut location = String::new();
+    let mut creation_date = String::with_capacity(20);
+    
+    // 目前最长的可用区 zhangjiakou 13 ，剩余部分总共 20 
+    let mut extranet_endpoint = String::with_capacity(33);
+    // 上一个长度 + 9 （-internal）
+    let mut intranet_endpoint = String::with_capacity(42);
+    // 最长的值 ColdArchive 11
+    let mut storage_class = String::with_capacity(11);
+
+    let bucket;
+
+    loop {
+      match reader.read_event(&mut buf) {
+          Ok(Event::Start(ref e)) => match e.name() {
+              b"Name" => name = reader.read_text(e.name(), &mut skip_buf)?,
+              b"CreationDate" => creation_date = reader.read_text(e.name(), &mut skip_buf)?,
+              b"ExtranetEndpoint" => {
+                  extranet_endpoint = reader.read_text(e.name(), &mut skip_buf)?
+              }
+              b"IntranetEndpoint" => {
+                  intranet_endpoint = reader.read_text(e.name(), &mut skip_buf)?
+              }
+              b"Location" => location = reader.read_text(e.name(), &mut skip_buf)?,
+              b"StorageClass" => {
+                  storage_class = reader.read_text(e.name(), &mut skip_buf)?
+              }
+              _ => (),
+          },
+          Ok(Event::Eof) => {
+            let in_creation_date = &creation_date.parse::<DateTime<Utc>>()?;
+            bucket = Bucket::new(
+              name.clone(),
+              in_creation_date.clone(),
+              location.clone(),
+              extranet_endpoint.clone(),
+              intranet_endpoint.clone(),
+              storage_class.clone(),
+            );
+            break;
+          } // exits the loop when reaching end of file
+          Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+          _ => (), // There are several other `Event`s we do not consider here
+      }
+      buf.clear();
+    }
+    Ok(bucket)
   }
 }
 
@@ -213,34 +272,31 @@ assert_eq!(first, "abc");
 ```
 
   */
-  pub fn get_bucket_list(&self) -> Result<ListBuckets, Box<dyn Error>> {
-    let headers = None;
-    let response = self.builder(VERB::GET, self.endpoint, headers);
-    //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
-    let content = response.send().unwrap().text().unwrap();
+  pub fn get_bucket_list(&self) -> Result<ListBuckets> {
+    let url = Url::parse(&self.endpoint).unwrap();
 
-    ListBuckets::from_xml(content)
+    let response = self.builder(VERB::GET, &url, None);
+    //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
+    let content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+
+    Client::handle_error(&content);
+
+    ListBuckets::from_xml(content.text().unwrap())
   }
 
-  pub fn get_bucket_info(&self) -> Result<String, Box<dyn Error>> {
+  pub fn get_bucket_info(&self) -> Result<Bucket> {
     let headers = None;
     let mut bucket_url = self.get_bucket_url().unwrap();
     bucket_url.set_query(Some("bucketInfo"));
 
-    let response = self.builder(VERB::GET, &bucket_url.to_string(), headers);
+    let response = self.builder(VERB::GET, &bucket_url, headers);
     //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
-    let content = response.send().unwrap().text().unwrap();
+    let content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
 
-    Ok(content)
-  }
-}
+    Client::handle_error(&content);
 
-#[inline]
-fn string2option(string: String) -> Option<String> {
-  if string.len() == 0 {
-    return None
+    Bucket::from_xml(content.text().unwrap())
   }
-  Some(string)
 }
 
 pub enum Grant{
@@ -255,6 +311,7 @@ impl Default for Grant {
   }
 }
 
+#[derive(Clone, Debug)]
 pub enum DataRedundancyType{
   LRS,
   ZRS,
@@ -267,7 +324,7 @@ impl Default for DataRedundancyType{
 }
 
 
-#[derive(Default)]
+#[derive(Default,Clone, Debug)]
 pub struct BucketListObjectParms<'a>{
   pub list_type: u8,
   pub delimiter: &'a str,
@@ -278,7 +335,7 @@ pub struct BucketListObjectParms<'a>{
   pub fetch_owner: bool,
 }
 
-#[derive(Default)]
+#[derive(Default,Clone, Debug)]
 pub struct BucketListObject<'a>{
   //pub content:
   pub common_prefixes: &'a str,
@@ -304,6 +361,7 @@ pub struct BucketListObject<'a>{
   pub restore_info: Option<&'a str>,
 }
 
+#[derive(Clone, Debug)]
 pub enum Location {
   CnHangzhou,
   CnShanghai,
@@ -317,6 +375,7 @@ pub enum Location {
   ApSouthEast1,
 }
 
+#[derive(Clone, Debug)]
 pub struct BucketStat{
   pub storage: u64,
   pub object_count: u32,

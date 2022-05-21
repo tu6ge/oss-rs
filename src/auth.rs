@@ -147,6 +147,7 @@ impl<'a> Auth<'a> {
       }
       + self.canonicalized_resource;
     
+    // println!("auth str: {}", str);
     let secret = self.access_key_secret.as_bytes();
     let str_u8 = str.as_bytes();
     
