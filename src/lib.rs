@@ -1,11 +1,64 @@
+//! # 阿里云 OSS 客户端（sdk）
+//! 
+
 #![feature(test)]
 extern crate test;
 
+/// # 验证模块
+/// 包含了签名验证的一些方法，header 以及参数的封装
 pub mod auth;
+
+/// # bucket 操作模块
+/// 包含查询账号下的所有bucket ，bucket明细
 pub mod bucket;
+
+/// # 存储对象模块
+/// 包含查询当前 bucket 下所有存储对象的方法
 pub mod object;
+
+/// # 对 reqwest 进行了简单的封装，加上了 OSS 的签名验证功能
 pub mod client;
 
+/** # 主要入口
+
+## 简单使用方式为： 
+```
+let result = aliyun_oss_client::client("key_id_xxx","key_secret_xxxx", "my_endpoint", "my_bucket");
+```
+
+## 推荐的使用方式为
+
+1. 使用 cargo 安装 dotenv 
+
+2. 在项目根目录创建 .env 文件，并添加 git 忽略，
+
+然后在 .env 文件中填入阿里云的配置信息
+```
+ALIYUN_KEY_ID=key_id_xxx
+ALIYUN_KEY_SECRET=key_secret_xxxx
+ALIYUN_ENDPOINT=my_endpoint
+ALIYUN_BUCKET=my_bucket
+```
+
+3. 在自己项目里写入如下信息
+
+```
+extern crate dotenv;
+use dotenv::dotenv;
+use std::env;
+
+// 需要提供四个配置信息
+let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
+let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
+let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+let bucket      = env::var("ALIYUN_BUCKET").unwrap();
+
+let result = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket);
+```
+*/
+pub fn client<'a>(access_key_id: &'a str, access_key_secret: &'a str, endpoint: &'a str, bucket: &'a str) -> client::Client<'a>{
+  client::Client::new(access_key_id,access_key_secret, endpoint, bucket)
+}
 
 #[allow(soft_unstable)]
 #[cfg(test)]

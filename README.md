@@ -21,9 +21,6 @@ extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
 
-// 只需要引入 client struct 即可
-use aliyun_oss_client::client;
-
 // 需要提供四个配置信息
 let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
 let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
@@ -31,7 +28,7 @@ let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
 let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
 // 获取客户端实例
-let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
+let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket);
 
 // 查询所有的 bucket 信息
 let response = client.get_bucket_list().unwrap();
