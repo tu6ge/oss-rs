@@ -8,16 +8,14 @@ use quick_xml::{events::Event, Reader};
 
 #[derive(Clone, Debug)]
 pub struct ListBuckets {
-    prefix: Option<String>,
-    marker: Option<String>,
-    max_keys: Option<String>,
-    is_truncated: bool,
-    next_marker: Option<String>,
-
-    id: Option<String>,
-    display_name: Option<String>,
-
-    buckets: Vec<Bucket>,
+  pub prefix: Option<String>,
+  pub marker: Option<String>,
+  pub max_keys: Option<String>,
+  pub is_truncated: bool,
+  pub next_marker: Option<String>,
+  pub id: Option<String>,
+  pub display_name: Option<String>,
+  pub buckets: Vec<Bucket>,
 }
 
 impl ListBuckets {
@@ -253,24 +251,6 @@ impl OssObject for Bucket {
 impl<'a> Client<'a> {
 
   /** # 获取 buiket 列表
-      # Examples1
-```
-use dotenv::dotenv;
-use std::env;
-use aliyun_oss_client::client;
-
-let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
-let bucket      = env::var("ALIYUN_BUCKET").unwrap();
-
-let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
-
-let response = client.get_bucket_list().unwrap();
-let first = response.first().unwrap();
-assert_eq!(first, "abc");
-```
-
   */
   pub fn get_bucket_list(&self) -> Result<ListBuckets> {
     let url = Url::parse(&self.endpoint).unwrap();
