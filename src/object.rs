@@ -1,6 +1,9 @@
 use reqwest::Url;
 use chrono::prelude::*;
 use quick_xml::{events::Event, Reader};
+use std::fs::File;
+use std::io::Read;
+use reqwest::header::{HeaderMap,HeaderValue};
 
 use crate::client::{Client, OssObject, Result};
 use crate::auth::VERB;
@@ -167,8 +170,36 @@ impl <'a> Client<'a> {
     let content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
 
     Client::handle_error(&content);
+    //println!("get_bucket_list: {}", content.text().unwrap());
 
     ObjectList::from_xml(content.text().unwrap())
+  }
+
+  pub fn put_file(&self, file_name: &'a str) -> Result<String> {
+    let mut file_content = String::new();
+    std::fs::File::open(file_name)
+      .expect("open file failed")
+      .read_to_string(&mut file_content).expect("read_to_string failed");
+
+    let mut url = self.get_bucket_url().unwrap();
+    url.set_path("file1.txt");
+
+    let mut headers = HeaderMap::new();
+    let content_length = file_content.len().to_string();
+    headers.insert("Content-Length", HeaderValue::from_str(&content_length).unwrap());
+    //headers.insert("Content-Type", HeaderValue::from_str("text/plain").unwrap());
+    let response = self.builder(VERB::PUT, &url, Some(headers))
+      .body(file_content);
+
+    //println!("response: {:?}", response);
+    let content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+
+    //println!("{}", content.text().unwrap());
+    Client::handle_error(&content);
+
+    let result = content.headers().get("ETag").unwrap().to_str().unwrap();
+
+    Ok(result.to_string())
   }
 }
 

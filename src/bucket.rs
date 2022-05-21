@@ -254,6 +254,7 @@ impl<'a> Client<'a> {
   */
   pub fn get_bucket_list(&self) -> Result<ListBuckets> {
     let url = Url::parse(&self.endpoint).unwrap();
+    //url.set_path(self.bucket)
 
     let response = self.builder(VERB::GET, &url, None);
     //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
@@ -261,6 +262,9 @@ impl<'a> Client<'a> {
 
     Client::handle_error(&content);
 
+    // let abc = content.text().unwrap();
+    // println!("response text: {}", abc);
+    
     ListBuckets::from_xml(content.text().unwrap())
   }
 

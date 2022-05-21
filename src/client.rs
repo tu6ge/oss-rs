@@ -5,8 +5,6 @@ use std::error::Error;
 
 use reqwest::blocking::{self,RequestBuilder,Response};
 use reqwest::header::{HeaderMap};
-use reqwest::Result as ReqwestResult;
-use reqwest::Error as ReqwestError;
 
 use crate::auth::{Auth,VERB};
 use chrono::prelude::*;
@@ -38,10 +36,20 @@ impl<'a> Client<'a> {
     if self.bucket.len()==0 {
       return "/".to_string()
     }
-    if url.query().unwrap().len() ==0 {
-      return format!("/{}/", self.bucket)
+
+    //println!("url.path(): {}", url.path());
+
+    // 有 path 的情况
+    if url.path().is_empty() == false && url.path() != "/" {
+      match url.query() {
+        Some(query_value) if query_value.is_empty() == false => {
+          return format!("/{}{}?{}", self.bucket, url.path(), query_value);
+        },
+        _ => return format!("/{}{}", self.bucket, url.path())
+      }
     }
 
+    // 无 path 的情况
     match url.query() {
       Some(query) => {
         // acl、uploads、location、cors、logging、website、referer、lifecycle、delete、append、tagging、objectMeta、uploadId、
@@ -49,13 +57,17 @@ impl<'a> Client<'a> {
         // comp、qos、live、status、vod、startTime、endTime、symlink、x-oss-process
         if query == "acl"
         || query == "bucketInfo"{
+          
           return format!("/{}/?{}", self.bucket, query)
+        }else{
+          // println!("匹配到的 query");
+          return format!("/{}/", self.bucket)
         }
       },
-      None => ()
+      None => {
+        return format!("/");
+      }
     }
-
-    format!("/{}/", self.bucket)
   }
 
   pub fn get_bucket_url(&self) -> Result<Url>{
@@ -112,6 +124,7 @@ impl<'a> Client<'a> {
   pub fn handle_error(response: &Response)
   {
     let status = response.status();
+    
     if status != 200 {
       let headers = response.headers();
       let request_id = headers.get("x-oss-request-id").unwrap().to_str().unwrap();

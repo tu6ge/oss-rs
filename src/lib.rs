@@ -1,7 +1,7 @@
 //! # 阿里云 OSS 客户端（sdk）
 //! 
 
-#![feature(test)]
+#![feature(test,assert_matches)]
 extern crate test;
 
 /// # 验证模块
@@ -33,7 +33,7 @@ let result = aliyun_oss_client::client("key_id_xxx","key_secret_xxxx", "my_endpo
 2. 在项目根目录创建 .env 文件，并添加 git 忽略，
 
 然后在 .env 文件中填入阿里云的配置信息
-```
+```ignore
 ALIYUN_KEY_ID=key_id_xxx
 ALIYUN_KEY_SECRET=key_secret_xxxx
 ALIYUN_ENDPOINT=my_endpoint
@@ -42,7 +42,7 @@ ALIYUN_BUCKET=my_bucket
 
 3. 在自己项目里写入如下信息
 
-```
+```ignore
 extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
@@ -60,15 +60,49 @@ pub fn client<'a>(access_key_id: &'a str, access_key_secret: &'a str, endpoint: 
   client::Client::new(access_key_id,access_key_secret, endpoint, bucket)
 }
 
+
 #[allow(soft_unstable)]
 #[cfg(test)]
 mod tests {
   use test::Bencher;
 
-  use std::env;
+  use std::{env, assert_matches::assert_matches};
   use super::*;
   extern crate dotenv;
   use dotenv::dotenv;
+  
+
+  #[test]
+  fn test_get_bucket_list(){
+    dotenv().ok();
+
+    let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
+    let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
+    let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+    let bucket      = env::var("ALIYUN_BUCKET").unwrap();
+
+    let client = client(&key_id,&key_secret, &endpoint, &bucket);
+
+    let bucket_list = client.get_bucket_list();
+
+    assert_matches!(bucket_list, Ok(_));
+  }
+
+  #[test]
+  fn test_get_bucket_info(){
+    dotenv().ok();
+
+    let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
+    let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
+    let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+    let bucket      = env::var("ALIYUN_BUCKET").unwrap();
+
+    let client = client(&key_id,&key_secret, &endpoint, &bucket);
+
+    let bucket_list = client.get_bucket_info();
+
+    assert_matches!(bucket_list, Ok(_));
+  }
 
 
   #[test]
@@ -80,22 +114,26 @@ mod tests {
     let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
     let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-    let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
+    let client = client(&key_id,&key_secret, &endpoint, &bucket);
+
+    let object_list = client.get_object_list();
+
+    assert_matches!(object_list, Ok(_));
   }
 
-  #[bench]
-  fn bench_get_object(b: &mut Bencher){
-    dotenv().ok();
+  // #[bench]
+  // fn bench_get_object(b: &mut Bencher){
+  //   dotenv().ok();
 
-    let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-    let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-    let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
-    let bucket      = env::var("ALIYUN_BUCKET").unwrap();
+  //   let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
+  //   let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
+  //   let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+  //   let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-    let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
-    b.iter(|| {
-      client.get_object_list();
-    });
-  }
+  //   let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
+  //   b.iter(|| {
+  //     client.get_object_list();
+  //   });
+  // }
 
 }
