@@ -1,10 +1,8 @@
-
-use aliyun_oss_client::client;
-
 extern crate dotenv;
 
 use dotenv::dotenv;
 use std::env;
+use aliyun_oss_client::client;
 
 fn main() {
     dotenv().ok();
