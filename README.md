@@ -41,4 +41,15 @@ println!("bucket info: {:?}", response);
 // 查询当前 bucket 中的 object 列表
 let response = client.get_object_list().unwrap();
 println!("objects list: {:?}", response);
+
+// 上传文件
+client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
+
+// 上传文件内容
+let mut file_content = Vec::new();
+std::fs::File::open(file_name)
+  .expect("open file failed").read_to_end(&mut file_content)
+  .expect("read_to_end failed");
+client.put_file(&file_content, "examples/bg2015071010.png").expect("上传失败");
+
 ```
