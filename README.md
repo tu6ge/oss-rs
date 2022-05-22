@@ -10,7 +10,7 @@ aliyun OSS 的一个客户端
 
 ```
 [dependencies]
-aliyun-oss-client = "0.1.0"
+aliyun-oss-client = "0.2.0"
 ```
 
 2. 打开你需要使用 oss 的文件，在里面添加如下内容，即可使用：
@@ -29,30 +29,41 @@ let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
 // 获取客户端实例
 let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket);
+```
 
-// 查询所有的 bucket 信息
+
+### 查询所有的 bucket 信息
+```
 let response = client.get_bucket_list().unwrap();
 println!("buckets list: {:?}", response);
+```
 
-// 获取 bucket 信息
+### 获取 bucket 信息
+```
 let response = client.get_bucket_info().unwrap();
 println!("bucket info: {:?}", response);
+```
 
-// 查询当前 bucket 中的 object 列表
+### 查询当前 bucket 中的 object 列表
+```
 let response = client.get_object_list().unwrap();
 println!("objects list: {:?}", response);
+```
 
-// 上传文件
+### 上传文件
+```
 client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
 
-// 上传文件内容
+// or 上传文件内容
 let mut file_content = Vec::new();
 std::fs::File::open(file_name)
   .expect("open file failed").read_to_end(&mut file_content)
   .expect("read_to_end failed");
 client.put_file(&file_content, "examples/bg2015071010.png").expect("上传失败");
+```
 
-// 删除文件
+### 删除文件
+```
 client.delete_object("examples/bg2015071010.png").unwrap();
 
 ```
