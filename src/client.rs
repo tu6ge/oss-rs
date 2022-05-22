@@ -131,7 +131,7 @@ impl<'a> Client<'a> {
   {
     let status = response.status();
     
-    if status != 200 {
+    if status != 200 && status != 204{
       let headers = response.headers();
       let request_id = headers.get("x-oss-request-id").unwrap().to_str().unwrap();
       panic!("aliyun response error, http status: {}, x-oss-request-id: {}, content", status, request_id);

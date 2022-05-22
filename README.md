@@ -52,4 +52,7 @@ std::fs::File::open(file_name)
   .expect("read_to_end failed");
 client.put_file(&file_content, "examples/bg2015071010.png").expect("上传失败");
 
+// 删除文件
+client.delete_object("examples/bg2015071010.png").unwrap();
+
 ```

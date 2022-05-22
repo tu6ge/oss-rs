@@ -122,7 +122,7 @@ mod tests {
   }
 
   #[test]
-  fn test_put_file(){
+  fn test_put_and_delete_file(){
     dotenv().ok();
 
     let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
@@ -135,6 +135,10 @@ mod tests {
     let object_list = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
     assert_matches!(object_list, Ok(_));
+
+    let result = client.delete_object("examples/bg2015071010.png");
+
+    assert_matches!(result, Ok(_));
   }
 
   // #[bench]

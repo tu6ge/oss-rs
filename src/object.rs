@@ -222,6 +222,24 @@ impl <'a> Client<'a> {
 
     Ok(result.to_string())
   }
+
+  /// # 删除文件
+  pub fn delete_object(&self, key: &str) -> Result<()>{
+    let mut url = self.get_bucket_url().unwrap();
+    url.set_path(key);
+
+    let response = self.builder(VERB::DELETE, &url, None);
+
+    let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+
+    // let text = content.text().unwrap().clone();
+    // println!("{}", text);
+    // return Ok(text);
+
+    Client::handle_error(&mut content);
+    
+    Ok(())
+  }
 }
 
 
