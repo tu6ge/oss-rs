@@ -59,7 +59,7 @@ let mut file_content = Vec::new();
 std::fs::File::open(file_name)
   .expect("open file failed").read_to_end(&mut file_content)
   .expect("read_to_end failed");
-client.put_file(&file_content, "examples/bg2015071010.png").expect("上传失败");
+client.put_content(&file_content, "examples/bg2015071010.png").expect("上传失败");
 ```
 
 ### 删除文件
