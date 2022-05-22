@@ -258,9 +258,9 @@ impl<'a> Client<'a> {
 
     let response = self.builder(VERB::GET, &url, None);
     //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
-    let content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+    let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
 
-    Client::handle_error(&content);
+    Client::handle_error(&mut content);
 
     // let abc = content.text().unwrap();
     // println!("response text: {}", abc);
@@ -275,9 +275,9 @@ impl<'a> Client<'a> {
 
     let response = self.builder(VERB::GET, &bucket_url, headers);
     //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
-    let content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+    let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
 
-    Client::handle_error(&content);
+    Client::handle_error(&mut content);
 
     Bucket::from_xml(content.text().unwrap())
   }

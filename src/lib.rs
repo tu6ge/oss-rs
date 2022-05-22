@@ -121,6 +121,22 @@ mod tests {
     assert_matches!(object_list, Ok(_));
   }
 
+  #[test]
+  fn test_put_file(){
+    dotenv().ok();
+
+    let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
+    let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
+    let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+    let bucket      = env::var("ALIYUN_BUCKET").unwrap();
+
+    let client = client(&key_id,&key_secret, &endpoint, &bucket);
+
+    let object_list = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
+
+    assert_matches!(object_list, Ok(_));
+  }
+
   // #[bench]
   // fn bench_get_object(b: &mut Bencher){
   //   dotenv().ok();

@@ -4,7 +4,7 @@
 use std::error::Error;
 
 use reqwest::blocking::{self,RequestBuilder,Response};
-use reqwest::header::{HeaderMap};
+use reqwest::header::{HeaderMap,HeaderValue};
 
 use crate::auth::{Auth,VERB};
 use chrono::prelude::*;
@@ -105,7 +105,13 @@ impl<'a> Client<'a> {
       access_key_secret: self.access_key_secret,
       verb: method.clone(),
       date: &self.date(),
-      content_type: None,
+      content_type: match &headers {
+        Some(head) => {
+          let value  = head.get("Content-Type").unwrap();
+          Some(value.to_str().unwrap().to_string())
+        },
+        None => None,
+      },
       content_md5: None,
       canonicalized_resource: &self.canonicalized_resource(&url),
       headers: headers,
@@ -121,14 +127,14 @@ impl<'a> Client<'a> {
   /// 如果请求接口没有返回 200 状态，则触发 panic 
   /// 
   /// 并打印状态码和 x-oss-request-id
-  pub fn handle_error(response: &Response)
+  pub fn handle_error(response: &mut Response)
   {
     let status = response.status();
     
     if status != 200 {
       let headers = response.headers();
       let request_id = headers.get("x-oss-request-id").unwrap().to_str().unwrap();
-      panic!("aliyun response error, http status: {}, x-oss-request-id: {}", status, request_id);
+      panic!("aliyun response error, http status: {}, x-oss-request-id: {}, content", status, request_id);
     }
   }
 

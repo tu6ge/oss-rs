@@ -16,6 +16,6 @@ fn main() {
 
     let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
     //let headers = None;
-    let response = client.put_file("examples/put_demo1.txt").unwrap();
+    let response = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").unwrap();
     println!("put file result: {:?}", response);
 }

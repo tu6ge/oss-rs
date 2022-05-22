@@ -1,12 +1,14 @@
 use reqwest::Url;
 use chrono::prelude::*;
 use quick_xml::{events::Event, Reader};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
+use std::str::FromStr;
 use reqwest::header::{HeaderMap,HeaderValue};
 
 use crate::client::{Client, OssObject, Result};
-use crate::auth::VERB;
+use crate::auth::{self, VERB};
 
 #[derive(Clone, Debug)]
 pub struct ObjectList {
@@ -167,35 +169,54 @@ impl <'a> Client<'a> {
 
     let response = self.builder(VERB::GET, &url, None);
     //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
-    let content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+    let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
 
-    Client::handle_error(&content);
+    Client::handle_error(&mut content);
     //println!("get_bucket_list: {}", content.text().unwrap());
 
     ObjectList::from_xml(content.text().unwrap())
   }
 
-  pub fn put_file(&self, file_name: &'a str) -> Result<String> {
-    let mut file_content = String::new();
+  /// # 上传文件到 OSS 中
+  /// 
+  /// 提供有效的文件路径即可
+  pub fn put_file(&self, file_name: &'a str, key: &'a str) -> Result<String> {
+    let mut file_content = Vec::new();
     std::fs::File::open(file_name)
-      .expect("open file failed")
-      .read_to_string(&mut file_content).expect("read_to_string failed");
+      .expect("open file failed").read_to_end(&mut file_content)
+      .expect("read_to_end failed");
+
+    self.put_content(&file_content, key)
+  }
+
+  /// # 上传文件内容到 OSS
+  /// 
+  /// 需要事先读取文件内容到 `Vec<u8>` 中
+  /// 
+  /// 并提供存储的 key 
+  pub fn put_content(&self, content: &Vec<u8>, key: &str) -> Result<String>{
+    let mime_type = infer::get(content)
+      .expect("file read successfully")
+      .mime_type();
 
     let mut url = self.get_bucket_url().unwrap();
-    url.set_path("file1.txt");
+    url.set_path(key);
 
     let mut headers = HeaderMap::new();
-    let content_length = file_content.len().to_string();
+    let content_length = content.len().to_string();
     headers.insert("Content-Length", HeaderValue::from_str(&content_length).unwrap());
-    //headers.insert("Content-Type", HeaderValue::from_str("text/plain").unwrap());
+
+    headers.insert(auth::to_name("Content-Type"), mime_type.parse().unwrap());
     let response = self.builder(VERB::PUT, &url, Some(headers))
-      .body(file_content);
+      .body(content.clone());
 
-    //println!("response: {:?}", response);
-    let content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+    let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
 
-    //println!("{}", content.text().unwrap());
-    Client::handle_error(&content);
+    // let text = content.text().unwrap().clone();
+    // println!("{}", text);
+    // return Ok(text);
+
+    Client::handle_error(&mut content);
 
     let result = content.headers().get("ETag").unwrap().to_str().unwrap();
 

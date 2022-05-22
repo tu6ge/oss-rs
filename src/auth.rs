@@ -16,7 +16,7 @@ pub struct Auth<'a>{
   pub access_key_secret: &'a str,
   pub verb: VERB,
   pub content_md5: Option<&'a str>,
-  pub content_type: Option<&'a str>,
+  pub content_type: Option<String>,
   pub date: &'a str,
   // pub canonicalized_oss_headers: &'a str, // TODO
   pub canonicalized_resource: &'a str,
@@ -88,8 +88,8 @@ impl<'a> Auth<'a> {
     if let Some(a) = self.content_md5 {
       map.insert(self::to_name("Content-MD5"),self::to_value(a));
     }
-    if let Some(a) = self.content_type {
-      map.insert(self::to_name("Content-Type"),self::to_value(a));
+    if let Some(a) = &self.content_type {
+      map.insert(self::to_name("Content-Type"),a.parse().unwrap());
     }
     map.insert(self::to_name("Date"),self::to_value(self.date));
     map.insert(self::to_name("CanonicalizedResource"), self::to_value(self.canonicalized_resource));
@@ -98,6 +98,7 @@ impl<'a> Auth<'a> {
     let sign = format!("OSS {}:{}", self.access_key_id, &sign);
     map.insert(self::to_name("Authorization"), sign.parse().unwrap());
 
+    //println!("header list: {:?}",map);
     map
   }
 
@@ -107,13 +108,16 @@ impl<'a> Auth<'a> {
   /// 
   /// 用于生成签名 
   pub fn header_str(&self) -> Option<&'a str> {
-    None // TODO
+    //Some("x-oss-meta-content-type:image/png")
+    None
   }
 
   /// 计算签名
   pub fn sign(&self) -> String {
     let method = self.verb.0.to_string();
     let mut content = String::new();
+
+    let content_type_str;
 
     let str: String = method
       + "\n"
@@ -126,11 +130,10 @@ impl<'a> Auth<'a> {
         None => ""
       }
       + "\n"
-      + match self.content_type {
+      + match &self.content_type {
         Some(str) => {
-          content.clear();
-          content.push_str(str);
-          &content
+          content_type_str = str.clone();
+          &content_type_str
         },
         None => ""
       }
@@ -166,10 +169,10 @@ impl<'a> Auth<'a> {
 }
 
 
-fn to_name(name: &str) -> HeaderName{
+pub fn to_name(name: &str) -> HeaderName{
   HeaderName::from_bytes(name.as_bytes()).unwrap()
 }
 
-fn to_value(value: &str) -> HeaderValue{
+pub fn to_value(value: &str) -> HeaderValue{
   value.parse().unwrap()
 }
