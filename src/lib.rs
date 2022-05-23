@@ -5,14 +5,14 @@
 
 1. 在自己的项目里添加如下依赖项
 
-```
+```ignore
 [dependencies]
 aliyun-oss-client = "0.2.0"
 ```
 
 2. 打开你需要使用 oss 的文件，在里面添加如下内容，即可使用：
 
-```
+```ignore
 // dotenv 是用于获取配置信息的，可以不使用
 extern crate dotenv;
 use dotenv::dotenv;
@@ -30,25 +30,25 @@ let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket);
 
 
 ### 查询所有的 bucket 信息
-```
+```ignore
 let response = client.get_bucket_list().unwrap();
 println!("buckets list: {:?}", response);
 ```
 
 ### 获取 bucket 信息
-```
+```ignore
 let response = client.get_bucket_info().unwrap();
 println!("bucket info: {:?}", response);
 ```
 
 ### 查询当前 bucket 中的 object 列表
-```
+```ignore
 let response = client.get_object_list().unwrap();
 println!("objects list: {:?}", response);
 ```
 
 ### 上传文件
-```
+```ignore
 client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
 
 // 上传文件内容
@@ -60,7 +60,7 @@ client.put_content(&file_content, "examples/bg2015071010.png").expect("上传失
 ```
 
 ### 删除文件
-```
+```ignore
 client.delete_object("examples/bg2015071010.png").unwrap();
 
 ```
