@@ -13,9 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
-      - name: Install and Build
-        run:
-          cargo install
+      # - name: Install and Build
+      #   run:
+      #     cargo install
       
       - name: Publish to Crates.io
         uses: tu6ge/publish-action@master
