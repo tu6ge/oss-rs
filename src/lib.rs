@@ -130,7 +130,7 @@ pub fn client<'a>(access_key_id: &'a str, access_key_secret: &'a str, endpoint: 
 #[allow(soft_unstable)]
 #[cfg(test)]
 mod tests {
-  use test::Bencher;
+  // use test::Bencher;
 
   use std::{env, assert_matches::assert_matches};
   use super::*;
