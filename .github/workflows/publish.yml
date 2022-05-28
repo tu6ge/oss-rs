@@ -18,5 +18,4 @@ jobs:
           cargo install
       
       - name: Publish to Crates.io
-        uses: tu6ge/publish-action
-        
+        uses: tu6ge/publish-action@master
