@@ -1,0 +1,22 @@
+name: Publish to Cargo
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    name: 'publish'
+
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Install and Build
+        run:
+          cargo install
+      
+      - name: Publish to Crates.io
+        uses: tu6ge/publish-action
+        
