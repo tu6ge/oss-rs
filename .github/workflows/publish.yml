@@ -19,3 +19,5 @@ jobs:
       
       - name: Publish to Crates.io
         uses: tu6ge/publish-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
