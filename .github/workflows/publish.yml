@@ -16,7 +16,12 @@ jobs:
       - name: Install and Build
         run:
           cargo install publish-action
+      
+      - name: Run publish-action
+        run:
           publish-action
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       # - name: Publish to Crates.io
       #   uses: tu6ge/publish-action@master
