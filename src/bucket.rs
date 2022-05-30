@@ -1,6 +1,7 @@
 
 use crate::client::{Client, OssObject, Result};
 use crate::auth::VERB;
+use crate::errors::{OssResult,OssError};
 use chrono::prelude::*;
 use url::Url;
 
@@ -44,7 +45,7 @@ impl ListBuckets {
 
 impl OssObject for ListBuckets  {
 
-  fn from_xml(xml: String) -> Result<ListBuckets> {
+  fn from_xml(xml: String) -> OssResult<ListBuckets> {
     let mut result = Vec::new();
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
@@ -133,7 +134,9 @@ impl OssObject for ListBuckets  {
                 );
                 break;
             } // exits the loop when reaching end of file
-            Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+            Err(e) => {
+              return Err(OssError::Input(format!("Error at position {}: {:?}", reader.buffer_position(), e)))
+            },
             _ => (), // There are several other `Event`s we do not consider here
         }
         buf.clear();
@@ -190,7 +193,7 @@ impl Bucket {
 
 impl OssObject for Bucket {
 
-  fn from_xml(xml: String) -> Result<Self>{
+  fn from_xml(xml: String) -> OssResult<Self>{
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
     let mut buf = Vec::with_capacity(xml.len());
@@ -238,7 +241,9 @@ impl OssObject for Bucket {
             );
             break;
           } // exits the loop when reaching end of file
-          Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+          Err(e) => {
+            return Err(OssError::Input(format!("Error at position {}: {:?}", reader.buffer_position(), e)));
+          },
           _ => (), // There are several other `Event`s we do not consider here
       }
       buf.clear();
@@ -252,34 +257,34 @@ impl<'a> Client<'a> {
 
   /** # 获取 buiket 列表
   */
-  pub fn get_bucket_list(&self) -> Result<ListBuckets> {
+  pub fn get_bucket_list(&self) -> OssResult<ListBuckets> {
     let url = Url::parse(&self.endpoint).unwrap();
     //url.set_path(self.bucket)
 
-    let response = self.builder(VERB::GET, &url, None);
+    let response = self.builder(VERB::GET, &url, None)?;
     //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
-    let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+    let mut content = response.send()?;
 
     Client::handle_error(&mut content);
 
     // let abc = content.text().unwrap();
     // println!("response text: {}", abc);
     
-    ListBuckets::from_xml(content.text().unwrap())
+    ListBuckets::from_xml(content.text()?)
   }
 
-  pub fn get_bucket_info(&self) -> Result<Bucket> {
+  pub fn get_bucket_info(&self) -> OssResult<Bucket> {
     let headers = None;
     let mut bucket_url = self.get_bucket_url().unwrap();
     bucket_url.set_query(Some("bucketInfo"));
 
-    let response = self.builder(VERB::GET, &bucket_url, headers);
+    let response = self.builder(VERB::GET, &bucket_url, headers)?;
     //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
-    let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+    let mut content = response.send()?;
 
     Client::handle_error(&mut content);
 
-    Bucket::from_xml(content.text().unwrap())
+    Bucket::from_xml(content.text()?)
   }
 }
 

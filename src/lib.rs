@@ -83,6 +83,8 @@ pub mod object;
 /// # 对 reqwest 进行了简单的封装，加上了 OSS 的签名验证功能
 pub mod client;
 
+pub mod errors;
+
 #[cfg(test)]
 #[macro_use]
 extern crate assert_matches;

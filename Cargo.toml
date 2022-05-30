@@ -1,6 +1,6 @@
 [package]
 name = "aliyun-oss-client"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 resolver = "2"
 license = "MIT"
@@ -20,6 +20,7 @@ chrono = "0.4"
 quick-xml = "0.23.0"
 url = "2.2.2"
 infer = "0.8.0"
+thiserror = "1.0"
 
 [dev-dependencies]
 dotenv = "0.15.0"

@@ -6,6 +6,7 @@ use hmac::{Hmac, Mac};
 use base64::{encode};
 use reqwest::{Method};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+use crate::errors::OssResult;
 // use http::Method;
 
 #[derive(Clone)]
@@ -76,30 +77,30 @@ impl<'a> Auth<'a> {
   /// # 获取所有 header 信息
   /// 
   /// 包含 *公共 header*, *业务 header* 以及 **签名**
-  pub fn get_headers(&self) -> HeaderMap {
+  pub fn get_headers(&self) -> OssResult<HeaderMap> {
     let mut map= match self.headers.to_owned() {
       Some(v) => v,
       None => HeaderMap::new(),
     };
 
-    map.insert(self::to_name("AccessKeyId"), self::to_value(self.access_key_id));
-    map.insert(self::to_name("SecretAccessKey"), self::to_value(self.access_key_secret));
-    map.insert(self::to_name("VERB"), self.verb.0.to_string().parse().unwrap());
+    map.insert(self::to_name("AccessKeyId")?, self::to_value(self.access_key_id)?);
+    map.insert(self::to_name("SecretAccessKey")?, self::to_value(self.access_key_secret)?);
+    map.insert(self::to_name("VERB")?, self.verb.0.to_string().parse()?);
     if let Some(a) = self.content_md5 {
-      map.insert(self::to_name("Content-MD5"),self::to_value(a));
+      map.insert(self::to_name("Content-MD5")?,self::to_value(a)?);
     }
     if let Some(a) = &self.content_type {
-      map.insert(self::to_name("Content-Type"),a.parse().unwrap());
+      map.insert(self::to_name("Content-Type")?,a.parse()?);
     }
-    map.insert(self::to_name("Date"),self::to_value(self.date));
-    map.insert(self::to_name("CanonicalizedResource"), self::to_value(self.canonicalized_resource));
+    map.insert(self::to_name("Date")?,self::to_value(self.date)?);
+    map.insert(self::to_name("CanonicalizedResource")?, self::to_value(self.canonicalized_resource)?);
 
     let sign = self.sign();
     let sign = format!("OSS {}:{}", self.access_key_id, &sign);
-    map.insert(self::to_name("Authorization"), sign.parse().unwrap());
+    map.insert(self::to_name("Authorization")?, sign.parse()?);
 
     //println!("header list: {:?}",map);
-    map
+    Ok(map)
   }
 
   /// # 业务 header
@@ -169,10 +170,10 @@ impl<'a> Auth<'a> {
 }
 
 
-pub fn to_name(name: &str) -> HeaderName{
-  HeaderName::from_bytes(name.as_bytes()).unwrap()
+pub fn to_name(name: &str) -> OssResult<HeaderName>{
+  Ok(HeaderName::from_bytes(name.as_bytes())?)
 }
 
-pub fn to_value(value: &str) -> HeaderValue{
-  value.parse().unwrap()
+pub fn to_value(value: &str) -> OssResult<HeaderValue>{
+  Ok(value.parse()?)
 }

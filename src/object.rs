@@ -1,12 +1,9 @@
-use reqwest::Url;
 use chrono::prelude::*;
 use quick_xml::{events::Event, Reader};
-use std::collections::HashMap;
-use std::fs::File;
 use std::io::Read;
-use std::str::FromStr;
 use reqwest::header::{HeaderMap,HeaderValue};
 
+use crate::errors::{OssResult,OssError};
 use crate::client::{Client, OssObject, Result};
 use crate::auth::{self, VERB};
 
@@ -33,7 +30,7 @@ impl ObjectList {
 
 impl OssObject for ObjectList {
   
-  fn from_xml(xml: String) -> Result<ObjectList> {
+  fn from_xml(xml: String) -> OssResult<ObjectList> {
     let mut result = Vec::new();
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
@@ -117,7 +114,9 @@ impl OssObject for ObjectList {
               );
               break;
           } // exits the loop when reaching end of file
-          Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+          Err(e) => {
+            return Err(OssError::Input(format!("Error at position {}: {:?}", reader.buffer_position(), e)));
+          },
           _ => (), // There are several other `Event`s we do not consider here
       }
       buf.clear();
@@ -162,29 +161,28 @@ impl <'a> Client<'a> {
 
   /// # 获取存储对象列表
   /// 使用的 v2 版本 API
-  pub fn get_object_list(&self) -> Result<ObjectList>{
+  pub fn get_object_list(&self) -> OssResult<ObjectList>{
 
     let mut url = self.get_bucket_url().unwrap();
     url.set_query(Some("list-type=2"));
 
-    let response = self.builder(VERB::GET, &url, None);
+    let response = self.builder(VERB::GET, &url, None)?;
     //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
-    let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+    let mut content = response.send()?;
 
     Client::handle_error(&mut content);
     //println!("get_bucket_list: {}", content.text().unwrap());
 
-    ObjectList::from_xml(content.text().unwrap())
+    ObjectList::from_xml(content.text()?)
   }
 
   /// # 上传文件到 OSS 中
   /// 
   /// 提供有效的文件路径即可
-  pub fn put_file(&self, file_name: &'a str, key: &'a str) -> Result<String> {
+  pub fn put_file(&self, file_name: &'a str, key: &'a str) -> OssResult<String> {
     let mut file_content = Vec::new();
-    std::fs::File::open(file_name)
-      .expect("open file failed").read_to_end(&mut file_content)
-      .expect("read_to_end failed");
+    std::fs::File::open(file_name)?
+      .read_to_end(&mut file_content)?;
 
     self.put_content(&file_content, key)
   }
@@ -194,20 +192,20 @@ impl <'a> Client<'a> {
   /// 需要事先读取文件内容到 `Vec<u8>` 中
   /// 
   /// 并提供存储的 key 
-  pub fn put_content(&self, content: &Vec<u8>, key: &str) -> Result<String>{
+  pub fn put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
     let mime_type = infer::get(content)
       .expect("file read successfully")
       .mime_type();
 
-    let mut url = self.get_bucket_url().unwrap();
+    let mut url = self.get_bucket_url()?;
     url.set_path(key);
 
     let mut headers = HeaderMap::new();
     let content_length = content.len().to_string();
-    headers.insert("Content-Length", HeaderValue::from_str(&content_length).unwrap());
+    headers.insert("Content-Length", HeaderValue::from_str(&content_length)?);
 
-    headers.insert(auth::to_name("Content-Type"), mime_type.parse().unwrap());
-    let response = self.builder(VERB::PUT, &url, Some(headers))
+    headers.insert(auth::to_name("Content-Type")?, mime_type.parse()?);
+    let response = self.builder(VERB::PUT, &url, Some(headers))?
       .body(content.clone());
 
     let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
@@ -218,19 +216,21 @@ impl <'a> Client<'a> {
 
     Client::handle_error(&mut content);
 
-    let result = content.headers().get("ETag").unwrap().to_str().unwrap();
+    let result = content.headers().get("ETag")
+      .ok_or(OssError::Input("get Etag error".to_string()))?
+      .to_str()?;
 
     Ok(result.to_string())
   }
 
   /// # 删除文件
-  pub fn delete_object(&self, key: &str) -> Result<()>{
-    let mut url = self.get_bucket_url().unwrap();
+  pub fn delete_object(&self, key: &str) -> OssResult<()>{
+    let mut url = self.get_bucket_url()?;
     url.set_path(key);
 
-    let response = self.builder(VERB::DELETE, &url, None);
+    let response = self.builder(VERB::DELETE, &url, None)?;
 
-    let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
+    let mut content = response.send()?;
 
     // let text = content.text().unwrap().clone();
     // println!("{}", text);

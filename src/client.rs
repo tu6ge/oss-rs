@@ -4,11 +4,12 @@
 use std::error::Error;
 
 use reqwest::blocking::{self,RequestBuilder,Response};
-use reqwest::header::{HeaderMap,HeaderValue};
+use reqwest::header::{HeaderMap};
 
 use crate::auth::{Auth,VERB};
 use chrono::prelude::*;
 use url::Url;
+use crate::errors::{OssResult,OssError};
 
 /// # 构造请求的客户端结构体
 pub struct Client<'a>{
@@ -70,12 +71,13 @@ impl<'a> Client<'a> {
     }
   }
 
-  pub fn get_bucket_url(&self) -> Result<Url>{
-    let mut url = Url::parse(self.endpoint).ok().expect("Invalid endpoint");
+  pub fn get_bucket_url(&self) -> OssResult<Url>{
+    let mut url = Url::parse(self.endpoint)?;
     
-    let bucket_url = self.bucket.to_string() + "." + &url.host().unwrap().to_string();
+    let bucket_url = self.bucket.to_string() + "."
+       + &url.host().ok_or(OssError::Input("parse host faied".to_string()))?.to_string();
 
-    url.set_host(Some(&bucket_url)).expect("get bucket url failed");
+    url.set_host(Some(&bucket_url))?;
     
     Ok(url)
   }
@@ -97,7 +99,7 @@ impl<'a> Client<'a> {
   /// 
   /// 返回后，可以再加请求参数，然后可选的进行发起请求
   /// 
-  pub fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>) -> RequestBuilder{
+  pub fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>) -> OssResult<RequestBuilder>{
     let client = blocking::Client::new();
 
     let auth = Auth{
@@ -117,25 +119,35 @@ impl<'a> Client<'a> {
       headers: headers,
     };
 
-    let all_headers: HeaderMap = auth.get_headers();
+    let all_headers: HeaderMap = auth.get_headers()?;
 
-    client.request(method.0, url.to_string())
-      .headers(all_headers)
+    Ok(client.request(method.0, url.to_string())
+      .headers(all_headers))
   }
 
   /// # 错误处理
   /// 如果请求接口没有返回 200 状态，则触发 panic 
   /// 
   /// 并打印状态码和 x-oss-request-id
-  pub fn handle_error(response: &mut Response)
+  pub fn handle_error(response: &mut Response) -> OssResult<()>
   {
     let status = response.status();
     
     if status != 200 && status != 204{
       let headers = response.headers();
       let request_id = headers.get("x-oss-request-id").unwrap().to_str().unwrap();
-      panic!("aliyun response error, http status: {}, x-oss-request-id: {}, content", status, request_id);
+      return Err(
+        OssError::Input(
+          format!(
+            "aliyun response error, http status: {}, x-oss-request-id: {}, content",
+            status,
+            request_id
+          )
+        )
+      );
     }
+
+    Ok(())
   }
 
   #[inline]
@@ -152,7 +164,7 @@ impl<'a> Client<'a> {
 pub trait OssObject {
 
   /// # 将 xml 转换成 OSS 结构体的接口
-  fn from_xml(xml: String) -> Result<Self> where Self: Sized;
+  fn from_xml(xml: String) -> OssResult<Self> where Self: Sized;
 }
 
 
