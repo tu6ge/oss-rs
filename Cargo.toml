@@ -1,6 +1,6 @@
 [package]
 name = "aliyun-oss-client"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 resolver = "2"
 license = "MIT"
@@ -17,9 +17,10 @@ sha1 = "0.10.1"
 base64 = "0.13.0"
 reqwest = {version ="0.11.10", features= ["blocking"]}
 chrono = "0.4"
-quick-xml = "0.22.0"
+quick-xml = "0.23.0"
 url = "2.2.2"
 infer = "0.8.0"
 
 [dev-dependencies]
 dotenv = "0.15.0"
+assert_matches = "1.5.0"

@@ -67,9 +67,6 @@ client.delete_object("examples/bg2015071010.png").unwrap();
  * 
  */
 
-// #![feature(test,assert_matches)]
-// extern crate test;
-
 
 /// # 验证模块
 /// 包含了签名验证的一些方法，header 以及参数的封装
@@ -85,6 +82,14 @@ pub mod object;
 
 /// # 对 reqwest 进行了简单的封装，加上了 OSS 的签名验证功能
 pub mod client;
+
+#[cfg(test)]
+#[macro_use]
+extern crate assert_matches;
+
+#[allow(soft_unstable)]
+#[cfg(test)]
+mod tests;
 
 /** # 主要入口
 
@@ -127,100 +132,3 @@ pub fn client<'a>(access_key_id: &'a str, access_key_secret: &'a str, endpoint: 
   client::Client::new(access_key_id,access_key_secret, endpoint, bucket)
 }
 
-
-#[allow(soft_unstable)]
-#[cfg(test)]
-mod tests {
-  // use test::Bencher;
-
-  use std::{env, assert_matches::assert_matches};
-  use super::*;
-  extern crate dotenv;
-  use dotenv::dotenv;
-  
-
-  #[test]
-  fn test_get_bucket_list(){
-    dotenv().ok();
-
-    let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-    let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-    let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
-    let bucket      = env::var("ALIYUN_BUCKET").unwrap();
-
-    let client = client(&key_id,&key_secret, &endpoint, &bucket);
-
-    let bucket_list = client.get_bucket_list();
-
-    assert_matches!(bucket_list, Ok(_));
-  }
-
-  #[test]
-  fn test_get_bucket_info(){
-    dotenv().ok();
-
-    let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-    let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-    let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
-    let bucket      = env::var("ALIYUN_BUCKET").unwrap();
-
-    let client = client(&key_id,&key_secret, &endpoint, &bucket);
-
-    let bucket_list = client.get_bucket_info();
-
-    assert_matches!(bucket_list, Ok(_));
-  }
-
-
-  #[test]
-  fn test_get_object() {
-    dotenv().ok();
-
-    let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-    let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-    let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
-    let bucket      = env::var("ALIYUN_BUCKET").unwrap();
-
-    let client = client(&key_id,&key_secret, &endpoint, &bucket);
-
-    let object_list = client.get_object_list();
-
-    assert_matches!(object_list, Ok(_));
-  }
-
-  #[test]
-  fn test_put_and_delete_file(){
-    dotenv().ok();
-
-    let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-    let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-    let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
-    let bucket      = env::var("ALIYUN_BUCKET").unwrap();
-
-    let client = client(&key_id,&key_secret, &endpoint, &bucket);
-
-    let object_list = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
-
-    assert_matches!(object_list, Ok(_));
-
-    let result = client.delete_object("examples/bg2015071010.png");
-
-    assert_matches!(result, Ok(_));
-  }
-
-  // #[bench]
-  // fn bench_get_object(b: &mut Bencher){
-  //   dotenv().ok();
-
-  //   let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-  //   let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-  //   let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
-  //   let bucket      = env::var("ALIYUN_BUCKET").unwrap();
-
-  //   let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
-  //   b.iter(|| {
-  //     client.get_object_list();
-  //   });
-  // }
-
-}
