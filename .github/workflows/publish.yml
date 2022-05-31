@@ -28,7 +28,6 @@ jobs:
       - name: Install cargo-local-install
         run:
           cargo install cargo-local-install --no-default-features
-          cargo install publish-action
 
       - name: Install publish-action
         run:
