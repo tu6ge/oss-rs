@@ -29,13 +29,18 @@ jobs:
         run:
           cargo install cargo-local-install
 
+      - name: Set PATH
+        run: |
+          mkdir -p ~/publish-action/bin
+          source PATH:$PATH:/home/runner/publish-action/bin
+
       - name: Install publish-action
         run:
           cargo local-install --locked publish-action --root ~/publish-action
       
       - name: Run publish-action
         run:
-          ./home/runner/publish-action/bin/publish-action
+          publish-action
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
