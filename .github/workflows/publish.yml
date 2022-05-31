@@ -15,19 +15,19 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
-      # - name: Install and Build
-      #   run:
-      #     cargo install publish-action
+      - name: Install and Build
+        run:
+          cargo install publish-action
       
-      # - name: Run publish-action
-      #   run:
-      #     publish-action
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      
-      - name: Publish to Crates.io
-        uses: tu6ge/publish-action@master
+      - name: Run publish-action
+        run:
+          publish-action
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      
+      # - name: Publish to Crates.io
+      #   uses: tu6ge/publish-action@master
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
