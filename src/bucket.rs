@@ -1,5 +1,5 @@
 
-use crate::client::{Client, OssObject, Result};
+use crate::client::{Client, OssObject};
 use crate::auth::VERB;
 use crate::errors::{OssResult,OssError};
 use chrono::prelude::*;

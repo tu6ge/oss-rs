@@ -4,7 +4,7 @@ use std::io::Read;
 use reqwest::header::{HeaderMap,HeaderValue};
 
 use crate::errors::{OssResult,OssError};
-use crate::client::{Client, OssObject, Result};
+use crate::client::{Client, OssObject};
 use crate::auth::{self, VERB};
 
 #[derive(Clone, Debug)]

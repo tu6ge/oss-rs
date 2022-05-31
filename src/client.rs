@@ -109,8 +109,13 @@ impl<'a> Client<'a> {
       date: &self.date(),
       content_type: match &headers {
         Some(head) => {
-          let value  = head.get("Content-Type").unwrap();
-          Some(value.to_str().unwrap().to_string())
+          let value  = head.get("Content-Type");
+          match value {
+            Some(val) => {
+              Some(val.to_str()?.to_string())
+            },
+            None => None
+          }
         },
         None => None,
       },
