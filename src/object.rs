@@ -106,8 +106,8 @@ impl OssObject for ObjectList {
           }
           Ok(Event::Eof) => {
               list_object = ObjectList::new(
-                  Client::string2option(name).unwrap(),
-                  Client::string2option(prefix).unwrap_or("".to_owned()),
+                  Client::string2option(name).ok_or(OssError::Input("get name failed by xml".to_string()))?,
+                  prefix,
                   max_keys,
                   key_count,
                   result,
@@ -163,15 +163,13 @@ impl <'a> Client<'a> {
   /// 使用的 v2 版本 API
   pub fn get_object_list(&self) -> OssResult<ObjectList>{
 
-    let mut url = self.get_bucket_url().unwrap();
+    let mut url = self.get_bucket_url()?;
     url.set_query(Some("list-type=2"));
 
     let response = self.builder(VERB::GET, &url, None)?;
-    //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
     let mut content = response.send()?;
 
-    Client::handle_error(&mut content);
-    //println!("get_bucket_list: {}", content.text().unwrap());
+    Client::handle_error(&mut content)?;
 
     ObjectList::from_xml(content.text()?)
   }
@@ -214,7 +212,7 @@ impl <'a> Client<'a> {
     // println!("{}", text);
     // return Ok(text);
 
-    Client::handle_error(&mut content);
+    Client::handle_error(&mut content)?;
 
     let result = content.headers().get("ETag")
       .ok_or(OssError::Input("get Etag error".to_string()))?
@@ -232,11 +230,7 @@ impl <'a> Client<'a> {
 
     let mut content = response.send()?;
 
-    // let text = content.text().unwrap().clone();
-    // println!("{}", text);
-    // return Ok(text);
-
-    Client::handle_error(&mut content);
+    Client::handle_error(&mut content)?;
     
     Ok(())
   }

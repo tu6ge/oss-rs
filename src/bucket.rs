@@ -258,31 +258,26 @@ impl<'a> Client<'a> {
   /** # 获取 buiket 列表
   */
   pub fn get_bucket_list(&self) -> OssResult<ListBuckets> {
-    let url = Url::parse(&self.endpoint).unwrap();
+    let url = Url::parse(&self.endpoint)?;
     //url.set_path(self.bucket)
 
     let response = self.builder(VERB::GET, &url, None)?;
-    //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
     let mut content = response.send()?;
 
-    Client::handle_error(&mut content);
-
-    // let abc = content.text().unwrap();
-    // println!("response text: {}", abc);
+    Client::handle_error(&mut content)?;
     
     ListBuckets::from_xml(content.text()?)
   }
 
   pub fn get_bucket_info(&self) -> OssResult<Bucket> {
     let headers = None;
-    let mut bucket_url = self.get_bucket_url().unwrap();
+    let mut bucket_url = self.get_bucket_url()?;
     bucket_url.set_query(Some("bucketInfo"));
 
     let response = self.builder(VERB::GET, &bucket_url, headers)?;
-    //println!("get_bucket_list {}", response.send().unwrap().text().unwrap());
     let mut content = response.send()?;
 
-    Client::handle_error(&mut content);
+    Client::handle_error(&mut content)?;
 
     Bucket::from_xml(content.text()?)
   }

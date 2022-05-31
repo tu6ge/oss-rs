@@ -135,7 +135,9 @@ impl<'a> Client<'a> {
     
     if status != 200 && status != 204{
       let headers = response.headers();
-      let request_id = headers.get("x-oss-request-id").unwrap().to_str().unwrap();
+      let request_id = headers.get("x-oss-request-id")
+        .ok_or(OssError::Input("get x-oss-request-id failed".to_string()))?
+        .to_str()?;
       return Err(
         OssError::Input(
           format!(
