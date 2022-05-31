@@ -130,33 +130,6 @@ impl<'a> Client<'a> {
       .headers(all_headers))
   }
 
-  /// # 错误处理
-  /// 如果请求接口没有返回 200 状态，则触发 panic 
-  /// 
-  /// 并打印状态码和 x-oss-request-id
-  pub fn handle_error(response: &mut Response) -> OssResult<()>
-  {
-    let status = response.status();
-    
-    if status != 200 && status != 204{
-      let headers = response.headers();
-      let request_id = headers.get("x-oss-request-id")
-        .ok_or(OssError::Input("get x-oss-request-id failed".to_string()))?
-        .to_str()?;
-      return Err(
-        OssError::Input(
-          format!(
-            "aliyun response error, http status: {}, x-oss-request-id: {}, content",
-            status,
-            request_id
-          )
-        )
-      );
-    }
-
-    Ok(())
-  }
-
   #[inline]
   pub fn string2option(string: String) -> Option<String> {
     if string.len() == 0 {
@@ -174,6 +147,35 @@ pub trait OssObject {
   fn from_xml(xml: String) -> OssResult<Self> where Self: Sized;
 }
 
-
-
 pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
+
+pub trait ReqeustHandler {
+  fn handle_error(self) -> OssResult<Response>;
+}
+
+impl ReqeustHandler for Response {
+
+  /// # 收集并处理 OSS 接口返回的错误
+  fn handle_error(self) -> OssResult<Response>
+  {
+    let status = self.status();
+    
+    if status != 200 && status != 204{
+      let headers = self.headers();
+      let request_id = headers.get("x-oss-request-id")
+        .ok_or(OssError::Input("get x-oss-request-id failed".to_string()))?
+        .to_str()?;
+      return Err(
+        OssError::Input(
+          format!(
+            "aliyun response error, http status: {}, x-oss-request-id: {}, content",
+            status,
+            request_id
+          )
+        )
+      );
+    }
+
+    Ok(self)
+  }
+}

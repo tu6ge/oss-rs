@@ -4,7 +4,7 @@ use std::io::Read;
 use reqwest::header::{HeaderMap,HeaderValue};
 
 use crate::errors::{OssResult,OssError};
-use crate::client::{Client, OssObject};
+use crate::client::{Client, OssObject, ReqeustHandler};
 use crate::auth::{self, VERB};
 
 #[derive(Clone, Debug)]
@@ -167,9 +167,7 @@ impl <'a> Client<'a> {
     url.set_query(Some("list-type=2"));
 
     let response = self.builder(VERB::GET, &url, None)?;
-    let mut content = response.send()?;
-
-    Client::handle_error(&mut content)?;
+    let content = response.send()?.handle_error()?;
 
     ObjectList::from_xml(content.text()?)
   }
@@ -206,13 +204,7 @@ impl <'a> Client<'a> {
     let response = self.builder(VERB::PUT, &url, Some(headers))?
       .body(content.clone());
 
-    let mut content = response.send().expect(Client::ERROR_REQUEST_ALIYUN_API);
-
-    // let text = content.text().unwrap().clone();
-    // println!("{}", text);
-    // return Ok(text);
-
-    Client::handle_error(&mut content)?;
+    let content = response.send()?.handle_error()?;
 
     let result = content.headers().get("ETag")
       .ok_or(OssError::Input("get Etag error".to_string()))?
@@ -228,9 +220,7 @@ impl <'a> Client<'a> {
 
     let response = self.builder(VERB::DELETE, &url, None)?;
 
-    let mut content = response.send()?;
-
-    Client::handle_error(&mut content)?;
+    response.send()?.handle_error()?;
     
     Ok(())
   }

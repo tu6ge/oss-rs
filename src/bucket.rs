@@ -1,5 +1,5 @@
 
-use crate::client::{Client, OssObject};
+use crate::client::{Client, OssObject, ReqeustHandler};
 use crate::auth::VERB;
 use crate::errors::{OssResult,OssError};
 use chrono::prelude::*;
@@ -262,9 +262,7 @@ impl<'a> Client<'a> {
     //url.set_path(self.bucket)
 
     let response = self.builder(VERB::GET, &url, None)?;
-    let mut content = response.send()?;
-
-    Client::handle_error(&mut content)?;
+    let content = response.send()?.handle_error()?;
     
     ListBuckets::from_xml(content.text()?)
   }
@@ -275,9 +273,7 @@ impl<'a> Client<'a> {
     bucket_url.set_query(Some("bucketInfo"));
 
     let response = self.builder(VERB::GET, &bucket_url, headers)?;
-    let mut content = response.send()?;
-
-    Client::handle_error(&mut content)?;
+    let content = response.send()?.handle_error()?;
 
     Bucket::from_xml(content.text()?)
   }
