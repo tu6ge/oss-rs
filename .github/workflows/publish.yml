@@ -32,7 +32,7 @@ jobs:
       - name: Set PATH
         run: |
           mkdir -p ~/publish-action/bin
-          source PATH:$PATH:/home/runner/publish-action/bin
+          source PATH="$PATH:/home/runner/publish-action/bin"
 
       - name: Install publish-action
         run:
