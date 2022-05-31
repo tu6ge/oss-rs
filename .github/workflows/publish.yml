@@ -15,9 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
-      - name: Install and Build
-        run:
-          cargo install publish-action
+      # - name: Install and Build
+      #   run:
+      #     cargo install publish-action
       
       # - name: Run publish-action
       #   run:
