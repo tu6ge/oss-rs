@@ -1,5 +1,6 @@
 use chrono::prelude::*;
 use quick_xml::{events::Event, Reader};
+use std::collections::HashMap;
 use std::io::Read;
 use reqwest::header::{HeaderMap,HeaderValue};
 
@@ -177,10 +178,23 @@ impl <'a> Client<'a> {
 
   /// # 获取存储对象列表
   /// 使用的 v2 版本 API
-  pub fn get_object_list(&self) -> OssResult<ObjectList>{
+  /// query 参数请参考 OSS 文档，注意 `list-type` 参数已固定为 `2` ，无需传
+  /// 
+  /// [OSS 文档](https://help.aliyun.com/document_detail/187544.html)
+  pub fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
 
     let mut url = self.get_bucket_url()?;
-    url.set_query(Some("list-type=2"));
+
+    let mut query_str = String::new();
+    for (key,value) in query.iter() {
+      query_str += "&";
+      query_str += key;
+      query_str += "=";
+      query_str += value;
+    }
+    let query_str = "list-type=2".to_owned() + &query_str;
+
+    url.set_query(Some(&query_str));
 
     let response = self.builder(VERB::GET, &url, None)?;
     let content = response.send()?.handle_error()?;

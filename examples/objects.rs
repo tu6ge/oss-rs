@@ -4,7 +4,7 @@ use aliyun_oss_client::client;
 extern crate dotenv;
 
 use dotenv::dotenv;
-use std::env;
+use std::{env, collections::HashMap};
 
 fn main() {
     dotenv().ok();
@@ -16,6 +16,9 @@ fn main() {
 
     let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
     //let headers = None;
-    let response = client.get_object_list().unwrap();
+    let mut query:HashMap<String,String> = HashMap::new();
+    query.insert("max-keys".to_string(), "5".to_string());
+    query.insert("prefix".to_string(), "babel".to_string());
+    let response = client.get_object_list(query).unwrap();
     println!("objects list: {:?}", response);
 }
