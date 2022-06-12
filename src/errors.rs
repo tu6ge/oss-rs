@@ -38,6 +38,9 @@ pub enum OssError{
 
   #[error("ToStrError: {0}")]
   ToStrError(#[from] reqwest::header::ToStrError),
+
+  #[error(transparent)]
+  Other(#[from] anyhow::Error),
 }
 
 pub type OssResult<T> = Result<T,OssError>;

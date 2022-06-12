@@ -3,9 +3,11 @@ use quick_xml::{events::Event, Reader};
 use std::io::Read;
 use reqwest::header::{HeaderMap,HeaderValue};
 
-use crate::errors::{OssResult,OssError};
+use crate::errors::{OssResult,OssError, self};
 use crate::client::{Client, OssObject, ReqeustHandler};
 use crate::auth::{self, VERB};
+#[macro_use]
+use anyhow::anyhow;
 
 #[derive(Clone, Debug)]
 pub struct ObjectList {
@@ -14,16 +16,25 @@ pub struct ObjectList {
   pub max_keys: u32,
   pub key_count: u64,
   pub object_list: Vec<Object>,
+  pub next_continuation_token: Option<String>,
 }
 
 impl ObjectList {
-  pub fn new(name: String, prefix: String, max_keys: u32, key_count: u64, object_list: Vec<Object>) ->Self {
+  pub fn new(
+    name: String,
+    prefix: String,
+    max_keys: u32,
+    key_count: u64,
+    object_list: Vec<Object>,
+    next_continuation_token: Option<String>
+  ) ->Self {
     ObjectList {
       name,
       prefix,
       max_keys,
       key_count,
-      object_list
+      object_list,
+      next_continuation_token,
     }
   }
 }
@@ -49,6 +60,7 @@ impl OssObject for ObjectList {
     let mut prefix = String::new();
     let mut max_keys: u32 = 0;
     let mut key_count: u64 = 0;
+    let mut next_continuation_token: Option<String> = None;
 
     let list_object;
 
@@ -65,6 +77,9 @@ impl OssObject for ObjectList {
               },
               b"IsTruncated" => {
                 //is_truncated = reader.read_text(e.name(), &mut skip_buf)? == "true"
+              }
+              b"NextContinuationToken" => {
+                next_continuation_token = Some(reader.read_text(e.name(), &mut skip_buf)?);
               }
               b"Contents" => {
                 key.clear();
@@ -111,6 +126,7 @@ impl OssObject for ObjectList {
                   max_keys,
                   key_count,
                   result,
+                  next_continuation_token,
               );
               break;
           } // exits the loop when reaching end of file
@@ -168,6 +184,9 @@ impl <'a> Client<'a> {
 
     let response = self.builder(VERB::GET, &url, None)?;
     let content = response.send()?.handle_error()?;
+
+    // println!("{}", &content.text()?);
+    // return Err(errors::OssError::Other(anyhow!("abc")));
 
     ObjectList::from_xml(content.text()?)
   }
