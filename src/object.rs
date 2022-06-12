@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use reqwest::header::{HeaderMap,HeaderValue};
 
-use crate::errors::{OssResult,OssError, self};
+use crate::errors::{OssResult,OssError};
 use crate::client::{Client, OssObject, ReqeustHandler};
 use crate::auth::{self, VERB};
 
