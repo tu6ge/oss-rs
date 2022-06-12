@@ -1,5 +1,5 @@
 
-use std::env;
+use std::{env, collections::HashMap};
 use super::*;
 use dotenv::dotenv;
 
@@ -47,8 +47,9 @@ fn test_get_object() {
   let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
+  let query: HashMap<String,String> = HashMap::new();
 
-  let object_list = client.get_object_list();
+  let object_list = client.get_object_list(query);
 
   assert_matches!(object_list, Ok(_));
 }
