@@ -95,7 +95,7 @@ impl<'a> Auth<'a> {
     map.insert(self::to_name("Date")?,self::to_value(self.date)?);
     map.insert(self::to_name("CanonicalizedResource")?, self::to_value(self.canonicalized_resource)?);
 
-    let sign = self.sign();
+    let sign = self.sign()?;
     let sign = format!("OSS {}:{}", self.access_key_id, &sign);
     map.insert(self::to_name("Authorization")?, sign.parse()?);
 
@@ -114,7 +114,7 @@ impl<'a> Auth<'a> {
   }
 
   /// 计算签名
-  pub fn sign(&self) -> String {
+  pub fn sign(&self) -> OssResult<String> {
     let method = self.verb.0.to_string();
     let mut content = String::new();
 
@@ -157,14 +157,13 @@ impl<'a> Auth<'a> {
     let secret = self.access_key_secret.as_bytes();
     let str_u8 = str.as_bytes();
     
-    let mut mac = HmacSha1::new_from_slice(secret)
-    .expect("HMAC can take key of any size");
+    let mut mac = HmacSha1::new_from_slice(secret)?;
 
     mac.update(str_u8);
 
     let sha1 = mac.finalize().into_bytes();
 
-    encode(sha1)
+    Ok(encode(sha1))
   }
 
 }

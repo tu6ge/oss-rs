@@ -223,9 +223,16 @@ impl <'a> Client<'a> {
   /// 
   /// 并提供存储的 key 
   pub fn put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
-    let mime_type = infer::get(content)
-      .expect("file read successfully")
-      .mime_type();
+    let kind = infer::get(content);
+
+    let con = match kind {
+      Some(con) => {
+        Ok(con)
+      },
+      None => Err(OssError::Input("file type is known".to_string()))
+    };
+
+    let mime_type = con?.mime_type();
 
     let mut url = self.get_bucket_url()?;
     url.set_path(key);

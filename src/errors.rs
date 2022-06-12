@@ -1,3 +1,4 @@
+use hmac::digest::crypto_common;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -38,6 +39,9 @@ pub enum OssError{
 
   #[error("ToStrError: {0}")]
   ToStrError(#[from] reqwest::header::ToStrError),
+
+  #[error("hmac InvalidLength: {0}")]
+  InvalidLength(#[from] crypto_common::InvalidLength),
 
   #[error(transparent)]
   Other(#[from] anyhow::Error),
