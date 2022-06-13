@@ -15,31 +15,23 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
-      - name: Cache node modules
-        id: cache-npm
+      # v0.1.11 目前版本
+      - name: Cache publish-action bin
+        id: cache-publish-action
         uses: actions/cache@v3
         env:
           cache-name: cache-publish-action
         with:
-          # npm cache files are stored in `~/.npm` on Linux/macOS
-          path: ~/publish-action
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
-
-      - name: Install cargo-local-install
-        run:
-          cargo install cargo-local-install
-
-      - name: Set PATH
-        run: |
-          mkdir -p ~/publish-action/bin
-          source PATH="$PATH:/home/runner/publish-action/bin"
+          path: ~/.cargo
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-v0.1.12
 
       - name: Install publish-action
+        if: steps.cache-publish-action.outputs.cache-hit != 'true'
         run:
-          cargo local-install --locked publish-action --root ~/publish-action
+          cargo install publish-action --version=0.1.12
       
       - name: Run publish-action
-        run:
+        run: 
           publish-action
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

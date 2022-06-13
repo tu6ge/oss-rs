@@ -1,11 +1,15 @@
 use chrono::prelude::*;
 use quick_xml::{events::Event, Reader};
+use std::collections::HashMap;
 use std::io::Read;
 use reqwest::header::{HeaderMap,HeaderValue};
 
 use crate::errors::{OssResult,OssError};
 use crate::client::{Client, OssObject, ReqeustHandler};
 use crate::auth::{self, VERB};
+
+#[macro_use]
+use anyhow::anyhow;
 
 #[derive(Clone, Debug)]
 pub struct ObjectList {
@@ -14,16 +18,25 @@ pub struct ObjectList {
   pub max_keys: u32,
   pub key_count: u64,
   pub object_list: Vec<Object>,
+  pub next_continuation_token: Option<String>,
 }
 
 impl ObjectList {
-  pub fn new(name: String, prefix: String, max_keys: u32, key_count: u64, object_list: Vec<Object>) ->Self {
+  pub fn new(
+    name: String,
+    prefix: String,
+    max_keys: u32,
+    key_count: u64,
+    object_list: Vec<Object>,
+    next_continuation_token: Option<String>
+  ) ->Self {
     ObjectList {
       name,
       prefix,
       max_keys,
       key_count,
-      object_list
+      object_list,
+      next_continuation_token,
     }
   }
 }
@@ -49,6 +62,7 @@ impl OssObject for ObjectList {
     let mut prefix = String::new();
     let mut max_keys: u32 = 0;
     let mut key_count: u64 = 0;
+    let mut next_continuation_token: Option<String> = None;
 
     let list_object;
 
@@ -65,6 +79,9 @@ impl OssObject for ObjectList {
               },
               b"IsTruncated" => {
                 //is_truncated = reader.read_text(e.name(), &mut skip_buf)? == "true"
+              }
+              b"NextContinuationToken" => {
+                next_continuation_token = Some(reader.read_text(e.name(), &mut skip_buf)?);
               }
               b"Contents" => {
                 key.clear();
@@ -111,6 +128,7 @@ impl OssObject for ObjectList {
                   max_keys,
                   key_count,
                   result,
+                  next_continuation_token,
               );
               break;
           } // exits the loop when reaching end of file
@@ -161,13 +179,29 @@ impl <'a> Client<'a> {
 
   /// # 获取存储对象列表
   /// 使用的 v2 版本 API
-  pub fn get_object_list(&self) -> OssResult<ObjectList>{
+  /// query 参数请参考 OSS 文档，注意 `list-type` 参数已固定为 `2` ，无需传
+  /// 
+  /// [OSS 文档](https://help.aliyun.com/document_detail/187544.html)
+  pub fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
 
     let mut url = self.get_bucket_url()?;
-    url.set_query(Some("list-type=2"));
+
+    let mut query_str = String::new();
+    for (key,value) in query.iter() {
+      query_str += "&";
+      query_str += key;
+      query_str += "=";
+      query_str += value;
+    }
+    let query_str = "list-type=2".to_owned() + &query_str;
+
+    url.set_query(Some(&query_str));
 
     let response = self.builder(VERB::GET, &url, None)?;
     let content = response.send()?.handle_error()?;
+
+    // println!("{}", &content.text()?);
+    // return Err(errors::OssError::Other(anyhow!("abc")));
 
     ObjectList::from_xml(content.text()?)
   }
@@ -189,9 +223,16 @@ impl <'a> Client<'a> {
   /// 
   /// 并提供存储的 key 
   pub fn put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
-    let mime_type = infer::get(content)
-      .expect("file read successfully")
-      .mime_type();
+    let kind = infer::get(content);
+
+    let con = match kind {
+      Some(con) => {
+        Ok(con)
+      },
+      None => Err(OssError::Input("file type is known".to_string()))
+    };
+
+    let mime_type = con?.mime_type();
 
     let mut url = self.get_bucket_url()?;
     url.set_path(key);

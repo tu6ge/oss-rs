@@ -46,7 +46,8 @@ println!("bucket info: {:?}", response);
 
 ### 查询当前 bucket 中的 object 列表
 ```
-let response = client.get_object_list().unwrap();
+let query: HashMap<String,String> = HashMap::new();
+let response = client.get_object_list(query).unwrap();
 println!("objects list: {:?}", response);
 ```
 
