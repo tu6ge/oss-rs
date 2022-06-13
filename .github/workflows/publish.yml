@@ -66,13 +66,13 @@ jobs:
           command: install
           args: cargo-tarpaulin
 
-      - name: Run cargo tarpaulin
-        uses: actions-rs/cargo@v1
-        with:
-          command: tarpaulin
-          args: --output-dir coverage --out Lcov
+      # - name: Run cargo tarpaulin
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: tarpaulin
+      #     args: --output-dir coverage --out Lcov
       
-      - name: Publish to Coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Publish to Coveralls
+      #   uses: coverallsapp/github-action@master
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
