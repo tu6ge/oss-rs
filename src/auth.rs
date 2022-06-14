@@ -6,7 +6,7 @@ use hmac::{Hmac, Mac};
 use base64::{encode};
 use reqwest::{Method};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
-use crate::errors::OssResult;
+use crate::errors::{OssResult, OssError};
 // use http::Method;
 
 #[derive(Clone)]
@@ -85,19 +85,26 @@ impl<'a> Auth<'a> {
 
     map.insert(self::to_name("AccessKeyId")?, self::to_value(self.access_key_id)?);
     map.insert(self::to_name("SecretAccessKey")?, self::to_value(self.access_key_secret)?);
-    map.insert(self::to_name("VERB")?, self.verb.0.to_string().parse()?);
+    map.insert(
+      self::to_name("VERB")?, 
+      self.verb.0.to_string()
+        .parse().map_err(|_| OssError::Input("VERB parse error".to_string()))?);
     if let Some(a) = self.content_md5 {
       map.insert(self::to_name("Content-MD5")?,self::to_value(a)?);
     }
     if let Some(a) = &self.content_type {
-      map.insert(self::to_name("Content-Type")?,a.parse()?);
+      map.insert(
+        self::to_name("Content-Type")?,
+        a.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
     }
     map.insert(self::to_name("Date")?,self::to_value(self.date)?);
     map.insert(self::to_name("CanonicalizedResource")?, self::to_value(self.canonicalized_resource)?);
 
     let sign = self.sign()?;
     let sign = format!("OSS {}:{}", self.access_key_id, &sign);
-    map.insert(self::to_name("Authorization")?, sign.parse()?);
+    map.insert(
+      self::to_name("Authorization")?, 
+      sign.parse().map_err(|_| OssError::Input("Authorization parse error".to_string()))?);
 
     //println!("header list: {:?}",map);
     Ok(map)
@@ -170,9 +177,11 @@ impl<'a> Auth<'a> {
 
 
 pub fn to_name(name: &str) -> OssResult<HeaderName>{
-  Ok(HeaderName::from_bytes(name.as_bytes())?)
+  Ok(HeaderName::from_bytes(name.as_bytes())
+    .map_err(|_| OssError::Input("invalid HeaderName".to_string()))?)
 }
 
 pub fn to_value(value: &str) -> OssResult<HeaderValue>{
-  Ok(value.parse()?)
+  Ok(value.parse()
+    .map_err(|_| OssError::Input("invalid HeaderValue".to_string()))?)
 }

@@ -233,9 +233,13 @@ impl <'a> Client<'a> {
 
     let mut headers = HeaderMap::new();
     let content_length = content.len().to_string();
-    headers.insert("Content-Length", HeaderValue::from_str(&content_length)?);
+    headers.insert(
+      "Content-Length", 
+      HeaderValue::from_str(&content_length).map_err(|_| OssError::Input("Content-Length parse error".to_string()))?);
 
-    headers.insert(auth::to_name("Content-Type")?, mime_type.parse()?);
+    headers.insert(
+      auth::to_name("Content-Type")?, 
+      mime_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
     let response = self.builder(VERB::PUT, &url, Some(headers), None)?
       .body(content.clone());
 
@@ -243,7 +247,7 @@ impl <'a> Client<'a> {
 
     let result = content.headers().get("ETag")
       .ok_or(OssError::Input("get Etag error".to_string()))?
-      .to_str()?;
+      .to_str().map_err(|_| OssError::Input("ETag parse error".to_string()))?;
 
     Ok(result.to_string())
   }

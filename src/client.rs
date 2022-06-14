@@ -115,7 +115,7 @@ impl<'a> Client<'a> {
           let value  = head.get("Content-Type");
           match value {
             Some(val) => {
-              Some(val.to_str()?.to_string())
+              Some(val.to_str().map_err(|_| OssError::Input("content_type parse error".to_string()))?.to_string())
             },
             None => None
           }
@@ -179,7 +179,7 @@ impl ReqeustHandler for Response {
       let headers = self.headers();
       let request_id = headers.get("x-oss-request-id")
         .ok_or(OssError::Input("get x-oss-request-id failed".to_string()))?
-        .to_str()?;
+        .to_str().map_err(|_| OssError::Input("x-oss-request-id parse error".to_string()))?;
 
       return Err(
         OssError::Input(

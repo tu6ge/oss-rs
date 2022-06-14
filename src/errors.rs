@@ -6,15 +6,6 @@ pub enum OssError{
   #[error("reqwest error: {0}")]
   Request(#[from] reqwest::Error),
 
-  #[error("InvalidHeaderName: {0}")]
-  InvalidHeaderName(#[from] reqwest::header::InvalidHeaderName),
-
-  #[error("InvalidHeaderValue: {0}")]
-  InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
-
-  #[error("ToStrError: {0}")]
-  ToStrError(#[from] reqwest::header::ToStrError),
-
   #[error("url parse error: {0}")]
   UrlParse(#[from] url::ParseError),
 
@@ -25,7 +16,7 @@ pub enum OssError{
   #[error("var error: {0}")]
   VarError(#[from] std::env::VarError),
 
-  #[error("input data is not valid: {0}")]
+  #[error("input error: {0}")]
   Input(String),
 
   #[error("io error: {0}")]
