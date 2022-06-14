@@ -6,6 +6,15 @@ pub enum OssError{
   #[error("reqwest error: {0}")]
   Request(#[from] reqwest::Error),
 
+  #[error("InvalidHeaderName: {0}")]
+  InvalidHeaderName(#[from] reqwest::header::InvalidHeaderName),
+
+  #[error("InvalidHeaderValue: {0}")]
+  InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
+
+  #[error("ToStrError: {0}")]
+  ToStrError(#[from] reqwest::header::ToStrError),
+
   #[error("url parse error: {0}")]
   UrlParse(#[from] url::ParseError),
 
@@ -22,12 +31,6 @@ pub enum OssError{
   #[error("io error: {0}")]
   Io(#[from] std::io::Error),
 
-  #[error("InvalidHeaderName: {0}")]
-  InvalidHeaderName(#[from] reqwest::header::InvalidHeaderName),
-
-  #[error("InvalidHeaderValue: {0}")]
-  InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
-
   #[error("QuickXml error: {0}")]
   QuickXml(#[from] quick_xml::Error),
 
@@ -36,9 +39,6 @@ pub enum OssError{
 
   #[error("ParseIntError: {0}")]
   ParseIntError(#[from] std::num::ParseIntError),
-
-  #[error("ToStrError: {0}")]
-  ToStrError(#[from] reqwest::header::ToStrError),
 
   #[error("hmac InvalidLength: {0}")]
   InvalidLength(#[from] crypto_common::InvalidLength),
