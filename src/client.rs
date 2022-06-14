@@ -32,8 +32,12 @@ impl<'a> Client<'a> {
   }
 
   /// # 返回用于签名的 canonicalized_resource 值
-  pub fn canonicalized_resource(&self, url: &Url) -> String{
-    if self.bucket.len()==0 {
+  pub fn canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> String{
+    let bucket = match bucket {
+      Some(val) => val,
+      None => self.bucket.to_string(),
+    };
+    if bucket.len()==0 {
       return "/".to_string()
     }
 
@@ -43,9 +47,9 @@ impl<'a> Client<'a> {
     if url.path().is_empty() == false && url.path() != "/" {
       match url.query() {
         Some(query_value) if query_value.is_empty() == false => {
-          return format!("/{}{}?{}", self.bucket, url.path(), query_value);
+          return format!("/{}{}?{}", bucket, url.path(), query_value);
         },
-        _ => return format!("/{}{}", self.bucket, url.path())
+        _ => return format!("/{}{}", bucket, url.path())
       }
     }
 
@@ -58,10 +62,10 @@ impl<'a> Client<'a> {
         if query == "acl"
         || query == "bucketInfo"{
           
-          return format!("/{}/?{}", self.bucket, query)
+          return format!("/{}/?{}", bucket, query)
         }else{
           // println!("匹配到的 query");
-          return format!("/{}/", self.bucket)
+          return format!("/{}/", bucket)
         }
       },
       None => {
@@ -98,7 +102,7 @@ impl<'a> Client<'a> {
   /// 
   /// 返回后，可以再加请求参数，然后可选的进行发起请求
   /// 
-  pub fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>) -> OssResult<RequestBuilder>{
+  pub fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<RequestBuilder>{
     let client = blocking::Client::new();
 
     let auth = Auth{
@@ -119,7 +123,7 @@ impl<'a> Client<'a> {
         None => None,
       },
       content_md5: None,
-      canonicalized_resource: &self.canonicalized_resource(&url),
+      canonicalized_resource: &self.canonicalized_resource(&url, bucket),
       headers: headers,
     };
 
@@ -143,7 +147,8 @@ impl<'a> Client<'a> {
 pub trait OssObject {
 
   /// # 将 xml 转换成 OSS 结构体的接口
-  fn from_xml(xml: String) -> OssResult<Self> where Self: Sized;
+  fn from_xml<'a, 'b>(xml: String, client: &'a Client) -> OssResult<Self> 
+  where Self: Sized + 'b;
 }
 
 pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -160,14 +165,26 @@ impl ReqeustHandler for Response {
     let status = self.status();
     
     if status != 200 && status != 204{
+
+      // return Err(
+      //   OssError::Input(
+      //     format!(
+      //       "aliyun response error, http status: {}, content: {:?}",
+      //       status,
+      //       self.text().unwrap()
+      //     )
+      //   )
+      // );
+
       let headers = self.headers();
       let request_id = headers.get("x-oss-request-id")
         .ok_or(OssError::Input("get x-oss-request-id failed".to_string()))?
         .to_str()?;
+
       return Err(
         OssError::Input(
           format!(
-            "aliyun response error, http status: {}, x-oss-request-id: {}, content",
+            "aliyun response error, http status: {}, x-oss-request-id: {}",
             status,
             request_id
           )

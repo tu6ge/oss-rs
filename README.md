@@ -51,6 +51,16 @@ let response = client.get_object_list(query).unwrap();
 println!("objects list: {:?}", response);
 ```
 
+### 也可以使用 bucket struct 查询 object 列表
+
+```
+let mut query:HashMap<String,String> = HashMap::new();
+query.insert("max-keys".to_string(), "5".to_string());
+query.insert("prefix".to_string(), "babel".to_string());
+
+println!("object list : {:?}", client.get_bucket_info().unwrap().get_object_list(query));
+```
+
 ### 上传文件
 ```
 client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");

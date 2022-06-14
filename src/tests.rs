@@ -36,6 +36,27 @@ fn test_get_bucket_info(){
   assert_matches!(bucket_list, Ok(_));
 }
 
+#[test]
+fn get_object_by_bucket_struct(){
+  dotenv().ok();
+
+  let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
+  let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
+  let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+
+  let client = client(&key_id,&key_secret, &endpoint, "");
+
+  let bucket_list = client.get_bucket_list().unwrap();
+  let mut query:HashMap<String,String> = HashMap::new();
+  query.insert("max-keys".to_string(), "5".to_string());
+  query.insert("prefix".to_string(), "babel".to_string());
+
+  let buckets = bucket_list.buckets;
+  let the_bucket = &buckets[0];
+  let object_list = the_bucket.get_object_list(query);
+  assert_matches!(object_list, Ok(_));
+}
+
 
 #[test]
 fn test_get_object() {

@@ -5,11 +5,8 @@ use std::io::Read;
 use reqwest::header::{HeaderMap,HeaderValue};
 
 use crate::errors::{OssResult,OssError};
-use crate::client::{Client, OssObject, ReqeustHandler};
+use crate::client::{Client, ReqeustHandler};
 use crate::auth::{self, VERB};
-
-#[macro_use]
-use anyhow::anyhow;
 
 #[derive(Clone, Debug)]
 pub struct ObjectList {
@@ -18,7 +15,7 @@ pub struct ObjectList {
   pub max_keys: u32,
   pub key_count: u64,
   pub object_list: Vec<Object>,
-  pub next_continuation_token: Option<String>,
+  pub next_continuation_token: Option<String>
 }
 
 impl ObjectList {
@@ -29,21 +26,18 @@ impl ObjectList {
     key_count: u64,
     object_list: Vec<Object>,
     next_continuation_token: Option<String>
-  ) ->Self {
+  ) ->ObjectList{
     ObjectList {
       name,
       prefix,
       max_keys,
       key_count,
       object_list,
-      next_continuation_token,
+      next_continuation_token
     }
   }
-}
-
-impl OssObject for ObjectList {
   
-  fn from_xml(xml: String) -> OssResult<ObjectList> {
+  pub fn from_xml(xml: String) -> OssResult<ObjectList> {
     let mut result = Vec::new();
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
@@ -128,7 +122,7 @@ impl OssObject for ObjectList {
                   max_keys,
                   key_count,
                   result,
-                  next_continuation_token,
+                  next_continuation_token
               );
               break;
           } // exits the loop when reaching end of file
@@ -197,7 +191,7 @@ impl <'a> Client<'a> {
 
     url.set_query(Some(&query_str));
 
-    let response = self.builder(VERB::GET, &url, None)?;
+    let response = self.builder(VERB::GET, &url, None, None)?;
     let content = response.send()?.handle_error()?;
 
     // println!("{}", &content.text()?);
@@ -242,7 +236,7 @@ impl <'a> Client<'a> {
     headers.insert("Content-Length", HeaderValue::from_str(&content_length)?);
 
     headers.insert(auth::to_name("Content-Type")?, mime_type.parse()?);
-    let response = self.builder(VERB::PUT, &url, Some(headers))?
+    let response = self.builder(VERB::PUT, &url, Some(headers), None)?
       .body(content.clone());
 
     let content = response.send()?.handle_error()?;
@@ -259,7 +253,7 @@ impl <'a> Client<'a> {
     let mut url = self.get_bucket_url()?;
     url.set_path(key);
 
-    let response = self.builder(VERB::DELETE, &url, None)?;
+    let response = self.builder(VERB::DELETE, &url, None, None)?;
 
     response.send()?.handle_error()?;
     

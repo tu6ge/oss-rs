@@ -1,14 +1,18 @@
 
-use crate::client::{Client, OssObject, ReqeustHandler};
+use std::collections::HashMap;
+use std::fmt;
+
+use crate::client::{Client, ReqeustHandler};
 use crate::auth::VERB;
 use crate::errors::{OssResult,OssError};
+use crate::object::ObjectList;
 use chrono::prelude::*;
 use url::Url;
 
 use quick_xml::{events::Event, Reader};
 
-#[derive(Clone, Debug)]
-pub struct ListBuckets {
+#[derive(Clone)]
+pub struct ListBuckets<'a> {
   pub prefix: Option<String>,
   pub marker: Option<String>,
   pub max_keys: Option<String>,
@@ -16,10 +20,25 @@ pub struct ListBuckets {
   pub next_marker: Option<String>,
   pub id: Option<String>,
   pub display_name: Option<String>,
-  pub buckets: Vec<Bucket>,
+  pub buckets: Vec<Bucket<'a>>,
 }
 
-impl ListBuckets {
+impl fmt::Debug for ListBuckets<'_> {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+    f.debug_struct("ListBuckets")
+      .field("prefix", &self.prefix)
+      .field("marker", &self.marker)
+      .field("max_keys", &self.max_keys)
+      .field("is_truncated", &self.is_truncated)
+      .field("next_marker", &self.next_marker)
+      .field("id", &self.id)
+      .field("display_name", &self.display_name)
+      .field("buckets", &"bucket list")
+      .finish()
+  }
+}
+
+impl ListBuckets<'_> {
   pub fn new(
     prefix: Option<String>, 
     marker: Option<String>,
@@ -43,9 +62,9 @@ impl ListBuckets {
   }
 }
 
-impl OssObject for ListBuckets  {
+impl ListBuckets<'_>  {
 
-  fn from_xml(xml: String) -> OssResult<ListBuckets> {
+  fn from_xml<'a>(xml: String, client: &'a Client) -> OssResult<ListBuckets<'a>> {
     let mut result = Vec::new();
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
@@ -118,6 +137,7 @@ impl OssObject for ListBuckets  {
                   extranet_endpoint.clone(),
                   intranet_endpoint.clone(),
                   storage_class.clone(),
+                  client,
               );
               result.push(bucket);
             }
@@ -147,8 +167,8 @@ impl OssObject for ListBuckets  {
 
 
 
-#[derive(Clone, Debug)]
-pub struct Bucket{
+#[derive(Clone)]
+pub struct Bucket<'a>{
   // bucket_info: Option<Bucket<'b>>,
   // bucket: Option<Bucket<'c>>,
   pub creation_date: DateTime<Utc>,
@@ -168,17 +188,32 @@ pub struct Bucket{
   // pub kms_master_key_id: Option<&'a str>,
   // pub cross_region_replication: &'a str,
   // pub transfer_acceleration: &'a str,
+  client: &'a Client<'a>,
 }
 
-impl Bucket {
-  pub fn new(
+impl fmt::Debug for Bucket<'_> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("Bucket")
+      .field("creation_date", &self.creation_date)
+      .field("extranet_endpoint", &self.extranet_endpoint)
+      .field("intranet_endpoint", &self.intranet_endpoint)
+      .field("location", &self.location)
+      .field("name", &self.name)
+      .field("storage_class", &self.storage_class)
+      .finish()
+  }
+}
+
+impl <'b> Bucket<'_> {
+  pub fn new<'a>(
     name: String,
     creation_date: DateTime<Utc>,
     location: String,
     extranet_endpoint: String,
     intranet_endpoint: String,
-    storage_class: String
-  ) -> Bucket {
+    storage_class: String,
+    client: &'a Client,
+  ) -> Bucket<'a> {
     Bucket {
       name,
       creation_date,
@@ -187,13 +222,35 @@ impl Bucket {
       extranet_endpoint,
       intranet_endpoint,
       storage_class,
+      client,
     }
   }
-}
 
-impl OssObject for Bucket {
+  pub fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
+    let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
+    let mut url = Url::parse(&input)?;
 
-  fn from_xml(xml: String) -> OssResult<Self>{
+    let mut query_str = String::new();
+    for (key,value) in query.iter() {
+      query_str += "&";
+      query_str += key;
+      query_str += "=";
+      query_str += value;
+    }
+    let query_str = "list-type=2".to_owned() + &query_str;
+
+    url.set_query(Some(&query_str));
+
+    let response = self.client.builder(VERB::GET, &url, None, Some(self.name.to_string()))?;
+    let content = response.send()?.handle_error()?;
+
+    // println!("{}", &content.text()?);
+    // return Err(errors::OssError::Other(anyhow!("abc")));
+
+    ObjectList::from_xml(content.text()?)
+  }
+
+  fn from_xml<'a>(xml: String, client: &'a Client) -> OssResult<Bucket<'a>>{
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
     let mut buf = Vec::with_capacity(xml.len());
@@ -238,6 +295,7 @@ impl OssObject for Bucket {
               extranet_endpoint.clone(),
               intranet_endpoint.clone(),
               storage_class.clone(),
+              client,
             );
             break;
           } // exits the loop when reaching end of file
@@ -261,10 +319,10 @@ impl<'a> Client<'a> {
     let url = Url::parse(&self.endpoint)?;
     //url.set_path(self.bucket)
 
-    let response = self.builder(VERB::GET, &url, None)?;
+    let response = self.builder(VERB::GET, &url, None, None)?;
     let content = response.send()?.handle_error()?;
     
-    ListBuckets::from_xml(content.text()?)
+    ListBuckets::from_xml(content.text()?, &self)
   }
 
   pub fn get_bucket_info(&self) -> OssResult<Bucket> {
@@ -272,10 +330,10 @@ impl<'a> Client<'a> {
     let mut bucket_url = self.get_bucket_url()?;
     bucket_url.set_query(Some("bucketInfo"));
 
-    let response = self.builder(VERB::GET, &bucket_url, headers)?;
+    let response = self.builder(VERB::GET, &bucket_url, headers, None)?;
     let content = response.send()?.handle_error()?;
 
-    Bucket::from_xml(content.text()?)
+    Bucket::from_xml(content.text()?, &self)
   }
 }
 
