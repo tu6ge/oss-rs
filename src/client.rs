@@ -21,7 +21,6 @@ pub struct Client<'a>{
 }
 
 impl<'a> Client<'a> {
-  pub const ERROR_REQUEST_ALIYUN_API: &'a str = "request aliyun api fail";
 
   pub fn new(access_key_id: &'a str, access_key_secret: &'a str, endpoint: &'a str, bucket: &'a str) -> Client<'a> {
     Client{
