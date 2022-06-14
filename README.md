@@ -6,11 +6,11 @@ aliyun OSS 的一个客户端
 
 ## 使用方法
 
-1. 在自己的项目里添加如下依赖项
+1. 在自己的项目里添加如下依赖项 (项目遵循语义化版本规则)
 
 ```
 [dependencies]
-aliyun-oss-client = "0.2.0"
+aliyun-oss-client = "^0.3"
 ```
 
 2. 打开你需要使用 oss 的文件，在里面添加如下内容，即可使用：
@@ -68,3 +68,14 @@ client.put_content(&file_content, "examples/bg2015071010.png").expect("上传失
 client.delete_object("examples/bg2015071010.png").unwrap();
 
 ```
+
+## 与 [官方 client](https://crates.io/crates/oss-rust-sdk) 对比
+
+优势:
+- 完整的测试用例
+- 单一入口，避免泛引入导致意外的命名冲突
+- 链式调用
+- 对公共的参数进行了封装，每次调用的时候，只需要传递业务参数即可
+
+不足：
+- 尚不支持异步调用
