@@ -17,7 +17,8 @@ fn main() {
     println!("bucket info: {:?}", response);
 
     let mut query:HashMap<String,String> = HashMap::new();
-    query.insert("max-keys".to_string(), "5".to_string());
-    query.insert("prefix".to_string(), "babel".to_string());
-    println!("bucket object list: {:?}", response.get_object_list(query));
+    query.insert("max-keys".to_string(), "2".to_string());
+    let mut result = response.get_object_list(query).unwrap();
+    println!("object list: {:?}", result);
+    println!("next object list: {:?}", result.next());
 }

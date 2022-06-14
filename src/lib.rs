@@ -97,7 +97,7 @@ mod tests;
 /** # 主要入口
 
 ## 简单使用方式为： 
-```
+```ignore
 let result = aliyun_oss_client::client("key_id_xxx","key_secret_xxxx", "my_endpoint", "my_bucket");
 ```
 

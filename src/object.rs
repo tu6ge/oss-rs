@@ -1,43 +1,62 @@
 use chrono::prelude::*;
 use quick_xml::{events::Event, Reader};
 use std::collections::HashMap;
-use std::io::Read;
+use std::fmt;
+use std::{io::Read, iter::Iterator};
 use reqwest::header::{HeaderMap,HeaderValue};
 
 use crate::errors::{OssResult,OssError};
 use crate::client::{Client, ReqeustHandler};
 use crate::auth::{self, VERB};
 
-#[derive(Clone, Debug)]
-pub struct ObjectList {
+#[derive(Clone)]
+pub struct ObjectList<'a> {
   pub name: String,
   pub prefix: String,
   pub max_keys: u32,
   pub key_count: u64,
   pub object_list: Vec<Object>,
-  pub next_continuation_token: Option<String>
+  pub next_continuation_token: Option<String>,
+  client: &'a Client<'a>,
+  pub search_query: HashMap<String, String>,
 }
 
-impl ObjectList {
-  pub fn new(
+impl fmt::Debug for ObjectList<'_> {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    f.debug_struct("ObjectList")
+      .field("name", &self.name)
+      .field("prefix", &self.prefix)
+      .field("max_keys", &self.max_keys)
+      .field("key_count", &self.key_count)
+      .field("next_continuation_token", &self.next_continuation_token)
+      .finish()
+  }
+}
+
+impl ObjectList<'_> {
+  pub fn new<'a>(
     name: String,
     prefix: String,
     max_keys: u32,
     key_count: u64,
     object_list: Vec<Object>,
-    next_continuation_token: Option<String>
-  ) ->ObjectList{
+    next_continuation_token: Option<String>,
+    client: &'a Client,
+    search_query: HashMap<String, String>
+  ) ->ObjectList<'a>{
     ObjectList {
       name,
       prefix,
       max_keys,
       key_count,
       object_list,
-      next_continuation_token
+      next_continuation_token,
+      client,
+      search_query
     }
   }
   
-  pub fn from_xml(xml: String) -> OssResult<ObjectList> {
+  pub fn from_xml<'a>(xml: String, client: &'a Client, search_query: HashMap<String, String>) -> OssResult<ObjectList<'a>> {
     let mut result = Vec::new();
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
@@ -122,7 +141,9 @@ impl ObjectList {
                   max_keys,
                   key_count,
                   result,
-                  next_continuation_token
+                  next_continuation_token,
+                  client,
+                  search_query
               );
               break;
           } // exits the loop when reaching end of file
@@ -197,7 +218,7 @@ impl <'a> Client<'a> {
     // println!("{}", &content.text()?);
     // return Err(errors::OssError::Other(anyhow!("abc")));
 
-    ObjectList::from_xml(content.text()?)
+    ObjectList::from_xml(content.text()?, &self, query)
   }
 
   /// # 上传文件到 OSS 中
@@ -265,6 +286,24 @@ impl <'a> Client<'a> {
   }
 }
 
+impl <'a>Iterator for ObjectList<'a>{
+  type Item = ObjectList<'a>;
+  fn next(&mut self) -> Option<ObjectList<'a>> {
+    match self.next_continuation_token.clone() {
+      Some(token) => {
+        let mut query = self.search_query.clone();
+        query.insert("continuation-token".to_string(), token);
+        match self.client.get_object_list(query) {
+          Ok(list) => Some(list),
+          Err(_) => None,
+        }
+      },
+      None => {
+        return None
+      }
+    }
+  }
+}
 
 #[derive(Default)]
 pub struct PutObject<'a>{

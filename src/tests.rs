@@ -76,6 +76,23 @@ fn test_get_object() {
 }
 
 #[test]
+fn test_get_object_next() {
+  dotenv().ok();
+
+  let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
+  let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
+  let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+  let bucket      = env::var("ALIYUN_BUCKET").unwrap();
+
+  let client = client(&key_id,&key_secret, &endpoint, &bucket);
+  let mut query: HashMap<String,String> = HashMap::new();
+  query.insert("max-keys".to_string(), "2".to_string());
+  let object_list = client.get_object_list(query).unwrap().next();
+
+  assert_matches!(object_list, Some(_));
+}
+
+#[test]
 fn test_put_and_delete_file(){
   dotenv().ok();
 

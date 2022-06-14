@@ -247,7 +247,7 @@ impl <'b> Bucket<'_> {
     // println!("{}", &content.text()?);
     // return Err(errors::OssError::Other(anyhow!("abc")));
 
-    ObjectList::from_xml(content.text()?)
+    ObjectList::from_xml(content.text()?, &self.client, query)
   }
 
   fn from_xml<'a>(xml: String, client: &'a Client) -> OssResult<Bucket<'a>>{

@@ -1,6 +1,7 @@
 
 
 
+use std::borrow::Cow;
 use std::error::Error;
 
 use reqwest::blocking::{self,RequestBuilder,Response};
@@ -61,12 +62,18 @@ impl<'a> Client<'a> {
         // comp、qos、live、status、vod、startTime、endTime、symlink、x-oss-process
         if query == "acl"
         || query == "bucketInfo"{
-          
           return format!("/{}/?{}", bucket, query)
-        }else{
-          // println!("匹配到的 query");
-          return format!("/{}/", bucket)
+        }else if self.is_bucket_url(url) {
+          // 基于某个 bucket 调用api 时
+          // 如果查询条件中有翻页的话，则忽略掉其他字段
+          let query_pairs = url.query_pairs();
+          for (key,value) in query_pairs {
+            if key.into_owned().starts_with("continuation-token") {
+              return format!("/{}/?continuation-token={}", bucket, value.into_owned())
+            }
+          }
         }
+        return format!("/{}/", bucket)
       },
       None => {
         return format!("/");
@@ -83,6 +90,15 @@ impl<'a> Client<'a> {
     url.set_host(Some(&bucket_url))?;
     
     Ok(url)
+  }
+
+  pub fn is_bucket_url(&self, url: &Url) -> bool {
+    match url.host() {
+      Some(host) => {
+        host.to_string().contains(self.bucket)
+      }, 
+      None => false,
+    }
   }
 
   /// # 获取当前时间段 GMT 格式
@@ -166,12 +182,12 @@ impl ReqeustHandler for Response {
     
     if status != 200 && status != 204{
 
+      // println!("{:#?}", self.text().unwrap());
       // return Err(
       //   OssError::Input(
       //     format!(
-      //       "aliyun response error, http status: {}, content: {:?}",
-      //       status,
-      //       self.text().unwrap()
+      //       "aliyun response error, http status: {}",
+      //       status
       //     )
       //   )
       // );
