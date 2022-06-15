@@ -44,8 +44,12 @@ println!("bucket info: {:?}", response);
 ### 查询当前 bucket 中的 object 列表
 ```ignore
 let query: HashMap<String,String> = HashMap::new();
-let response = client.get_object_list(query).unwrap();
-println!("objects list: {:?}", response);
+let result = client.get_object_list(query).unwrap();
+
+println!("object list : {:?}", result);
+
+// 翻页功能 获取下一页数据
+println!("next object list: {:?}", result.next().unwrap());
 ```
 
 ### 上传文件

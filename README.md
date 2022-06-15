@@ -58,7 +58,12 @@ let mut query:HashMap<String,String> = HashMap::new();
 query.insert("max-keys".to_string(), "5".to_string());
 query.insert("prefix".to_string(), "babel".to_string());
 
-println!("object list : {:?}", client.get_bucket_info().unwrap().get_object_list(query));
+let result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
+
+println!("object list : {:?}", result);
+
+// 翻页功能 获取下一页数据
+println!("next object list: {:?}", result.next().unwrap());
 ```
 
 ### 上传文件
