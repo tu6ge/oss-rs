@@ -201,22 +201,12 @@ impl <'a> Client<'a> {
 
     let mut url = self.get_bucket_url()?;
 
-    let mut query_str = String::new();
-    for (key,value) in query.iter() {
-      query_str += "&";
-      query_str += key;
-      query_str += "=";
-      query_str += value;
-    }
-    let query_str = "list-type=2".to_owned() + &query_str;
+    let query_str = Client::<'a>::object_list_query_generator(&query);
 
     url.set_query(Some(&query_str));
 
     let response = self.builder(VERB::GET, &url, None, None)?;
     let content = response.send()?.handle_error()?;
-
-    // println!("{}", &content.text()?);
-    // return Err(errors::OssError::Other(anyhow!("abc")));
 
     ObjectList::from_xml(content.text()?, &self, query)
   }

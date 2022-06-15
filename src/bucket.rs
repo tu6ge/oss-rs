@@ -230,14 +230,7 @@ impl <'b> Bucket<'_> {
     let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
     let mut url = Url::parse(&input)?;
 
-    let mut query_str = String::new();
-    for (key,value) in query.iter() {
-      query_str += "&";
-      query_str += key;
-      query_str += "=";
-      query_str += value;
-    }
-    let query_str = "list-type=2".to_owned() + &query_str;
+    let query_str = Client::<'b>::object_list_query_generator(&query);
 
     url.set_query(Some(&query_str));
 

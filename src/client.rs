@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::error::Error;
 
 use reqwest::blocking::{self,RequestBuilder,Response};
@@ -109,6 +110,7 @@ impl<'a> Client<'a> {
   /// - method
   /// - url
   /// - headers (可选)
+  /// - bucket 要操作的 bucket ，默认为当前配置的 bucket 
   /// 
   /// 返回值是一个 reqwest 的请求创建器 `reqwest::blocking::RequestBuilder`
   /// 
@@ -151,6 +153,20 @@ impl<'a> Client<'a> {
       return None
     }
     Some(string)
+  }
+
+  #[inline]
+  pub fn object_list_query_generator(query: &HashMap<String, String>) -> String {
+    let mut query_str = String::new();
+    for (key,value) in query.iter() {
+      query_str += "&";
+      query_str += key;
+      query_str += "=";
+      query_str += value;
+    }
+    let query_str = "list-type=2".to_owned() + &query_str;
+
+    query_str
   }
 }
 
