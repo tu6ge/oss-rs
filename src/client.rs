@@ -1,7 +1,3 @@
-
-
-
-use std::borrow::Cow;
 use std::error::Error;
 
 use reqwest::blocking::{self,RequestBuilder,Response};
