@@ -117,6 +117,15 @@ impl<'a> Auth<'a> {
   /// 用于生成签名 
   pub fn header_str(&self) -> Option<&'a str> {
     //return Some("x-oss-copy-source:/honglei123/file1.txt");
+    match self.headers {
+      Some(header) => {
+        let header = header.iter().filter(|(k,v)|{
+          k.as_str().starts_with("x-oss-")
+        }).join("\n");
+        Some(header)
+      },
+      None => None,
+    }
     None
   }
 
