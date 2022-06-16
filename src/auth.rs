@@ -115,18 +115,23 @@ impl<'a> Auth<'a> {
   /// 将 header 中除了共同部分的，转换成字符串，一般是 `x-oss-` 开头的
   /// 
   /// 用于生成签名 
-  pub fn header_str(&self) -> Option<&'a str> {
+  pub fn header_str(&self) -> OssResult<Option<String>> {
     //return Some("x-oss-copy-source:/honglei123/file1.txt");
-    match self.headers {
+    match self.headers.clone() {
       Some(header) => {
-        let header = header.iter().filter(|(k,v)|{
+        let mut header: Vec<(&HeaderName, &HeaderValue)> = header.iter().filter(|(k,_v)|{
           k.as_str().starts_with("x-oss-")
-        }).join("\n");
-        Some(header)
+        }).collect();
+        header.sort_by(|(k1,_),(k2,_)| k1.to_string().cmp(&k2.to_string()));
+        let header_vec: Vec<String> = header.into_iter().map(|(k,v)|{
+          let value = k.as_str().to_owned() + ":" 
+            + v.to_str().unwrap();
+          value
+        }).collect();
+        Ok(Some(header_vec.join("\n")))
       },
-      None => None,
+      None => Ok(None),
     }
-    None
   }
 
   /// 计算签名
@@ -156,10 +161,10 @@ impl<'a> Auth<'a> {
       }
       + "\n"
       + self.date + "\n"
-      + match self.header_str() {
+      + match self.header_str()? {
         Some(str) => {
           content.clear();
-          content.push_str(str);
+          content.push_str(&str);
           content.push_str("\n");
           &content
         },
