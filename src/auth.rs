@@ -116,7 +116,7 @@ impl<'a> Auth<'a> {
   /// 
   /// 用于生成签名 
   pub fn header_str(&self) -> Option<&'a str> {
-    //Some("x-oss-meta-content-type:image/png")
+    //return Some("x-oss-copy-source:/honglei123/file1.txt");
     None
   }
 
