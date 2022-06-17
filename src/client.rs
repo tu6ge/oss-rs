@@ -47,6 +47,7 @@ impl<'a> Client<'a> {
     }
   }
 
+  /// # 注册插件
   #[cfg(feature = "plugin")]
   pub fn plugin(self, plugin: Box<dyn Plugin>) -> Client<'a> {
     self.plugins.borrow_mut().insert(plugin);
@@ -202,17 +203,6 @@ impl<'a> Client<'a> {
     query_str
   }
 }
-
-/// # OSS 对象的特征
-/// 里面包含对象必须实现的接口
-pub trait OssObject {
-
-  /// # 将 xml 转换成 OSS 结构体的接口
-  fn from_xml<'a, 'b>(xml: String, client: &'a Client) -> OssResult<Self> 
-  where Self: Sized + 'b;
-}
-
-pub type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 pub trait ReqeustHandler {
   fn handle_error(self) -> OssResult<Response>;
