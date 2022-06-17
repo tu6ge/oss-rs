@@ -122,12 +122,16 @@ impl<'a> Auth<'a> {
         let mut header: Vec<(&HeaderName, &HeaderValue)> = header.iter().filter(|(k,_v)|{
           k.as_str().starts_with("x-oss-")
         }).collect();
+        if header.len()==0{
+          return Ok(None);
+        }
         header.sort_by(|(k1,_),(k2,_)| k1.to_string().cmp(&k2.to_string()));
         let header_vec: Vec<String> = header.into_iter().map(|(k,v)|{
           let value = k.as_str().to_owned() + ":" 
             + v.to_str().unwrap();
           value
         }).collect();
+
         Ok(Some(header_vec.join("\n")))
       },
       None => Ok(None),
