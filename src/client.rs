@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::error::Error;
 
 use reqwest::blocking::{self,RequestBuilder,Response};
 use reqwest::header::{HeaderMap};
