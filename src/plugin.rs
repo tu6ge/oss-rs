@@ -8,7 +8,7 @@ use std::ops::ControlFlow;
 use reqwest::Url;
 use serde_json::{Value as JsonValue};
 
-use crate::errors::OssError;
+use crate::{errors::OssError, client::Client};
 
 pub type Result<T> = std::result::Result<T, OssError>;
 
@@ -17,8 +17,7 @@ pub trait Plugin{
 
   /// Initializes the plugin.
   #[allow(unused_variables)]
-  fn initialize(&mut self, config: JsonValue) -> Result<()> {
-    Ok(())
+  fn initialize(&mut self, client: &Client){
   }
 
   #[allow(unused_variables)]
