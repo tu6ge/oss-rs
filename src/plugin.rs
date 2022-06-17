@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::ops::ControlFlow;
 
 use reqwest::Url;
-use serde_json::{Value as JsonValue, value};
+use serde_json::{Value as JsonValue};
 
 use crate::errors::OssError;
 

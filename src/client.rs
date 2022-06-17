@@ -7,7 +7,7 @@ use reqwest::header::{HeaderMap};
 
 use crate::auth::{Auth,VERB};
 use chrono::prelude::*;
-use url::Url;
+use reqwest::Url;
 use crate::errors::{OssResult,OssError};
 
 #[cfg(feature = "plugin")]
@@ -112,12 +112,12 @@ impl<'a> Client<'a> {
   }
 
   pub fn get_bucket_url(&self) -> OssResult<Url>{
-    let mut url = Url::parse(self.endpoint)?;
+    let mut url = Url::parse(self.endpoint).map_err(|_| OssError::Input("endpoint url parse error".to_string()))?;
     
     let bucket_url = self.bucket.to_string() + "."
        + &url.host().ok_or(OssError::Input("parse host faied".to_string()))?.to_string();
 
-    url.set_host(Some(&bucket_url))?;
+    url.set_host(Some(&bucket_url)).map_err(|_| OssError::Input("set_host error".to_string()))?;
     
     Ok(url)
   }

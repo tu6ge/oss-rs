@@ -6,7 +6,6 @@ use aliyun_oss_client::client::Client;
 use aliyun_oss_client::auth::{VERB};
 use reqwest::Url;
 use reqwest::header::{HeaderMap};
-use std::borrow::Borrow;
 use std::env;
 
 fn main() {

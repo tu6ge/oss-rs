@@ -9,9 +9,6 @@ pub enum OssError{
   #[error("reqwest error: {0}")]
   Request(#[from] reqwest::Error),
 
-  #[error("url parse error: {0}")]
-  UrlParse(#[from] url::ParseError),
-
   #[error("{0}")]
   #[cfg(test)]
   Dotenv(#[from] dotenv::Error),

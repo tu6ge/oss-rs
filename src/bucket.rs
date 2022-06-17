@@ -7,7 +7,7 @@ use crate::auth::VERB;
 use crate::errors::{OssResult,OssError};
 use crate::object::ObjectList;
 use chrono::prelude::*;
-use url::Url;
+use reqwest::Url;
 
 use quick_xml::{events::Event, Reader};
 
@@ -228,7 +228,7 @@ impl <'b> Bucket<'_> {
 
   pub fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
     let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
-    let mut url = Url::parse(&input)?;
+    let mut url = Url::parse(&input).map_err(|_| OssError::Input("url parse error".to_string()))?;
 
     let query_str = Client::<'b>::object_list_query_generator(&query);
 
@@ -309,7 +309,7 @@ impl<'a> Client<'a> {
   /** # 获取 buiket 列表
   */
   pub fn get_bucket_list(&self) -> OssResult<ListBuckets> {
-    let url = Url::parse(&self.endpoint)?;
+    let url = Url::parse(&self.endpoint).map_err(|_| OssError::Input("endpoint url parse error".to_string()))?;
     //url.set_path(self.bucket)
 
     let response = self.builder(VERB::GET, &url, None, None)?;
