@@ -249,7 +249,7 @@ impl <'a> Client<'a> {
       HeaderValue::from_str(&content_length).map_err(|_| OssError::Input("Content-Length parse error".to_string()))?);
 
     headers.insert(
-      auth::to_name("Content-Type")?, 
+      "Content-Type", 
       mime_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
     let response = self.builder(VERB::PUT, &url, Some(headers), None)?
       .body(content.clone());
