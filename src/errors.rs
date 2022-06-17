@@ -1,3 +1,6 @@
+#[cfg(feature = "plugin")]
+use std::fmt;
+
 use hmac::digest::crypto_common;
 use thiserror::Error;
 
@@ -34,8 +37,32 @@ pub enum OssError{
   #[error("hmac InvalidLength: {0}")]
   InvalidLength(#[from] crypto_common::InvalidLength),
 
+  #[cfg(feature = "plugin")]
+  #[error("plugin : {0}")]
+  Plugin(#[from] self::plugin::PluginError),
+
   #[error(transparent)]
   Other(#[from] anyhow::Error),
 }
+
+#[cfg(feature = "plugin")]
+mod plugin {
+    use std::fmt;
+
+  #[derive(Debug)]
+  pub struct PluginError {
+    pub name: &'static str,
+    pub message: String,
+  }
+
+  impl fmt::Display for PluginError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        f.write_str("plugin name:{self.name} ,message:{self.message}")
+    }
+  }
+
+  impl std::error::Error for PluginError {}
+}
+
 
 pub type OssResult<T> = Result<T,OssError>;

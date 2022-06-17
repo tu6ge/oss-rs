@@ -90,6 +90,9 @@ pub mod client;
 
 pub mod errors;
 
+#[cfg(feature = "plugin")]
+pub mod plugin;
+
 #[cfg(test)]
 #[macro_use]
 extern crate assert_matches;

@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -9,17 +10,23 @@ use chrono::prelude::*;
 use url::Url;
 use crate::errors::{OssResult,OssError};
 
+#[cfg(feature = "plugin")]
+use crate::plugin::{Plugin, PluginStore};
+
 /// # 构造请求的客户端结构体
 pub struct Client<'a>{
   access_key_id: &'a str,
   access_key_secret: &'a str,
   pub endpoint: &'a str,
   pub bucket: &'a str,
-  //pub headers: HashMap<String, String>,
+  
+  #[cfg(feature = "plugin")]
+  pub plugins: RefCell<PluginStore>,
 }
 
 impl<'a> Client<'a> {
 
+  #[cfg(not(feature = "plugin"))]
   pub fn new(access_key_id: &'a str, access_key_secret: &'a str, endpoint: &'a str, bucket: &'a str) -> Client<'a> {
     Client{
       access_key_id,
@@ -29,8 +36,34 @@ impl<'a> Client<'a> {
     }
   }
 
+  #[cfg(feature = "plugin")]
+  pub fn new(access_key_id: &'a str, access_key_secret: &'a str, endpoint: &'a str, bucket: &'a str) -> Client<'a> {
+    Client{
+      access_key_id,
+      access_key_secret,
+      endpoint,
+      bucket,
+      plugins: RefCell::new(PluginStore::default()),
+    }
+  }
+
+  #[cfg(feature = "plugin")]
+  pub fn plugin(self, plugin: Box<dyn Plugin>) -> Client<'a> {
+    self.plugins.borrow_mut().insert(plugin);
+    self
+  }
+
   /// # 返回用于签名的 canonicalized_resource 值
-  pub fn canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> String{
+  pub fn canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> String {
+    let plugin_result = 
+      self.plugins.borrow()
+        .get_canonicalized_resource(
+          url
+        );
+    if let Some(result) = plugin_result {
+      return result;
+    }
+
     let bucket = match bucket {
       Some(val) => val,
       None => self.bucket.to_string(),

@@ -1,9 +1,12 @@
 extern crate dotenv;
 
+use aliyun_oss_client::plugin::Plugin;
 use dotenv::dotenv;
 use aliyun_oss_client::client::Client;
 use aliyun_oss_client::auth::{VERB};
+use reqwest::Url;
 use reqwest::header::{HeaderMap};
+use std::borrow::Borrow;
 use std::env;
 
 fn main() {
@@ -14,7 +17,10 @@ fn main() {
   let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
   let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-  let client = Client::new(&key_id,&key_secret, &endpoint, &bucket);
+  let my_plugin = MyPlugin{};
+
+  let client = Client::new(&key_id,&key_secret, &endpoint, &bucket)
+    .plugin(Box::new(my_plugin));
 
   let mut url = client.get_bucket_url().unwrap();
   url.set_path("file_copy.txt");
@@ -32,4 +38,14 @@ fn main() {
 
 struct MyPlugin {
 
+}
+
+impl Plugin for MyPlugin{
+  fn name(&self) -> &'static str {
+    "my_plugin"
+  }
+
+  fn canonicalized_resource(&self, _url: &Url) -> Option<String>{
+    None
+  }
 }
