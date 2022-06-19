@@ -18,7 +18,7 @@ fn main() {
 
   let my_plugin = MyPlugin{bucket:"abc".to_string()};
 
-  let client = Client::new(&key_id,&key_secret, &endpoint, &bucket)
+  let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket)
     .plugin(Box::new(my_plugin));
 
   let mut url = client.get_bucket_url().unwrap();
@@ -43,9 +43,12 @@ impl Plugin for MyPlugin{
   fn name(&self) -> &'static str {
     "my_plugin"
   }
-
+  
   fn initialize(&mut self, client: &mut Client) {
+    // 插件可以读取 client 结构体中的值
     self.bucket = String::from(client.endpoint);
+
+    // 插件可以修改 client 结构体中的值
     client.endpoint = "https://oss-cn-shanghai.aliyuncs.com";
   }
 
