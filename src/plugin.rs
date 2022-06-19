@@ -17,7 +17,7 @@ pub trait Plugin{
 
   /// Initializes the plugin.
   #[allow(unused_variables)]
-  fn initialize(&mut self, client: &Client){
+  fn initialize(&mut self, client: &mut Client){
   }
 
   #[allow(unused_variables)]

@@ -48,8 +48,8 @@ impl<'a> Client<'a> {
 
   /// # 注册插件
   #[cfg(feature = "plugin")]
-  pub fn plugin(self, mut plugin: Box<dyn Plugin>) -> Client<'a> {
-    plugin.initialize(&self);
+  pub fn plugin(mut self, mut plugin: Box<dyn Plugin>) -> Client<'a> {
+    plugin.initialize(&mut self);
 
     self.plugins.borrow_mut().insert(plugin);
     self

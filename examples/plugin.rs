@@ -16,7 +16,7 @@ fn main() {
   let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
   let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-  let my_plugin = MyPlugin{bucket:"abc"};
+  let my_plugin = MyPlugin{bucket:"abc".to_string()};
 
   let client = Client::new(&key_id,&key_secret, &endpoint, &bucket)
     .plugin(Box::new(my_plugin));
@@ -36,7 +36,7 @@ fn main() {
 }
 
 struct MyPlugin {
-  bucket: &'static str,
+  bucket: String,
 }
 
 impl Plugin for MyPlugin{
@@ -44,8 +44,9 @@ impl Plugin for MyPlugin{
     "my_plugin"
   }
 
-  fn initialize(&mut self, _client: &Client) {
-    self.bucket = "def";
+  fn initialize(&mut self, client: &mut Client) {
+    self.bucket = String::from(client.endpoint);
+    client.endpoint = "https://oss-cn-shanghai.aliyuncs.com";
   }
 
   fn canonicalized_resource(&self, _url: &Url) -> Option<String>{
