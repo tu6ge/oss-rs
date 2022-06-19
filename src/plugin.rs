@@ -6,7 +6,7 @@
 
 ## example 
 
-```
+```ignore
 struct MyPlugin {
   bucket: String,
 }
