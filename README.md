@@ -84,6 +84,58 @@ client.delete_object("examples/bg2015071010.png").unwrap();
 
 ```
 
+## 异步
+
+### 查询所有的 bucket 信息
+```
+let response = client.async_get_bucket_list().await.unwrap();
+println!("buckets list: {:?}", response);
+```
+
+### 获取 bucket 信息
+```
+let response = client.async_get_bucket_info().await.unwrap();
+println!("bucket info: {:?}", response);
+```
+
+### 查询当前 bucket 中的 object 列表
+```
+let query: HashMap<String,String> = HashMap::new();
+let response = client.async_get_object_list(query).await.unwrap();
+println!("objects list: {:?}", response);
+```
+
+### 也可以使用 bucket struct 查询 object 列表
+
+```
+let mut query:HashMap<String,String> = HashMap::new();
+query.insert("max-keys".to_string(), "5".to_string());
+query.insert("prefix".to_string(), "babel".to_string());
+
+let result = client.async_get_bucket_info().await.unwrap().async_get_object_list(query).await.unwrap();
+
+println!("object list : {:?}", result);
+
+```
+
+### 上传文件
+```
+client.async_put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
+
+// or 上传文件内容
+let mut file_content = Vec::new();
+std::fs::File::open(file_name)
+  .expect("open file failed").read_to_end(&mut file_content)
+  .expect("read_to_end failed");
+client.async_put_content(&file_content, "examples/bg2015071010.png").await.expect("上传失败");
+```
+
+### 删除文件
+```
+client.async_delete_object("examples/bg2015071010.png").await.unwrap();
+
+```
+
 ## 与 [官方 client](https://crates.io/crates/oss-rust-sdk) 对比
 
 优势:
@@ -92,5 +144,3 @@ client.delete_object("examples/bg2015071010.png").unwrap();
 - 链式调用
 - 对公共的参数进行了封装，每次调用的时候，只需要传递业务参数即可
 
-不足：
-- 尚不支持异步调用
