@@ -7,7 +7,7 @@ use reqwest::header::{HeaderMap,HeaderValue};
 
 use crate::errors::{OssResult,OssError};
 use crate::client::{Client, ReqeustHandler};
-use crate::auth::{self, VERB};
+use crate::auth::{VERB};
 
 #[derive(Clone)]
 pub struct ObjectList<'a> {
@@ -198,7 +198,6 @@ impl <'a> Client<'a> {
   /// 
   /// [OSS 文档](https://help.aliyun.com/document_detail/187544.html)
   pub fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
-
     let mut url = self.get_bucket_url()?;
 
     let query_str = Client::<'a>::object_list_query_generator(&query);
@@ -211,6 +210,20 @@ impl <'a> Client<'a> {
     ObjectList::from_xml(content.text()?, &self, query)
   }
 
+  pub async fn async_get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
+
+    let mut url = self.get_bucket_url()?;
+
+    let query_str = Client::<'a>::object_list_query_generator(&query);
+
+    url.set_query(Some(&query_str));
+
+    let response = self.async_builder(VERB::GET, &url, None, None).await?;
+    let content = response.send().await?.handle_error()?;
+
+    ObjectList::from_xml(content.text().await?, &self, query)
+  }
+
   /// # 上传文件到 OSS 中
   /// 
   /// 提供有效的文件路径即可
@@ -220,6 +233,14 @@ impl <'a> Client<'a> {
       .read_to_end(&mut file_content)?;
 
     self.put_content(&file_content, key)
+  }
+
+  pub async fn async_put_file(&self, file_name: &'a str, key: &'a str) -> OssResult<String> {
+    let mut file_content = Vec::new();
+    std::fs::File::open(file_name)?
+      .read_to_end(&mut file_content)?;
+
+    self.async_put_content(&file_content, key).await
   }
 
   /// # 上传文件内容到 OSS
@@ -263,6 +284,42 @@ impl <'a> Client<'a> {
     Ok(result.to_string())
   }
 
+  pub async fn async_put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
+    let kind = infer::get(content);
+
+    let con = match kind {
+      Some(con) => {
+        Ok(con)
+      },
+      None => Err(OssError::Input("file type is known".to_string()))
+    };
+
+    let mime_type = con?.mime_type();
+
+    let mut url = self.get_bucket_url()?;
+    url.set_path(key);
+
+    let mut headers = HeaderMap::new();
+    let content_length = content.len().to_string();
+    headers.insert(
+      "Content-Length", 
+      HeaderValue::from_str(&content_length).map_err(|_| OssError::Input("Content-Length parse error".to_string()))?);
+
+    headers.insert(
+      "Content-Type", 
+      mime_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
+    let response = self.async_builder(VERB::PUT, &url, Some(headers), None).await?
+      .body(content.clone());
+
+    let content = response.send().await?.handle_error()?;
+
+    let result = content.headers().get("ETag")
+      .ok_or(OssError::Input("get Etag error".to_string()))?
+      .to_str().map_err(|_| OssError::Input("ETag parse error".to_string()))?;
+
+    Ok(result.to_string())
+  }
+
   /// # 删除文件
   pub fn delete_object(&self, key: &str) -> OssResult<()>{
     let mut url = self.get_bucket_url()?;
@@ -271,6 +328,17 @@ impl <'a> Client<'a> {
     let response = self.builder(VERB::DELETE, &url, None, None)?;
 
     response.send()?.handle_error()?;
+    
+    Ok(())
+  }
+
+  pub async fn async_delete_object(&self, key: &str) -> OssResult<()>{
+    let mut url = self.get_bucket_url()?;
+    url.set_path(key);
+
+    let response = self.async_builder(VERB::DELETE, &url, None, None).await?;
+
+    response.send().await?.handle_error()?;
     
     Ok(())
   }

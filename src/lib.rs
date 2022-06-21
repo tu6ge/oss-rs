@@ -101,6 +101,10 @@ extern crate assert_matches;
 #[cfg(test)]
 mod tests;
 
+#[allow(soft_unstable)]
+#[cfg(test)]
+mod tests_async;
+
 /** # 主要入口
 
 ## 简单使用方式为： 

@@ -2,7 +2,9 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use reqwest::blocking::{self,RequestBuilder,Response};
+use reqwest::{Client as AsyncClient, RequestBuilder as AsyncRequestBuilder, Response as AsyncResponse};
 use reqwest::header::{HeaderMap};
+use futures::executor::block_on;
 
 use crate::auth::{Auth,VERB};
 use chrono::prelude::*;
@@ -57,6 +59,10 @@ impl<'a> Client<'a> {
 
   /// # 返回用于签名的 canonicalized_resource 值
   pub fn canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> String {
+    block_on(self.async_canonicalized_resource(url, bucket))
+  }
+
+  pub async fn async_canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> String {
     let plugin_result = 
       self.plugins.borrow()
         .get_canonicalized_resource(
@@ -182,6 +188,37 @@ impl<'a> Client<'a> {
       .headers(all_headers))
   }
 
+  pub async fn async_builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<AsyncRequestBuilder>{
+    let client = AsyncClient::new();
+
+    let auth = Auth{
+      access_key_id: self.access_key_id,
+      access_key_secret: self.access_key_secret,
+      verb: method.clone(),
+      date: &self.date(),
+      content_type: match &headers {
+        Some(head) => {
+          let value  = head.get("Content-Type");
+          match value {
+            Some(val) => {
+              Some(val.to_str().map_err(|_| OssError::Input("content_type parse error".to_string()))?.to_string())
+            },
+            None => None
+          }
+        },
+        None => None,
+      },
+      content_md5: None,
+      canonicalized_resource: &self.async_canonicalized_resource(&url, bucket).await,
+      headers: headers,
+    };
+
+    let all_headers: HeaderMap = auth.async_get_headers().await?;
+
+    Ok(client.request(method.0, url.to_string())
+      .headers(all_headers))
+  }
+
   #[inline]
   pub fn string2option(string: String) -> Option<String> {
     if string.len() == 0 {
@@ -206,13 +243,52 @@ impl<'a> Client<'a> {
 }
 
 pub trait ReqeustHandler {
-  fn handle_error(self) -> OssResult<Response>;
+  fn handle_error(self) -> OssResult<Self> where Self: Sized;
 }
 
 impl ReqeustHandler for Response {
 
   /// # 收集并处理 OSS 接口返回的错误
   fn handle_error(self) -> OssResult<Response>
+  {
+    let status = self.status();
+    
+    if status != 200 && status != 204{
+
+      // println!("{:#?}", self.text().unwrap());
+      // return Err(
+      //   OssError::Input(
+      //     format!(
+      //       "aliyun response error, http status: {}",
+      //       status
+      //     )
+      //   )
+      // );
+
+      let headers = self.headers();
+      let request_id = headers.get("x-oss-request-id")
+        .ok_or(OssError::Input("get x-oss-request-id failed".to_string()))?
+        .to_str().map_err(|_| OssError::Input("x-oss-request-id parse error".to_string()))?;
+
+      return Err(
+        OssError::Input(
+          format!(
+            "aliyun response error, http status: {}, x-oss-request-id: {}",
+            status,
+            request_id
+          )
+        )
+      );
+    }
+
+    Ok(self)
+  }
+}
+
+
+impl ReqeustHandler for AsyncResponse{
+  /// # 收集并处理 OSS 接口返回的错误
+  fn handle_error(self) -> OssResult<AsyncResponse>
   {
     let status = self.status();
     

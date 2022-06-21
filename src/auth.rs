@@ -7,6 +7,7 @@ use base64::{encode};
 use reqwest::{Method};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use crate::errors::{OssResult, OssError};
+use futures::executor::block_on;
 // use http::Method;
 
 #[derive(Clone)]
@@ -78,6 +79,10 @@ impl<'a> Auth<'a> {
   /// 
   /// 包含 *公共 header*, *业务 header* 以及 **签名**
   pub fn get_headers(&self) -> OssResult<HeaderMap> {
+    block_on(self.async_get_headers())
+  }
+
+  pub async fn async_get_headers(&self) -> OssResult<HeaderMap> {
     let mut map= match self.headers.to_owned() {
       Some(v) => v,
       None => HeaderMap::new(),
