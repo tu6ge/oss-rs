@@ -1,6 +1,3 @@
-#[cfg(feature = "plugin")]
-use std::fmt;
-
 use hmac::digest::crypto_common;
 use thiserror::Error;
 
