@@ -188,6 +188,7 @@ impl<'a> Client<'a> {
       .headers(all_headers))
   }
 
+  /// builder 方法的异步实现
   pub async fn async_builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<AsyncRequestBuilder>{
     let client = AsyncClient::new();
 
