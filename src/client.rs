@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::pin::Pin;
 
 use reqwest::blocking::{self,RequestBuilder,Response};
 use reqwest::{Client as AsyncClient, RequestBuilder as AsyncRequestBuilder, Response as AsyncResponse};
@@ -159,42 +158,64 @@ impl<'a> Client<'a> {
   /// 返回后，可以再加请求参数，然后可选的进行发起请求
   /// 
   pub fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<RequestBuilder>{
-    
     let client = blocking::Client::new();
-    let method_clone = method.clone();
 
-    let auth = Auth::from_bulder(
-      self.access_key_id,
-      self.access_key_secret,
-      method,
-      Pin::new(&self.date()),
-      headers,
-      Pin::new(&self.canonicalized_resource(&url, bucket))
-    )?;
+    let auth = Auth{
+      access_key_id: self.access_key_id,
+      access_key_secret: self.access_key_secret,
+      verb: method.clone(),
+      date: &self.date(),
+      content_type: match &headers {
+        Some(head) => {
+          let value  = head.get("Content-Type");
+          match value {
+            Some(val) => {
+              Some(val.to_str().map_err(|_| OssError::Input("content_type parse error".to_string()))?.to_string())
+            },
+            None => None
+          }
+        },
+        None => None,
+      },
+      content_md5: None,
+      canonicalized_resource: &self.canonicalized_resource(&url, bucket),
+      headers: headers,
+    };
 
     let all_headers: HeaderMap = auth.get_headers()?;
 
-    Ok(client.request(method_clone.0, url.to_string())
+    Ok(client.request(method.0, url.to_string())
       .headers(all_headers))
   }
 
   pub async fn async_builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<AsyncRequestBuilder>{
     let client = AsyncClient::new();
 
-    let method_clone = method.clone();
-
-    let auth = Auth::from_bulder(
-      self.access_key_id,
-      self.access_key_secret,
-      method,
-      Pin::new(&self.date()),
-      headers,
-      Pin::new(&self.async_canonicalized_resource(&url, bucket).await)
-    )?;
+    let auth = Auth{
+      access_key_id: self.access_key_id,
+      access_key_secret: self.access_key_secret,
+      verb: method.clone(),
+      date: &self.date(),
+      content_type: match &headers {
+        Some(head) => {
+          let value  = head.get("Content-Type");
+          match value {
+            Some(val) => {
+              Some(val.to_str().map_err(|_| OssError::Input("content_type parse error".to_string()))?.to_string())
+            },
+            None => None
+          }
+        },
+        None => None,
+      },
+      content_md5: None,
+      canonicalized_resource: &self.async_canonicalized_resource(&url, bucket).await,
+      headers: headers,
+    };
 
     let all_headers: HeaderMap = auth.async_get_headers().await?;
 
-    Ok(client.request(method_clone.0, url.to_string())
+    Ok(client.request(method.0, url.to_string())
       .headers(all_headers))
   }
 

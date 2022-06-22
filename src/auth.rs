@@ -1,16 +1,13 @@
 
 //extern crate base64;
 
-use std::pin::Pin;
-
 use sha1::Sha1;
 use hmac::{Hmac, Mac};
 use base64::{encode};
-use reqwest::{Method, Url};
+use reqwest::{Method};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use crate::errors::{OssResult, OssError};
 use futures::executor::block_on;
-use chrono::prelude::*;
 // use http::Method;
 
 #[derive(Clone)]
@@ -77,44 +74,6 @@ impl From<VERB> for String {
 type HmacSha1 = Hmac<Sha1>;
 
 impl<'a> Auth<'a> {
-
-  /// 通过 Client 的 builder 方法创建
-  pub fn from_bulder(
-    access_key_id: &'a str,
-    access_key_secret: &'a str,
-    method: VERB,
-    date: Pin<&'a str>,
-    headers: Option<HeaderMap>,
-    canonicalized_resource: Pin<&'a str>,
-  ) -> OssResult<Auth<'a>> {
-    Ok(Auth{
-      access_key_id: access_key_id,
-      access_key_secret: access_key_secret,
-      verb: method.clone(),
-      date: &date,
-      content_type: match &headers {
-        Some(head) => {
-          let value  = head.get("Content-Type");
-          match value {
-            Some(val) => {
-              Some(val.to_str().map_err(|_| OssError::Input("content_type parse error".to_string()))?.to_string())
-            },
-            None => None
-          }
-        },
-        None => None,
-      },
-      content_md5: None,
-      canonicalized_resource: canonicalized_resource,
-      headers: headers,
-    })
-  }
-
-  /// # 获取当前时间段 GMT 格式
-  pub fn date(&self) -> String {
-    let now: DateTime<Utc> = Utc::now();
-    now.format("%a, %d %b %Y %T GMT").to_string()
-  }
 
   /// # 获取所有 header 信息
   /// 
