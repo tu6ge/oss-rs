@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use futures::Stream;
 use quick_xml::{events::Event, Reader};
 use std::collections::HashMap;
 use std::fmt;
@@ -358,6 +359,28 @@ impl <'a>Iterator for ObjectList<'a>{
       },
       None => {
         return None
+      }
+    }
+  }
+}
+
+
+impl <'a>Stream for ObjectList<'a> {
+  type Item = ObjectList<'a>;
+
+  /// 未测试的
+  fn poll_next(self: std::pin::Pin<&mut Self>, _cx: &mut std::task::Context<'_>) -> core::task::Poll<Option<ObjectList<'a>>> {
+    match self.next_continuation_token.clone() {
+      Some(token) => {
+        let mut query = self.search_query.clone();
+        query.insert("continuation-token".to_string(), token);
+        match self.client.get_object_list(query) {
+          Ok(list) => core::task::Poll::Ready(Some(list)),
+          Err(_) => core::task::Poll::Ready(None),
+        }
+      },
+      None => {
+        core::task::Poll::Ready(None)
       }
     }
   }
