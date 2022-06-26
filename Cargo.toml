@@ -19,13 +19,13 @@ required-features = ["plugin","blocking"]
 [features]
 default = ["plugin"]
 plugin = []
-blocking = []
+blocking = ["reqwest/blocking"]
 
 [dependencies]
 hmac = "^0.12"
 sha1 = "^0.10"
 base64 = "^0.13"
-reqwest = {version ="^0.11", features= ["blocking"]}
+reqwest = {version ="^0.11"}
 chrono = "^0.4"
 quick-xml = "^0.23"
 infer = "^0.8"

@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+#[cfg(feature = "blocking")]
 use reqwest::blocking::{self,RequestBuilder,Response};
 use reqwest::{Client as AsyncClient, RequestBuilder as AsyncRequestBuilder, Response as AsyncResponse};
 use reqwest::header::{HeaderMap};
@@ -248,6 +249,7 @@ pub trait ReqeustHandler {
   fn handle_error(self) -> OssResult<Self> where Self: Sized;
 }
 
+#[cfg(feature = "blocking")]
 impl ReqeustHandler for Response {
 
   /// # 收集并处理 OSS 接口返回的错误
