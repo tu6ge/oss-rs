@@ -1,3 +1,31 @@
+## 2022-06-19, Version 0.5.0
+### Commits
+- [[`73dcc85a31`](https://github.com/tu6ge/oss/commit/73dcc85a31c3bc2e6b6ae3c79ae8cd9597027e8a)] chore(version): 插件扩展能力 (tu6ge)
+- [[`72b668326d`](https://github.com/tu6ge/oss/commit/72b668326d6918b824d5d93e01d7b4e07c847320)] test(plugin): ignore doctest (tu6ge)
+- [[`5957beba65`](https://github.com/tu6ge/oss/commit/5957beba652d3a1bb0debb44e20b15222518b0e1)] docs(plugin): 补充文档信息 (tu6ge)
+- [[`bc71a1fadf`](https://github.com/tu6ge/oss/commit/bc71a1fadf67217df601bc273555f3cd887efad7)] feat(plugin): 增加插件的能力 (tu6ge)
+- [[`5b6c89450d`](https://github.com/tu6ge/oss/commit/5b6c89450ddcc542a2595e910427ff1a6b51067d)] feat(plugin): 插件可查看 client 结构体内容 (tu6ge)
+- [[`f487d7050c`](https://github.com/tu6ge/oss/commit/f487d7050c01e58326f60e7cbb2ddfdc8aabf1d3)] refactor: 去掉无用的代码 (tu6ge)
+- [[`502864aacd`](https://github.com/tu6ge/oss/commit/502864aacd0d1de3530b8d95d032fc7329985b0a)] refactor: 去掉无用的代码 (tu6ge)
+- [[`f9b9bedd8a`](https://github.com/tu6ge/oss/commit/f9b9bedd8a8e43d7500de7eba365886ea3a48078)] chore(deps): 减少一个不必要的依赖项 (tu6ge)
+- [[`fb1ac8fea8`](https://github.com/tu6ge/oss/commit/fb1ac8fea8f969a67f270dc198cad9ab80c98df1)] feat(plugin): 支持插件机制 (tu6ge)
+- [[`4324d2d775`](https://github.com/tu6ge/oss/commit/4324d2d775dbef68ba04bd5c6f70681a977a0268)] refactor: 优化代码 (tu6ge)
+
+### Stats
+```diff
+ Cargo.toml         |   7 ++--
+ examples/plugin.rs |  25 ++++++++++++-
+ src/auth.rs        |  22 ++++--------
+ src/bucket.rs      |   6 +--
+ src/client.rs      |  58 +++++++++++++++++++++----------
+ src/errors.rs      |  30 ++++++++++++++--
+ src/lib.rs         |   3 ++-
+ src/object.rs      |   2 +-
+ src/plugin.rs      | 102 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 9 files changed, 214 insertions(+), 41 deletions(-)
+```
+
+
 ## 2022-06-14, Version 0.3.1
 ### Commits
 - [[`43bf2b7d81`](https://github.com/tu6ge/oss/commit/43bf2b7d8137204e629c9b6847cbd29768a122d2)] docs: 完善文档 (tu6ge)

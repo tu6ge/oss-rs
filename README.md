@@ -139,9 +139,9 @@ client.delete_object("examples/bg2015071010.png").await.unwrap();
 
 ## 与 [官方 client](https://crates.io/crates/oss-rust-sdk) 对比
 
-优势:
 - 完整的测试用例
 - 单一入口，避免泛引入导致意外的命名冲突
 - 链式调用
 - 对公共的参数进行了封装，每次调用的时候，只需要传递业务参数即可
+- 默认支持异步调用，可选的支持同步方式调用
 
