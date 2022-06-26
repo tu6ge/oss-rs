@@ -16,6 +16,6 @@ fn main() {
 
     let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
     //let headers = None;
-    client.delete_object("examples/bg2015071010.png").unwrap();
+    client.blocking_delete_object("examples/bg2015071010.png").unwrap();
     println!("delet file success");
 }

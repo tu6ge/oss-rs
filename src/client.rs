@@ -157,7 +157,8 @@ impl<'a> Client<'a> {
   /// 
   /// 返回后，可以再加请求参数，然后可选的进行发起请求
   /// 
-  pub fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<RequestBuilder>{
+  #[cfg(feature = "blocking")]
+  pub fn blocking_builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<RequestBuilder>{
     let client = blocking::Client::new();
 
     let auth = Auth{

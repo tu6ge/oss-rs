@@ -15,7 +15,7 @@ fn main() {
 
     let client = client::Client::new(&key_id,&key_secret, &endpoint, "");
     //let headers = None;
-    let response = client.get_bucket_list().unwrap();
+    let response = client.blocking_get_bucket_list().unwrap();
     println!("buckets list: {:?}", response.buckets.first().unwrap());
 
     let mut query:HashMap<String,String> = HashMap::new();
@@ -24,5 +24,5 @@ fn main() {
 
     let buckets = response.buckets;
     let the_bucket = &buckets[1];
-    println!("bucket object list: {:?}", the_bucket.get_object_list(query));
+    println!("bucket object list: {:?}", the_bucket.blocking_get_object_list(query));
 }

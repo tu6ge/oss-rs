@@ -12,9 +12,14 @@ repository= "https://github.com/tu6ge/oss"
 
 [workspace]
 
+[[example]]
+name = "bucket"
+required-features = ["plugin","blocking"]
+
 [features]
 default = ["plugin"]
 plugin = []
+blocking = []
 
 [dependencies]
 hmac = "^0.12"

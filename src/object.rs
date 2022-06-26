@@ -198,14 +198,15 @@ impl <'a> Client<'a> {
   /// query 参数请参考 OSS 文档，注意 `list-type` 参数已固定为 `2` ，无需传
   /// 
   /// [OSS 文档](https://help.aliyun.com/document_detail/187544.html)
-  pub fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
+  #[cfg(feature = "blocking")]
+  pub fn blocking_get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
     let mut url = self.get_bucket_url()?;
 
     let query_str = Client::<'a>::object_list_query_generator(&query);
 
     url.set_query(Some(&query_str));
 
-    let response = self.builder(VERB::GET, &url, None, None)?;
+    let response = self.blocking_builder(VERB::GET, &url, None, None)?;
     let content = response.send()?.handle_error()?;
 
     ObjectList::from_xml(content.text()?, &self, query)
@@ -228,12 +229,13 @@ impl <'a> Client<'a> {
   /// # 上传文件到 OSS 中
   /// 
   /// 提供有效的文件路径即可
-  pub fn put_file(&self, file_name: &'a str, key: &'a str) -> OssResult<String> {
+  #[cfg(feature = "blocking")]
+  pub fn blocking_put_file(&self, file_name: &'a str, key: &'a str) -> OssResult<String> {
     let mut file_content = Vec::new();
     std::fs::File::open(file_name)?
       .read_to_end(&mut file_content)?;
 
-    self.put_content(&file_content, key)
+    self.blocking_put_content(&file_content, key)
   }
 
   pub async fn async_put_file(&self, file_name: &'a str, key: &'a str) -> OssResult<String> {
@@ -249,7 +251,8 @@ impl <'a> Client<'a> {
   /// 需要事先读取文件内容到 `Vec<u8>` 中
   /// 
   /// 并提供存储的 key 
-  pub fn put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
+  #[cfg(feature = "blocking")]
+  pub fn blocking_put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
     let kind = infer::get(content);
 
     let con = match kind {
@@ -273,7 +276,7 @@ impl <'a> Client<'a> {
     headers.insert(
       "Content-Type", 
       mime_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
-    let response = self.builder(VERB::PUT, &url, Some(headers), None)?
+    let response = self.blocking_builder(VERB::PUT, &url, Some(headers), None)?
       .body(content.clone());
 
     let content = response.send()?.handle_error()?;
@@ -322,11 +325,12 @@ impl <'a> Client<'a> {
   }
 
   /// # 删除文件
-  pub fn delete_object(&self, key: &str) -> OssResult<()>{
+  #[cfg(feature = "blocking")]
+  pub fn blocking_delete_object(&self, key: &str) -> OssResult<()>{
     let mut url = self.get_bucket_url()?;
     url.set_path(key);
 
-    let response = self.builder(VERB::DELETE, &url, None, None)?;
+    let response = self.blocking_builder(VERB::DELETE, &url, None, None)?;
 
     response.send()?.handle_error()?;
     
@@ -345,6 +349,7 @@ impl <'a> Client<'a> {
   }
 }
 
+#[cfg(feature = "blocking")]
 impl <'a>Iterator for ObjectList<'a>{
   type Item = ObjectList<'a>;
   fn next(&mut self) -> Option<ObjectList<'a>> {
@@ -352,7 +357,7 @@ impl <'a>Iterator for ObjectList<'a>{
       Some(token) => {
         let mut query = self.search_query.clone();
         query.insert("continuation-token".to_string(), token);
-        match self.client.get_object_list(query) {
+        match self.client.blocking_get_object_list(query) {
           Ok(list) => Some(list),
           Err(_) => None,
         }
@@ -365,26 +370,26 @@ impl <'a>Iterator for ObjectList<'a>{
 }
 
 
-impl <'a>Stream for ObjectList<'a> {
-  type Item = ObjectList<'a>;
+// impl <'a>Stream for ObjectList<'a> {
+//   type Item = ObjectList<'a>;
 
-  /// 未测试的
-  fn poll_next(self: std::pin::Pin<&mut Self>, _cx: &mut std::task::Context<'_>) -> core::task::Poll<Option<ObjectList<'a>>> {
-    match self.next_continuation_token.clone() {
-      Some(token) => {
-        let mut query = self.search_query.clone();
-        query.insert("continuation-token".to_string(), token);
-        match self.client.get_object_list(query) {
-          Ok(list) => core::task::Poll::Ready(Some(list)),
-          Err(_) => core::task::Poll::Ready(None),
-        }
-      },
-      None => {
-        core::task::Poll::Ready(None)
-      }
-    }
-  }
-}
+//   /// 未测试的
+//   fn poll_next(self: std::pin::Pin<&mut Self>, _cx: &mut std::task::Context<'_>) -> core::task::Poll<Option<ObjectList<'a>>> {
+//     match self.next_continuation_token.clone() {
+//       Some(token) => {
+//         let mut query = self.search_query.clone();
+//         query.insert("continuation-token".to_string(), token);
+//         match self.client.get_object_list(query) {
+//           Ok(list) => core::task::Poll::Ready(Some(list)),
+//           Err(_) => core::task::Poll::Ready(None),
+//         }
+//       },
+//       None => {
+//         core::task::Poll::Ready(None)
+//       }
+//     }
+//   }
+// }
 
 #[derive(Default)]
 pub struct PutObject<'a>{

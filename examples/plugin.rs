@@ -28,7 +28,7 @@ fn main() {
   headers.insert("x-oss-copy-source", "/honglei123/file1.txt".parse().unwrap());
   headers.insert("x-oss-metadata-directive", "COPY".parse().unwrap());
 
-  let request = client.builder(VERB::PUT, &url, Some(headers), None).unwrap();
+  let request = client.blocking_builder(VERB::PUT, &url, Some(headers), None).unwrap();
 
   let response = request.send().unwrap();
 

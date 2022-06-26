@@ -13,12 +13,12 @@ fn main() {
 
     let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket);
     //let headers = None;
-    let response = client.get_bucket_info().unwrap();
+    let response = client.blocking_get_bucket_info().unwrap();
     println!("bucket info: {:?}", response);
 
     let mut query:HashMap<String,String> = HashMap::new();
     query.insert("max-keys".to_string(), "2".to_string());
-    let mut result = response.get_object_list(query).unwrap();
+    let mut result = response.blocking_get_object_list(query).unwrap();
     println!("object list: {:?}", result);
     println!("next object list: {:?}", result.next());
 }

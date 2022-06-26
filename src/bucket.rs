@@ -226,7 +226,8 @@ impl <'b> Bucket<'_> {
     }
   }
 
-  pub fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
+  #[cfg(feature = "blocking")]
+  pub fn blocking_get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
     let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
     let mut url = Url::parse(&input).map_err(|_| OssError::Input("url parse error".to_string()))?;
 
@@ -234,7 +235,7 @@ impl <'b> Bucket<'_> {
 
     url.set_query(Some(&query_str));
 
-    let response = self.client.builder(VERB::GET, &url, None, Some(self.name.to_string()))?;
+    let response = self.client.blocking_builder(VERB::GET, &url, None, Some(self.name.to_string()))?;
     let content = response.send()?.handle_error()?;
     ObjectList::from_xml(content.text()?, &self.client, query)
   }
@@ -321,11 +322,12 @@ impl<'a> Client<'a> {
 
   /** # 获取 buiket 列表
   */
-  pub fn get_bucket_list(&self) -> OssResult<ListBuckets> {
+  #[cfg(feature = "blocking")]
+  pub fn blocking_get_bucket_list(&self) -> OssResult<ListBuckets> {
     let url = Url::parse(&self.endpoint).map_err(|_| OssError::Input("endpoint url parse error".to_string()))?;
     //url.set_path(self.bucket)
 
-    let response = self.builder(VERB::GET, &url, None, None)?;
+    let response = self.blocking_builder(VERB::GET, &url, None, None)?;
     let content = response.send()?.handle_error()?;
     
     ListBuckets::from_xml(content.text()?, &self)
@@ -341,12 +343,13 @@ impl<'a> Client<'a> {
     ListBuckets::from_xml(content.text().await?, &self)
   }
 
-  pub fn get_bucket_info(&self) -> OssResult<Bucket> {
+  #[cfg(feature = "blocking")]
+  pub fn blocking_get_bucket_info(&self) -> OssResult<Bucket> {
     let headers = None;
     let mut bucket_url = self.get_bucket_url()?;
     bucket_url.set_query(Some("bucketInfo"));
 
-    let response = self.builder(VERB::GET, &bucket_url, headers, None)?;
+    let response = self.blocking_builder(VERB::GET, &bucket_url, headers, None)?;
     let content = response.send()?.handle_error()?;
 
     Bucket::from_xml(content.text()?, &self)

@@ -14,7 +14,7 @@ fn test_get_bucket_list(){
 
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
 
-  let bucket_list = client.get_bucket_list();
+  let bucket_list = client.blocking_get_bucket_list();
 
   assert_matches!(bucket_list, Ok(_));
 }
@@ -30,7 +30,7 @@ fn test_get_bucket_info(){
 
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
 
-  let bucket_list = client.get_bucket_info();
+  let bucket_list = client.blocking_get_bucket_info();
 
   assert_matches!(bucket_list, Ok(_));
 }
@@ -45,14 +45,14 @@ fn get_object_by_bucket_struct(){
 
   let client = client(&key_id,&key_secret, &endpoint, "");
 
-  let bucket_list = client.get_bucket_list().unwrap();
+  let bucket_list = client.blocking_get_bucket_list().unwrap();
   let mut query:HashMap<String,String> = HashMap::new();
   query.insert("max-keys".to_string(), "5".to_string());
   query.insert("prefix".to_string(), "babel".to_string());
 
   let buckets = bucket_list.buckets;
   let the_bucket = &buckets[0];
-  let object_list = the_bucket.get_object_list(query);
+  let object_list = the_bucket.blocking_get_object_list(query);
   assert_matches!(object_list, Ok(_));
 }
 
@@ -69,7 +69,7 @@ fn test_get_object() {
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
   let query: HashMap<String,String> = HashMap::new();
 
-  let object_list = client.get_object_list(query);
+  let object_list = client.blocking_get_object_list(query);
 
   assert_matches!(object_list, Ok(_));
 }
@@ -86,7 +86,7 @@ fn test_get_object_next() {
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
   let mut query: HashMap<String,String> = HashMap::new();
   query.insert("max-keys".to_string(), "2".to_string());
-  let object_list = client.get_object_list(query).unwrap().next();
+  let object_list = client.blocking_get_object_list(query).unwrap().next();
 
   assert_matches!(object_list, Some(_));
 }
@@ -102,11 +102,11 @@ fn test_put_and_delete_file(){
 
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
 
-  let object_list = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
+  let object_list = client.blocking_put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
   assert_matches!(object_list, Ok(_));
 
-  let result = client.delete_object("examples/bg2015071010.png");
+  let result = client.blocking_delete_object("examples/bg2015071010.png");
 
   assert_matches!(result, Ok(_));
 }
