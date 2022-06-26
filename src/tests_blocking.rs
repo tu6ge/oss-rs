@@ -1,5 +1,5 @@
 
-use std::{env, collections::HashMap};
+use std::{env, collections::HashMap, path::PathBuf};
 use super::*;
 use dotenv::dotenv;
 
@@ -102,7 +102,7 @@ fn test_put_and_delete_file(){
 
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
 
-  let object_list = client.blocking_put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
+  let object_list = client.blocking_put_file(PathBuf::from("examples/bg2015071010.png"), "examples/bg2015071010.png");
 
   assert_matches!(object_list, Ok(_));
 

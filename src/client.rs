@@ -49,6 +49,10 @@ impl<'a> Client<'a> {
     }
   }
 
+  pub fn set_bucket(&mut self, bucket: &'a str){
+    self.bucket = bucket
+  }
+
   /// # 注册插件
   #[cfg(feature = "plugin")]
   pub fn plugin(mut self, mut plugin: Box<dyn Plugin>) -> Client<'a> {

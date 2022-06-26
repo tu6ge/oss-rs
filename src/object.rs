@@ -3,6 +3,7 @@ use futures::Stream;
 use quick_xml::{events::Event, Reader};
 use std::collections::HashMap;
 use std::fmt;
+use std::path::PathBuf;
 use std::{io::Read, iter::Iterator};
 use reqwest::header::{HeaderMap,HeaderValue};
 
@@ -230,7 +231,7 @@ impl <'a> Client<'a> {
   /// 
   /// 提供有效的文件路径即可
   #[cfg(feature = "blocking")]
-  pub fn blocking_put_file(&self, file_name: &'a str, key: &'a str) -> OssResult<String> {
+  pub fn blocking_put_file(&self, file_name: PathBuf, key: &'a str) -> OssResult<String> {
     let mut file_content = Vec::new();
     std::fs::File::open(file_name)?
       .read_to_end(&mut file_content)?;
@@ -238,7 +239,7 @@ impl <'a> Client<'a> {
     self.blocking_put_content(&file_content, key)
   }
 
-  pub async fn put_file(&self, file_name: &'a str, key: &'a str) -> OssResult<String> {
+  pub async fn put_file(&self, file_name: PathBuf, key: &'a str) -> OssResult<String> {
     let mut file_content = Vec::new();
     std::fs::File::open(file_name)?
       .read_to_end(&mut file_content)?;
