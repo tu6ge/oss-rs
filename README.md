@@ -134,7 +134,6 @@ client.put_content(&file_content, "examples/bg2015071010.png").await.expect("上
 ### 删除文件
 ```
 client.delete_object("examples/bg2015071010.png").await.unwrap();
-
 ```
 
 ## 与 [官方 client](https://crates.io/crates/oss-rust-sdk) 对比
