@@ -212,7 +212,7 @@ impl <'a> Client<'a> {
     ObjectList::from_xml(content.text()?, &self, query)
   }
 
-  pub async fn async_get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
+  pub async fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
 
     let mut url = self.get_bucket_url()?;
 
@@ -220,7 +220,7 @@ impl <'a> Client<'a> {
 
     url.set_query(Some(&query_str));
 
-    let response = self.async_builder(VERB::GET, &url, None, None).await?;
+    let response = self.builder(VERB::GET, &url, None, None).await?;
     let content = response.send().await?.handle_error()?;
 
     ObjectList::from_xml(content.text().await?, &self, query)
@@ -238,12 +238,12 @@ impl <'a> Client<'a> {
     self.blocking_put_content(&file_content, key)
   }
 
-  pub async fn async_put_file(&self, file_name: &'a str, key: &'a str) -> OssResult<String> {
+  pub async fn put_file(&self, file_name: &'a str, key: &'a str) -> OssResult<String> {
     let mut file_content = Vec::new();
     std::fs::File::open(file_name)?
       .read_to_end(&mut file_content)?;
 
-    self.async_put_content(&file_content, key).await
+    self.put_content(&file_content, key).await
   }
 
   /// # 上传文件内容到 OSS
@@ -288,7 +288,7 @@ impl <'a> Client<'a> {
     Ok(result.to_string())
   }
 
-  pub async fn async_put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
+  pub async fn put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
     let kind = infer::get(content);
 
     let con = match kind {
@@ -312,7 +312,7 @@ impl <'a> Client<'a> {
     headers.insert(
       "Content-Type", 
       mime_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
-    let response = self.async_builder(VERB::PUT, &url, Some(headers), None).await?
+    let response = self.builder(VERB::PUT, &url, Some(headers), None).await?
       .body(content.clone());
 
     let content = response.send().await?.handle_error()?;
@@ -337,11 +337,11 @@ impl <'a> Client<'a> {
     Ok(())
   }
 
-  pub async fn async_delete_object(&self, key: &str) -> OssResult<()>{
+  pub async fn delete_object(&self, key: &str) -> OssResult<()>{
     let mut url = self.get_bucket_url()?;
     url.set_path(key);
 
-    let response = self.async_builder(VERB::DELETE, &url, None, None).await?;
+    let response = self.builder(VERB::DELETE, &url, None, None).await?;
 
     response.send().await?.handle_error()?;
     

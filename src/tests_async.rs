@@ -15,7 +15,7 @@ async fn test_get_bucket_list(){
 
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
 
-  let bucket_list = client.async_get_bucket_list().await;
+  let bucket_list = client.get_bucket_list().await;
 
   assert_matches!(bucket_list, Ok(_));
 }
@@ -32,7 +32,7 @@ async fn test_get_bucket_info(){
 
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
 
-  let bucket_list = client.async_get_bucket_info().await;
+  let bucket_list = client.get_bucket_info().await;
 
   assert_matches!(bucket_list, Ok(_));
 }
@@ -48,14 +48,14 @@ async fn get_object_by_bucket_struct(){
 
   let client = client(&key_id,&key_secret, &endpoint, "");
 
-  let bucket_list = client.async_get_bucket_list().await.unwrap();
+  let bucket_list = client.get_bucket_list().await.unwrap();
   let mut query:HashMap<String,String> = HashMap::new();
   query.insert("max-keys".to_string(), "5".to_string());
   query.insert("prefix".to_string(), "babel".to_string());
 
   let buckets = bucket_list.buckets;
   let the_bucket = &buckets[0];
-  let object_list = the_bucket.async_get_object_list(query).await;
+  let object_list = the_bucket.get_object_list(query).await;
   assert_matches!(object_list, Ok(_));
 }
 
@@ -72,7 +72,7 @@ async fn test_get_object() {
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
   let query: HashMap<String,String> = HashMap::new();
 
-  let object_list = client.async_get_object_list(query).await;
+  let object_list = client.get_object_list(query).await;
 
   assert_matches!(object_list, Ok(_));
 }
@@ -89,11 +89,11 @@ async fn test_put_and_delete_file(){
 
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
 
-  let object_list = client.async_put_file("examples/bg2015071010.png", "examples/bg2015071010.png").await;
+  let object_list = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").await;
 
   assert_matches!(object_list, Ok(_));
 
-  let result = client.async_delete_object("examples/bg2015071010.png").await;
+  let result = client.delete_object("examples/bg2015071010.png").await;
 
   assert_matches!(result, Ok(_));
 }

@@ -31,23 +31,24 @@ let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket);
 ```
 
+## 同步（阻塞模式）
 
 ### 查询所有的 bucket 信息
 ```
-let response = client.get_bucket_list().unwrap();
+let response = client.blocking_get_bucket_list().unwrap();
 println!("buckets list: {:?}", response);
 ```
 
 ### 获取 bucket 信息
 ```
-let response = client.get_bucket_info().unwrap();
+let response = client.blocking_get_bucket_info().unwrap();
 println!("bucket info: {:?}", response);
 ```
 
 ### 查询当前 bucket 中的 object 列表
 ```
 let query: HashMap<String,String> = HashMap::new();
-let response = client.get_object_list(query).unwrap();
+let response = client.blocking_get_object_list(query).unwrap();
 println!("objects list: {:?}", response);
 ```
 
@@ -58,12 +59,64 @@ let mut query:HashMap<String,String> = HashMap::new();
 query.insert("max-keys".to_string(), "5".to_string());
 query.insert("prefix".to_string(), "babel".to_string());
 
-let result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
+let result = client.blocking_get_bucket_info().unwrap().blocking_get_object_list(query).unwrap();
 
 println!("object list : {:?}", result);
 
 // 翻页功能 获取下一页数据
 println!("next object list: {:?}", result.next().unwrap());
+```
+
+### 上传文件
+```
+client.blocking_put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
+
+// or 上传文件内容
+let mut file_content = Vec::new();
+std::fs::File::open(file_name)
+  .expect("open file failed").read_to_end(&mut file_content)
+  .expect("read_to_end failed");
+client.blocking_put_content(&file_content, "examples/bg2015071010.png").expect("上传失败");
+```
+
+### 删除文件
+```
+client.blocking_delete_object("examples/bg2015071010.png").unwrap();
+
+```
+
+## 异步
+
+### 查询所有的 bucket 信息
+```
+let response = client.get_bucket_list().await.unwrap();
+println!("buckets list: {:?}", response);
+```
+
+### 获取 bucket 信息
+```
+let response = client.get_bucket_info().await.unwrap();
+println!("bucket info: {:?}", response);
+```
+
+### 查询当前 bucket 中的 object 列表
+```
+let query: HashMap<String,String> = HashMap::new();
+let response = client.get_object_list(query).await.unwrap();
+println!("objects list: {:?}", response);
+```
+
+### 也可以使用 bucket struct 查询 object 列表
+
+```
+let mut query:HashMap<String,String> = HashMap::new();
+query.insert("max-keys".to_string(), "5".to_string());
+query.insert("prefix".to_string(), "babel".to_string());
+
+let result = client.get_bucket_info().await.unwrap().get_object_list(query).await.unwrap();
+
+println!("object list : {:?}", result);
+
 ```
 
 ### 上传文件
@@ -75,64 +128,12 @@ let mut file_content = Vec::new();
 std::fs::File::open(file_name)
   .expect("open file failed").read_to_end(&mut file_content)
   .expect("read_to_end failed");
-client.put_content(&file_content, "examples/bg2015071010.png").expect("上传失败");
+client.put_content(&file_content, "examples/bg2015071010.png").await.expect("上传失败");
 ```
 
 ### 删除文件
 ```
-client.delete_object("examples/bg2015071010.png").unwrap();
-
-```
-
-## 异步
-
-### 查询所有的 bucket 信息
-```
-let response = client.async_get_bucket_list().await.unwrap();
-println!("buckets list: {:?}", response);
-```
-
-### 获取 bucket 信息
-```
-let response = client.async_get_bucket_info().await.unwrap();
-println!("bucket info: {:?}", response);
-```
-
-### 查询当前 bucket 中的 object 列表
-```
-let query: HashMap<String,String> = HashMap::new();
-let response = client.async_get_object_list(query).await.unwrap();
-println!("objects list: {:?}", response);
-```
-
-### 也可以使用 bucket struct 查询 object 列表
-
-```
-let mut query:HashMap<String,String> = HashMap::new();
-query.insert("max-keys".to_string(), "5".to_string());
-query.insert("prefix".to_string(), "babel".to_string());
-
-let result = client.async_get_bucket_info().await.unwrap().async_get_object_list(query).await.unwrap();
-
-println!("object list : {:?}", result);
-
-```
-
-### 上传文件
-```
-client.async_put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
-
-// or 上传文件内容
-let mut file_content = Vec::new();
-std::fs::File::open(file_name)
-  .expect("open file failed").read_to_end(&mut file_content)
-  .expect("read_to_end failed");
-client.async_put_content(&file_content, "examples/bg2015071010.png").await.expect("上传失败");
-```
-
-### 删除文件
-```
-client.async_delete_object("examples/bg2015071010.png").await.unwrap();
+client.delete_object("examples/bg2015071010.png").await.unwrap();
 
 ```
 

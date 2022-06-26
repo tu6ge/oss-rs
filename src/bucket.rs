@@ -240,7 +240,7 @@ impl <'b> Bucket<'_> {
     ObjectList::from_xml(content.text()?, &self.client, query)
   }
 
-  pub async fn async_get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
+  pub async fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
     let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
     let mut url = Url::parse(&input).map_err(|_| OssError::Input("url parse error".to_string()))?;
 
@@ -248,7 +248,7 @@ impl <'b> Bucket<'_> {
 
     url.set_query(Some(&query_str));
 
-    let response = self.client.async_builder(VERB::GET, &url, None, Some(self.name.to_string())).await?;
+    let response = self.client.builder(VERB::GET, &url, None, Some(self.name.to_string())).await?;
     let content = response.send().await?.handle_error()?;
 
     // println!("{}", &content.text()?);
@@ -333,11 +333,11 @@ impl<'a> Client<'a> {
     ListBuckets::from_xml(content.text()?, &self)
   }
 
-  pub async fn async_get_bucket_list(&self) -> OssResult<ListBuckets<'_>>{
+  pub async fn get_bucket_list(&self) -> OssResult<ListBuckets<'_>>{
     let url = Url::parse(&self.endpoint).map_err(|_| OssError::Input("endpoint url parse error".to_string()))?;
     //url.set_path(self.bucket)
 
-    let response = self.async_builder(VERB::GET, &url, None, None).await?;
+    let response = self.builder(VERB::GET, &url, None, None).await?;
     let content = response.send().await?.handle_error()?;
     
     ListBuckets::from_xml(content.text().await?, &self)
@@ -355,12 +355,12 @@ impl<'a> Client<'a> {
     Bucket::from_xml(content.text()?, &self)
   }
 
-  pub async fn async_get_bucket_info(&self) -> OssResult<Bucket<'_>> {
+  pub async fn get_bucket_info(&self) -> OssResult<Bucket<'_>> {
     let headers = None;
     let mut bucket_url = self.get_bucket_url()?;
     bucket_url.set_query(Some("bucketInfo"));
 
-    let response = self.async_builder(VERB::GET, &bucket_url, headers, None).await?;
+    let response = self.builder(VERB::GET, &bucket_url, headers, None).await?;
     let content = response.send().await?.handle_error()?;
 
     Bucket::from_xml(content.text().await?, &self)

@@ -191,7 +191,7 @@ impl<'a> Client<'a> {
   }
 
   /// builder 方法的异步实现
-  pub async fn async_builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<AsyncRequestBuilder>{
+  pub async fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<AsyncRequestBuilder>{
     let client = AsyncClient::new();
 
     let auth = Auth{
