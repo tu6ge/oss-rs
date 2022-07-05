@@ -222,7 +222,7 @@ impl<'a> Client<'a> {
 
     let all_headers: HeaderMap = auth.async_get_headers().await?;
 
-    Ok(client.request(method.0, url.to_string())
+    Ok(client.request(method.0, url.to_owned())
       .headers(all_headers))
   }
 
