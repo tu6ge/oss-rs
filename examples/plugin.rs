@@ -1,3 +1,4 @@
+//! `cargo run --example plugin --features=blocking,plugin`
 extern crate dotenv;
 
 use aliyun_oss_client::plugin::Plugin;

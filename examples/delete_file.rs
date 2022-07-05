@@ -1,3 +1,4 @@
+//! `cargo run --example delete_file --features=blocking`
 
 use aliyun_oss_client::client;
 

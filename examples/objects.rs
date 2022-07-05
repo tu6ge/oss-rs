@@ -1,3 +1,4 @@
+//! `cargo run --example objects --features=blocking`
 
 use aliyun_oss_client::client;
 

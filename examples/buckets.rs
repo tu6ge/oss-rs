@@ -1,3 +1,5 @@
+//! `cargo run --example buckets --features=blocking`
+#![deny(warnings)]
 
 use aliyun_oss_client::client;
 

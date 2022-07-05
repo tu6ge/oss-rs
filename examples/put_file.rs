@@ -1,4 +1,4 @@
-
+//! `cargo run --example put_file --features=blocking`
 use aliyun_oss_client::client;
 
 extern crate dotenv;
