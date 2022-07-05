@@ -6,8 +6,7 @@ use dotenv::dotenv;
 use assert_matches::assert_matches;
 use super::client;
 
-#[tokio::main]
-#[test]
+#[tokio::test]
 async fn test_get_bucket_list(){
   dotenv().ok();
 
@@ -23,8 +22,7 @@ async fn test_get_bucket_list(){
   assert_matches!(bucket_list, Ok(_));
 }
 
-#[tokio::main]
-#[test]
+#[tokio::test]
 async fn test_get_bucket_info(){
   dotenv().ok();
 
@@ -40,8 +38,7 @@ async fn test_get_bucket_info(){
   assert_matches!(bucket_list, Ok(_));
 }
 
-#[tokio::main]
-#[test]
+#[tokio::test]
 async fn get_object_by_bucket_struct(){
   dotenv().ok();
 
@@ -62,8 +59,7 @@ async fn get_object_by_bucket_struct(){
   assert_matches!(object_list, Ok(_));
 }
 
-#[tokio::main]
-#[test]
+#[tokio::test]
 async fn test_get_object() {
   dotenv().ok();
 
@@ -80,8 +76,7 @@ async fn test_get_object() {
   assert_matches!(object_list, Ok(_));
 }
 
-#[tokio::main]
-#[test]
+#[tokio::test]
 async fn test_put_and_delete_file(){
   dotenv().ok();
 
