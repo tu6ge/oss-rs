@@ -36,12 +36,6 @@ required-features = ["plugin","blocking"]
 name = "put_file"
 required-features = ["blocking"]
 
-[[test]]
-name = "test_async"
-path = "src/tests_async.rs"
-required-features = ["default","blocking"]
-dependencies = ["tokio","assert_matches","dotenv"]
-
 [features]
 default = ["plugin"]
 plugin = []

@@ -102,13 +102,8 @@ pub mod plugin;
 extern crate assert_matches;
 
 #[allow(soft_unstable)]
-#[cfg(feature = "blocking")]
 #[cfg(test)]
-mod tests_blocking;
-
-#[allow(soft_unstable)]
-#[cfg(test)]
-mod tests_async;
+mod tests;
 
 /** # 主要入口
 
