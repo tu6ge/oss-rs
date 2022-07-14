@@ -71,6 +71,23 @@ impl From<VERB> for String {
   }
 }
 
+impl From<&str> for VERB {
+  fn from(str: &str) -> Self {
+      match str {
+          "POST"    => VERB(Method::POST),
+          "GET"     => VERB(Method::GET),
+          "PUT"     => VERB(Method::PUT),
+          "DELETE"  => VERB(Method::DELETE),
+          "HEAD"    => VERB(Method::HEAD),
+          "OPTIONS" => VERB(Method::OPTIONS),
+          "CONNECT" => VERB(Method::CONNECT),
+          "PATCH"   => VERB(Method::PATCH),
+          "TRACE"   => VERB(Method::TRACE),
+          _ => VERB(Method::GET),
+      }
+  }
+}
+
 type HmacSha1 = Hmac<Sha1>;
 
 impl<'a> Auth<'a> {
