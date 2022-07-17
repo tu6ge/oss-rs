@@ -92,6 +92,9 @@ pub mod object;
 /// # 对 reqwest 进行了简单的封装，加上了 OSS 的签名验证功能
 pub mod client;
 
+/// 定义 trait 们
+pub mod traits;
+
 pub mod errors;
 
 #[cfg(feature = "plugin")]

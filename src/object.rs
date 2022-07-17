@@ -1,6 +1,5 @@
 use chrono::prelude::*;
 use futures::Stream;
-use quick_xml::{events::Event, Reader};
 use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
@@ -10,6 +9,7 @@ use reqwest::header::{HeaderMap,HeaderValue};
 use crate::errors::{OssResult,OssError};
 use crate::client::{Client, ReqeustHandler};
 use crate::auth::{VERB};
+use crate::traits::{ObjectTrait, ObjectListTrait};
 
 #[derive(Clone)]
 pub struct ObjectList<'a> {
@@ -19,8 +19,8 @@ pub struct ObjectList<'a> {
   pub key_count: u64,
   pub object_list: Vec<Object>,
   pub next_continuation_token: Option<String>,
-  client: &'a Client<'a>,
-  pub search_query: HashMap<String, String>,
+  client: Option<&'a Client<'a>>,
+  pub search_query: Option<HashMap<String, String>>,
 }
 
 impl fmt::Debug for ObjectList<'_> {
@@ -35,130 +35,41 @@ impl fmt::Debug for ObjectList<'_> {
   }
 }
 
-impl ObjectList<'_> {
-  pub fn new<'a>(
+impl ObjectListTrait<Object> for ObjectList<'_> {
+  fn from_oss(
     name: String,
     prefix: String,
-    max_keys: u32,
-    key_count: u64,
+    max_keys: String,
+    key_count: String,
     object_list: Vec<Object>,
     next_continuation_token: Option<String>,
-    client: &'a Client,
-    search_query: HashMap<String, String>
-  ) ->ObjectList<'a>{
-    ObjectList {
+    // client: Option<&'a Client>,
+    // search_query: Option<HashMap<String, String>>
+  ) ->OssResult<ObjectList<'static>>{
+    let in_max_keys = max_keys.parse::<u32>()?;
+    let in_key_count = key_count.parse::<u64>()?;
+    Ok(ObjectList{
       name,
       prefix,
-      max_keys,
-      key_count,
+      max_keys: in_max_keys,
+      key_count: in_key_count,
       object_list,
       next_continuation_token,
-      client,
-      search_query
-    }
+      client: None,
+      search_query: None,
+    })
+  }
+}
+impl<'b> ObjectList<'b> {
+  
+  pub fn set_client(mut self, client: &'b Client) -> Self{
+    self.client = Some(client);
+    self
   }
   
-  pub fn from_xml<'a>(xml: String, client: &'a Client, search_query: HashMap<String, String>) -> OssResult<ObjectList<'a>> {
-    let mut result = Vec::new();
-    let mut reader = Reader::from_str(xml.as_str());
-    reader.trim_text(true);
-    let mut buf = Vec::with_capacity(xml.len());
-    let mut skip_buf = Vec::with_capacity(xml.len());
-
-    let mut key = String::new();
-    let mut last_modified = String::with_capacity(20);
-    let mut _type = String::new();
-    let mut etag = String::with_capacity(34); // 32 位 加两位 "" 符号
-    let mut size: u64 = 0;
-    let mut storage_class = String::with_capacity(11);
-    // let mut is_truncated = false;
-
-    let mut name = String::new();
-    let mut prefix = String::new();
-    let mut max_keys: u32 = 0;
-    let mut key_count: u64 = 0;
-    let mut next_continuation_token: Option<String> = None;
-
-    let list_object;
-
-    loop {
-      match reader.read_event(&mut buf) {
-          Ok(Event::Start(ref e)) => match e.name() {
-              b"Prefix" => prefix = reader.read_text(e.name(), &mut skip_buf)?,
-              b"Name" => name = reader.read_text(e.name(), &mut skip_buf)?,
-              b"MaxKeys" => {
-                max_keys = reader.read_text(e.name(), &mut skip_buf)?.parse::<u32>()?;
-              },
-              b"KeyCount" => {
-                key_count = reader.read_text(e.name(), &mut skip_buf)?.parse::<u64>()?;
-              },
-              b"IsTruncated" => {
-                //is_truncated = reader.read_text(e.name(), &mut skip_buf)? == "true"
-              }
-              b"NextContinuationToken" => {
-                next_continuation_token = Some(reader.read_text(e.name(), &mut skip_buf)?);
-              }
-              b"Contents" => {
-                key.clear();
-                last_modified.clear();
-                etag.clear();
-                _type.clear();
-                storage_class.clear();
-              }
-
-              b"Key" => key = reader.read_text(e.name(), &mut skip_buf)?,
-              b"LastModified" => last_modified = reader.read_text(e.name(), &mut skip_buf)?,
-              b"ETag" => {
-                etag = reader.read_text(e.name(), &mut skip_buf)?;
-                let str = "\"";
-                etag = etag.replace(str, "");
-              }
-              b"Type" => {
-                _type = reader.read_text(e.name(), &mut skip_buf)?
-              }
-              b"Size" => {
-                size = reader.read_text(e.name(), &mut skip_buf)?.parse::<u64>()?;
-              },
-              b"StorageClass" => {
-                storage_class = reader.read_text(e.name(), &mut skip_buf)?
-              }
-              _ => (),
-          },
-          Ok(Event::End(ref e)) if e.name() == b"Contents" => {
-            let in_last_modified = &last_modified.parse::<DateTime<Utc>>()?;
-            let object = Object::new(
-                key.clone(),
-                in_last_modified.clone(),
-                etag.clone(),
-                _type.clone(),
-                size,
-                storage_class.clone(),
-            );
-            result.push(object);
-          }
-          Ok(Event::Eof) => {
-              list_object = ObjectList::new(
-                  Client::string2option(name).ok_or(OssError::Input("get name failed by xml".to_string()))?,
-                  prefix,
-                  max_keys,
-                  key_count,
-                  result,
-                  next_continuation_token,
-                  client,
-                  search_query
-              );
-              break;
-          } // exits the loop when reaching end of file
-          Err(e) => {
-            return Err(OssError::Input(format!("Error at position {}: {:?}", reader.buffer_position(), e)));
-          },
-          _ => (), // There are several other `Event`s we do not consider here
-      }
-      buf.clear();
-    }
-
-
-    Ok(list_object)
+  pub fn set_search_query(mut self, search_query: HashMap<String, String>) -> Self{
+    self.search_query = Some(search_query);
+    self
   }
 }
 
@@ -172,23 +83,25 @@ pub struct Object {
   pub storage_class: String,
 }
 
-impl Object {
-  pub fn new(
+impl ObjectTrait for Object {
+  fn from_oss(
     key: String,
-    last_modified: DateTime<Utc>,
+    last_modified: String,
     etag: String,
     _type: String,
-    size: u64,
+    size: String,
     storage_class: String
-  ) -> Object {
-    Object {
+  ) -> OssResult<Object> {
+    let in_last_modified = last_modified.parse::<DateTime<Utc>>()?;
+    let in_size = size.parse::<u64>()?;
+    Ok(Object {
       key,
-      last_modified,
+      last_modified: in_last_modified,
       etag,
       _type,
-      size,
+      size: in_size,
       storage_class
-    }
+    })
   }
 }
 
@@ -200,7 +113,7 @@ impl <'a> Client<'a> {
   /// 
   /// [OSS 文档](https://help.aliyun.com/document_detail/187544.html)
   #[cfg(feature = "blocking")]
-  pub fn blocking_get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
+  pub fn blocking_get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
     let mut url = self.get_bucket_url()?;
 
     let query_str = Client::<'a>::object_list_query_generator(&query);
@@ -210,7 +123,9 @@ impl <'a> Client<'a> {
     let response = self.blocking_builder(VERB::GET, &url, None, None)?;
     let content = response.send()?.handle_error()?;
 
-    ObjectList::from_xml(content.text()?, &self, query)
+    Ok(
+      ObjectList::from_xml(content.text()?)?.set_client(&self).set_search_query(query)
+    )
   }
 
   pub async fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
@@ -224,7 +139,9 @@ impl <'a> Client<'a> {
     let response = self.builder(VERB::GET, &url, None, None).await?;
     let content = response.send().await?.handle_error()?;
 
-    ObjectList::from_xml(content.text().await?, &self, query)
+    Ok(
+      ObjectList::from_xml(content.text().await?)?.set_client(&self).set_search_query(query)
+    )
   }
 
   /// # 上传文件到 OSS 中
@@ -356,9 +273,9 @@ impl <'a>Iterator for ObjectList<'a>{
   fn next(&mut self) -> Option<ObjectList<'a>> {
     match self.next_continuation_token.clone() {
       Some(token) => {
-        let mut query = self.search_query.clone();
+        let mut query = self.search_query.as_ref().unwrap().clone();
         query.insert("continuation-token".to_string(), token);
-        match self.client.blocking_get_object_list(query) {
+        match self.client.unwrap().blocking_get_object_list(query) {
           Ok(list) => Some(list),
           Err(_) => None,
         }
