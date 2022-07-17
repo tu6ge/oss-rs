@@ -1,7 +1,6 @@
 use quick_xml::Reader;
 use quick_xml::events::Event;
 
-use crate::client::Client;
 use crate::errors::{OssResult, OssError};
 
 pub trait ObjectTrait {
@@ -108,7 +107,7 @@ pub trait ObjectListTrait<OBJ: ObjectTrait> {
           }
           Ok(Event::Eof) => {
               list_object = Self::from_oss(
-                  Client::string2option(name).ok_or(OssError::Input("get name failed by xml".to_string()))?,
+                  string2option(name).ok_or(OssError::Input("get name failed by xml".to_string()))?,
                   prefix,
                   max_keys,
                   key_count,
@@ -296,13 +295,13 @@ pub trait ListBucketTrait {
             }
             Ok(Event::Eof) => {
                 list_buckets = ListBucketTrait::from_oss(
-                    Client::string2option(prefix),
-                    Client::string2option(marker),
-                    Client::string2option(max_keys),
+                    string2option(prefix),
+                    string2option(marker),
+                    string2option(max_keys),
                     is_truncated,
-                    Client::string2option(next_marker),
-                    Client::string2option(id),
-                    Client::string2option(display_name),
+                    string2option(next_marker),
+                    string2option(id),
+                    string2option(display_name),
                     result,
                 )?;
                 break;
@@ -316,4 +315,12 @@ pub trait ListBucketTrait {
     }
     Ok(list_buckets)
   }
+}
+
+#[inline]
+fn string2option(string: String) -> Option<String> {
+  if string.len() == 0 {
+    return None
+  }
+  Some(string)
 }

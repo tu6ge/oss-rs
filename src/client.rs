@@ -226,13 +226,7 @@ impl<'a> Client<'a> {
       .headers(all_headers))
   }
 
-  #[inline]
-  pub fn string2option(string: String) -> Option<String> {
-    if string.len() == 0 {
-      return None
-    }
-    Some(string)
-  }
+  
 
   #[inline]
   pub fn object_list_query_generator(query: &HashMap<String, String>) -> String {
