@@ -102,7 +102,17 @@ fn test_put_and_delete_file(){
 
   let client = client(&key_id,&key_secret, &endpoint, &bucket);
 
+  // 第一种读取文件路径的方式
   let object_list = client.blocking_put_file(PathBuf::from("examples/bg2015071010.png"), "examples/bg2015071010.png");
+
+  assert_matches!(object_list, Ok(_));
+
+  let result = client.blocking_delete_object("examples/bg2015071010.png");
+
+  assert_matches!(result, Ok(_));
+
+  // 第二种读取文件路径的方式
+  let object_list = client.blocking_put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
   assert_matches!(object_list, Ok(_));
 
