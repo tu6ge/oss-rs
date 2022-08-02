@@ -16,6 +16,7 @@ use crate::errors::{OssResult,OssError};
 use crate::plugin::{Plugin, PluginStore};
 
 /// # 构造请求的客户端结构体
+#[non_exhaustive]
 pub struct Client<'a>{
   access_key_id: &'a str,
   access_key_secret: &'a str,

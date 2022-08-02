@@ -64,6 +64,7 @@ pub trait Plugin{
 }
 
 /// 插件仓库
+#[non_exhaustive]
 pub struct PluginStore{
   store: HashMap<&'static str, Box<dyn Plugin>>,
 }

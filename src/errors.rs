@@ -2,6 +2,7 @@ use hmac::digest::crypto_common;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum OssError{
   #[error("reqwest error: {0}")]
   Request(#[from] reqwest::Error),

@@ -12,6 +12,7 @@ use crate::auth::{VERB};
 use crate::traits::{ObjectTrait, ObjectListTrait};
 
 #[derive(Clone)]
+#[non_exhaustive]
 pub struct ObjectList<'a> {
   pub name: String,
   pub prefix: String,
@@ -74,6 +75,7 @@ impl<'b> ObjectList<'b> {
 }
 
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub struct Object {
   pub key: String,
   pub last_modified: DateTime<Utc>,

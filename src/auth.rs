@@ -11,6 +11,7 @@ use futures::executor::block_on;
 // use http::Method;
 
 #[derive(Clone)]
+#[non_exhaustive]
 pub struct VERB(pub Method);
 
 pub struct Auth<'a>{

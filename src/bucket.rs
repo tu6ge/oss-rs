@@ -11,6 +11,7 @@ use chrono::prelude::*;
 use reqwest::Url;
 
 #[derive(Clone)]
+#[non_exhaustive]
 pub struct ListBuckets<'a> {
   pub prefix: Option<String>,
   pub marker: Option<String>,
@@ -76,6 +77,7 @@ impl <'b> ListBuckets<'b>  {
 
 
 #[derive(Clone)]
+#[non_exhaustive]
 pub struct Bucket<'a>{
   // bucket_info: Option<Bucket<'b>>,
   // bucket: Option<Bucket<'c>>,
