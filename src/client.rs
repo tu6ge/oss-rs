@@ -69,14 +69,19 @@ impl<'a> Client<'a> {
   }
 
   pub async fn async_canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> String {
-    let plugin_result = 
+
+    #[cfg(feature = "plugin")]
+    {
+      let plugin_result = 
       self.plugins.borrow()
         .get_canonicalized_resource(
           url
         );
-    if let Some(result) = plugin_result {
-      return result;
+      if let Some(result) = plugin_result {
+        return result;
+      }
     }
+    
 
     let bucket = match bucket {
       Some(val) => val,
