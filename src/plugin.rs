@@ -45,7 +45,7 @@ use crate::{errors::OssError, client::Client};
 
 pub type Result<T> = std::result::Result<T, OssError>;
 
-pub trait Plugin{
+pub trait Plugin: Send{
   fn name(&self) -> &'static str;
 
   /// 初始化插件

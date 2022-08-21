@@ -9,8 +9,10 @@ use reqwest::Url;
 use reqwest::header::{HeaderMap};
 use std::env;
 
-fn main() {
+#[tokio::main]
+async fn main() {
   dotenv().ok();
+  use futures::try_join;
 
   let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
   let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
@@ -20,7 +22,8 @@ fn main() {
   let my_plugin = MyPlugin{bucket:"abc".to_string()};
 
   let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket)
-    .plugin(Box::new(my_plugin));
+    .plugin(Box::new(my_plugin))
+    ;
 
   let mut url = client.get_bucket_url().unwrap();
   url.set_path("file_copy.txt");
@@ -29,11 +32,20 @@ fn main() {
   headers.insert("x-oss-copy-source", "/honglei123/file1.txt".parse().unwrap());
   headers.insert("x-oss-metadata-directive", "COPY".parse().unwrap());
 
-  let request = client.blocking_builder(VERB::PUT, &url, Some(headers), None).unwrap();
+  let request = client.builder(VERB::PUT, &url, Some(headers.clone()), None).await.unwrap();
 
-  let response = request.send().unwrap();
+  //let response = request.send().await.unwrap();
 
-  println!("copy result: {:?}", response);
+  let mut url2 = client.get_bucket_url().unwrap();
+  url2.set_path("file_copy2.txt");
+
+  let request2 = client.builder(VERB::PUT, &url2, Some(headers), None).await.unwrap();
+
+  //let response2 = request2.send().await.unwrap();
+
+  let result = try_join!(request.send(), request2.send());
+  println!("result {:?}", result);
+  //println!("copy result1: {:?}, result2: {:?}", response, response2);
 }
 
 struct MyPlugin {

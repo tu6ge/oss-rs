@@ -171,7 +171,7 @@ impl <'b> Bucket<'b> {
     url.set_query(Some(&query_str));
 
     let response = self.client.unwrap().builder(VERB::GET, &url, None, Some(self.name.to_string())).await?;
-    let content = response.send().await?.handle_error()?;
+    let content = response.send().await?.handle_error()?; 
 
     // println!("{}", &content.text()?);
     // return Err(errors::OssError::Other(anyhow!("abc")));

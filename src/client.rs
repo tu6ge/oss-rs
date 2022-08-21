@@ -1,5 +1,5 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::Mutex;
 
 #[cfg(feature = "blocking")]
 use reqwest::blocking::{self,RequestBuilder,Response};
@@ -17,6 +17,7 @@ use crate::plugin::{Plugin, PluginStore};
 
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
+#[derive(Default)]
 pub struct Client<'a>{
   access_key_id: &'a str,
   access_key_secret: &'a str,
@@ -24,7 +25,7 @@ pub struct Client<'a>{
   pub bucket: &'a str,
   
   #[cfg(feature = "plugin")]
-  pub plugins: RefCell<PluginStore>,
+  pub plugins: Mutex<PluginStore>,
 }
 
 impl<'a> Client<'a> {
@@ -46,7 +47,7 @@ impl<'a> Client<'a> {
       access_key_secret,
       endpoint,
       bucket,
-      plugins: RefCell::new(PluginStore::default()),
+      plugins: Mutex::new(PluginStore::default()),
     }
   }
 
@@ -59,7 +60,7 @@ impl<'a> Client<'a> {
   pub fn plugin(mut self, mut plugin: Box<dyn Plugin>) -> Client<'a> {
     plugin.initialize(&mut self);
 
-    self.plugins.borrow_mut().insert(plugin);
+    self.plugins.lock().unwrap().insert(plugin);
     self
   }
 
@@ -73,7 +74,7 @@ impl<'a> Client<'a> {
     #[cfg(feature = "plugin")]
     {
       let plugin_result = 
-      self.plugins.borrow()
+      self.plugins.lock().unwrap()
         .get_canonicalized_resource(
           url
         );
