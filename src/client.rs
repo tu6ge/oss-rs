@@ -92,14 +92,21 @@ impl<'a> Client<'a> {
     }
 
     //println!("url.path(): {}", url.path());
+    let path = urlencoding::decode(url.path());
+
+    if let Err(_) = path {
+      return format!("/");
+    }
+
+    let path = path.unwrap();
 
     // 有 path 的情况
     if url.path().is_empty() == false && url.path() != "/" {
       match url.query() {
         Some(query_value) if query_value.is_empty() == false => {
-          return format!("/{}{}?{}", bucket, url.path(), query_value);
+          return format!("/{}{}?{}", bucket, path, query_value);
         },
-        _ => return format!("/{}{}", bucket, url.path())
+        _ => return format!("/{}{}", bucket, path)
       }
     }
 
@@ -302,7 +309,7 @@ impl ReqeustHandler for AsyncResponse{
     
     if status != 200 && status != 204{
 
-      // println!("{:#?}", self.text().unwrap());
+      // println!("{:#?}", self.text().await.unwrap());
       // return Err(
       //   OssError::Input(
       //     format!(

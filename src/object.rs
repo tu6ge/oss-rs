@@ -237,6 +237,9 @@ impl <'a> Client<'a> {
 
     let content = response.send().await?.handle_error()?;
 
+    // println!("{:#?}", content.text().await.unwrap());
+    // return Ok("ok".into());
+
     let result = content.headers().get("ETag")
       .ok_or(OssError::Input("get Etag error".to_string()))?
       .to_str().map_err(|_| OssError::Input("ETag parse error".to_string()))?;

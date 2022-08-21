@@ -52,6 +52,7 @@ infer = "^0.8"
 thiserror = "^1"
 anyhow = "^1"
 futures = "^0.3"
+urlencoding = "2.1.0"
 
 [dev-dependencies]
 dotenv = "0.15.0"

@@ -32,6 +32,9 @@ pub enum OssError{
   #[error("hmac InvalidLength: {0}")]
   InvalidLength(#[from] crypto_common::InvalidLength),
 
+  #[error("FromUtf8Error: {0}")]
+  FromUtf8Error(#[from] std::string::FromUtf8Error),
+
   #[cfg(feature = "plugin")]
   #[error("plugin : {0}")]
   Plugin(#[from] self::plugin::PluginError),
