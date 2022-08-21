@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use infer::Infer;
 #[cfg(feature = "blocking")]
 use reqwest::blocking::{self,RequestBuilder,Response};
 use reqwest::{Client as AsyncClient, RequestBuilder as AsyncRequestBuilder, Response as AsyncResponse};
@@ -26,6 +27,8 @@ pub struct Client<'a>{
   
   #[cfg(feature = "plugin")]
   pub plugins: Mutex<PluginStore>,
+
+  pub infer: Infer,
 }
 
 impl<'a> Client<'a> {
@@ -37,6 +40,7 @@ impl<'a> Client<'a> {
       access_key_secret,
       endpoint,
       bucket,
+      infer: Infer::default(),
     }
   }
 
@@ -48,6 +52,7 @@ impl<'a> Client<'a> {
       endpoint,
       bucket,
       plugins: Mutex::new(PluginStore::default()),
+      infer: Infer::default(),
     }
   }
 
@@ -57,11 +62,11 @@ impl<'a> Client<'a> {
 
   /// # 注册插件
   #[cfg(feature = "plugin")]
-  pub fn plugin(mut self, mut plugin: Box<dyn Plugin>) -> Client<'a> {
-    plugin.initialize(&mut self);
+  pub fn plugin(mut self, mut plugin: Box<dyn Plugin>) -> OssResult<Client<'a>> {
+    plugin.initialize(&mut self)?;
 
     self.plugins.lock().unwrap().insert(plugin);
-    self
+    Ok(self)
   }
 
   /// # 返回用于签名的 canonicalized_resource 值

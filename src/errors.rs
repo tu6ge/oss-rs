@@ -44,7 +44,7 @@ pub enum OssError{
 }
 
 #[cfg(feature = "plugin")]
-mod plugin {
+pub mod plugin {
     use std::fmt;
 
   #[derive(Debug)]

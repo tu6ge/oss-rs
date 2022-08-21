@@ -173,7 +173,7 @@ impl <'a> Client<'a> {
   /// 并提供存储的 key 
   #[cfg(feature = "blocking")]
   pub fn blocking_put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
-    let kind = infer::get(content);
+    let kind = self.infer.get(content);
 
     let con = match kind {
       Some(con) => {
@@ -209,7 +209,7 @@ impl <'a> Client<'a> {
   }
 
   pub async fn put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
-    let kind = infer::get(content);
+    let kind = self.infer.get(content);
 
     let con = match kind {
       Some(con) => {

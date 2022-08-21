@@ -41,16 +41,15 @@ let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket)
 use std::collections::HashMap;
 use std::ops::ControlFlow;
 use reqwest::Url;
-use crate::{errors::OssError, client::Client};
-
-pub type Result<T> = std::result::Result<T, OssError>;
+use crate::{errors::{OssResult, OssError, plugin::PluginError}, client::Client};
 
 pub trait Plugin: Send{
   fn name(&self) -> &'static str;
 
   /// 初始化插件
   #[allow(unused_variables)]
-  fn initialize(&mut self, client: &mut Client){
+  fn initialize(&mut self, client: &mut Client) -> OssResult<()> {
+    Ok(())
   }
 
   /// 修改 lib 内部计算 canonicalized_resource 参数的方式
@@ -61,6 +60,7 @@ pub trait Plugin: Send{
   fn canonicalized_resource(&self, url: &Url) -> Option<String> {
     None
   }
+
 }
 
 /// 插件仓库
@@ -85,6 +85,20 @@ impl PluginStore {
     self.store.insert(name, plugin);
   }
 
+  /// Initializes all plugins in the store.
+  pub(crate) fn initialize(
+    &mut self,
+    client: &mut Client
+  ) -> OssResult<()> {
+    self.store.values_mut().try_for_each(|plugin| {
+      plugin
+        .initialize(
+          client
+        )
+        .map_err(|e| OssError::Plugin(PluginError{name:plugin.name(), message:e.to_string()}))
+    })
+  }
+
   /// 计算插件中的 canonicalized_resource 值，并返回
   pub fn get_canonicalized_resource(&self, url: &Url) -> Option<String> {
     let result = self.store.values().try_for_each(move|plugin| {
@@ -100,4 +114,40 @@ impl PluginStore {
       _ => None,
     }
   }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{client::{Client}, errors::OssResult};
+
+    use super::Plugin;
+
+    struct SigFile;
+
+    impl Plugin for SigFile {
+        fn name(&self) -> &'static str {
+          "sig_file_ext"
+        }
+    
+        fn initialize(&mut self, client: &mut Client) -> OssResult<()> {
+            let mime_type = "application/pgp-signature";
+            let extension = "sig";
+            fn m(buf: &[u8]) -> bool {
+                return buf.len() >= 3 && buf[0] == 0x64 && buf[1] == 0x57 && buf[2] == 0x35;
+            }
+            client.infer.add(mime_type, extension, m);
+        
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_init_infer(){
+        let client = crate::client("abc", "abc", "abc", "abc")
+          .plugin(Box::new(SigFile{})).unwrap();
+        let res = client.infer.get("dW50cnVzdGV".as_bytes()).unwrap();
+
+        assert_matches!(res.mime_type(), "application/pgp-signature");
+        assert_matches!(res.extension(), "sig");
+    }
 }
