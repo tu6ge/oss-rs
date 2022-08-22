@@ -143,9 +143,14 @@ mod tests {
 
     #[test]
     fn test_init_infer(){
-        let client = crate::client("abc", "abc", "abc", "abc")
+        let client = crate::client("abc", "abc", "abc", "abc");
+        let res = client.infer.get("dW50cnVzdGV".as_bytes());
+
+        assert_matches!(res, None);
+
+        let client_ext = crate::client("abc", "abc", "abc", "abc")
           .plugin(Box::new(SigFile{})).unwrap();
-        let res = client.infer.get("dW50cnVzdGV".as_bytes()).unwrap();
+        let res = client_ext.infer.get("dW50cnVzdGV".as_bytes()).unwrap();
 
         assert_matches!(res.mime_type(), "application/pgp-signature");
         assert_matches!(res.extension(), "sig");
