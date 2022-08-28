@@ -78,6 +78,9 @@ std::fs::File::open(file_name)
 client.put_content(&file_content, "examples/bg2015071010.png").await.expect("上传失败");
 ```
 
+> 由于 aliyun 在上传文件时需要提供 `Content-Type`，本 lib 提供了一个基础的判断功能，对于不常用的文件类型，可参考 plugin 部分的文档，进行扩展
+
+
 ### 删除文件
 ```
 client.delete_object("examples/bg2015071010.png").await.unwrap();
