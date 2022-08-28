@@ -138,7 +138,6 @@ client.blocking_put_content(&file_content, "examples/bg2015071010.png").expect("
 ### 删除文件
 ```
 client.blocking_delete_object("examples/bg2015071010.png").unwrap();
-
 ```
 
 ## Plugin
@@ -179,7 +178,7 @@ impl Plugin for SigFile {
 }
 
 // 在 lib 初始化时挂载该插件，
-let client_has_plugin = crate::client("abc", "abc", "abc", "abc")
+let client_has_plugin = aliyun_oss_client::client("abc", "abc", "abc", "abc")
           .plugin(Box::new(SigFile{})).unwrap();
 ```
 
