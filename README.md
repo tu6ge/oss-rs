@@ -133,10 +133,54 @@ std::fs::File::open(file_name)
 client.blocking_put_content(&file_content, "examples/bg2015071010.png").expect("上传失败");
 ```
 
+> 由于 aliyun 在上传文件时需要提供 `Content-Type`，本 lib 提供了一个基础的判断功能，对于不常用的文件类型，可参考 plugin 部分的文档，进行扩展
+
 ### 删除文件
 ```
 client.blocking_delete_object("examples/bg2015071010.png").unwrap();
 
+```
+
+## Plugin
+
+插件机制，可以在保持项目本身不变动的情况下，提供更多功能
+
+- 对签名中需要的 `canonicalized_resource` 计算规则进行扩展
+- 对上传文件的类型进行扩展
+
+### 扩展文件类型
+
+举个例子 Tauri 打包的升级包的签名文件，不在常用的文件类型中，可以使用如下的扩展，进行使用
+
+```
+use aliyun_oss_client::plugin::Plugin;
+
+// 创建一个扩展 struct
+struct SigFile;
+
+// 实现 Plugin trait 中的方法，
+impl Plugin for SigFile {
+    fn name(&self) -> &'static str {
+      "sig_file_ext"
+    }
+
+    // 这是扩展的初始化方法，在插件挂载时会运行
+    // 具体实现，请参考 https://docs.rs/infer/0.9.0 文档
+    fn initialize(&mut self, client: &mut Client) -> OssResult<()> {
+        let mime_type = "application/pgp-signature";
+        let extension = "sig";
+        fn m(buf: &[u8]) -> bool {
+            return buf.len() >= 3 && buf[0] == 0x64 && buf[1] == 0x57 && buf[2] == 0x35;
+        }
+        client.infer.add(mime_type, extension, m);
+    
+        Ok(())
+    }
+}
+
+// 在 lib 初始化时挂载该插件，
+let client_has_plugin = crate::client("abc", "abc", "abc", "abc")
+          .plugin(Box::new(SigFile{})).unwrap();
 ```
 
 ## 与 [官方 client](https://crates.io/crates/oss-rust-sdk) 对比
