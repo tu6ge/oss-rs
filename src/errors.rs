@@ -48,6 +48,16 @@ pub enum OssError{
   Other(#[from] anyhow::Error),
 }
 
+impl OssError{
+  /// 返回 oss 服务端的错误信息
+  pub fn message(self) -> String{
+    match self {
+      OssError::OssService(e) => e.message,
+      _ => self.to_string(),
+    }
+  }
+}
+
 #[derive(Debug, Error, Default)]
 pub struct OssService {
   pub code: String,
@@ -92,7 +102,7 @@ impl OssService{
           r"(?x)<Code>(?P<code>\w+)</Code>
           [\n]?[\s]+<Message>(?P<message>[\w\s.]+)</Message>
           [\n]?[\s]+<RequestId>(?P<request_id>[\w]+)</RequestId>
-          " // 
+          "
         ).unwrap();
         let caps = re.captures(&source).unwrap();
         OssService{
