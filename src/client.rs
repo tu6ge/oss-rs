@@ -16,6 +16,8 @@ use crate::errors::{OssResult,OssError};
 #[cfg(feature = "plugin")]
 use crate::plugin::{Plugin, PluginStore};
 
+use async_trait::async_trait;
+
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
 #[derive(Default)]
@@ -276,69 +278,35 @@ impl ReqeustHandler for Response {
     
     if status != 200 && status != 204{
 
-      // println!("{:#?}", self.text().unwrap());
-      // return Err(
-      //   OssError::Input(
-      //     format!(
-      //       "aliyun response error, http status: {}",
-      //       status
-      //     )
-      //   )
-      // );
+      let body = self.text().unwrap();
 
-      let headers = self.headers();
-      let request_id = headers.get("x-oss-request-id")
-        .ok_or(OssError::Input("get x-oss-request-id failed".to_string()))?
-        .to_str().map_err(|_| OssError::Input("x-oss-request-id parse error".to_string()))?;
+      let error = crate::errors::OssService::new(body);
 
-      return Err(
-        OssError::Input(
-          format!(
-            "aliyun response error, http status: {}, x-oss-request-id: {}",
-            status,
-            request_id
-          )
-        )
-      );
+      return Err(OssError::OssService(error));
     }
 
     Ok(self)
   }
 }
 
+#[async_trait]
+pub trait AsyncRequestHandle {
+  async fn handle_error(self) -> OssResult<AsyncResponse>;
+}
 
-impl ReqeustHandler for AsyncResponse{
+#[async_trait]
+impl AsyncRequestHandle for AsyncResponse{
   /// # 收集并处理 OSS 接口返回的错误
-  fn handle_error(self) -> OssResult<AsyncResponse>
+  async fn handle_error(self) -> OssResult<AsyncResponse>
   {
     let status = self.status();
     
     if status != 200 && status != 204{
+      let body = self.text().await.unwrap();
 
-      // println!("{:#?}", self.text().await.unwrap());
-      // return Err(
-      //   OssError::Input(
-      //     format!(
-      //       "aliyun response error, http status: {}",
-      //       status
-      //     )
-      //   )
-      // );
+      let error = crate::errors::OssService::new(body);
 
-      let headers = self.headers();
-      let request_id = headers.get("x-oss-request-id")
-        .ok_or(OssError::Input("get x-oss-request-id failed".to_string()))?
-        .to_str().map_err(|_| OssError::Input("x-oss-request-id parse error".to_string()))?;
-
-      return Err(
-        OssError::Input(
-          format!(
-            "aliyun response error, http status: {}, x-oss-request-id: {}",
-            status,
-            request_id
-          )
-        )
-      );
+      return Err(OssError::OssService(error));
     }
 
     Ok(self)

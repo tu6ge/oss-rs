@@ -86,7 +86,7 @@ impl PluginStore {
   }
 
   /// Initializes all plugins in the store.
-  pub(crate) fn initialize(
+  pub fn initialize(
     &mut self,
     client: &mut Client
   ) -> OssResult<()> {

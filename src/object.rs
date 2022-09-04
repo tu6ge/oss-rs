@@ -1,13 +1,18 @@
 use chrono::prelude::*;
+
+#[allow(unused_imports)]
 use futures::Stream;
 use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
-use std::{io::Read, iter::Iterator};
+use std::{io::Read};
+#[allow(unused_imports)]
+use std::iter::Iterator;
 use reqwest::header::{HeaderMap,HeaderValue};
-
+#[cfg(feature = "blocking")]
+use crate::client::ReqeustHandler;
 use crate::errors::{OssResult,OssError};
-use crate::client::{Client, ReqeustHandler};
+use crate::client::{Client, AsyncRequestHandle};
 use crate::auth::{VERB};
 use crate::traits::{ObjectTrait, ObjectListTrait};
 
@@ -139,7 +144,7 @@ impl <'a> Client<'a> {
     url.set_query(Some(&query_str));
 
     let response = self.builder(VERB::GET, &url, None, None).await?;
-    let content = response.send().await?.handle_error()?;
+    let content = response.send().await?.handle_error().await?;
 
     Ok(
       ObjectList::from_xml(content.text().await?)?.set_client(&self).set_search_query(query)
@@ -235,7 +240,7 @@ impl <'a> Client<'a> {
     let response = self.builder(VERB::PUT, &url, Some(headers), None).await?
       .body(content.clone());
 
-    let content = response.send().await?.handle_error()?;
+    let content = response.send().await?.handle_error().await?;
 
     // println!("{:#?}", content.text().await.unwrap());
     // return Ok("ok".into());
@@ -266,7 +271,7 @@ impl <'a> Client<'a> {
 
     let response = self.builder(VERB::DELETE, &url, None, None).await?;
 
-    response.send().await?.handle_error()?;
+    response.send().await?.handle_error().await?;
     
     Ok(())
   }

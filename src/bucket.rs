@@ -1,8 +1,9 @@
 
 use std::collections::HashMap;
 use std::fmt;
-
-use crate::client::{Client, ReqeustHandler};
+use crate::client::{Client, AsyncRequestHandle};
+#[cfg(feature = "blocking")]
+use crate::client::ReqeustHandler;
 use crate::auth::VERB;
 use crate::errors::{OssResult,OssError};
 use crate::object::ObjectList;
@@ -171,7 +172,7 @@ impl <'b> Bucket<'b> {
     url.set_query(Some(&query_str));
 
     let response = self.client.unwrap().builder(VERB::GET, &url, None, Some(self.name.to_string())).await?;
-    let content = response.send().await?.handle_error()?; 
+    let content = response.send().await?.handle_error().await?; 
 
     // println!("{}", &content.text()?);
     // return Err(errors::OssError::Other(anyhow!("abc")));
@@ -204,7 +205,7 @@ impl<'a> Client<'a> {
     //url.set_path(self.bucket)
 
     let response = self.builder(VERB::GET, &url, None, None).await?;
-    let content = response.send().await?.handle_error()?;
+    let content = response.send().await?.handle_error().await?;
     
     let mut list = ListBuckets::from_xml(content.text().await?)?;
     list.set_client(&self);
@@ -230,7 +231,7 @@ impl<'a> Client<'a> {
     bucket_url.set_query(Some("bucketInfo"));
 
     let response = self.builder(VERB::GET, &bucket_url, headers, None).await?;
-    let content = response.send().await?.handle_error()?;
+    let content = response.send().await?.handle_error().await?;
 
     let mut bucket = Bucket::from_xml(content.text().await?)?;
     bucket.set_client(&self);
