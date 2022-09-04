@@ -1,3 +1,23 @@
+## 2022-08-21, Version 0.7.3
+### Commits
+- [[`a54dfd4264`](https://github.com/tu6ge/oss/commit/a54dfd4264d4a221a25ec94ca7a9719489056424)] chore(version): 插件能力升级 (tu6ge)
+- [[`f48957a0bc`](https://github.com/tu6ge/oss/commit/f48957a0bc3e5d4ccc31fd672094376838e3d3a8)] feat(plugin): 支持自定义扩展文件类型 (tu6ge)
+- [[`8dc3d83381`](https://github.com/tu6ge/oss/commit/8dc3d8338161300b6aa6db4d26f2611f39272c7c)] fix(plugin): 解决在多线程情况下，plugin的问题 (tu6ge)
+- [[`a237f2f127`](https://github.com/tu6ge/oss/commit/a237f2f1279a4da9f3186f7dd1338523a446e796)] feat(object): 上传文件的路径支持特殊字符（空格等） (tu6ge)
+
+### Stats
+```diff
+ Cargo.toml         |  7 +++---
+ examples/plugin.rs | 26 ++++++++++++++++++------
+ src/bucket.rs      |  2 +-
+ src/client.rs      | 35 +++++++++++++++++++++-----------
+ src/errors.rs      |  5 ++++-
+ src/object.rs      |  7 ++++--
+ src/plugin.rs      | 60 ++++++++++++++++++++++++++++++++++++++++++++++++++-----
+ 7 files changed, 113 insertions(+), 29 deletions(-)
+```
+
+
 ## 2022-06-26, Version 0.6.0
 ### Commits
 - [[`fd9dd1a8a3`](https://github.com/tu6ge/oss/commit/fd9dd1a8a31e5cc92d8411799bc400b7deb5cef2)] chore(version): optional deps reqwest blocking (tu6ge)
