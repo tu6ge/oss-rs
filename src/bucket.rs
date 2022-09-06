@@ -154,7 +154,7 @@ impl <'b> Bucket<'b> {
 
     url.set_query(Some(&query_str));
 
-    let client  = self.client.unwrap();
+    let client  = self.client();
 
     let response = client.blocking_builder(VERB::GET, &url, None, Some(self.name.to_string()))?;
     let content = response.send()?.handle_error()?;
@@ -171,14 +171,14 @@ impl <'b> Bucket<'b> {
 
     url.set_query(Some(&query_str));
 
-    let response = self.client.unwrap().builder(VERB::GET, &url, None, Some(self.name.to_string())).await?;
+    let response = self.client().builder(VERB::GET, &url, None, Some(self.name.to_string())).await?;
     let content = response.send().await?.handle_error().await?; 
 
     // println!("{}", &content.text()?);
     // return Err(errors::OssError::Other(anyhow!("abc")));
 
     Ok(
-      ObjectList::from_xml(content.text().await?)?.set_client(&self.client.unwrap()).set_search_query(query)
+      ObjectList::from_xml(content.text().await?)?.set_client(&self.client()).set_search_query(query)
     )
   }
 }
