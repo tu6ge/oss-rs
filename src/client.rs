@@ -8,7 +8,7 @@ use reqwest::{Client as AsyncClient, RequestBuilder as AsyncRequestBuilder, Resp
 use reqwest::header::{HeaderMap};
 use futures::executor::block_on;
 
-use crate::auth::{Auth,VERB};
+use crate::auth::{VERB, AuthBuilder};
 use chrono::prelude::*;
 use reqwest::Url;
 use crate::errors::{OssResult,OssError};
@@ -165,12 +165,6 @@ impl<'a> Client<'a> {
     }
   }
 
-  /// # 获取当前时间段 GMT 格式
-  pub fn date(&self) -> String {
-    let now: DateTime<Utc> = Utc::now();
-    now.format("%a, %d %b %Y %T GMT").to_string()
-  }
-
   /// # 向 OSS 发送请求的封装
   /// 参数包含请求的：
   /// 
@@ -187,31 +181,23 @@ impl<'a> Client<'a> {
   pub fn blocking_builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<RequestBuilder>{
     let client = blocking::Client::new();
 
-    let auth = Auth{
-      access_key_id: self.access_key_id,
-      access_key_secret: self.access_key_secret,
-      verb: method.clone(),
-      date: &self.date(),
-      content_type: match &headers {
-        Some(head) => {
-          let value  = head.get("Content-Type");
-          match value {
-            Some(val) => {
-              Some(val.to_str().map_err(|_| OssError::Input("content_type parse error".to_string()))?.to_string())
-            },
-            None => None
-          }
-        },
-        None => None,
-      },
-      content_md5: None,
-      canonicalized_resource: &self.canonicalized_resource(&url, bucket),
-      headers: headers,
+    let canonicalized_resource = self.canonicalized_resource(&url, bucket);
+
+    let mut builder = AuthBuilder::default()
+      .key(self.access_key_id)
+      .secret(self.access_key_secret)
+      .verb(method.to_owned())
+      .date(Utc::now())
+      .canonicalized_resource(canonicalized_resource.as_str())
+    ;
+    
+    if let Some(headers) = headers {
+      builder = builder.headers(headers);
     };
 
-    let all_headers: HeaderMap = auth.get_headers()?;
+    let all_headers: HeaderMap = builder.auth.get_headers()?;
 
-    Ok(client.request(method.0, url.to_string())
+    Ok(client.request(method.0, url.to_owned())
       .headers(all_headers))
   }
 
@@ -219,29 +205,21 @@ impl<'a> Client<'a> {
   pub async fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<AsyncRequestBuilder>{
     let client = AsyncClient::new();
 
-    let auth = Auth{
-      access_key_id: self.access_key_id,
-      access_key_secret: self.access_key_secret,
-      verb: method.clone(),
-      date: &self.date(),
-      content_type: match &headers {
-        Some(head) => {
-          let value  = head.get("Content-Type");
-          match value {
-            Some(val) => {
-              Some(val.to_str().map_err(|_| OssError::Input("content_type parse error".to_string()))?.to_string())
-            },
-            None => None
-          }
-        },
-        None => None,
-      },
-      content_md5: None,
-      canonicalized_resource: &self.async_canonicalized_resource(&url, bucket).await,
-      headers: headers,
+    let canonicalized_resource = self.async_canonicalized_resource(&url, bucket).await;
+
+    let mut builder = AuthBuilder::default()
+      .key(self.access_key_id)
+      .secret(self.access_key_secret)
+      .verb(method.to_owned())
+      .date(Utc::now())
+      .canonicalized_resource(canonicalized_resource.as_str())
+    ;
+    
+    if let Some(headers) = headers {
+      builder = builder.headers(headers);
     };
 
-    let all_headers: HeaderMap = auth.async_get_headers().await?;
+    let all_headers: HeaderMap = builder.auth.async_get_headers().await?;
 
     Ok(client.request(method.0, url.to_owned())
       .headers(all_headers))
