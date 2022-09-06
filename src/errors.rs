@@ -53,10 +53,6 @@ pub struct OssService {
   pub code: String,
   pub message: String,
   pub request_id: String,
-  pub host_id: String,
-  pub max_allowed_milliseconds: String,
-  pub request_time: String,
-  pub server_time: String,
 }
 
 impl fmt::Display for OssService {
@@ -65,10 +61,6 @@ impl fmt::Display for OssService {
       .field("code", &self.code)
       .field("message", &self.message)
       .field("request_id", &self.request_id)
-      .field("host_id", &self.host_id)
-      .field("max_allowed_milliseconds", &self.max_allowed_milliseconds)
-      .field("request_time", &self.request_time)
-      .field("server_time", &self.server_time)
       .finish()
   }
 }
@@ -94,20 +86,12 @@ impl OssService{
 /// assert_eq!(service.code, format!("RequestTimeTooSkewed"));
 /// assert_eq!(service.message, format!("bar"));
 /// assert_eq!(service.request_id, format!("63145DB90BFD85303279D56B"));
-/// assert_eq!(service.host_id, format!("honglei123.oss-cn-shanghai.aliyuncs.com"));
-/// assert_eq!(service.max_allowed_milliseconds, format!("900000"));
-/// assert_eq!(service.request_time, format!("2022-09-04T07:11:33.000Z"));
-/// assert_eq!(service.server_time, format!("2022-09-04T08:11:37.000Z"));
 /// ```
     pub fn new(source: String) -> OssService {
         let re = Regex::new(
           r"(?x)<Code>(?P<code>\w+)</Code>
           [\n]?[\s]+<Message>(?P<message>[\w\s.]+)</Message>
           [\n]?[\s]+<RequestId>(?P<request_id>[\w]+)</RequestId>
-          [\n]?[\s]+<HostId>(?P<host_id>[\w.-]+)</HostId>
-          [\n]?[\s]+<MaxAllowedSkewMilliseconds>(?P<max_allowed_milliseconds>[\d]+)</MaxAllowedSkewMilliseconds>
-          [\n]?[\s]+<RequestTime>(?P<request_time>[\w\-.:]+)</RequestTime>
-          [\n]?[\s]+<ServerTime>(?P<server_time>[\w\-.:]+)</ServerTime>
           " // 
         ).unwrap();
         let caps = re.captures(&source).unwrap();
@@ -115,10 +99,6 @@ impl OssService{
           code: (&caps["code"]).to_string(),
           message: (&caps["message"]).to_string(),
           request_id: (&caps["request_id"]).to_string(),
-          host_id: (&caps["host_id"]).to_string(),
-          max_allowed_milliseconds: (&caps["max_allowed_milliseconds"]).to_string(),
-          request_time: (&caps["request_time"]).to_string(),
-          server_time: (&caps["server_time"]).to_string(),
         }
     }
 }
