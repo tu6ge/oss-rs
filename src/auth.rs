@@ -55,6 +55,11 @@ impl VERB {
 
   /// TRACE
   pub const TRACE: VERB = VERB(Method::TRACE);
+
+  #[inline]
+  pub fn to_string(&self) -> String {
+    self.0.to_string()
+  }
 }
 
 impl From<VERB> for String {
@@ -115,7 +120,7 @@ impl<'a> Auth<'a> {
     map.insert("SecretAccessKey", self::to_value(self.access_key_secret)?);
     map.insert(
       "VERB", 
-      self.verb.0.to_string()
+      self.verb.to_string()
         .parse().map_err(|_| OssError::Input("VERB parse error".to_string()))?);
     if let Some(a) = self.content_md5 {
       map.insert("Content-MD5",self::to_value(a)?);
@@ -163,7 +168,7 @@ impl<'a> Auth<'a> {
 
   /// 计算签名
   pub fn sign(&self) -> OssResult<String> {
-    let method = self.verb.0.to_string();
+    let method = self.verb.to_string();
     let mut content = String::new();
 
     let content_type_str;
