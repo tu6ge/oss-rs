@@ -27,7 +27,7 @@ jobs:
 
       - name: Install publish-action
         if: steps.cache-publish-action.outputs.cache-hit != 'true'
-        run:
+        run: |
           cargo install publish-action --version=0.1.12
           cargo install changelog
       
@@ -39,7 +39,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       
       - name: Update Changelog.md
-        run:
+        run: |
           changelog -o Changelog.md
           git add Changelog.md
           git commit -m "Update Changelog.md"
