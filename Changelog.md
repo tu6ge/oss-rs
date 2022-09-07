@@ -44,6 +44,29 @@
 ```
 
 
+## 2022-09-04, Version 0.7.5
+### Commits
+- [[`70b2f8cc26`](https://github.com/tu6ge/oss/commit/70b2f8cc269068ae491a0d02fe80da5543ca1b6c)] chore(version) (tu6ge)
+- [[`5ace49ae76`](https://github.com/tu6ge/oss/commit/5ace49ae76a0935031b14d3bb28c5286d5311c87)] chore(changelog) (tu6ge)
+- [[`ee97d1e845`](https://github.com/tu6ge/oss/commit/ee97d1e845bee0c24caa259fc33374a72bd0220e)] feat(aliyun): 更好的阿里云错误的处理方式 (tu6ge)
+- [[`36754c4048`](https://github.com/tu6ge/oss/commit/36754c4048d19c62beb2eaaffc6cb81b7d0d4869)] docs(plugin): 小小的说明修改 (tu6ge)
+- [[`6a4fc952c4`](https://github.com/tu6ge/oss/commit/6a4fc952c4aa194d397a846a26b5b4bd245099a4)] docs(plugin): 小小的示例修改 (tu6ge)
+- [[`ef461139f7`](https://github.com/tu6ge/oss/commit/ef461139f79eb0ea0baa1dfbb47c7368b2b66d23)] docs(plugin): 在文档中对插件的使用方式做了一个说明 (tu6ge)
+
+### Stats
+```diff
+ Cargo.toml    |  4 ++-
+ Changelog.md  | 20 +++++++++++++++-
+ README.md     | 46 ++++++++++++++++++++++++++++++++++-
+ src/bucket.rs | 11 ++++----
+ src/client.rs | 68 +++++++++++++-------------------------------------
+ src/errors.rs | 82 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ src/object.rs | 17 +++++++-----
+ src/plugin.rs |  2 +-
+ 8 files changed, 186 insertions(+), 64 deletions(-)
+```
+
+
 ## 2022-08-21, Version 0.7.3
 ### Commits
 - [[`a54dfd4264`](https://github.com/tu6ge/oss/commit/a54dfd4264d4a221a25ec94ca7a9719489056424)] chore(version): 插件能力升级 (tu6ge)
