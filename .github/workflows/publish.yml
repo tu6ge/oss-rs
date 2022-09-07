@@ -40,18 +40,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      
-      - name: echo Output
-        run: |
-          echo "new_version result:"
-          echo ${{steps.publish-action.outputs.new_version}}
-          echo "publish result:"
-          echo ${{steps.publish-action.outputs.publish}}
 
       - name: Update Changelog.md
+        if: steps.publish-action.outputs.new_version == 'true' && steps.publish-action.outputs.publish == 'true'
         run: |
           changelog -o Changelog.md
       - uses: stefanzweifel/git-auto-commit-action@v4
+        if: steps.publish-action.outputs.new_version == 'true' && steps.publish-action.outputs.publish == 'true'
         with:
           commit_message: Update Changelog.md
   coverage:
