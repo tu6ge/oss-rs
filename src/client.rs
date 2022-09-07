@@ -6,7 +6,6 @@ use infer::Infer;
 use reqwest::blocking::{self,RequestBuilder,Response};
 use reqwest::{Client as AsyncClient, RequestBuilder as AsyncRequestBuilder, Response as AsyncResponse};
 use reqwest::header::{HeaderMap};
-use futures::executor::block_on;
 
 use crate::auth::{VERB, AuthBuilder};
 use chrono::prelude::*;
@@ -72,7 +71,9 @@ impl<'a> Client<'a> {
   }
 
   /// # 返回用于签名的 canonicalized_resource 值
+  #[cfg(feature = "blocking")]
   pub fn canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> String {
+    use futures::executor::block_on;
     block_on(self.async_canonicalized_resource(url, bucket))
   }
 

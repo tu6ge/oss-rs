@@ -30,7 +30,7 @@ required-features = ["blocking"]
 
 [[example]]
 name = "plugin"
-required-features = ["plugin"]
+required-features = ["plugin","futures"]
 
 [[example]]
 name = "put_file"
@@ -39,7 +39,7 @@ required-features = ["blocking"]
 [features]
 default = ["plugin"]
 plugin = []
-blocking = ["reqwest/blocking"]
+blocking = ["reqwest/blocking","futures"]
 
 [dependencies]
 hmac = "^0.12"
@@ -51,7 +51,7 @@ quick-xml = "^0.24"
 infer = "^0.9"
 thiserror = "^1"
 anyhow = "^1"
-futures = "^0.3"
+futures = {version = "^0.3", optional=true}
 urlencoding = "^2"
 async-trait = "^0.1"
 regex = "^1"

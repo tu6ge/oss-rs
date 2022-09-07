@@ -8,7 +8,6 @@ use base64::{encode};
 use reqwest::{Method};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName, CONTENT_TYPE};
 use crate::errors::{OssResult, OssError};
-use futures::executor::block_on;
 // use http::Method;
 
 #[derive(Clone)]
@@ -109,7 +108,9 @@ impl<'a> Auth<'a> {
   /// # 获取所有 header 信息
   /// 
   /// 包含 *公共 header*, *业务 header* 以及 **签名**
+  #[cfg(feature = "blocking")]
   pub fn get_headers(self) -> OssResult<HeaderMap> {
+    use futures::executor::block_on;
     block_on(self.async_get_headers())
   }
 
