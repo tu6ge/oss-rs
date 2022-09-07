@@ -1,13 +1,10 @@
 use chrono::prelude::*;
 
-#[allow(unused_imports)]
-use futures::Stream;
 use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
 use std::{io::Read};
-#[allow(unused_imports)]
-use std::iter::Iterator;
+
 use reqwest::header::{HeaderMap,HeaderValue};
 #[cfg(feature = "blocking")]
 use crate::client::ReqeustHandler;
@@ -297,14 +294,25 @@ impl <'a>Iterator for ObjectList<'a>{
   }
 }
 
-
+// use futures::Stream;
+// use std::iter::Iterator;
+// use std::pin::{Pin};
+// use std::task::Poll;
 // impl <'a>Stream for ObjectList<'a> {
-//   type Item = ObjectList<'a>;
+//   type Item = Vec<Object>;
+  
 
 //   /// 未测试的
-//   fn poll_next(self: std::pin::Pin<&mut Self>, _cx: &mut std::task::Context<'_>) -> core::task::Poll<Option<ObjectList<'a>>> {
-//     match self.next_continuation_token.clone() {
-//       Some(token) => {
+//   fn poll_next(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> core::task::Poll<Option<Vec<Object>>> {
+    
+
+//     if let None = self.next_continuation_token {
+//       return Poll::Ready(None);
+//     }
+    
+//     let mut pinned = pin!(self.next_continuation_token);
+//     match pinned.as_mut().poll(cx) {
+//       Poll::Ready(token) => {
 //         let mut query = self.search_query.clone();
 //         query.insert("continuation-token".to_string(), token);
 //         match self.client.get_object_list(query) {
@@ -312,9 +320,7 @@ impl <'a>Iterator for ObjectList<'a>{
 //           Err(_) => core::task::Poll::Ready(None),
 //         }
 //       },
-//       None => {
-//         core::task::Poll::Ready(None)
-//       }
+//       Poll::Pending => Poll::Pending
 //     }
 //   }
 // }
