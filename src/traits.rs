@@ -1,4 +1,4 @@
-use quick_xml::Reader;
+use quick_xml::{Reader};
 use quick_xml::events::Event;
 
 use crate::errors::{OssResult, OssError};
@@ -33,7 +33,6 @@ pub trait ObjectListTrait<OBJ: ObjectTrait> {
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
     let mut buf = Vec::with_capacity(xml.len());
-    let mut skip_buf = Vec::with_capacity(xml.len());
 
     let mut key = String::new();
     let mut last_modified = String::with_capacity(20);
@@ -52,49 +51,55 @@ pub trait ObjectListTrait<OBJ: ObjectTrait> {
     let list_object;
 
     loop {
-      match reader.read_event(&mut buf) {
-          Ok(Event::Start(ref e)) => match e.name() {
-              b"Prefix" => prefix = reader.read_text(e.name(), &mut skip_buf)?,
-              b"Name" => name = reader.read_text(e.name(), &mut skip_buf)?,
-              b"MaxKeys" => {
-                max_keys = reader.read_text(e.name(), &mut skip_buf)?;
-              },
-              b"KeyCount" => {
-                key_count = reader.read_text(e.name(), &mut skip_buf)?;
-              },
-              b"IsTruncated" => {
-                //is_truncated = reader.read_text(e.name(), &mut skip_buf)? == "true"
-              }
-              b"NextContinuationToken" => {
-                next_continuation_token = Some(reader.read_text(e.name(), &mut skip_buf)?);
-              }
-              b"Contents" => {
-                key.clear();
-                last_modified.clear();
-                etag.clear();
-                _type.clear();
-                storage_class.clear();
-              }
+      match reader.read_event_into(&mut buf) {
+          Ok(Event::Start(e)) => {
+              match e.name().as_ref() {
+                  b"Prefix" => {
+                    prefix = reader.read_text(e.to_end().into_owned().name())?.to_string()
+                  },
+                  b"Name" => {
+                    name = reader.read_text(e.to_end().into_owned().name())?.to_string()
+                  },
+                  b"MaxKeys" => {
+                    max_keys = reader.read_text(e.to_end().into_owned().name())?.to_string();
+                  },
+                  b"KeyCount" => {
+                    key_count = reader.read_text(e.to_end().into_owned().name())?.to_string();
+                  },
+                  b"IsTruncated" => {
+                    //is_truncated = reader.read_text(e.to_end().into_owned().name())?.to_string() == "true"
+                  }
+                  b"NextContinuationToken" => {
+                    next_continuation_token = Some(reader.read_text(e.to_end().into_owned().name())?.to_string());
+                  }
+                  b"Contents" => {
+                    key.clear();
+                    last_modified.clear();
+                    etag.clear();
+                    _type.clear();
+                    storage_class.clear();
+                  }
 
-              b"Key" => key = reader.read_text(e.name(), &mut skip_buf)?,
-              b"LastModified" => last_modified = reader.read_text(e.name(), &mut skip_buf)?,
-              b"ETag" => {
-                etag = reader.read_text(e.name(), &mut skip_buf)?;
-                let str = "\"";
-                etag = etag.replace(str, "");
+                  b"Key" => key = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                  b"LastModified" => last_modified = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                  b"ETag" => {
+                    etag = reader.read_text(e.to_end().into_owned().name())?.to_string();
+                    let str = "\"";
+                    etag = etag.replace(str, "");
+                  }
+                  b"Type" => {
+                    _type = reader.read_text(e.to_end().into_owned().name())?.to_string()
+                  }
+                  b"Size" => {
+                    size = reader.read_text(e.to_end().into_owned().name())?.to_string();
+                  },
+                  b"StorageClass" => {
+                    storage_class = reader.read_text(e.to_end().into_owned().name())?.to_string()
+                  }
+                  _ => (),
               }
-              b"Type" => {
-                _type = reader.read_text(e.name(), &mut skip_buf)?
-              }
-              b"Size" => {
-                size = reader.read_text(e.name(), &mut skip_buf)?;
-              },
-              b"StorageClass" => {
-                storage_class = reader.read_text(e.name(), &mut skip_buf)?
-              }
-              _ => (),
           },
-          Ok(Event::End(ref e)) if e.name() == b"Contents" => {
+          Ok(Event::End(ref e)) if e.name().as_ref() == b"Contents" => {
             let object = OBJ::from_oss(
                 key.clone(),
                 last_modified.clone(),
@@ -146,7 +151,6 @@ pub trait BucketTrait {
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
     let mut buf = Vec::with_capacity(xml.len());
-    let mut skip_buf = Vec::with_capacity(xml.len());
 
     let mut name = String::new();
     let mut location = String::new();
@@ -162,21 +166,23 @@ pub trait BucketTrait {
     let bucket;
 
     loop {
-      match reader.read_event(&mut buf) {
-          Ok(Event::Start(ref e)) => match e.name() {
-              b"Name" => name = reader.read_text(e.name(), &mut skip_buf)?,
-              b"CreationDate" => creation_date = reader.read_text(e.name(), &mut skip_buf)?,
-              b"ExtranetEndpoint" => {
-                  extranet_endpoint = reader.read_text(e.name(), &mut skip_buf)?
+      match reader.read_event_into(&mut buf) {
+          Ok(Event::Start(e)) => {
+              match e.name().as_ref() {
+                  b"Name" => name = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                  b"CreationDate" => creation_date = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                  b"ExtranetEndpoint" => {
+                      extranet_endpoint = reader.read_text(e.to_end().into_owned().name())?.to_string()
+                  }
+                  b"IntranetEndpoint" => {
+                      intranet_endpoint = reader.read_text(e.to_end().into_owned().name())?.to_string()
+                  }
+                  b"Location" => location = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                  b"StorageClass" => {
+                      storage_class = reader.read_text(e.to_end().into_owned().name())?.to_string()
+                  }
+                  _ => (),
               }
-              b"IntranetEndpoint" => {
-                  intranet_endpoint = reader.read_text(e.name(), &mut skip_buf)?
-              }
-              b"Location" => location = reader.read_text(e.name(), &mut skip_buf)?,
-              b"StorageClass" => {
-                  storage_class = reader.read_text(e.name(), &mut skip_buf)?
-              }
-              _ => (),
           },
           Ok(Event::Eof) => {
             //let in_creation_date = &creation_date.parse::<DateTime<Utc>>()?;
@@ -222,7 +228,6 @@ pub trait ListBucketTrait {
     let mut reader = Reader::from_str(xml.as_str());
     reader.trim_text(true);
     let mut buf = Vec::with_capacity(xml.len());
-    let mut skip_buf = Vec::with_capacity(xml.len());
 
     let mut prefix = String::new();
     let mut marker = String::new();
@@ -246,42 +251,44 @@ pub trait ListBucketTrait {
     let list_buckets;
 
     loop {
-        match reader.read_event(&mut buf) {
-            Ok(Event::Start(ref e)) => match e.name() {
-                b"Prefix" => prefix = reader.read_text(e.name(), &mut skip_buf)?,
-                b"Marker" => marker = reader.read_text(e.name(), &mut skip_buf)?,
-                b"MaxKeys" => max_keys = reader.read_text(e.name(), &mut skip_buf)?,
-                b"IsTruncated" => {
-                    is_truncated = reader.read_text(e.name(), &mut skip_buf)? == "true"
-                }
-                b"NextMarker" => next_marker = reader.read_text(e.name(), &mut skip_buf)?,
-                b"ID" => id = reader.read_text(e.name(), &mut skip_buf)?,
-                b"DisplayName" => display_name = reader.read_text(e.name(), &mut skip_buf)?,
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Start(e)) => {
+                match e.name().as_ref() {
+                    b"Prefix" => prefix = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                    b"Marker" => marker = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                    b"MaxKeys" => max_keys = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                    b"IsTruncated" => {
+                        is_truncated = reader.read_text(e.to_end().into_owned().name())?.to_string() == "true"
+                    }
+                    b"NextMarker" => next_marker = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                    b"ID" => id = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                    b"DisplayName" => display_name = reader.read_text(e.to_end().into_owned().name())?.to_string(),
 
-                b"Bucket" => {
-                    name.clear();
-                    location.clear();
-                    creation_date.clear();
-                    extranet_endpoint.clear();
-                    intranet_endpoint.clear();
-                    storage_class.clear();
-                }
+                    b"Bucket" => {
+                        name.clear();
+                        location.clear();
+                        creation_date.clear();
+                        extranet_endpoint.clear();
+                        intranet_endpoint.clear();
+                        storage_class.clear();
+                    }
 
-                b"Name" => name = reader.read_text(e.name(), &mut skip_buf)?,
-                b"CreationDate" => creation_date = reader.read_text(e.name(), &mut skip_buf)?,
-                b"ExtranetEndpoint" => {
-                    extranet_endpoint = reader.read_text(e.name(), &mut skip_buf)?
+                    b"Name" => name = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                    b"CreationDate" => creation_date = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                    b"ExtranetEndpoint" => {
+                        extranet_endpoint = reader.read_text(e.to_end().into_owned().name())?.to_string()
+                    }
+                    b"IntranetEndpoint" => {
+                        intranet_endpoint = reader.read_text(e.to_end().into_owned().name())?.to_string()
+                    }
+                    b"Location" => location = reader.read_text(e.to_end().into_owned().name())?.to_string(),
+                    b"StorageClass" => {
+                        storage_class = reader.read_text(e.to_end().into_owned().name())?.to_string()
+                    }
+                    _ => (),
                 }
-                b"IntranetEndpoint" => {
-                    intranet_endpoint = reader.read_text(e.name(), &mut skip_buf)?
-                }
-                b"Location" => location = reader.read_text(e.name(), &mut skip_buf)?,
-                b"StorageClass" => {
-                    storage_class = reader.read_text(e.name(), &mut skip_buf)?
-                }
-                _ => (),
             },
-            Ok(Event::End(ref e)) if e.name() == b"Bucket" => {
+            Ok(Event::End(ref e)) if e.name().as_ref() == b"Bucket" => {
               //let in_creation_date = &creation_date.parse::<DateTime<Utc>>()?;
               let bucket = BucketTrait::from_oss(
                   name.clone(),
