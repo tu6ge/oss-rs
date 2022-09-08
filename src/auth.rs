@@ -9,6 +9,8 @@ use reqwest::{Method};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName, CONTENT_TYPE};
 use crate::errors::{OssResult, OssError};
 // use http::Method;
+// #[cfg(test)]
+// use mockall::{automock, mock, predicate::*};
 
 #[derive(Clone)]
 #[non_exhaustive]
@@ -104,6 +106,7 @@ impl Default for VERB {
 type HmacSha1 = Hmac<Sha1>;
 
 impl<'a> Auth<'a> {
+
 
   /// # 获取所有 header 信息
   /// 

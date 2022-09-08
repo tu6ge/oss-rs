@@ -3,6 +3,9 @@ use thiserror::Error;
 use std::fmt;
 use regex::Regex;
 
+#[cfg(test)]
+use mockall::{automock, predicate::*};
+
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum OssError{
@@ -58,6 +61,7 @@ impl OssError{
   }
 }
 
+
 #[derive(Debug, Error, Default)]
 pub struct OssService {
   pub code: String,
@@ -75,6 +79,7 @@ impl fmt::Display for OssService {
   }
 }
 
+#[cfg_attr(test, automock)]
 impl OssService{
 /// # 解析 oss 的错误信息
 /// # example

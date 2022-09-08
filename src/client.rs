@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
+
 
 use infer::Infer;
 #[cfg(feature = "blocking")]
@@ -12,6 +12,8 @@ use chrono::prelude::*;
 use reqwest::Url;
 use crate::errors::{OssResult,OssError};
 
+#[cfg(feature = "plugin")]
+use std::sync::Mutex;
 #[cfg(feature = "plugin")]
 use crate::plugin::{Plugin, PluginStore};
 
@@ -78,7 +80,6 @@ impl<'a> Client<'a> {
   }
 
   pub async fn async_canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> String {
-
     #[cfg(feature = "plugin")]
     {
       let plugin_result = 
@@ -90,7 +91,6 @@ impl<'a> Client<'a> {
         return result;
       }
     }
-    
 
     let bucket = match bucket {
       Some(val) => val,
@@ -128,7 +128,7 @@ impl<'a> Client<'a> {
         if query == "acl"
         || query == "bucketInfo"{
           return format!("/{}/?{}", bucket, query)
-        }else if self.is_bucket_url(url) {
+        }else if self.is_bucket_url(url, &bucket) {
           // 基于某个 bucket 调用api 时
           // 如果查询条件中有翻页的话，则忽略掉其他字段
           let query_pairs = url.query_pairs();
@@ -157,10 +157,12 @@ impl<'a> Client<'a> {
     Ok(url)
   }
 
-  pub fn is_bucket_url(&self, url: &Url) -> bool {
+  pub fn is_bucket_url(&self, url: &Url, bucket: &String) -> bool {
     match url.host() {
       Some(host) => {
-        host.to_string().contains(self.bucket)
+        let mut pre_host = String::from(bucket).to_owned();
+        pre_host.push_str(".");
+        host.to_string().starts_with(&pre_host)
       }, 
       None => false,
     }
@@ -243,6 +245,7 @@ impl<'a> Client<'a> {
   }
 }
 
+#[cfg(feature = "blocking")]
 pub trait ReqeustHandler {
   fn handle_error(self) -> OssResult<Self> where Self: Sized;
 }
@@ -253,13 +256,16 @@ impl ReqeustHandler for Response {
   /// # 收集并处理 OSS 接口返回的错误
   fn handle_error(self) -> OssResult<Response>
   {
+    #[cfg_attr(test, mockall_double::double)]
+    use crate::errors::OssService;
+
     let status = self.status();
     
     if status != 200 && status != 204{
 
-      let body = self.text().unwrap();
+      let body = self.text()?;
 
-      let error = crate::errors::OssService::new(body);
+      let error = OssService::new(body);
 
       return Err(OssError::OssService(error));
     }
@@ -278,12 +284,15 @@ impl AsyncRequestHandle for AsyncResponse{
   /// # 收集并处理 OSS 接口返回的错误
   async fn handle_error(self) -> OssResult<AsyncResponse>
   {
+    #[cfg_attr(test, mockall_double::double)]
+    use crate::errors::OssService;
+
     let status = self.status();
     
     if status != 200 && status != 204{
-      let body = self.text().await.unwrap();
+      let body = self.text().await?;
 
-      let error = crate::errors::OssService::new(body);
+      let error = OssService::new(body);
 
       return Err(OssError::OssService(error));
     }

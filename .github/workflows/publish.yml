@@ -33,6 +33,13 @@ jobs:
           cargo install publish-action --version=0.1.15
           cargo install changelog
       
+      - name: Run Test
+        run: |
+          cargo test --no-default-features tests::auth
+          cargo test tests::client
+          cargo test --features blocking --no-default-features tests::client
+          cargo test --features plugin --no-default-features tests::client
+      
       - name: Run publish-action
         id: publish-action
         run: 
