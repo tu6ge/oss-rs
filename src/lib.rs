@@ -101,6 +101,7 @@ pub mod errors;
 pub mod plugin;
 
 #[cfg(test)]
+#[allow(unused_imports)]
 #[macro_use]
 extern crate assert_matches;
 
