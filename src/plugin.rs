@@ -87,6 +87,10 @@ impl PluginStore {
     self.store.insert(name, plugin);
   }
 
+  pub fn store(self) -> HashMap<&'static str, Box<dyn Plugin>>{
+    self.store
+  }
+
   /// Initializes all plugins in the store.
   pub fn initialize<'a>(
     &mut self,
