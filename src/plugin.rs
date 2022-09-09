@@ -43,6 +43,20 @@ use std::ops::ControlFlow;
 use reqwest::Url;
 use crate::{errors::{OssResult, OssError, plugin::PluginError}, client::Client};
 
+// TODO
+#[non_exhaustive]
+pub enum Resource<T>{
+    None,
+    Next,
+    Some(T)
+}
+
+impl<T> Default for Resource<T>{
+    fn default() -> Self {
+        Self::Next
+    }
+}
+
 #[cfg_attr(test, mockall::automock)]
 pub trait Plugin: Send{
   fn name(&self) -> &'static str;
