@@ -31,10 +31,10 @@ jobs:
       
       - name: Run Test
         run: |
-          cargo test --no-default-features tests::auth
-          cargo test tests::client
-          cargo test --features blocking --no-default-features tests::client
-          cargo test --features plugin --no-default-features tests::client
+          cargo test --lib --no-default-features -- tests
+          cargo test --lib -- tests
+          cargo test --lib --features blocking --no-default-features tests
+          cargo test --lib --features blocking tests
       
       - name: Run publish-action
         id: publish-action

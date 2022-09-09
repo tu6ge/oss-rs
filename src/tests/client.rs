@@ -2,31 +2,57 @@ use std::collections::HashMap;
 use reqwest::Url;
 use crate::client::Client;
 
-mod test_async_canonicalized_resource{
+mod test_use_plugin{
+    #[cfg(feature = "plugin")]
+    #[test]
+    fn test_install_plugin(){
+        use std::sync::Mutex;
 
+        use crate::client::Client;
+
+        //#[mockall_double::double]
+        use crate::plugin::{MockPlugin, MockPluginStore};
+
+        let mut plugin_store = MockPluginStore::new();
+
+        plugin_store.expect_insert().times(1).returning(|_|());
+        
+        let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
+        client.plugins = Mutex::new(plugin_store);
+
+        let mut plugin = MockPlugin::new();
+        plugin.expect_initialize().times(1)
+            .returning(|_|Ok(()));
+        
+        plugin.expect_name().times(0).returning(||"foo_plugin");
+        plugin.expect_canonicalized_resource().times(0).returning(|_| None);
+      
+        let res = client.plugin(Box::new(plugin));
+        assert!(res.is_ok());
+    }
+}
+
+mod test_async_canonicalized_resource{
     use reqwest::Url;
     use crate::client::Client;
 
+    #[test]
     #[cfg(feature = "plugin")]
-    #[tokio::test]
+    fn test_call_plugin(){
+        use futures::executor::block_on;
+        block_on(test_plugin());
+    }
+
+    #[cfg(feature = "plugin")]
     async fn test_plugin(){
-        use crate::plugin::Plugin;
-        // 创建一个扩展 struct
-        struct SimplePlugin;
+        use std::sync::Mutex;
+        use crate::plugin::MockPluginStore;
+        let mut plugin_store = MockPluginStore::new();
+        
+        plugin_store.expect_get_canonicalized_resource().times(1).returning(|_| Some("foo_string".to_string()));
 
-        // 实现 Plugin trait 中的方法，
-        impl Plugin for SimplePlugin {
-            fn name(&self) -> &'static str {
-                "bar"
-            }
-
-            fn canonicalized_resource(&self, _url: &reqwest::Url) -> Option<String> {
-                Some("foo_string".to_string())
-            }
-        }
-
-        let client = Client::new("foo1", "foo2", "foo3", "foo4")
-          .plugin(Box::new(SimplePlugin{})).unwrap();
+        let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
+        client.plugins = Mutex::new(plugin_store);
         let url = Url::parse("https://example.net").unwrap();
         
         let resource = client.async_canonicalized_resource(&url, Some("bucket_foo".to_string())).await;
@@ -34,9 +60,28 @@ mod test_async_canonicalized_resource{
         assert_eq!(resource, "foo_string".to_string());
     }
 
+    #[cfg(feature = "plugin")]
+    fn init_default_plugin_store(mut client: Client) -> Client {
+        use std::sync::Mutex;
+        use crate::plugin::MockPluginStore;
+        let mut plugin_store = MockPluginStore::new();
+        
+        plugin_store.expect_get_canonicalized_resource().returning(|_| None);
+
+        client.plugins = Mutex::new(plugin_store);
+        client
+    }
+
+    #[cfg(not(feature = "plugin"))]
+    fn init_default_plugin_store(client: Client) -> Client {
+        client
+    }
+
     #[tokio::test]
     async fn test_empty_bucket(){
+
         let client = Client::new("foo1", "foo2", "foo3", "");
+        let client = init_default_plugin_store(client);
 
         let url = Url::parse("https://example.net").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
@@ -48,7 +93,9 @@ mod test_async_canonicalized_resource{
 
     #[tokio::test]
     async fn test_has_path(){
+
         let client = Client::new("foo1", "foo2", "foo3", "foo4");
+        let client = init_default_plugin_store(client);
 
         let url = Url::parse("https://example.net/bar_path").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
@@ -62,6 +109,7 @@ mod test_async_canonicalized_resource{
     #[tokio::test]
     async fn test_has_path_query(){
         let client = Client::new("foo1", "foo2", "foo3", "foo4");
+        let client = init_default_plugin_store(client);
 
         let url = Url::parse("https://example.net/bar_path?abc=2").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
@@ -75,6 +123,7 @@ mod test_async_canonicalized_resource{
     #[tokio::test]
     async fn test_not_path(){
         let client = Client::new("foo1", "foo2", "foo3", "foo4");
+        let client = init_default_plugin_store(client);
 
         let url = Url::parse("https://example.net/?acl").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;

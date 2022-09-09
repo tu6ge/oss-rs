@@ -15,7 +15,10 @@ use crate::errors::{OssResult,OssError};
 #[cfg(feature = "plugin")]
 use std::sync::Mutex;
 #[cfg(feature = "plugin")]
-use crate::plugin::{Plugin, PluginStore};
+use crate::plugin::{Plugin};
+#[cfg(feature = "plugin")]
+#[cfg_attr(test, mockall_double::double)]
+use crate::plugin::PluginStore;
 
 use async_trait::async_trait;
 
@@ -83,10 +86,10 @@ impl<'a> Client<'a> {
     #[cfg(feature = "plugin")]
     {
       let plugin_result = 
-      self.plugins.lock().unwrap()
-        .get_canonicalized_resource(
-          url
-        );
+        self.plugins.lock().unwrap()
+          .get_canonicalized_resource(
+            url
+          );
       if let Some(result) = plugin_result {
         return result;
       }
