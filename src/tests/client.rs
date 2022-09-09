@@ -149,12 +149,18 @@ fn test_object_list_query_generator(){
 }
 
 mod handle_error{
+    use futures::executor::block_on;
     use reqwest::Response;
     use http::Response as HttpResponse;
     use crate::client::AsyncRequestHandle;
     use crate::errors::OssError;
+
+    #[test]
+    fn test_call_async(){
+        block_on(test_async_has_error());
+        block_on(test_async_ok());
+    }
     
-    #[tokio::test]
     async fn test_async_has_error(){
         use mockall::*;
         #[mockall_double::double]
@@ -189,7 +195,6 @@ mod handle_error{
         mock.checkpoint();
     }
 
-    #[tokio::test]
     async fn test_async_ok(){
         use mockall::*;
         #[mockall_double::double]
