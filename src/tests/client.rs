@@ -153,11 +153,10 @@ mod handle_error{
     use http::Response as HttpResponse;
     use crate::client::AsyncRequestHandle;
     use crate::errors::OssError;
-    use mockall::*;
     
-
     #[tokio::test]
     async fn test_async_has_error(){
+        use mockall::*;
         #[mockall_double::double]
         use crate::errors::OssService;
 
@@ -192,6 +191,7 @@ mod handle_error{
 
     #[tokio::test]
     async fn test_async_ok(){
+        use mockall::*;
         #[mockall_double::double]
         use crate::errors::OssService;
 
