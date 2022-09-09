@@ -18,14 +18,10 @@ jobs:
           fetch-depth: 0
 
       # v0.1.15 目前版本
-      - name: Cache publish-action bin
-        id: cache-publish-action
-        uses: actions/cache@v3
-        env:
-          cache-name: cache-publish-changelog-action
+      - name: Cache
+        uses: Swatinem/rust-cache@v1
         with:
-          path: ~/.cargo
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-v0.1.15
+          key: ${{ runner.os }}-build-v0.1.15
 
       - name: Install publish-action
         if: steps.cache-publish-action.outputs.cache-hit != 'true'
