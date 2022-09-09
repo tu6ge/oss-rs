@@ -164,6 +164,7 @@ mod handle_error{
         let mock = OssService::new_context();
         mock.expect()
             .with(predicate::eq("body_abc".to_string()))
+            .times(1)
             .returning(move|_x|{
                 crate::errors::OssService{
                     code: "foo_code".to_string(),
@@ -186,7 +187,7 @@ mod handle_error{
         assert!(matches!(err, OssError::OssService(_)));
         assert!(matches!(err, OssError::OssService(x) if x.code=="foo_code"));
 
-        
+        mock.checkpoint();
     }
 
     #[tokio::test]
@@ -197,6 +198,7 @@ mod handle_error{
         let mock = OssService::new_context();
         mock.expect()
             .with(predicate::eq("body_abc".to_string()))
+            .times(0)
             .returning(move|_x|{
                 crate::errors::OssService{
                     code: "foo_code".to_string(),
@@ -230,6 +232,8 @@ mod handle_error{
         let ok = res.unwrap();
         assert_eq!(ok.status(), 204);
         assert_eq!(ok.text().await.unwrap(), "body_abc".to_string());
+
+        mock.checkpoint();
     }
 
 }
