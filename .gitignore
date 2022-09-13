@@ -2,3 +2,4 @@
 /Cargo.lock
 .env
 /examples/*/.env
+tarpaulin-report.html

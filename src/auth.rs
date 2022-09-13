@@ -13,6 +13,7 @@ use crate::errors::{OssResult, OssError};
 // use mockall::{automock, mock, predicate::*};
 
 #[derive(Clone)]
+#[cfg_attr(test, derive(Debug,PartialEq))]
 #[non_exhaustive]
 pub struct VERB(pub Method);
 

@@ -2,6 +2,24 @@ use std::collections::HashMap;
 use reqwest::Url;
 use crate::client::Client;
 
+#[test]
+#[cfg(not(feature = "plugin"))]
+fn init_client_without_plugin(){
+    use crate::client::Client;
+    let client = Client::new("foo1", "foo2", "foo3", "foo4");
+
+    let buf = [0x10, 0x11, 0x12, 0x13];
+    assert!(!client.infer.is_custom(&buf));
+}
+
+#[test]
+fn set_bucket(){
+    let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
+    client.set_bucket("abcaaa");
+
+    assert_eq!(client.bucket, "abcaaa");
+}
+
 mod test_use_plugin{
     #[cfg(feature = "plugin")]
     #[test]
@@ -141,7 +159,7 @@ mod test_async_canonicalized_resource{
         let resource = client.async_canonicalized_resource(&url, None).await;
         assert_eq!(resource, "/foo4/");
 
-        let url = Url::parse("https://fobar.example.net").unwrap();
+        let url = Url::parse("https://fobar.example.net/").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
         assert_eq!(resource, "/");
     }

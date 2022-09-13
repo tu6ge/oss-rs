@@ -1,3 +1,28 @@
+use reqwest::Url;
+
+
+#[test]
+fn plugin_default_return(){
+    use crate::plugin::Plugin;
+    use crate::client::Client;
+
+    struct MyPlugin;
+
+    impl Plugin for MyPlugin{
+        fn name(&self) -> &'static str {
+            "my_plugin"
+          }
+    }
+
+    let mut plugin = MyPlugin{};
+    let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
+    let res = plugin.initialize(&mut client);
+    assert!(res.is_ok());
+
+    let url = Url::parse("http://localhost").unwrap();
+    let res2 = plugin.canonicalized_resource(&url);
+    assert!(res2.is_none());
+}
 
 #[test]
 fn test_insert(){
