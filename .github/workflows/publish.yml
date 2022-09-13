@@ -81,7 +81,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: tarpaulin
-          args: --output-dir coverage --out Lcov -- tests
+          args: --output-dir coverage --out Lcov --all-features -- tests
       
       # - name: Publish to Coveralls
       #   uses: coverallsapp/github-action@master
