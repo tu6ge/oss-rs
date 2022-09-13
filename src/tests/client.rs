@@ -67,13 +67,17 @@ mod test_async_canonicalized_resource{
         use crate::plugin::MockPluginStore;
         let mut plugin_store = MockPluginStore::new();
         
-        plugin_store.expect_get_canonicalized_resource().times(1).returning(|_| Some("foo_string".to_string()));
+        plugin_store.expect_get_canonicalized_resource().times(1).returning(|_| Ok(Some("foo_string".to_string())));
 
         let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
         client.plugins = Mutex::new(plugin_store);
         let url = Url::parse("https://example.net").unwrap();
         
         let resource = client.async_canonicalized_resource(&url, Some("bucket_foo".to_string())).await;
+
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
 
         assert_eq!(resource, "foo_string".to_string());
     }
@@ -84,7 +88,7 @@ mod test_async_canonicalized_resource{
         use crate::plugin::MockPluginStore;
         let mut plugin_store = MockPluginStore::new();
         
-        plugin_store.expect_get_canonicalized_resource().returning(|_| None);
+        plugin_store.expect_get_canonicalized_resource().returning(|_| Ok(None));
 
         client.plugins = Mutex::new(plugin_store);
         client
@@ -103,9 +107,15 @@ mod test_async_canonicalized_resource{
 
         let url = Url::parse("https://example.net").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/");
 
         let resource = client.async_canonicalized_resource(&url, Some("".to_string())).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/");
     }
 
@@ -117,10 +127,16 @@ mod test_async_canonicalized_resource{
 
         let url = Url::parse("https://example.net/bar_path").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/foo4/bar_path");
 
         let url = Url::parse("https://example.net/bar_path").unwrap();
         let resource = client.async_canonicalized_resource(&url, Some("bucket_foo".to_string())).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/bucket_foo/bar_path");
     }
 
@@ -131,10 +147,16 @@ mod test_async_canonicalized_resource{
 
         let url = Url::parse("https://example.net/bar_path?abc=2").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/foo4/bar_path?abc=2");
 
         let url = Url::parse("https://example.net/bar_path?abc=2").unwrap();
         let resource = client.async_canonicalized_resource(&url, Some("bucket_foo".to_string())).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/bucket_foo/bar_path?abc=2");
     }
 
@@ -145,22 +167,37 @@ mod test_async_canonicalized_resource{
 
         let url = Url::parse("https://example.net/?acl").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/foo4/?acl");
 
         let url = Url::parse("https://example.net/?bucketInfo").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/foo4/?bucketInfo");
 
         let url = Url::parse("https://foo4.example.net/?continuation-token=fooxxx").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/foo4/?continuation-token=fooxxx");
 
         let url = Url::parse("https://foo4.example.net/?abc").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/foo4/");
 
         let url = Url::parse("https://fobar.example.net/").unwrap();
         let resource = client.async_canonicalized_resource(&url, None).await;
+        assert!(resource.is_ok());
+
+        let resource = resource.unwrap();
         assert_eq!(resource, "/");
     }
 

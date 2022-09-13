@@ -39,23 +39,8 @@ let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket)
  */
 
 use std::collections::HashMap;
-use std::ops::ControlFlow;
 use reqwest::Url;
 use crate::{errors::{OssResult, OssError, plugin::PluginError}, client::Client};
-
-// TODO
-#[non_exhaustive]
-pub enum Resource<T>{
-    None,
-    Next,
-    Some(T)
-}
-
-impl<T> Default for Resource<T>{
-    fn default() -> Self {
-        Self::Next
-    }
-}
 
 #[cfg_attr(test, mockall::automock)]
 pub trait Plugin: Send{
@@ -67,10 +52,22 @@ pub trait Plugin: Send{
     Ok(())
   }
 
+  /// # 限制指定的 Url 才可以使用本插件计算 `canonicalized_resource` 值
+  /// 
+  /// 只有当本方法返回 true 时，才会使用本插件计算 `canonicalized_resource` 值，否则，使用 lib 本身的计算规则
+  /// 
+  /// **如果同时安装的两个插件都返回 true，系统会提示错误**
+  #[allow(unused_variables)]
+  fn astrict_resource_url(&self, url: &Url) -> bool {
+    false
+  }
+
   /// 修改 lib 内部计算 canonicalized_resource 参数的方式
   /// 鉴于官方对该参数的定义比较模糊，为了增加 lib 库的通用性，所以使用插件对这个参数进行修改
   /// 如果有多个插件对这个参数进行修改，返回第一个已装配的插件结果
   /// 本 trait 对此方法做了默认实现
+  /// 
+  /// *只有 `astrict_resource_url` 方法返回 true 时，才起作用*
   #[allow(unused_variables)]
   fn canonicalized_resource(&self, url: &Url) -> Option<String> {
     None
@@ -120,59 +117,22 @@ impl PluginStore {
   }
 
   /// 计算插件中的 canonicalized_resource 值，并返回
-  pub fn get_canonicalized_resource(&self, url: &Url) -> Option<String> {
-    let result = self.store.values().try_for_each(move|plugin| {
-      let canonicalized_resource = plugin.canonicalized_resource(url);
-      if let Some(val) = canonicalized_resource {
-        return ControlFlow::Break(val)
-      }
-      ControlFlow::Continue(())
-    });
+  pub fn get_canonicalized_resource<'a>(&self, url: &'a Url) -> OssResult<Option<String>> {
+    let list: Vec<&Box<dyn Plugin>> = self.store.iter().filter(|(_,p)|{
+      p.astrict_resource_url(url)
+    }).map(|(_,v)|{
+      v
+    }).collect();
 
-    match result {
-      ControlFlow::Break(val) => Some(val),
-      _ => None,
+    if list.len() >1 {
+      let names: Vec<_> = list.iter().map(|v|v.name().to_string()).collect();
+      let name = names.join(",").clone();
+      return Err(OssError::Plugin(PluginError { name: "plugin conflict", message: format!("{} 等多个插件匹配到了同一个 Url: {}", name, url)}));
     }
+
+    Ok(match list.get(0) {
+      Some(p) => p.canonicalized_resource(url),
+      None => None,
+    })
   }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{client::{Client}, errors::OssResult};
-
-    use super::Plugin;
-
-    struct SigFile;
-
-    impl Plugin for SigFile {
-        fn name(&self) -> &'static str {
-          "sig_file_ext"
-        }
-    
-        fn initialize(&mut self, client: &mut Client) -> OssResult<()> {
-            let mime_type = "application/pgp-signature";
-            let extension = "sig";
-            fn m(buf: &[u8]) -> bool {
-                return buf.len() >= 3 && buf[0] == 0x64 && buf[1] == 0x57 && buf[2] == 0x35;
-            }
-            client.infer.add(mime_type, extension, m);
-        
-            Ok(())
-        }
-    }
-
-    // #[test]
-    // fn test_init_infer(){
-    //     let client = crate::client("abc", "abc", "abc", "abc");
-    //     let res = client.infer.get("dW50cnVzdGV".as_bytes());
-
-    //     assert_matches!(res, None);
-
-    //     let client_ext = crate::client("abc", "abc", "abc", "abc")
-    //       .plugin(Box::new(SigFile{})).unwrap();
-    //     let res = client_ext.infer.get("dW50cnVzdGV".as_bytes()).unwrap();
-
-    //     assert_matches!(res.mime_type(), "application/pgp-signature");
-    //     assert_matches!(res.extension(), "sig");
-    // }
 }

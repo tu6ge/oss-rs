@@ -77,21 +77,21 @@ impl<'a> Client<'a> {
 
   /// # 返回用于签名的 canonicalized_resource 值
   #[cfg(feature = "blocking")]
-  pub fn canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> String {
+  pub fn canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> OssResult<String> {
     use futures::executor::block_on;
     block_on(self.async_canonicalized_resource(url, bucket))
   }
 
-  pub async fn async_canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> String {
+  pub async fn async_canonicalized_resource(&self, url: &Url, bucket: Option<String>) -> OssResult<String> {
     #[cfg(feature = "plugin")]
     {
       let plugin_result = 
         self.plugins.lock().unwrap()
           .get_canonicalized_resource(
             url
-          );
+          )?;
       if let Some(result) = plugin_result {
-        return result;
+        return Ok(result);
       }
     }
 
@@ -100,14 +100,14 @@ impl<'a> Client<'a> {
       None => self.bucket.to_string(),
     };
     if bucket.len()==0 {
-      return "/".to_string()
+      return Ok(format!("/"));
     }
 
     //println!("url.path(): {}", url.path());
     let path = urlencoding::decode(url.path());
 
     if let Err(_) = path {
-      return format!("/");
+      return Ok(format!("/"));
     }
 
     let path = path.unwrap();
@@ -116,9 +116,9 @@ impl<'a> Client<'a> {
     if url.path().is_empty() == false && url.path() != "/" {
       match url.query() {
         Some(query_value) if query_value.is_empty() == false => {
-          return format!("/{}{}?{}", bucket, path, query_value);
+          return Ok(format!("/{}{}?{}", bucket, path, query_value));
         },
-        _ => return format!("/{}{}", bucket, path)
+        _ => return Ok(format!("/{}{}", bucket, path))
       }
     }
 
@@ -130,21 +130,21 @@ impl<'a> Client<'a> {
         // comp、qos、live、status、vod、startTime、endTime、symlink、x-oss-process
         if query == "acl"
         || query == "bucketInfo"{
-          return format!("/{}/?{}", bucket, query)
+          return Ok(format!("/{}/?{}", bucket, query));
         }else if self.is_bucket_url(url, &bucket) {
           // 基于某个 bucket 调用api 时
           // 如果查询条件中有翻页的话，则忽略掉其他字段
           let query_pairs = url.query_pairs();
           for (key,value) in query_pairs {
             if key.into_owned().starts_with("continuation-token") {
-              return format!("/{}/?continuation-token={}", bucket, value.into_owned())
+              return Ok(format!("/{}/?continuation-token={}", bucket, value.into_owned()))
             }
           }
         }
-        return format!("/{}/", bucket)
+        return Ok(format!("/{}/", bucket))
       },
       None => {
-        return format!("/");
+        return Ok(format!("/"));
       }
     }
   }
@@ -187,7 +187,7 @@ impl<'a> Client<'a> {
   pub fn blocking_builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<RequestBuilder>{
     let client = blocking::Client::new();
 
-    let canonicalized_resource = self.canonicalized_resource(&url, bucket);
+    let canonicalized_resource = self.canonicalized_resource(&url, bucket)?;
 
     let mut builder = AuthBuilder::default()
       .key(self.access_key_id)
@@ -211,7 +211,7 @@ impl<'a> Client<'a> {
   pub async fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<AsyncRequestBuilder>{
     let client = AsyncClient::new();
 
-    let canonicalized_resource = self.async_canonicalized_resource(&url, bucket).await;
+    let canonicalized_resource = self.async_canonicalized_resource(&url, bucket).await?;
 
     let mut builder = AuthBuilder::default()
       .key(self.access_key_id)
