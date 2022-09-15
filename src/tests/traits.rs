@@ -4,7 +4,6 @@ static mut OBEJCT_ITEM_ID:i8 = 0;
 mod object_list_xml{
     use crate::tests::traits::OBEJCT_ITEM_ID;
 
-
     #[test]
     fn from_xml(){
         use crate::traits::ObjectTrait;
@@ -158,5 +157,178 @@ mod object_list_xml{
         let list1 = ListB::from_xml(xml.to_string());
         
         assert!(list1.is_ok());
+    }
+}
+
+mod bucket_xml{
+    #[test]
+    fn from_xml(){
+        use crate::traits::BucketTrait;
+
+        struct BucketA {}
+
+        impl BucketTrait for BucketA{
+            fn from_oss<'a>(
+                name: String,
+                creation_date: String,
+                location: String,
+                extranet_endpoint: String,
+                intranet_endpoint: String,
+                storage_class: String,
+            ) -> crate::errors::OssResult<Self>
+            {
+                assert_eq!(name, "foo".to_string());
+                assert_eq!(creation_date, "2016-11-05T13:10:10.000Z".to_string());
+                assert_eq!(location, "oss-cn-shanghai".to_string());
+                assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com".to_string());
+                assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com".to_string());
+                assert_eq!(storage_class, "Standard".to_string());
+                Ok(BucketA{})
+            }
+        }
+
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+        <BucketInfo>
+          <Bucket>
+            <AccessMonitor>Disabled</AccessMonitor>
+            <Comment></Comment>
+            <CreationDate>2016-11-05T13:10:10.000Z</CreationDate>
+            <CrossRegionReplication>Disabled</CrossRegionReplication>
+            <DataRedundancyType>LRS</DataRedundancyType>
+            <ExtranetEndpoint>oss-cn-shanghai.aliyuncs.com</ExtranetEndpoint>
+            <IntranetEndpoint>oss-cn-shanghai-internal.aliyuncs.com</IntranetEndpoint>
+            <Location>oss-cn-shanghai</Location>
+            <Name>foo</Name>
+            <ResourceGroupId>rg-foobar</ResourceGroupId>
+            <StorageClass>Standard</StorageClass>
+            <TransferAcceleration>Disabled</TransferAcceleration>
+            <Owner>
+              <DisplayName>100889</DisplayName>
+              <ID>3004212</ID>
+            </Owner>
+            <AccessControlList>
+              <Grant>public-read</Grant>
+            </AccessControlList>
+            <ServerSideEncryptionRule>
+              <SSEAlgorithm>None</SSEAlgorithm>
+            </ServerSideEncryptionRule>
+            <BucketPolicy>
+              <LogBucket></LogBucket>
+              <LogPrefix></LogPrefix>
+            </BucketPolicy>
+          </Bucket>
+        </BucketInfo>"#;
+
+        let info = BucketA::from_xml(xml.to_string());
+
+        assert!(info.is_ok());
+    }
+}
+
+static mut BUCKETS_ITEM_ID:i8 = 0;
+mod bucket_list_xml{
+    use super::BUCKETS_ITEM_ID;
+
+    #[test]
+    fn from_xml(){
+        use crate::traits::BucketTrait;
+        use crate::traits::ListBucketTrait;
+
+        struct BucketA {}
+
+        impl BucketTrait for BucketA{
+            fn from_oss<'a>(
+                name: String,
+                creation_date: String,
+                location: String,
+                extranet_endpoint: String,
+                intranet_endpoint: String,
+                storage_class: String,
+            ) -> crate::errors::OssResult<Self>
+            {
+                unsafe{
+                    if BUCKETS_ITEM_ID==0 {
+                        assert_eq!(name, "foo124442".to_string());
+                        assert_eq!(creation_date, "2020-09-13T03:14:54.000Z".to_string());
+                        assert_eq!(location, "oss-cn-shanghai".to_string());
+                        assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com".to_string());
+                        assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com".to_string());
+                        assert_eq!(storage_class, "Standard".to_string());
+                    }else if BUCKETS_ITEM_ID==1 {
+                        assert_eq!(name, "foo342390bar".to_string());
+                        assert_eq!(creation_date, "2016-11-05T13:10:10.000Z".to_string());
+                        assert_eq!(location, "oss-cn-shanghai".to_string());
+                        assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com".to_string());
+                        assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com".to_string());
+                        assert_eq!(storage_class, "Standard".to_string());
+                    }
+
+                    BUCKETS_ITEM_ID += 1;
+                }
+                
+                Ok(BucketA{})
+            }
+        }
+
+        struct BucketListA {}
+
+        impl ListBucketTrait for BucketListA{
+            type Bucket = BucketA;
+            fn from_oss(
+                prefix: Option<String>, 
+                marker: Option<String>,
+                max_keys: Option<String>,
+                is_truncated: bool,
+                next_marker: Option<String>,
+                id: Option<String>,
+                display_name: Option<String>,
+                buckets: Vec<Self::Bucket>,
+            ) -> crate::errors::OssResult<Self>
+            {
+                assert!(matches!(prefix, None));
+                assert!(matches!(marker, None));
+                assert!(matches!(max_keys, None));
+                assert_eq!(is_truncated, false);
+                assert!(matches!(next_marker, None));
+                assert!(matches!(id, Some(v) if v =="100861222333".to_string()));
+                assert!(matches!(display_name, Some(v) if v =="100861222".to_string()));
+                assert_eq!(buckets.len(), 2);
+                Ok(BucketListA{})
+            }
+        }
+
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+        <ListAllMyBucketsResult>
+          <Owner>
+            <ID>100861222333</ID>
+            <DisplayName>100861222</DisplayName>
+          </Owner>
+          <Buckets>
+            <Bucket>
+              <Comment></Comment>
+              <CreationDate>2020-09-13T03:14:54.000Z</CreationDate>
+              <ExtranetEndpoint>oss-cn-shanghai.aliyuncs.com</ExtranetEndpoint>
+              <IntranetEndpoint>oss-cn-shanghai-internal.aliyuncs.com</IntranetEndpoint>
+              <Location>oss-cn-shanghai</Location>
+              <Name>foo124442</Name>
+              <Region>cn-shanghai</Region>
+              <StorageClass>Standard</StorageClass>
+            </Bucket>
+            <Bucket>
+              <Comment></Comment>
+              <CreationDate>2016-11-05T13:10:10.000Z</CreationDate>
+              <ExtranetEndpoint>oss-cn-shanghai.aliyuncs.com</ExtranetEndpoint>
+              <IntranetEndpoint>oss-cn-shanghai-internal.aliyuncs.com</IntranetEndpoint>
+              <Location>oss-cn-shanghai</Location>
+              <Name>foo342390bar</Name>
+              <Region>cn-shanghai</Region>
+              <StorageClass>Standard</StorageClass>
+            </Bucket>
+          </Buckets>
+        </ListAllMyBucketsResult>"#;
+
+        let list = BucketListA::from_xml(xml.to_string());
+
+        assert!(list.is_ok());
     }
 }
