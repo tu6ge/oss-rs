@@ -19,7 +19,7 @@ fn main() {
     //let headers = None;
     let mut query:HashMap<String,String> = HashMap::new();
     query.insert("max-keys".to_string(), "5".to_string());
-    query.insert("prefix".to_string(), "babel".to_string());
+    //query.insert("prefix".to_string(), "babel".to_string());
     let response = client.blocking_get_object_list(query).unwrap();
     println!("objects list: {:?}", response);
 }

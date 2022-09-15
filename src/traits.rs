@@ -3,9 +3,7 @@ use quick_xml::events::Event;
 
 use crate::errors::{OssResult, OssError};
 
-/// 备注：加 'static 是为了方便 automock 
-#[cfg_attr(test, mockall::automock)]
-pub trait ObjectTrait: 'static {
+pub trait ObjectTrait {
   /// 使用 oss 返回的数据初始化 Object 结构体
   fn from_oss(
     key: String,
@@ -18,8 +16,6 @@ pub trait ObjectTrait: 'static {
   where Self: Sized;
 }
 
-/// 备注：加 'static 是为了方便 automock 
-#[cfg_attr(test, mockall::automock)]
 pub trait ObjectListTrait<OBJ: ObjectTrait> {
   /// 使用 oss 返回的数据初始化 ObjectList 结构体
   fn from_oss(
