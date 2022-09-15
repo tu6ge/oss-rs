@@ -6,3 +6,5 @@ mod client;
 mod plugin;
 
 mod traits;
+
+mod errors;

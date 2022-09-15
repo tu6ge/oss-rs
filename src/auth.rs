@@ -12,8 +12,8 @@ use crate::errors::{OssResult, OssError};
 // #[cfg(test)]
 // use mockall::{automock, mock, predicate::*};
 
-#[derive(Clone)]
-#[cfg_attr(test, derive(Debug,PartialEq))]
+#[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug))]
 #[non_exhaustive]
 pub struct VERB(pub Method);
 
@@ -276,6 +276,13 @@ impl<'a> AuthBuilder<'a> {
   }
 
   /// 给 date 赋值
+  /// 
+  /// example
+  /// ```
+  /// use chrono::Utc;
+  /// let builder = aliyun_oss_client::auth::AuthBuilder::default()
+  ///    .date(Utc::now());
+  /// ```
   pub fn date(mut self, date: DateTime<Utc>) -> Self {
     self.auth.date = date.format("%a, %d %b %Y %T GMT").to_string();
     self

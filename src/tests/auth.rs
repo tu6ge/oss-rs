@@ -250,8 +250,36 @@ fn test_string_to_value(){
 
 
 mod auth_builder{
-    use crate::auth::AuthBuilder;
+    use std::convert::TryInto;
 
+    use chrono::{Utc, TimeZone};
+    use http::{header::{HOST, CONTENT_TYPE}, HeaderMap};
+
+    use crate::auth::{AuthBuilder, VERB, Auth};
+
+    #[test]
+    fn test_key(){
+        let mut builder = AuthBuilder::default();
+        builder = builder.key("foo1");
+
+        assert_eq!(builder.auth.access_key_id, "foo1");
+    }
+
+    #[test]
+    fn test_secret(){
+        let mut builder = AuthBuilder::default();
+        builder = builder.secret("foo2");
+
+        assert_eq!(builder.auth.access_key_secret, "foo2");
+    }
+
+    #[test]
+    fn test_verb(){
+        let mut builder = AuthBuilder::default();
+        builder = builder.verb("POST");
+
+        assert!(matches!(builder.auth.verb, VERB::POST));
+    }
 
     #[test]
     fn test_content_md5(){
@@ -259,6 +287,73 @@ mod auth_builder{
         builder = builder.content_md5("abc3");
 
         assert_eq!(builder.auth.content_md5, Some("abc3"));
+    }
+
+    #[test]
+    fn test_date(){
+        let mut builder = AuthBuilder::default();
+        let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
+        builder = builder.date(date);
+
+        assert_eq!(builder.auth.date, "Sat, 01 Jan 2022 18:01:01 GMT".to_string());
+    }
+
+    #[test]
+    fn test_canonicalized_resource(){
+        let mut builder = AuthBuilder::default();
+        builder = builder.canonicalized_resource("foo323");
+
+        assert_eq!(builder.auth.canonicalized_resource, "foo323");
+    }
+
+    #[test]
+    fn test_type_with_header(){
+        let mut builder = AuthBuilder::default();
+        let auth = Auth{
+            access_key_id: "foo1",
+            access_key_secret: "foo2",
+            verb: VERB::GET,
+            content_md5: None,
+            content_type: None,
+            date: "foo3".to_string(),
+            canonicalized_resource: "foo4",
+            headers: HeaderMap::new(),
+        };
+
+        builder.auth = auth;
+
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_TYPE, "bar".try_into().unwrap());
+
+        builder.auth.headers = headers;
+        builder = builder.type_with_header();
+
+        assert!(matches!(builder.auth.content_type, Some(v) if v=="bar"));
+    }
+
+    #[test]
+    fn test_header(){
+        let mut builder = AuthBuilder::default();
+        let mut header = HeaderMap::new();
+        header.insert(HOST, "127.0.0.1".try_into().unwrap());
+        builder = builder.headers(header);
+
+        let host = builder.auth.headers.get("HOST");
+        assert!(host.is_some());
+
+        let host = host.unwrap();
+        assert_eq!(host.to_str().unwrap(), "127.0.0.1");
+
+        let content_type = builder.auth.content_type;
+        assert!(content_type.is_none());
+
+        let mut builder2 = AuthBuilder::default();
+        let mut header2 = HeaderMap::new();
+        header2.insert(HOST, "127.0.0.1".try_into().unwrap());
+        header2.insert(CONTENT_TYPE, "bar".try_into().unwrap());
+        builder2 = builder2.headers(header2);
+
+        assert!(matches!(builder2.auth.content_type, Some(v) if v=="bar"));
     }
 
     #[test]

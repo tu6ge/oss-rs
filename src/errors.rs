@@ -81,27 +81,7 @@ impl fmt::Display for OssService {
 
 #[cfg_attr(test, automock)]
 impl OssService{
-/// # 解析 oss 的错误信息
-/// # example
-/// ```
-/// use aliyun_oss_client::errors::OssService;
-/// 
-/// let content = r#"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-/// <Error>
-///   <Code>RequestTimeTooSkewed</Code>
-///   <Message>bar</Message>
-///   <RequestId>63145DB90BFD85303279D56B</RequestId>
-///   <HostId>honglei123.oss-cn-shanghai.aliyuncs.com</HostId>
-///   <MaxAllowedSkewMilliseconds>900000</MaxAllowedSkewMilliseconds>
-///   <RequestTime>2022-09-04T07:11:33.000Z</RequestTime>
-///   <ServerTime>2022-09-04T08:11:37.000Z</ServerTime>
-/// </Error>
-/// "#;
-/// let service = OssService::new(content.to_string());
-/// assert_eq!(service.code, format!("RequestTimeTooSkewed"));
-/// assert_eq!(service.message, format!("bar"));
-/// assert_eq!(service.request_id, format!("63145DB90BFD85303279D56B"));
-/// ```
+    /// 解析 oss 的错误信息
     pub fn new(source: String) -> OssService {
         let re = Regex::new(
           r"(?x)<Code>(?P<code>\w+)</Code>
@@ -130,7 +110,10 @@ pub mod plugin {
 
   impl fmt::Display for PluginError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.write_str("plugin name:{self.name} ,message:{self.message}")
+      f.debug_struct("PluginError")
+        .field("name", &self.name)
+        .field("message", &self.message)
+        .finish()
     }
   }
 
