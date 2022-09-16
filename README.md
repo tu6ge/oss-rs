@@ -29,7 +29,7 @@ let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
 let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
 // 获取客户端实例
-let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket);
+let client = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket);
 ```
 
 ## 异步

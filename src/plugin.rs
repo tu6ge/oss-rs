@@ -48,7 +48,7 @@ pub trait Plugin: Send{
 
   /// 初始化插件
   #[allow(unused_variables)]
-  fn initialize<'a>(&mut self, client: &mut Client<'a>) -> OssResult<()> {
+  fn initialize(&mut self, client: &mut Client) -> OssResult<()> {
     Ok(())
   }
 
@@ -103,9 +103,9 @@ impl PluginStore {
   }
 
   /// Initializes all plugins in the store.
-  pub fn initialize<'a>(
+  pub fn initialize(
     &mut self,
-    client: &mut Client<'a>
+    client: &mut Client
   ) -> OssResult<()> {
     self.store.values_mut().try_for_each(|plugin| {
       plugin

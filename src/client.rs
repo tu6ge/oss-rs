@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-
-
 use infer::Infer;
 #[cfg(feature = "blocking")]
 use reqwest::blocking::{self,RequestBuilder,Response};
@@ -21,15 +19,16 @@ use crate::plugin::{Plugin};
 use crate::plugin::PluginStore;
 
 use async_trait::async_trait;
+use crate::types::{KeyId, KeySecret, EndPoint, BucketName, CanonicalizedResource};
 
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
 #[derive(Default)]
-pub struct Client<'a>{
-  access_key_id: &'a str,
-  access_key_secret: &'a str,
-  pub endpoint: &'a str,
-  pub bucket: &'a str,
+pub struct Client{
+  access_key_id: KeyId,
+  access_key_secret: KeySecret,
+  pub endpoint: EndPoint,
+  pub bucket: BucketName,
   
   #[cfg(feature = "plugin")]
   pub plugins: Mutex<PluginStore>,
@@ -37,10 +36,10 @@ pub struct Client<'a>{
   pub infer: Infer,
 }
 
-impl<'a> Client<'a> {
+impl Client {
 
   #[cfg(not(feature = "plugin"))]
-  pub fn new(access_key_id: &'a str, access_key_secret: &'a str, endpoint: &'a str, bucket: &'a str) -> Client<'a> {
+  pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Client {
     Client{
       access_key_id,
       access_key_secret,
@@ -51,7 +50,7 @@ impl<'a> Client<'a> {
   }
 
   #[cfg(feature = "plugin")]
-  pub fn new(access_key_id: &'a str, access_key_secret: &'a str, endpoint: &'a str, bucket: &'a str) -> Client<'a> {
+  pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Client {
     Client{
       access_key_id,
       access_key_secret,
@@ -62,13 +61,13 @@ impl<'a> Client<'a> {
     }
   }
 
-  pub fn set_bucket(&mut self, bucket: &'a str){
+  pub fn set_bucket(&mut self, bucket: BucketName){
     self.bucket = bucket
   }
 
   /// # 注册插件
   #[cfg(feature = "plugin")]
-  pub fn plugin(mut self, mut plugin: Box<dyn Plugin>) -> OssResult<Client<'a>> {
+  pub fn plugin(mut self, mut plugin: Box<dyn Plugin>) -> OssResult<Client> {
     plugin.initialize(&mut self)?;
 
     self.plugins.lock().unwrap().insert(plugin);
@@ -150,7 +149,7 @@ impl<'a> Client<'a> {
   }
 
   pub fn get_bucket_url(&self) -> OssResult<Url>{
-    let mut url = Url::parse(self.endpoint).map_err(|_| OssError::Input("endpoint url parse error".to_string()))?;
+    let mut url = self.endpoint.into_url()?;
     
     let bucket_url = self.bucket.to_string() + "."
        + &url.host().ok_or(OssError::Input("parse host faied".to_string()))?.to_string();
@@ -190,11 +189,11 @@ impl<'a> Client<'a> {
     let canonicalized_resource = self.canonicalized_resource(&url, bucket)?;
 
     let mut builder = AuthBuilder::default()
-      .key(self.access_key_id)
-      .secret(self.access_key_secret)
+      .key(self.access_key_id.clone())
+      .secret(self.access_key_secret.clone())
       .verb(method.to_owned())
       .date(Utc::now())
-      .canonicalized_resource(canonicalized_resource.as_str())
+      .canonicalized_resource(CanonicalizedResource::new(canonicalized_resource))
     ;
     
     if let Some(headers) = headers {
@@ -214,11 +213,11 @@ impl<'a> Client<'a> {
     let canonicalized_resource = self.async_canonicalized_resource(&url, bucket).await?;
 
     let mut builder = AuthBuilder::default()
-      .key(self.access_key_id)
-      .secret(self.access_key_secret)
+      .key(self.access_key_id.clone())
+      .secret(self.access_key_secret.clone())
       .verb(method.to_owned())
       .date(Utc::now())
-      .canonicalized_resource(canonicalized_resource.as_str())
+      .canonicalized_resource(CanonicalizedResource::new(canonicalized_resource))
     ;
     
     if let Some(headers) = headers {

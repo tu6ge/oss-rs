@@ -22,7 +22,7 @@ pub struct ListBuckets<'a> {
   pub id: Option<String>,
   pub display_name: Option<String>,
   pub buckets: Vec<Bucket<'a>>,
-  client: Option<&'a Client<'a>>,
+  client: Option<&'a Client>,
 }
 
 impl fmt::Debug for ListBuckets<'_> {
@@ -99,7 +99,7 @@ pub struct Bucket<'a>{
   // pub kms_master_key_id: Option<&'a str>,
   // pub cross_region_replication: &'a str,
   // pub transfer_acceleration: &'a str,
-  client: Option<&'a Client<'a>>,
+  client: Option<&'a Client>,
 }
 
 impl fmt::Debug for Bucket<'_> {
@@ -150,7 +150,7 @@ impl <'b> Bucket<'b> {
     let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
     let mut url = Url::parse(&input).map_err(|_| OssError::Input("url parse error".to_string()))?;
 
-    let query_str = Client::<'b>::object_list_query_generator(&query);
+    let query_str = Client::object_list_query_generator(&query);
 
     url.set_query(Some(&query_str));
 
@@ -167,7 +167,7 @@ impl <'b> Bucket<'b> {
     let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
     let mut url = Url::parse(&input).map_err(|_| OssError::Input("url parse error".to_string()))?;
 
-    let query_str = Client::<'b>::object_list_query_generator(&query);
+    let query_str = Client::object_list_query_generator(&query);
 
     url.set_query(Some(&query_str));
 
@@ -184,13 +184,13 @@ impl <'b> Bucket<'b> {
 }
 
 
-impl<'a> Client<'a> {
+impl Client {
 
   /** # 获取 buiket 列表
   */
   #[cfg(feature = "blocking")]
   pub fn blocking_get_bucket_list(&self) -> OssResult<ListBuckets> {
-    let url = Url::parse(&self.endpoint).map_err(|_| OssError::Input("endpoint url parse error".to_string()))?;
+    let url = self.endpoint.into_url()?;
     //url.set_path(self.bucket)
 
     let response = self.blocking_builder(VERB::GET, &url, None, None)?;
@@ -201,7 +201,7 @@ impl<'a> Client<'a> {
   }
 
   pub async fn get_bucket_list(&self) -> OssResult<ListBuckets<'_>>{
-    let url = Url::parse(&self.endpoint).map_err(|_| OssError::Input("endpoint url parse error".to_string()))?;
+    let url = self.endpoint.into_url()?;
     //url.set_path(self.bucket)
 
     let response = self.builder(VERB::GET, &url, None, None).await?;

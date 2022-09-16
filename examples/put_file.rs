@@ -14,7 +14,7 @@ fn main() {
     let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
     let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-    let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
+    let client = client::Client::new(key_id.into(),key_secret.into(), endpoint.into(), bucket.into());
     //let headers = None;
     let response = client.blocking_put_file(PathBuf::from("examples/bg2015071010.png"), "examples/bg2015071010.png").unwrap();
     println!("put file result: {:?}", response);

@@ -15,7 +15,12 @@ fn plugin_default_return(){
     }
 
     let mut plugin = MyPlugin{};
-    let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
+    let mut client = Client::new(
+        "foo1".to_owned().into(),
+        "foo2".to_owned().into(),
+        "foo3".to_owned().into(),
+        "foo4".to_owned().into()
+    );
     let res = plugin.initialize(&mut client);
     assert!(res.is_ok());
 
@@ -61,7 +66,12 @@ fn test_initialize(){
 
     plugin_store.insert(Box::new(plugin));
 
-    let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
+    let mut client = Client::new(
+        "foo1".to_owned().into(),
+        "foo2".to_owned().into(),
+        "foo3".to_owned().into(),
+        "foo4".to_owned().into()
+    );
 
     let res = plugin_store.initialize(&mut client);
 
@@ -83,7 +93,12 @@ fn test_initialize_with_plugin_error(){
 
     plugin_store.insert(Box::new(plugin));
 
-    let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
+    let mut client = Client::new(
+        "foo1".to_owned().into(),
+        "foo2".to_owned().into(),
+        "foo3".to_owned().into(),
+        "foo4".to_owned().into()
+    );
 
     let res = plugin_store.initialize(&mut client);
 

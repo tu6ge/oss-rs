@@ -12,6 +12,9 @@ pub enum OssError{
   #[error("reqwest error: {0}")]
   Request(#[from] reqwest::Error),
 
+  #[error("invalid header value msg: {0}")]
+  InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
+
   #[error("{0}")]
   #[cfg(test)]
   Dotenv(#[from] dotenv::Error),

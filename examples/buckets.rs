@@ -2,6 +2,7 @@
 #![deny(warnings)]
 
 use aliyun_oss_client::client;
+use aliyun_oss_client::types::BucketName;
 
 extern crate dotenv;
 
@@ -15,7 +16,7 @@ fn main() {
     let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
     let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
 
-    let client = client::Client::new(&key_id,&key_secret, &endpoint, "");
+    let client = client::Client::new(key_id.into(),key_secret.into(), endpoint.into(), BucketName::from_static(""));
     //let headers = None;
     let response = client.blocking_get_bucket_list().unwrap();
     println!("buckets list: {:?}", response.buckets.first().unwrap());

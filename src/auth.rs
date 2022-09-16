@@ -1,12 +1,15 @@
 
 //extern crate base64;
 
+use std::convert::TryInto;
+
 use chrono::{DateTime, Utc};
 use sha1::Sha1;
 use hmac::{Hmac, Mac};
 use base64::{encode};
 use reqwest::{Method};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName, CONTENT_TYPE};
+use crate::types::{KeyId,KeySecret,ContentMd5,CanonicalizedResource};
 use crate::errors::{OssResult, OssError};
 // use http::Method;
 // #[cfg(test)]
@@ -18,15 +21,15 @@ use crate::errors::{OssResult, OssError};
 pub struct VERB(pub Method);
 
 #[derive(Default)]
-pub struct Auth<'a>{
-  pub access_key_id: &'a str,
-  pub access_key_secret: &'a str,
+pub struct Auth{
+  pub access_key_id: KeyId,
+  pub access_key_secret: KeySecret,
   pub verb: VERB,
-  pub content_md5: Option<&'a str>,
+  pub content_md5: Option<ContentMd5>,
   pub content_type: Option<String>,
   pub date: String,
   // pub canonicalized_oss_headers: &'a str, // TODO
-  pub canonicalized_resource: &'a str,
+  pub canonicalized_resource: CanonicalizedResource,
   pub headers: HeaderMap,
 }
 
@@ -106,7 +109,7 @@ impl Default for VERB {
 
 type HmacSha1 = Hmac<Sha1>;
 
-impl<'a> Auth<'a> {
+impl Auth {
 
 
   /// # 获取所有 header 信息
@@ -118,25 +121,25 @@ impl<'a> Auth<'a> {
     block_on(self.async_get_headers())
   }
 
-  pub async fn async_get_headers(self) -> OssResult<HeaderMap> {
+  pub async fn async_get_headers(&self) -> OssResult<HeaderMap> {
     let mut map= self.headers.clone();
 
-    map.insert("AccessKeyId", self::to_value(self.access_key_id)?);
-    map.insert("SecretAccessKey", self::to_value(self.access_key_secret)?);
+    map.insert("AccessKeyId", self.access_key_id.as_ref().try_into()?);
+    map.insert("SecretAccessKey", self.access_key_secret.as_ref().try_into()?);
     map.insert(
       "VERB", 
       self.verb.to_string()
         .parse().map_err(|_| OssError::Input("VERB parse error".to_string()))?);
-    if let Some(a) = self.content_md5 {
-      map.insert("Content-MD5",self::to_value(a)?);
+    if let Some(a) = self.content_md5.clone() {
+      map.insert("Content-MD5",a.try_into()?);
     }
     if let Some(a) = &self.content_type {
       map.insert(
         "Content-Type",
         a.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
     }
-    map.insert("Date",self::string_to_value(self.date.clone())?);
-    map.insert("CanonicalizedResource", self::to_value(self.canonicalized_resource)?);
+    map.insert("Date",self::to_value(self.date.as_ref())?);
+    map.insert("CanonicalizedResource", self.canonicalized_resource.as_ref().try_into()?);
 
     let sign = self.sign()?;
     let sign = format!("OSS {}:{}", self.access_key_id, &sign);
@@ -180,10 +183,10 @@ impl<'a> Auth<'a> {
 
     let str: String = method
       + "\n"
-      + match self.content_md5 {
+      + match self.content_md5.as_ref() {
         Some(str)=> {
           content.clear();
-          content.push_str(str);
+          content.push_str(str.as_ref());
           &content
         },
         None => ""
@@ -207,7 +210,7 @@ impl<'a> Auth<'a> {
         },
         None => ""
       }
-      + self.canonicalized_resource;
+      + self.canonicalized_resource.as_ref();
     
     #[cfg(test)]
     println!("auth str: {}", str);
@@ -237,11 +240,11 @@ pub fn string_to_value(value: String) -> OssResult<HeaderValue>{
 }
 
 #[derive(Default)]
-pub struct AuthBuilder<'a>{
-  pub auth: Auth<'a>,
+pub struct AuthBuilder{
+  pub auth: Auth,
 }
 
-impl<'a> AuthBuilder<'a> {
+impl AuthBuilder{
   /// 给 key 赋值
   /// 
   /// ```
@@ -252,13 +255,13 @@ impl<'a> AuthBuilder<'a> {
   /// builder = builder.key("bar");
   /// assert_eq!(builder.auth.access_key_id, "bar");
   /// ```
-  pub fn key<T: Into<&'a str>>(mut self, key: T) -> Self {
+  pub fn key<K: Into<KeyId>>(mut self, key: K) -> Self {
     self.auth.access_key_id = key.into();
     self
   }
 
   /// 给 secret 赋值
-  pub fn secret<T: Into<&'a str>>(mut self, secret: T) -> Self {
+  pub fn secret<K: Into<KeySecret>>(mut self, secret: K) -> Self {
     self.auth.access_key_secret = secret.into();
     self
   }
@@ -270,7 +273,7 @@ impl<'a> AuthBuilder<'a> {
   }
 
   /// 给 content_md5 赋值
-  pub fn content_md5<T: Into<&'a str>>(mut self, content_md5: T) -> Self {
+  pub fn content_md5<M: Into<ContentMd5>>(mut self, content_md5: M) -> Self {
     self.auth.content_md5 = Some(content_md5.into());
     self
   }
@@ -289,7 +292,7 @@ impl<'a> AuthBuilder<'a> {
   }
 
   /// 给 content_md5 赋值
-  pub fn canonicalized_resource<T: Into<&'a str>>(mut self, data: T) -> Self {
+  pub fn canonicalized_resource<C: Into<CanonicalizedResource>>(mut self, data: C) -> Self {
     self.auth.canonicalized_resource = data.into();
     self
   }

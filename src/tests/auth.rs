@@ -1,6 +1,6 @@
 use reqwest::header::{HeaderMap, HeaderValue};
 
-use crate::{auth::{VERB, self}, errors::OssError};
+use crate::{auth::{VERB, self}, errors::OssError, types::{KeyId, KeySecret, CanonicalizedResource, ContentMd5}};
 
 #[test]
 fn test_verb2string(){
@@ -85,13 +85,13 @@ fn test_str2verb(){
 async fn test_async_get_headers(){
     
     let auth = crate::auth::Auth{
-        access_key_id: "foo_key",
-        access_key_secret: "foo_secret",
+        access_key_id: KeyId::from_static("foo_key"),
+        access_key_secret: KeySecret::from_static("foo_secret"),
         verb: VERB::GET,
         content_md5: None,
         content_type: Some("text/plain".into()),
         date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
-        canonicalized_resource: "",
+        canonicalized_resource: CanonicalizedResource::from_static(""),
         headers: HeaderMap::new(),
     };
 
@@ -111,13 +111,13 @@ async fn test_async_get_headers(){
     assert_eq!(header.get("Authorization"), Some(&HeaderValue::from_str("OSS foo_key:BoUvtc18Dc2q21W+sINIWidt+SE=").unwrap()));
 
     let auth = crate::auth::Auth{
-        access_key_id: "foo_key",
-        access_key_secret: "foo_secret",
+        access_key_id: KeyId::from_static("foo_key"),
+        access_key_secret: "foo_secret".to_owned().into(),
         verb: VERB::GET,
-        content_md5: Some("bar"),
+        content_md5: Some(ContentMd5::from_static("bar")),
         content_type: Some("text/plain".into()),
         date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
-        canonicalized_resource: "",
+        canonicalized_resource: CanonicalizedResource::new(""),
         headers: HeaderMap::new(),
     };
 
@@ -133,13 +133,13 @@ async fn test_async_get_headers(){
 #[tokio::test]
 async fn test_sign(){
     let auth = crate::auth::Auth{
-        access_key_id: "foo_key",
-        access_key_secret: "foo_secret",
+        access_key_id: "foo_key".to_owned().into(),
+        access_key_secret: KeySecret::from_static("foo_secret"),
         verb: VERB::GET,
         content_md5: None,
         content_type: Some("text/plain".into()),
         date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
-        canonicalized_resource: "",
+        canonicalized_resource: CanonicalizedResource::from_static(""),
         headers: HeaderMap::new(),
     };
 
@@ -153,13 +153,13 @@ async fn test_sign(){
     headers.insert("x-oss-test", auth::to_value("Bearer xxx").unwrap());
 
     let auth = crate::auth::Auth{
-        access_key_id: "foo_key",
-        access_key_secret: "foo_secret",
+        access_key_id: KeyId::from_static("foo_key"),
+        access_key_secret: KeySecret::from_static("foo_secret"),
         verb: VERB::GET,
-        content_md5: Some("bar_md5"),
+        content_md5: Some(ContentMd5::new("bar_md5")),
         content_type: Some("text/plain".into()),
         date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
-        canonicalized_resource: "",
+        canonicalized_resource: CanonicalizedResource::from_static(""),
         headers: headers,
     };
 
@@ -255,22 +255,22 @@ mod auth_builder{
     use chrono::{Utc, TimeZone};
     use http::{header::{HOST, CONTENT_TYPE}, HeaderMap};
 
-    use crate::auth::{AuthBuilder, VERB, Auth};
+    use crate::{auth::{AuthBuilder, VERB, Auth}, types::{KeySecret, CanonicalizedResource}};
 
     #[test]
     fn test_key(){
         let mut builder = AuthBuilder::default();
-        builder = builder.key("foo1");
+        builder = builder.key("foo1".to_owned());
 
-        assert_eq!(builder.auth.access_key_id, "foo1");
+        assert_eq!(builder.auth.access_key_id.as_ref(), "foo1");
     }
 
     #[test]
     fn test_secret(){
         let mut builder = AuthBuilder::default();
-        builder = builder.secret("foo2");
+        builder = builder.secret("foo2".to_owned());
 
-        assert_eq!(builder.auth.access_key_secret, "foo2");
+        assert_eq!(builder.auth.access_key_secret.as_ref(), "foo2");
     }
 
     #[test]
@@ -284,9 +284,9 @@ mod auth_builder{
     #[test]
     fn test_content_md5(){
         let mut builder = AuthBuilder::default();
-        builder = builder.content_md5("abc3");
+        builder = builder.content_md5("abc3".to_owned());
 
-        assert_eq!(builder.auth.content_md5, Some("abc3"));
+        assert!(matches!(builder.auth.content_md5, Some(v) if v.as_ref()=="abc3"));
     }
 
     #[test]
@@ -301,22 +301,22 @@ mod auth_builder{
     #[test]
     fn test_canonicalized_resource(){
         let mut builder = AuthBuilder::default();
-        builder = builder.canonicalized_resource("foo323");
+        builder = builder.canonicalized_resource("foo323".to_string());
 
-        assert_eq!(builder.auth.canonicalized_resource, "foo323");
+        assert_eq!(builder.auth.canonicalized_resource.as_ref(), "foo323");
     }
 
     #[test]
     fn test_type_with_header(){
         let mut builder = AuthBuilder::default();
         let auth = Auth{
-            access_key_id: "foo1",
-            access_key_secret: "foo2",
+            access_key_id: "foo1".to_owned().into(),
+            access_key_secret: KeySecret::new("foo2"),
             verb: VERB::GET,
             content_md5: None,
             content_type: None,
             date: "foo3".to_string(),
-            canonicalized_resource: "foo4",
+            canonicalized_resource: CanonicalizedResource::new("foo4"),
             headers: HeaderMap::new(),
         };
 

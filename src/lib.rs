@@ -27,7 +27,7 @@ let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
 let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
 // 获取客户端实例
-let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket);
+let client = aliyun_oss_client::client(key_id, key_secret, endpoint, bucket);
 # Ok(())
 # }
 ```
@@ -76,7 +76,8 @@ client.blocking_delete_object("examples/bg2015071010.png").unwrap();
  * 
  */
 
-
+pub mod types;
+use types::{KeyId, KeySecret, EndPoint, BucketName};
 /// # 验证模块
 /// 包含了签名验证的一些方法，header 以及参数的封装
 pub mod auth;
@@ -143,10 +144,15 @@ let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
 let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
 let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-let result = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket);
+let result = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket);
 ```
 */
-pub fn client<'a>(access_key_id: &'a str, access_key_secret: &'a str, endpoint: &'a str, bucket: &'a str) -> client::Client<'a>{
-  client::Client::new(access_key_id,access_key_secret, endpoint, bucket)
+pub fn client<ID, S, E, B>(access_key_id: ID, access_key_secret: S, endpoint: E, bucket: B) -> client::Client
+where ID: Into<KeyId>,
+  S: Into<KeySecret>,
+  E: Into<EndPoint>,
+  B: Into<BucketName>,
+{
+  client::Client::new(access_key_id.into(),access_key_secret.into(), endpoint.into(), bucket.into())
 }
 

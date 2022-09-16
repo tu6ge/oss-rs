@@ -14,10 +14,11 @@ fn init_client_without_plugin(){
 
 #[test]
 fn set_bucket(){
-    let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
-    client.set_bucket("abcaaa");
+    use crate::client;
+    let mut client = client("a","b","c","d");
+    client.set_bucket("abcaaa".to_owned().into());
 
-    assert_eq!(client.bucket, "abcaaa");
+    assert_eq!(client.bucket.as_ref(), "abcaaa");
 }
 
 mod test_use_plugin{
@@ -25,8 +26,7 @@ mod test_use_plugin{
     #[test]
     fn test_install_plugin(){
         use std::sync::Mutex;
-
-        use crate::client::Client;
+        use crate::client;
 
         //#[mockall_double::double]
         use crate::plugin::{MockPlugin, MockPluginStore};
@@ -35,7 +35,8 @@ mod test_use_plugin{
 
         plugin_store.expect_insert().times(1).returning(|_|());
         
-        let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
+        let mut client = client("foo1","foo2","foo3","foo4");
+
         client.plugins = Mutex::new(plugin_store);
 
         let mut plugin = MockPlugin::new();
@@ -69,7 +70,12 @@ mod test_async_canonicalized_resource{
         
         plugin_store.expect_get_canonicalized_resource().times(1).returning(|_| Ok(Some("foo_string".to_string())));
 
-        let mut client = Client::new("foo1", "foo2", "foo3", "foo4");
+        let mut client = Client::new(
+            "foo1".to_owned().into(),
+            "foo2".to_owned().into(),
+            "foo3".to_owned().into(),
+            "foo4".to_owned().into()
+        );
         client.plugins = Mutex::new(plugin_store);
         let url = Url::parse("https://example.net").unwrap();
         
@@ -102,7 +108,12 @@ mod test_async_canonicalized_resource{
     #[tokio::test]
     async fn test_empty_bucket(){
 
-        let client = Client::new("foo1", "foo2", "foo3", "");
+        let client = Client::new(
+            "foo1".to_owned().into(),
+            "foo2".to_owned().into(),
+            "foo3".to_owned().into(),
+            "".to_owned().into()
+        );
         let client = init_default_plugin_store(client);
 
         let url = Url::parse("https://example.net").unwrap();
@@ -122,7 +133,12 @@ mod test_async_canonicalized_resource{
     #[tokio::test]
     async fn test_has_path(){
 
-        let client = Client::new("foo1", "foo2", "foo3", "foo4");
+        let client = Client::new(
+            "foo1".to_owned().into(),
+            "foo2".to_owned().into(),
+            "foo3".to_owned().into(),
+            "foo4".to_owned().into()
+        );
         let client = init_default_plugin_store(client);
 
         let url = Url::parse("https://example.net/bar_path").unwrap();
@@ -142,7 +158,12 @@ mod test_async_canonicalized_resource{
 
     #[tokio::test]
     async fn test_has_path_query(){
-        let client = Client::new("foo1", "foo2", "foo3", "foo4");
+        let client = Client::new(
+            "foo1".to_owned().into(),
+            "foo2".to_owned().into(),
+            "foo3".to_owned().into(),
+            "foo4".to_owned().into()
+        );
         let client = init_default_plugin_store(client);
 
         let url = Url::parse("https://example.net/bar_path?abc=2").unwrap();
@@ -162,7 +183,12 @@ mod test_async_canonicalized_resource{
 
     #[tokio::test]
     async fn test_not_path(){
-        let client = Client::new("foo1", "foo2", "foo3", "foo4");
+        let client = Client::new(
+            "foo1".to_owned().into(),
+            "foo2".to_owned().into(),
+            "foo3".to_owned().into(),
+            "foo4".to_owned().into()
+        );
         let client = init_default_plugin_store(client);
 
         let url = Url::parse("https://example.net/?acl").unwrap();
@@ -206,11 +232,21 @@ mod test_async_canonicalized_resource{
 
 #[test]
 fn test_get_bucket_url(){
-    let client = Client::new("foo1", "foo2", "foo3", "foo4");
+    let client = Client::new(
+        "foo1".to_owned().into(),
+        "foo2".to_owned().into(),
+        "foo3".to_owned().into(),
+        "foo4".to_owned().into()
+    );
     let result = client.get_bucket_url();
     assert!(result.is_err());
 
-    let client = Client::new("foo1", "foo2", "https://fobar.example.net", "foo4");
+    let client = Client::new(
+        "foo1".to_owned().into(),
+        "foo2".to_owned().into(),
+        "https://fobar.example.net".to_owned().into(),
+        "foo4".to_owned().into()
+    );
     let result = client.get_bucket_url();
     assert!(result.is_ok());
 
@@ -220,7 +256,12 @@ fn test_get_bucket_url(){
 
 #[test]
 fn test_is_bucket_url(){
-    let client = Client::new("foo1", "foo2", "foo3", "foo4");
+    let client = Client::new(
+        "foo1".to_owned().into(),
+        "foo2".to_owned().into(),
+        "foo3".to_owned().into(),
+        "foo4".to_owned().into()
+    );
     let url = Url::parse("https://foo_bucket.example.net/abc").unwrap();
     let bucket = "foo_bucket".to_string();
     assert!(client.is_bucket_url(&url, &bucket));
@@ -241,13 +282,13 @@ fn test_object_list_query_generator(){
     use crate::client::Client;
 
     let query: HashMap<String, String> = HashMap::new();
-    let res = Client::<'_>::object_list_query_generator(&query);
+    let res = Client::object_list_query_generator(&query);
 
     assert_eq!(res, "list-type=2".to_owned());
 
     let mut query: HashMap<String, String> = HashMap::new();
     query.insert("key1".to_owned(), "val1".to_owned());
-    let res = Client::<'_>::object_list_query_generator(&query);
+    let res = Client::object_list_query_generator(&query);
 
     assert_eq!(res, "list-type=2&key1=val1".to_owned());
 }

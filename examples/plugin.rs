@@ -3,6 +3,7 @@ extern crate dotenv;
 
 use aliyun_oss_client::errors::OssResult;
 use aliyun_oss_client::plugin::Plugin;
+use aliyun_oss_client::types::{EndPoint};
 use dotenv::dotenv;
 use aliyun_oss_client::client::Client;
 use aliyun_oss_client::auth::{VERB};
@@ -22,7 +23,7 @@ async fn main() {
 
   let my_plugin = MyPlugin{bucket:"abc".to_string()};
 
-  let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket)
+  let client = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket)
     .plugin(Box::new(my_plugin)).unwrap()
     ;
 
@@ -60,10 +61,10 @@ impl Plugin for MyPlugin{
   
   fn initialize(&mut self, client: &mut Client) -> OssResult<()> {
     // 插件可以读取 client 结构体中的值
-    self.bucket = String::from(client.endpoint);
+    self.bucket = client.endpoint.to_string();
 
     // 插件可以修改 client 结构体中的值
-    client.endpoint = "https://oss-cn-shanghai.aliyuncs.com";
+    client.endpoint = EndPoint::new("https://oss-cn-shanghai.aliyuncs.com");
     Ok(())
   }
 

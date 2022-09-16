@@ -11,7 +11,7 @@ fn main() {
     let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
     let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-    let client = aliyun_oss_client::client(&key_id,&key_secret, &endpoint, &bucket);
+    let client = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket);
     //let headers = None;
     let response = client.blocking_get_bucket_info().unwrap();
     println!("bucket info: {:?}", response);

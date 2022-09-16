@@ -5,7 +5,7 @@ mod test_async{
     use dotenv::dotenv;
 
     use assert_matches::assert_matches;
-    use aliyun_oss_client::client;
+    use aliyun_oss_client::{client, types::BucketName};
 
     #[tokio::test]
     async fn test_get_bucket_list(){
@@ -16,7 +16,7 @@ mod test_async{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, &bucket);
+        let client = client(key_id,key_secret, endpoint, bucket);
 
         let bucket_list = client.get_bucket_list().await;
 
@@ -32,7 +32,7 @@ mod test_async{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, &bucket);
+        let client = client(key_id,key_secret, endpoint, bucket);
 
         let bucket_list = client.get_bucket_info().await;
 
@@ -47,7 +47,7 @@ mod test_async{
         let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, "");
+        let client = client(key_id,key_secret, endpoint, BucketName::from_static(""));
 
         let bucket_list = client.get_bucket_list().await.unwrap();
         let mut query:HashMap<String,String> = HashMap::new();
@@ -69,7 +69,7 @@ mod test_async{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, &bucket);
+        let client = client(key_id,key_secret, endpoint, bucket);
         let query: HashMap<String,String> = HashMap::new();
 
         let object_list = client.get_object_list(query).await;
@@ -86,7 +86,7 @@ mod test_async{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, &bucket);
+        let client = client(key_id,key_secret, endpoint, bucket);
 
         let object_list = client.put_file(PathBuf::from("examples/bg2015071010.png"), "examples/bg2015071010.png").await;
 
@@ -116,7 +116,7 @@ mod test_blocking{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, &bucket);
+        let client = client(key_id,key_secret, endpoint, bucket);
 
         let bucket_list = client.blocking_get_bucket_list();
 
@@ -132,7 +132,7 @@ mod test_blocking{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, &bucket);
+        let client = client(key_id,key_secret, endpoint, bucket);
 
         let bucket_list = client.blocking_get_bucket_info();
 
@@ -141,13 +141,14 @@ mod test_blocking{
 
     #[test]
     fn get_object_by_bucket_struct(){
+        use aliyun_oss_client::types::BucketName;
         dotenv().ok();
 
         let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
         let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, "");
+        let client = client(key_id,key_secret, endpoint, BucketName::from_static(""));
 
         let bucket_list = client.blocking_get_bucket_list().unwrap();
         let mut query:HashMap<String,String> = HashMap::new();
@@ -170,7 +171,7 @@ mod test_blocking{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, &bucket);
+        let client = client(key_id,key_secret, endpoint, bucket);
         let query: HashMap<String,String> = HashMap::new();
 
         let object_list = client.blocking_get_object_list(query);
@@ -187,7 +188,7 @@ mod test_blocking{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, &bucket);
+        let client = client(key_id,key_secret, endpoint, bucket);
         let mut query: HashMap<String,String> = HashMap::new();
         query.insert("max-keys".to_string(), "2".to_string());
         let object_list = client.blocking_get_object_list(query).unwrap().next();
@@ -204,7 +205,7 @@ mod test_blocking{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = client(&key_id,&key_secret, &endpoint, &bucket);
+        let client = client(key_id,key_secret, endpoint, bucket);
 
         // 第一种读取文件路径的方式
         let object_list = client.blocking_put_file(PathBuf::from("examples/bg2015071010.png"), "examples/bg2015071010.png");
@@ -234,7 +235,7 @@ mod test_blocking{
     //   let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
     //   let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-    //   let client = client::Client::new(&key_id,&key_secret, &endpoint, &bucket);
+    //   let client = client::Client::new(key_id,key_secret, endpoint, bucket);
     //   b.iter(|| {
     //     client.get_object_list();
     //   });

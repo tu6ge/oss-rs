@@ -22,7 +22,7 @@ pub struct ObjectList<'a> {
   pub key_count: u64,
   pub object_list: Vec<Object>,
   pub next_continuation_token: Option<String>,
-  client: Option<&'a Client<'a>>,
+  client: Option<&'a Client>,
   pub search_query: Option<HashMap<String, String>>,
 }
 
@@ -109,7 +109,7 @@ impl ObjectTrait for Object {
   }
 }
 
-impl <'a> Client<'a> {
+impl Client {
 
   /// # 获取存储对象列表
   /// 使用的 v2 版本 API
@@ -120,7 +120,7 @@ impl <'a> Client<'a> {
   pub fn blocking_get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
     let mut url = self.get_bucket_url()?;
 
-    let query_str = Client::<'a>::object_list_query_generator(&query);
+    let query_str = Client::object_list_query_generator(&query);
 
     url.set_query(Some(&query_str));
 
@@ -136,7 +136,7 @@ impl <'a> Client<'a> {
 
     let mut url = self.get_bucket_url()?;
 
-    let query_str = Client::<'a>::object_list_query_generator(&query);
+    let query_str = Client::object_list_query_generator(&query);
 
     url.set_query(Some(&query_str));
 
@@ -152,7 +152,7 @@ impl <'a> Client<'a> {
   /// 
   /// 提供有效的文件路径即可
   #[cfg(feature = "blocking")]
-  pub fn blocking_put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(&self, file_name: P, key: &'a str) -> OssResult<String> {
+  pub fn blocking_put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(&self, file_name: P, key: &'static str) -> OssResult<String> {
     let mut file_content = Vec::new();
     std::fs::File::open(file_name)?
       .read_to_end(&mut file_content)?;
@@ -160,7 +160,7 @@ impl <'a> Client<'a> {
     self.blocking_put_content(&file_content, key)
   }
 
-  pub async fn put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(&self, file_name: P, key: &'a str) -> OssResult<String> {
+  pub async fn put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(&self, file_name: P, key: &'static str) -> OssResult<String> {
     let mut file_content = Vec::new();
     std::fs::File::open(file_name)?
       .read_to_end(&mut file_content)?;
