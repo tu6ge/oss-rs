@@ -5,8 +5,8 @@ use crate::client::Client;
 #[test]
 #[cfg(not(feature = "plugin"))]
 fn init_client_without_plugin(){
-    use crate::client::Client;
-    let client = Client::new("foo1", "foo2", "foo3", "foo4");
+    use crate::client;
+    let client = client("foo1", "foo2", "foo3", "foo4");
 
     let buf = [0x10, 0x11, 0x12, 0x13];
     assert!(!client.infer.is_custom(&buf));
