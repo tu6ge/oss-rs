@@ -1,7 +1,8 @@
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
-use reqwest::{Url};
+use reqwest::Url;
 use reqwest::header::{HeaderValue,InvalidHeaderValue};
 
 use crate::errors::{OssError, OssResult};
@@ -293,5 +294,58 @@ impl CanonicalizedResource {
     /// Const function that creates a new `CanonicalizedResource` from a static str.
     pub const fn from_static(val: &'static str) -> Self {
         Self(Cow::Borrowed(val))
+    }
+}
+
+//===================================================================================================
+
+pub struct Query{
+    inner: HashMap<Cow<'static, str>, Cow<'static, str>>,
+}
+
+impl Query {
+    pub fn new() -> Self {
+        Self {
+            inner: HashMap::new(),
+        }
+    }
+
+    pub fn insert(&mut self, key: Cow<'static, str>, value: Cow<'static, str>){
+        self.inner.insert(key, value);
+    }
+
+    pub fn get(&self, key: &Cow<'static, str>) -> Option<&Cow<'static, str>> {
+        self.inner.get(key)
+    }
+
+    pub fn remove(&mut self, key: &Cow<'static, str>) -> Option<Cow<'static, str>>{
+        self.inner.remove(key)
+    }
+
+    /// 将查询参数拼成 aliyun 接口需要的格式
+    pub fn to_oss_string(&self) -> String{
+        let mut query_str = String::new();
+        for (key,value) in self.inner.iter() {
+            query_str += "&";
+            query_str += key;
+            query_str += "=";
+            query_str += value;
+        }
+        let query_str = "list-type=2".to_owned() + &query_str;
+        query_str
+    }
+}
+
+trait UrlQuery {
+    fn set_search_query(self, query: Query) -> Self;
+}
+
+impl UrlQuery for Url{
+
+    /// 将查询参数拼接到 API 的 Url 上
+    fn set_search_query(mut self, query: Query) -> Self {
+        let str = query.to_oss_string();
+        self.set_query(Some(&str));
+        self
     }
 }
