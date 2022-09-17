@@ -153,7 +153,7 @@ impl Client {
   }
 
   pub fn get_bucket_url(&self) -> OssResult<Url>{
-    let mut url = self.endpoint.into_url()?;
+    let mut url = self.endpoint.to_url()?;
     
     let bucket_url = self.bucket.to_string() + "."
        + &url.host().ok_or(OssError::Input("parse host faied".to_string()))?.to_string();

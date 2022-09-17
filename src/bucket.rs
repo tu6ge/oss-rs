@@ -186,7 +186,7 @@ impl Client {
   */
   #[cfg(feature = "blocking")]
   pub fn blocking_get_bucket_list(&self) -> OssResult<ListBuckets> {
-    let url = self.endpoint.into_url()?;
+    let url = self.endpoint.to_url()?;
     //url.set_path(self.bucket)
 
     let response = self.blocking_builder(VERB::GET, &url, None, None)?;
@@ -197,7 +197,7 @@ impl Client {
   }
 
   pub async fn get_bucket_list(&self) -> OssResult<ListBuckets<'_>>{
-    let url = self.endpoint.into_url()?;
+    let url = self.endpoint.to_url()?;
     //url.set_path(self.bucket)
 
     let response = self.builder(VERB::GET, &url, None, None).await?;

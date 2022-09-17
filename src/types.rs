@@ -158,7 +158,7 @@ impl EndPoint {
         Self(Cow::Borrowed(url))
     }
 
-    pub fn into_url(&self) -> OssResult<Url> {
+    pub fn to_url(&self) -> OssResult<Url> {
         Url::parse(self.as_ref()).map_err(|e|OssError::Input(e.to_string()))
     }
 }
