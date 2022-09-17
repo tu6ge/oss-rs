@@ -19,7 +19,7 @@ use crate::errors::{OssResult, OssError};
 #[non_exhaustive]
 pub struct VERB(pub Method);
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Auth{
   pub access_key_id: KeyId,
   pub access_key_secret: KeySecret,
@@ -64,6 +64,14 @@ impl VERB {
   pub fn to_string(&self) -> String {
     self.0.to_string()
   }
+}
+
+impl TryInto<HeaderValue> for VERB {
+    type Error = OssError;
+    fn try_into(self) -> OssResult<HeaderValue> {
+        self.0.to_string().parse::<HeaderValue>()
+        .map_err(|_| OssError::Input("VERB parse error".to_string()))
+    }
 }
 
 impl From<VERB> for String {
@@ -125,17 +133,13 @@ impl Auth {
 
     map.insert("AccessKeyId", self.access_key_id.as_ref().try_into()?);
     map.insert("SecretAccessKey", self.access_key_secret.as_ref().try_into()?);
-    map.insert(
-      "VERB", 
-      self.verb.to_string()
-        .parse().map_err(|_| OssError::Input("VERB parse error".to_string()))?);
+    map.insert("VERB",self.verb.clone().try_into()?);
+
     if let Some(a) = self.content_md5.clone() {
       map.insert("Content-MD5",a.try_into()?);
     }
     if let Some(a) = &self.content_type {
-      map.insert(
-        "Content-Type",
-        a.as_ref().try_into()?);
+      map.insert("Content-Type",a.as_ref().try_into()?);
     }
     map.insert("Date",self.date.as_ref().try_into()?);
     map.insert("CanonicalizedResource", self.canonicalized_resource.as_ref().try_into()?);
@@ -163,17 +167,24 @@ impl Auth {
     if header.len()==0{
       return Ok(None);
     }
+
     header.sort_by(|(k1,_),(k2,_)| k1.to_string().cmp(&k2.to_string()));
-    let header_vec: Vec<String> = header.into_iter().map(|(k,v)|{
+    let header_vec: Vec<String> = header.into_iter().map(|(k,v)| -> OssResult<String> {
+      let val = v.to_str().map_err(|e| OssError::ToStr(e.to_string()));
+
       let value = k.as_str().to_owned() + ":" 
-        + v.to_str().unwrap();
-      value
-    }).collect();
+        + val?;
+      Ok(value)
+    }).filter(|res|res.is_ok())
+    // 这里的 unwrap 不会 panic
+    .map(|res|res.unwrap())
+    .collect();
 
     Ok(Some(header_vec.join("\n")))
   }
 
   /// 计算签名
+  /// TODO 优化
   pub fn sign(&self) -> OssResult<String> {
     let method = self.verb.to_string();
     let mut content = String::new();
@@ -182,9 +193,7 @@ impl Auth {
       + "\n"
       + match self.content_md5.as_ref() {
         Some(str)=> {
-          content.clear();
-          content.push_str(str.as_ref());
-          &content
+          str.as_ref()
         },
         None => ""
       }
@@ -196,7 +205,8 @@ impl Auth {
         None => ""
       }
       + "\n"
-      + self.date.as_ref() + "\n"
+      + self.date.as_ref() 
+      + "\n"
       + match self.header_str()? {
         Some(str) => {
           content.clear();
@@ -225,17 +235,7 @@ impl Auth {
 
 }
 
-pub fn to_value(value: &str) -> OssResult<HeaderValue>{
-  value.parse()
-    .map_err(|_| OssError::Input("invalid HeaderValue".to_string()))
-}
-
-pub fn string_to_value(value: String) -> OssResult<HeaderValue>{
-  value.as_str().parse()
-    .map_err(|_| OssError::Input("invalid HeaderValue".to_string()))
-}
-
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct AuthBuilder{
   pub auth: Auth,
 }

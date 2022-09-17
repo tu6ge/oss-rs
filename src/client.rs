@@ -24,8 +24,7 @@ use crate::types::{KeyId, KeySecret, EndPoint, BucketName, CanonicalizedResource
 #[non_exhaustive]
 #[derive(Default)]
 pub struct Client{
-  access_key_id: KeyId,
-  access_key_secret: KeySecret,
+  auth_builder: AuthBuilder,
   pub endpoint: EndPoint,
   pub bucket: BucketName,
   
@@ -39,9 +38,12 @@ impl Client {
 
   #[cfg(not(feature = "plugin"))]
   pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Client {
+    let auth_builder = AuthBuilder::default()
+      .key(access_key_id)
+      .secret(access_key_secret);
+    
     Client{
-      access_key_id,
-      access_key_secret,
+      auth_builder,
       endpoint,
       bucket,
       infer: Infer::default(),
@@ -50,9 +52,12 @@ impl Client {
 
   #[cfg(feature = "plugin")]
   pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Client {
+    let auth_builder = AuthBuilder::default()
+      .key(access_key_id)
+      .secret(access_key_secret);
+    
     Client{
-      access_key_id,
-      access_key_secret,
+      auth_builder,
       endpoint,
       bucket,
       plugins: Mutex::new(PluginStore::default()),
@@ -187,9 +192,7 @@ impl Client {
 
     let canonicalized_resource = self.canonicalized_resource(&url, bucket)?;
 
-    let mut builder = AuthBuilder::default()
-      .key(self.access_key_id.clone())
-      .secret(self.access_key_secret.clone())
+    let mut builder = self.auth_builder.clone()
       .verb(method.to_owned())
       .date(Utc::now())
       .canonicalized_resource(CanonicalizedResource::new(canonicalized_resource))
@@ -211,9 +214,7 @@ impl Client {
 
     let canonicalized_resource = self.async_canonicalized_resource(&url, bucket).await?;
 
-    let mut builder = AuthBuilder::default()
-      .key(self.access_key_id.clone())
-      .secret(self.access_key_secret.clone())
+    let mut builder = self.auth_builder.clone()
       .verb(method.to_owned())
       .date(Utc::now())
       .canonicalized_resource(CanonicalizedResource::new(canonicalized_resource))

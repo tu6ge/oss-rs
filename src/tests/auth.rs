@@ -1,6 +1,6 @@
 use reqwest::header::{HeaderMap, HeaderValue};
 
-use crate::{auth::{VERB, self}, errors::OssError, types::{KeyId, KeySecret, CanonicalizedResource, ContentMd5, ContentType}};
+use crate::{auth::{VERB}, types::{KeyId, KeySecret, CanonicalizedResource, ContentMd5, ContentType}};
 
 #[test]
 fn test_verb2string(){
@@ -150,7 +150,7 @@ async fn test_sign(){
     assert_eq!(sign.unwrap(), "BoUvtc18Dc2q21W+sINIWidt+SE=".to_string());
 
     let mut headers = HeaderMap::new();
-    headers.insert("x-oss-test", auth::to_value("Bearer xxx").unwrap());
+    headers.insert("x-oss-test", "Bearer xxx".parse().unwrap());
 
     let auth = crate::auth::Auth{
         access_key_id: KeyId::from_static("foo_key"),
@@ -225,29 +225,6 @@ mod header_str{
         assert_eq!(auth2.header_str().unwrap().unwrap(), "x-oss-test:oss_test_value".to_string());
     }
 }
-
-#[test]
-fn test_to_value(){
-    let value = auth::to_value("\n");
-
-    assert!(value.is_err());
-
-    let value_inner = value.unwrap_err();
-
-    assert!(matches!(value_inner, OssError::Input(s) if s=="invalid HeaderValue".to_string()));
-}
-
-#[test]
-fn test_string_to_value(){
-    let value = auth::string_to_value("\n".to_string());
-
-    assert!(value.is_err());
-
-    let value_inner = value.unwrap_err();
-
-    assert!(matches!(value_inner, OssError::Input(s) if s=="invalid HeaderValue".to_string()));
-}
-
 
 mod auth_builder{
     use std::convert::TryInto;
