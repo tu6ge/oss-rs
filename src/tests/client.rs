@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use reqwest::Url;
 use crate::client::Client;
 
@@ -275,22 +274,6 @@ fn test_is_bucket_url(){
     let url = Url::parse("https://foo2.example.net/foo_bucket").unwrap();
     let bucket = "foo_bucket".to_string();
     assert!(!client.is_bucket_url(&url, &bucket));
-}
-
-#[test]
-fn test_object_list_query_generator(){
-    use crate::client::Client;
-
-    let query: HashMap<String, String> = HashMap::new();
-    let res = Client::object_list_query_generator(&query);
-
-    assert_eq!(res, "list-type=2".to_owned());
-
-    let mut query: HashMap<String, String> = HashMap::new();
-    query.insert("key1".to_owned(), "val1".to_owned());
-    let res = Client::object_list_query_generator(&query);
-
-    assert_eq!(res, "list-type=2&key1=val1".to_owned());
 }
 
 mod handle_error{

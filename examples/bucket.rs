@@ -1,7 +1,8 @@
 extern crate dotenv;
 
 use dotenv::dotenv;
-use std::{env, collections::HashMap};
+use std::{env};
+use aliyun_oss_client::types::Query;
 
 fn main() {
     dotenv().ok();
@@ -16,7 +17,7 @@ fn main() {
     let response = client.blocking_get_bucket_info().unwrap();
     println!("bucket info: {:?}", response);
 
-    let mut query:HashMap<String,String> = HashMap::new();
+    let mut query = Query::new();
     query.insert("max-keys".to_string(), "2".to_string());
     let mut result = response.blocking_get_object_list(query).unwrap();
     println!("object list: {:?}", result);

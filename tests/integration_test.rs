@@ -1,11 +1,11 @@
 
 mod test_async{
-    use std::{env, collections::HashMap, path::PathBuf};
+    use std::{env, path::PathBuf};
 
     use dotenv::dotenv;
 
     use assert_matches::assert_matches;
-    use aliyun_oss_client::{client, types::BucketName};
+    use aliyun_oss_client::{client, types::{BucketName, Query}};
 
     #[tokio::test]
     async fn test_get_bucket_list(){
@@ -50,8 +50,8 @@ mod test_async{
         let client = client(key_id,key_secret, endpoint, BucketName::from_static(""));
 
         let bucket_list = client.get_bucket_list().await.unwrap();
-        let mut query:HashMap<String,String> = HashMap::new();
-        query.insert("max-keys".to_string(), "5".to_string());
+        let mut query = Query::new();
+        query.insert("max-keys", "5");
         query.insert("prefix".to_string(), "babel".to_string());
 
         let buckets = bucket_list.buckets;
@@ -70,7 +70,7 @@ mod test_async{
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
         let client = client(key_id,key_secret, endpoint, bucket);
-        let query: HashMap<String,String> = HashMap::new();
+        let query = Query::new();
 
         let object_list = client.get_object_list(query).await;
 
@@ -102,8 +102,9 @@ mod test_async{
 #[cfg(feature = "blocking")]
 mod test_blocking{
     
-    use std::{env, collections::HashMap, path::PathBuf};
+    use std::{env, path::PathBuf};
     use aliyun_oss_client::client;
+    use aliyun_oss_client::types::Query;
     use dotenv::dotenv;
     use assert_matches::assert_matches;
 
@@ -151,8 +152,8 @@ mod test_blocking{
         let client = client(key_id,key_secret, endpoint, BucketName::from_static(""));
 
         let bucket_list = client.blocking_get_bucket_list().unwrap();
-        let mut query:HashMap<String,String> = HashMap::new();
-        query.insert("max-keys".to_string(), "5".to_string());
+        let mut query = Query::new();
+        query.insert("max-keys", "5");
         query.insert("prefix".to_string(), "babel".to_string());
 
         let buckets = bucket_list.buckets;
@@ -172,7 +173,7 @@ mod test_blocking{
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
         let client = client(key_id,key_secret, endpoint, bucket);
-        let query: HashMap<String,String> = HashMap::new();
+        let query = Query::new();
 
         let object_list = client.blocking_get_object_list(query);
 
@@ -189,7 +190,7 @@ mod test_blocking{
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
         let client = client(key_id,key_secret, endpoint, bucket);
-        let mut query: HashMap<String,String> = HashMap::new();
+        let mut query = Query::new();
         query.insert("max-keys".to_string(), "2".to_string());
         let object_list = client.blocking_get_object_list(query).unwrap().next();
 

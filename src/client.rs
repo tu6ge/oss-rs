@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use infer::Infer;
 #[cfg(feature = "blocking")]
 use reqwest::blocking::{self,RequestBuilder,Response};
@@ -230,21 +229,6 @@ impl Client {
       .headers(all_headers))
   }
 
-  
-
-  #[inline]
-  pub fn object_list_query_generator(query: &HashMap<String, String>) -> String {
-    let mut query_str = String::new();
-    for (key,value) in query.iter() {
-      query_str += "&";
-      query_str += key;
-      query_str += "=";
-      query_str += value;
-    }
-    let query_str = "list-type=2".to_owned() + &query_str;
-
-    query_str
-  }
 }
 
 #[cfg(feature = "blocking")]

@@ -1,6 +1,6 @@
 use reqwest::header::{HeaderMap, HeaderValue};
 
-use crate::{auth::{VERB, self}, errors::OssError, types::{KeyId, KeySecret, CanonicalizedResource, ContentMd5}};
+use crate::{auth::{VERB, self}, errors::OssError, types::{KeyId, KeySecret, CanonicalizedResource, ContentMd5, ContentType}};
 
 #[test]
 fn test_verb2string(){
@@ -89,7 +89,7 @@ async fn test_async_get_headers(){
         access_key_secret: KeySecret::from_static("foo_secret"),
         verb: VERB::GET,
         content_md5: None,
-        content_type: Some("text/plain".into()),
+        content_type: Some(ContentType::from_static("text/plain")),
         date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
         canonicalized_resource: CanonicalizedResource::from_static(""),
         headers: HeaderMap::new(),
@@ -115,7 +115,7 @@ async fn test_async_get_headers(){
         access_key_secret: "foo_secret".to_owned().into(),
         verb: VERB::GET,
         content_md5: Some(ContentMd5::from_static("bar")),
-        content_type: Some("text/plain".into()),
+        content_type: Some(ContentType::from_static("text/plain")),
         date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
         canonicalized_resource: CanonicalizedResource::new(""),
         headers: HeaderMap::new(),
@@ -137,7 +137,7 @@ async fn test_sign(){
         access_key_secret: KeySecret::from_static("foo_secret"),
         verb: VERB::GET,
         content_md5: None,
-        content_type: Some("text/plain".into()),
+        content_type: Some(ContentType::from_static("text/plain")),
         date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
         canonicalized_resource: CanonicalizedResource::from_static(""),
         headers: HeaderMap::new(),
@@ -157,7 +157,7 @@ async fn test_sign(){
         access_key_secret: KeySecret::from_static("foo_secret"),
         verb: VERB::GET,
         content_md5: Some(ContentMd5::new("bar_md5")),
-        content_type: Some("text/plain".into()),
+        content_type: Some(ContentType::from_static("text/plain")),
         date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
         canonicalized_resource: CanonicalizedResource::from_static(""),
         headers: headers,
@@ -295,7 +295,7 @@ mod auth_builder{
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
         builder = builder.date(date);
 
-        assert_eq!(builder.auth.date, "Sat, 01 Jan 2022 18:01:01 GMT".to_string());
+        assert_eq!(builder.auth.date.as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
     }
 
     #[test]
@@ -315,7 +315,7 @@ mod auth_builder{
             verb: VERB::GET,
             content_md5: None,
             content_type: None,
-            date: "foo3".to_string(),
+            date: "foo3".into(),
             canonicalized_resource: CanonicalizedResource::new("foo4"),
             headers: HeaderMap::new(),
         };
@@ -328,7 +328,7 @@ mod auth_builder{
         builder.auth.headers = headers;
         builder = builder.type_with_header();
 
-        assert!(matches!(builder.auth.content_type, Some(v) if v=="bar"));
+        assert!(matches!(builder.auth.content_type, Some(v) if v.as_ref()=="bar"));
     }
 
     #[test]
@@ -353,7 +353,7 @@ mod auth_builder{
         header2.insert(CONTENT_TYPE, "bar".try_into().unwrap());
         builder2 = builder2.headers(header2);
 
-        assert!(matches!(builder2.auth.content_type, Some(v) if v=="bar"));
+        assert!(matches!(builder2.auth.content_type, Some(v) if v.as_ref()=="bar"));
     }
 
     #[test]

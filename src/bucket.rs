@@ -1,5 +1,3 @@
-
-use std::collections::HashMap;
 use std::fmt;
 use crate::client::{Client, AsyncRequestHandle};
 #[cfg(feature = "blocking")]
@@ -8,6 +6,7 @@ use crate::auth::VERB;
 use crate::errors::{OssResult,OssError};
 use crate::object::ObjectList;
 use crate::traits::{ObjectListTrait, BucketTrait, ListBucketTrait};
+use crate::types::{Query, UrlQuery};
 use chrono::prelude::*;
 use reqwest::Url;
 
@@ -146,13 +145,11 @@ impl <'b> Bucket<'b> {
   }
 
   #[cfg(feature = "blocking")]
-  pub fn blocking_get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList>{
+  pub fn blocking_get_object_list(&self, query: Query) -> OssResult<ObjectList>{
     let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
     let mut url = Url::parse(&input).map_err(|_| OssError::Input("url parse error".to_string()))?;
 
-    let query_str = Client::object_list_query_generator(&query);
-
-    url.set_query(Some(&query_str));
+    url.set_search_query(&query);
 
     let client  = self.client();
 
@@ -163,13 +160,12 @@ impl <'b> Bucket<'b> {
     )
   }
 
-  pub async fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
+  pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList<'_>>{
+    // TODO 可优化
     let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
     let mut url = Url::parse(&input).map_err(|_| OssError::Input("url parse error".to_string()))?;
 
-    let query_str = Client::object_list_query_generator(&query);
-
-    url.set_query(Some(&query_str));
+    url.set_search_query(&query);
 
     let response = self.client().builder(VERB::GET, &url, None, Some(self.name.to_string())).await?;
     let content = response.send().await?.handle_error().await?; 

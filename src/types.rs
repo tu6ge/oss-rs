@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
+use chrono::{DateTime, Utc};
 use reqwest::Url;
 use reqwest::header::{HeaderValue,InvalidHeaderValue};
 
@@ -257,6 +258,117 @@ impl ContentMd5 {
 //===================================================================================================
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct ContentType(
+    Cow<'static, str>
+);
+
+impl AsRef<str> for ContentType {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for ContentType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl TryInto<HeaderValue> for ContentType {
+    type Error = InvalidHeaderValue;
+    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+        HeaderValue::from_str(self.as_ref())
+    }
+}
+impl TryFrom<HeaderValue> for ContentType {
+    type Error = OssError;
+    fn try_from(value: HeaderValue) -> OssResult<Self> {
+        Ok(
+            Self(Cow::Owned(
+                value.to_str()
+                .map_err(|e|
+                    OssError::ToStr(e.to_string())
+                )?
+                .to_owned()
+            ))
+        )
+    }
+}
+impl From<String> for ContentType {
+    fn from(s: String) -> Self {
+        Self(Cow::Owned(s))
+    }
+}
+
+impl ContentType {
+    /// Creates a new `ContentMd5` from the given string.
+    pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
+        Self(val.into())
+    }
+
+    /// Const function that creates a new `ContentMd5` from a static str.
+    pub const fn from_static(val: &'static str) -> Self {
+        Self(Cow::Borrowed(val))
+    }
+}
+
+//===================================================================================================
+
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct Date(
+    Cow<'static, str>
+);
+
+impl AsRef<str> for Date {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for Date {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl TryInto<HeaderValue> for Date {
+    type Error = InvalidHeaderValue;
+    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+        HeaderValue::from_str(self.as_ref())
+    }
+}
+impl From<String> for Date {
+    fn from(s: String) -> Self {
+        Self(Cow::Owned(s))
+    }
+}
+impl From<&'static str> for Date {
+    fn from(date: &'static str) -> Self {
+        Self::from_static(date)
+    }
+}
+
+impl From<DateTime<Utc>> for Date {
+    fn from(d: DateTime<Utc>) -> Self {
+        Self::from(d.format("%a, %d %b %Y %T GMT").to_string())
+    }
+}
+
+impl Date {
+    /// Creates a new `Date` from the given string.
+    pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
+        Self(val.into())
+    }
+
+    /// Const function that creates a new `Date` from a static str.
+    pub const fn from_static(val: &'static str) -> Self {
+        Self(Cow::Borrowed(val))
+    }
+}
+
+//===================================================================================================
+
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct CanonicalizedResource(
     Cow<'static, str>
 );
@@ -298,9 +410,26 @@ impl CanonicalizedResource {
 }
 
 //===================================================================================================
-
+/// 查询条件
+/// 
+/// ```
+/// use aliyun_oss_client::types::Query;
+/// 
+/// let mut query = Query::new();
+/// query.insert("abc","def");
+/// assert_eq!(query.len(), 1);
+/// 
+/// let value = query.get("abc");
+/// assert!(value.is_some());
+/// let value = value.unwrap();
+/// assert_eq!(value.as_ref(), "def");
+/// 
+/// let str = query.to_oss_string();
+/// assert_eq!(str.as_str(), "list-type=2&abc=def");
+/// ```
+#[derive(Clone, Debug)]
 pub struct Query{
-    inner: HashMap<Cow<'static, str>, Cow<'static, str>>,
+    inner: HashMap<QueryKey, QueryValue>,
 }
 
 impl Query {
@@ -310,16 +439,20 @@ impl Query {
         }
     }
 
-    pub fn insert(&mut self, key: Cow<'static, str>, value: Cow<'static, str>){
-        self.inner.insert(key, value);
+    pub fn insert(&mut self, key: impl Into<QueryKey>, value: impl Into<QueryValue>){
+        self.inner.insert(key.into(), value.into());
     }
 
-    pub fn get(&self, key: &Cow<'static, str>) -> Option<&Cow<'static, str>> {
-        self.inner.get(key)
+    pub fn get(&self, key: impl Into<QueryKey>) -> Option<&QueryValue> {
+        self.inner.get(&key.into())
     }
 
-    pub fn remove(&mut self, key: &Cow<'static, str>) -> Option<Cow<'static, str>>{
-        self.inner.remove(key)
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn remove(&mut self, key: impl Into<QueryKey>) -> Option<QueryValue>{
+        self.inner.remove(&key.into())
     }
 
     /// 将查询参数拼成 aliyun 接口需要的格式
@@ -327,25 +460,134 @@ impl Query {
         let mut query_str = String::new();
         for (key,value) in self.inner.iter() {
             query_str += "&";
-            query_str += key;
+            query_str += key.as_ref();
             query_str += "=";
-            query_str += value;
+            query_str += value.as_ref();
         }
         let query_str = "list-type=2".to_owned() + &query_str;
         query_str
     }
 }
 
-trait UrlQuery {
-    fn set_search_query(self, query: Query) -> Self;
+pub trait UrlQuery {
+    fn set_search_query(&mut self, query: &Query);
 }
 
 impl UrlQuery for Url{
 
     /// 将查询参数拼接到 API 的 Url 上
-    fn set_search_query(mut self, query: Query) -> Self {
+    /// 
+    /// # 例子
+    /// ```
+    /// use aliyun_oss_client::types::Query;
+    /// use aliyun_oss_client::types::UrlQuery;
+    /// use reqwest::Url;
+    /// 
+    /// let mut query = Query::new();
+    /// query.insert("abc","def");
+    /// let mut url = Url::parse("https://exapmle.com").unwrap();
+    /// url.set_search_query(&query);
+    /// assert_eq!(url.as_str(), "https://exapmle.com/?list-type=2&abc=def");
+    /// assert_eq!(url.query(), Some("list-type=2&abc=def"));
+    /// ```
+    fn set_search_query(&mut self, query: &Query) {
         let str = query.to_oss_string();
         self.set_query(Some(&str));
-        self
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
+pub struct QueryKey(
+    Cow<'static, str>
+);
+
+
+impl AsRef<str> for QueryKey {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for QueryKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+// TODO 需要的时候再开启
+// impl TryInto<HeaderValue> for QueryKey {
+//     type Error = InvalidHeaderValue;
+//     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+//         HeaderValue::from_str(self.as_ref())
+//     }
+// }
+impl From<String> for QueryKey {
+    fn from(s: String) -> Self {
+        Self(Cow::Owned(s))
+    }
+}
+impl From<&'static str> for QueryKey {
+    fn from(date: &'static str) -> Self {
+        Self::from_static(date)
+    }
+}
+
+impl QueryKey {
+    /// Creates a new `QueryKey` from the given string.
+    pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
+        Self(val.into())
+    }
+
+    /// Const function that creates a new `QueryKey` from a static str.
+    pub const fn from_static(val: &'static str) -> Self {
+        Self(Cow::Borrowed(val))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct QueryValue(
+    Cow<'static, str>
+);
+
+
+impl AsRef<str> for QueryValue {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for QueryValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+// TODO 需要的时候再开启
+// impl TryInto<HeaderValue> for QueryValue {
+//     type Error = InvalidHeaderValue;
+//     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+//         HeaderValue::from_str(self.as_ref())
+//     }
+// }
+impl From<String> for QueryValue {
+    fn from(s: String) -> Self {
+        Self(Cow::Owned(s))
+    }
+}
+impl From<&'static str> for QueryValue {
+    fn from(date: &'static str) -> Self {
+        Self::from_static(date)
+    }
+}
+
+impl QueryValue {
+    /// Creates a new `QueryValue` from the given string.
+    pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
+        Self(val.into())
+    }
+
+    /// Const function that creates a new `QueryValue` from a static str.
+    pub const fn from_static(val: &'static str) -> Self {
+        Self(Cow::Borrowed(val))
     }
 }

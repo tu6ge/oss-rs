@@ -3,13 +3,12 @@
 
 use std::convert::TryInto;
 
-use chrono::{DateTime, Utc};
 use sha1::Sha1;
 use hmac::{Hmac, Mac};
 use base64::{encode};
 use reqwest::{Method};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName, CONTENT_TYPE};
-use crate::types::{KeyId,KeySecret,ContentMd5,CanonicalizedResource};
+use crate::types::{KeyId,KeySecret,ContentMd5,CanonicalizedResource, Date, ContentType};
 use crate::errors::{OssResult, OssError};
 // use http::Method;
 // #[cfg(test)]
@@ -26,8 +25,8 @@ pub struct Auth{
   pub access_key_secret: KeySecret,
   pub verb: VERB,
   pub content_md5: Option<ContentMd5>,
-  pub content_type: Option<String>,
-  pub date: String,
+  pub content_type: Option<ContentType>,
+  pub date: Date,
   // pub canonicalized_oss_headers: &'a str, // TODO
   pub canonicalized_resource: CanonicalizedResource,
   pub headers: HeaderMap,
@@ -136,9 +135,9 @@ impl Auth {
     if let Some(a) = &self.content_type {
       map.insert(
         "Content-Type",
-        a.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
+        a.as_ref().try_into()?);
     }
-    map.insert("Date",self::to_value(self.date.as_ref())?);
+    map.insert("Date",self.date.as_ref().try_into()?);
     map.insert("CanonicalizedResource", self.canonicalized_resource.as_ref().try_into()?);
 
     let sign = self.sign()?;
@@ -179,8 +178,6 @@ impl Auth {
     let method = self.verb.to_string();
     let mut content = String::new();
 
-    let content_type_str;
-
     let str: String = method
       + "\n"
       + match self.content_md5.as_ref() {
@@ -194,13 +191,12 @@ impl Auth {
       + "\n"
       + match &self.content_type {
         Some(str) => {
-          content_type_str = str.clone();
-          &content_type_str
+          str.as_ref()
         },
         None => ""
       }
       + "\n"
-      + &self.date + "\n"
+      + self.date.as_ref() + "\n"
       + match self.header_str()? {
         Some(str) => {
           content.clear();
@@ -251,9 +247,9 @@ impl AuthBuilder{
   /// use aliyun_oss_client::auth::AuthBuilder;
   /// 
   /// let mut builder = AuthBuilder::default();
-  /// assert_eq!(builder.auth.access_key_id, "");
+  /// assert_eq!(builder.auth.access_key_id.as_ref(), "");
   /// builder = builder.key("bar");
-  /// assert_eq!(builder.auth.access_key_id, "bar");
+  /// assert_eq!(builder.auth.access_key_id.as_ref(), "bar");
   /// ```
   pub fn key<K: Into<KeyId>>(mut self, key: K) -> Self {
     self.auth.access_key_id = key.into();
@@ -286,8 +282,8 @@ impl AuthBuilder{
   /// let builder = aliyun_oss_client::auth::AuthBuilder::default()
   ///    .date(Utc::now());
   /// ```
-  pub fn date(mut self, date: DateTime<Utc>) -> Self {
-    self.auth.date = date.format("%a, %d %b %Y %T GMT").to_string();
+  pub fn date<D: Into<Date>>(mut self, date: D) -> Self {
+    self.auth.date = date.into();
     self
   }
 
@@ -310,12 +306,15 @@ impl AuthBuilder{
   }
 
   /// 通过 headers 给 content_type 赋值
+  /// 
+  /// TODO 需要处理异常的情况
   pub fn type_with_header(mut self) -> Self {
     let content_type = self.auth.headers.get(CONTENT_TYPE);
 
-    if let Some(content_type) = content_type {
-      if let Ok(value) = content_type.to_str() {
-        self.auth.content_type = Some(String::from(value));
+    if let Some(ct) = content_type {
+      let t: OssResult<ContentType> = ct.clone().try_into();
+      if let Ok(value) = t {
+        self.auth.content_type = Some(value);
       }
     }
     self

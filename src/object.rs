@@ -1,6 +1,5 @@
 use chrono::prelude::*;
 
-use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
 use std::{io::Read};
@@ -12,6 +11,7 @@ use crate::errors::{OssResult,OssError};
 use crate::client::{Client, AsyncRequestHandle};
 use crate::auth::{VERB};
 use crate::traits::{ObjectTrait, ObjectListTrait};
+use crate::types::{Query, UrlQuery};
 
 #[derive(Clone)]
 #[non_exhaustive]
@@ -23,7 +23,7 @@ pub struct ObjectList<'a> {
   pub object_list: Vec<Object>,
   pub next_continuation_token: Option<String>,
   client: Option<&'a Client>,
-  pub search_query: Option<HashMap<String, String>>,
+  pub search_query: Query,
 }
 
 impl fmt::Debug for ObjectList<'_> {
@@ -59,7 +59,7 @@ impl ObjectListTrait<Object> for ObjectList<'_> {
       object_list,
       next_continuation_token,
       client: None,
-      search_query: None,
+      search_query: Query::new(),
     })
   }
 }
@@ -70,8 +70,8 @@ impl<'b> ObjectList<'b> {
     self
   }
   
-  pub fn set_search_query(mut self, search_query: HashMap<String, String>) -> Self{
-    self.search_query = Some(search_query);
+  pub fn set_search_query(mut self, search_query: Query) -> Self{
+    self.search_query = search_query;
     self
   }
 }
@@ -117,12 +117,10 @@ impl Client {
   /// 
   /// [OSS 文档](https://help.aliyun.com/document_detail/187544.html)
   #[cfg(feature = "blocking")]
-  pub fn blocking_get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
+  pub fn blocking_get_object_list(&self, query: Query) -> OssResult<ObjectList<'_>>{
     let mut url = self.get_bucket_url()?;
 
-    let query_str = Client::object_list_query_generator(&query);
-
-    url.set_query(Some(&query_str));
+    url.set_search_query(&query);
 
     let response = self.blocking_builder(VERB::GET, &url, None, None)?;
     let content = response.send()?.handle_error()?;
@@ -132,13 +130,11 @@ impl Client {
     )
   }
 
-  pub async fn get_object_list(&self, query: HashMap<String, String>) -> OssResult<ObjectList<'_>>{
+  pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList<'_>>{
 
     let mut url = self.get_bucket_url()?;
 
-    let query_str = Client::object_list_query_generator(&query);
-
-    url.set_query(Some(&query_str));
+    url.set_search_query(&query);
 
     let response = self.builder(VERB::GET, &url, None, None).await?;
     let content = response.send().await?.handle_error().await?;
@@ -280,7 +276,7 @@ impl <'a>Iterator for ObjectList<'a>{
   fn next(&mut self) -> Option<ObjectList<'a>> {
     match self.next_continuation_token.clone() {
       Some(token) => {
-        let mut query = self.search_query.as_ref().unwrap().clone();
+        let mut query = self.search_query.clone();
         query.insert("continuation-token".to_string(), token);
         match self.client.unwrap().blocking_get_object_list(query) {
           Ok(list) => Some(list),

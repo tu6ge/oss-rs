@@ -34,6 +34,9 @@ pub enum OssError{
   #[error("chrono error: {0}")]
   Chrono(#[from] chrono::ParseError),
 
+  #[error("toStrError: {0}")]
+  ToStr(String),
+
   #[error("ParseIntError: {0}")]
   ParseIntError(#[from] std::num::ParseIntError),
 
