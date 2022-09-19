@@ -202,7 +202,7 @@ impl Client {
       builder = builder.headers(headers);
     };
 
-    let all_headers: HeaderMap = builder.auth.get_headers()?;
+    let all_headers = builder.get_headers()?;
 
     Ok(client.request(method.0, url.to_owned())
       .headers(all_headers))
@@ -224,7 +224,7 @@ impl Client {
       builder = builder.headers(headers);
     };
 
-    let all_headers: HeaderMap = builder.auth.async_get_headers().await?;
+    let all_headers = builder.get_headers()?;
 
     Ok(client.request(method.0, url.to_owned())
       .headers(all_headers))
