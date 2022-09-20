@@ -7,8 +7,6 @@ use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName, CONTEN
 use crate::types::{KeyId,KeySecret,ContentMd5,CanonicalizedResource, Date, ContentType};
 use crate::errors::{OssResult, OssError};
 // use http::Method;
-// #[cfg(test)]
-// use mockall::{automock, mock, predicate::*};
 
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(Debug))]
@@ -66,7 +64,7 @@ impl TryInto<HeaderValue> for VERB {
     type Error = OssError;
     fn try_into(self) -> OssResult<HeaderValue> {
         self.0.to_string().parse::<HeaderValue>()
-        .map_err(|_| OssError::Input("VERB parse error".to_string()))
+            .map_err(|_| OssError::Input("VERB parse error".to_string()))
     }
 }
 
@@ -110,9 +108,13 @@ impl Default for VERB {
     }
 }
 
-impl Auth {
+pub trait AuthToOssHeader{
+    fn to_oss_header(&self) -> OssResult<OssHeader>;
+}
+
+impl AuthToOssHeader for Auth {
     /// 转化成 OssHeader
-    pub fn to_oss_header(&self) -> OssResult<OssHeader> {
+    fn to_oss_header(&self) -> OssResult<OssHeader> {
         //return Some("x-oss-copy-source:/honglei123/file1.txt");
         let mut header: Vec<(&HeaderName, &HeaderValue)> = self.headers.iter().filter(|(k,_v)|{
             k.as_str().starts_with("x-oss-")
@@ -136,7 +138,69 @@ impl Auth {
 
         Ok(OssHeader(Some(header_vec.join("\n"))))
     }
+}
 
+pub trait AuthSignTrait{
+    fn key(&self) -> KeyId;
+    fn secret(&self) -> KeySecret;
+    fn verb(&self) -> String;
+    fn content_md5(&self) -> &str;
+    fn content_type(&self) -> &str;
+    fn date(&self) -> &str;
+    fn canonicalized_resource(&self) -> &str;
+}
+
+impl AuthSignTrait for Auth{
+    fn key(&self) -> KeyId {
+        // TODO clone 可以优化
+        self.access_key_id.clone()
+    }
+    fn secret(&self) -> KeySecret {
+        self.access_key_secret.clone()
+    }
+    fn verb(&self) -> String {
+        self.verb.to_string()
+    }
+    fn content_md5(&self) -> &str {
+        match self.content_md5.as_ref(){
+            Some(str) => {
+                str.as_ref()
+            },
+            None => ""
+        }
+    }
+    fn content_type(&self) -> &str {
+        match self.content_type.as_ref(){
+            Some(str) => {
+                str.as_ref()
+            },
+            None => ""
+        }
+    }
+    fn date(&self) -> &str {
+        self.date.as_ref()
+    }
+    fn canonicalized_resource(&self) -> &str {
+        self.canonicalized_resource.as_ref()
+    }
+}
+
+pub trait AuthGetHeader{
+    fn get_headers(&self) -> OssResult<HeaderMap>;
+}
+
+impl AuthGetHeader for Auth{
+    /// 返回 auth 签名后的 header
+    fn get_headers(&self) -> OssResult<HeaderMap>{
+        let mut map = HeaderMap::from_auth(self)?;
+
+        let oss_header = self.to_oss_header()?;
+        let sign_string = SignString::new(self, &oss_header)?;
+        let sign = sign_string.to_sign()?;
+        map.append_sign(sign)?;
+
+        Ok(map)
+    }
 }
 
 #[derive(Default, Clone)]
@@ -231,43 +295,94 @@ impl AuthBuilder{
     }
 
     pub fn get_headers(&self) -> OssResult<HeaderMap>{
-        let mut map = HeaderMap::from_auth(&self.auth)?;
+        self.auth.get_headers()
+    }
+}
 
-        let oss_header = self.auth.to_oss_header()?;
-        let sign_string = SignString::new(&self.auth, &oss_header)?;
-        let sign = sign_string.to_sign()?;
-        map.append_sign(sign)?;
+pub trait AuthToHeaderMap{
+    fn get_original_header(&self) -> HeaderMap;
+    fn get_header_key(&self) -> OssResult<HeaderValue>;
+    fn get_header_secret(&self) -> OssResult<HeaderValue>;
+    fn get_header_verb(&self) -> OssResult<HeaderValue>;
+    fn get_header_md5(&self) -> OssResult<Option<HeaderValue>>;
+    fn get_header_content_type(&self) -> OssResult<Option<HeaderValue>>;
+    fn get_header_date(&self) -> OssResult<HeaderValue>;
+    fn get_header_resource(&self) -> OssResult<HeaderValue>;
+}
 
-        Ok(map)
+impl AuthToHeaderMap for Auth{
+    fn get_original_header(&self) -> HeaderMap {
+        // TODO 可优化
+        self.headers.clone()
+    }
+    fn get_header_key(&self) -> OssResult<HeaderValue>{
+        let val: HeaderValue = self.access_key_id.as_ref().try_into()?;
+        Ok(val)
+    }
+    fn get_header_secret(&self) -> OssResult<HeaderValue>{
+        let val: HeaderValue = self.access_key_secret.as_ref().try_into()?;
+        Ok(val)
+    }
+    fn get_header_verb(&self) -> OssResult<HeaderValue> {
+        let val: HeaderValue = self.verb.clone().try_into()?;
+        Ok(val)
+    }
+    fn get_header_md5(&self) -> OssResult<Option<HeaderValue>> {
+        let res = match self.content_md5.clone() {
+            Some(val) => {
+                let val: HeaderValue = val.try_into()?;
+                Some(val)
+            },
+            None => None,
+        };
+        Ok(res)
+    }
+    fn get_header_content_type(&self) -> OssResult<Option<HeaderValue>> {
+        let res = match self.content_type.clone() {
+            Some(val) => {
+                let val: HeaderValue = val.try_into()?;
+                Some(val)
+            },
+            None => None,
+        };
+        Ok(res)
+    }
+    fn get_header_date(&self) -> OssResult<HeaderValue> {
+        let val: HeaderValue = self.date.as_ref().try_into()?;
+        Ok(val)
+    }
+    fn get_header_resource(&self) -> OssResult<HeaderValue> {
+        let val: HeaderValue = self.canonicalized_resource.as_ref().try_into()?;
+        Ok(val)
     }
 }
 
 pub trait AuthHeader {
-    fn from_auth(auth: &Auth) -> OssResult<Self> where Self: Sized;
-    fn append_sign(&mut self, sign: Sign) -> OssResult<Option<HeaderValue>>;
+    fn from_auth(auth: &impl AuthToHeaderMap) -> OssResult<Self> where Self: Sized;
+    fn append_sign<S: TryInto<HeaderValue, Error = OssError>>(&mut self, sign: S) -> OssResult<Option<HeaderValue>>;
 }
 
 impl AuthHeader for HeaderMap {
-    fn from_auth(auth: &Auth) -> OssResult<Self> {
-        let mut map= auth.headers.clone();
+    fn from_auth(auth: &impl AuthToHeaderMap) -> OssResult<Self> {
+        let mut map= auth.get_original_header();
 
-        map.insert("AccessKeyId", auth.access_key_id.as_ref().try_into()?);
-        map.insert("SecretAccessKey", auth.access_key_secret.as_ref().try_into()?);
-        map.insert("VERB",auth.verb.clone().try_into()?);
+        map.insert("AccessKeyId", auth.get_header_key()?);
+        map.insert("SecretAccessKey", auth.get_header_secret()?);
+        map.insert("VERB",auth.get_header_verb()?);
 
-        if let Some(a) = auth.content_md5.clone() {
-          map.insert("Content-MD5",a.try_into()?);
+        if let Some(a) = auth.get_header_md5()? {
+          map.insert("Content-MD5",a);
         }
-        if let Some(a) = &auth.content_type {
-          map.insert("Content-Type",a.as_ref().try_into()?);
+        if let Some(a) = auth.get_header_content_type()? {
+          map.insert("Content-Type",a);
         }
-        map.insert("Date",auth.date.as_ref().try_into()?);
-        map.insert("CanonicalizedResource", auth.canonicalized_resource.as_ref().try_into()?);
+        map.insert("Date",auth.get_header_date()?);
+        map.insert("CanonicalizedResource", auth.get_header_resource()?);
 
         //println!("header list: {:?}",map);
         Ok(map)
     }
-    fn append_sign(&mut self, sign: Sign) -> OssResult<Option<HeaderValue>>{
+    fn append_sign<S: TryInto<HeaderValue, Error = OssError>>(&mut self, sign: S) -> OssResult<Option<HeaderValue>>{
         let res = self.insert("Authorization", sign.try_into()?);
         Ok(res)
     }
@@ -280,6 +395,21 @@ impl AuthHeader for HeaderMap {
 pub struct OssHeader(Option<String>);
 
 impl OssHeader {
+    pub fn new(string: Option<String>) -> Self {
+        Self(string)
+    }
+
+    #[cfg(test)]
+    pub fn is_none(&self) -> bool {
+        self.0.is_none()
+    }
+}
+
+pub trait HeaderToSign{
+    fn to_sign_string(&self) -> String;
+}
+
+impl HeaderToSign for OssHeader{
     fn to_sign_string(&self) -> String {
         let mut content = String::new();
         match self.0.clone() {
@@ -293,6 +423,12 @@ impl OssHeader {
     }
 }
 
+impl Into<String> for OssHeader {
+    fn into(self) -> String {
+        self.to_sign_string()
+    }
+}
+
 /// 待签名的数据
 pub struct SignString{
     data: String,
@@ -301,34 +437,24 @@ pub struct SignString{
 }
 
 impl SignString {
-    pub fn new(auth: &Auth, oss_header: &OssHeader) -> OssResult<SignString> {
-        let method = auth.verb.to_string();
+    pub fn new(auth: &impl AuthSignTrait, oss_header: &impl HeaderToSign) -> OssResult<SignString> {
+        let method = auth.verb();
 
         let str: String = method
             + "\n"
-            + match auth.content_md5.as_ref() {
-                Some(str)=> {
-                    str.as_ref()
-                },
-                None => ""
-            }
+            + auth.content_md5()
             + "\n"
-            + match &auth.content_type {
-                Some(str) => {
-                    str.as_ref()
-                },
-                None => ""
-            }
+            + auth.content_type()
             + "\n"
-            + auth.date.as_ref() 
+            + auth.date() 
             + "\n"
             + oss_header.to_sign_string().as_ref()
-            + auth.canonicalized_resource.as_ref();
+            + auth.canonicalized_resource();
         
         Ok(SignString{
             data: str,
-            key: auth.access_key_id.clone(),
-            secret: auth.access_key_secret.clone(),
+            key: auth.key(),
+            secret: auth.secret(),
         })
     }
 

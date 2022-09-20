@@ -1,6 +1,8 @@
+use std::convert::TryInto;
+
 use reqwest::header::{HeaderMap, HeaderValue};
 
-use crate::{auth::{VERB}, types::{KeyId, KeySecret, CanonicalizedResource, ContentMd5, ContentType}};
+use crate::{auth::{VERB, AuthHeader, OssHeader, HeaderToSign}, types::{KeyId, KeySecret, CanonicalizedResource, ContentMd5, ContentType}};
 
 #[test]
 fn test_verb2string(){
@@ -80,55 +82,58 @@ fn test_str2verb(){
     assert_eq!(verb, VERB::TRACE);
 }
 
+#[test]
+fn test_verb2headervalue(){
+    let verb = VERB::GET;
+    let header_value: HeaderValue = verb.try_into().unwrap();
 
-// #[tokio::test]
-// async fn test_async_get_headers(){
-    
-//     let auth = crate::auth::Auth{
-//         access_key_id: KeyId::from_static("foo_key"),
-//         access_key_secret: KeySecret::from_static("foo_secret"),
-//         verb: VERB::GET,
-//         content_md5: None,
-//         content_type: Some(ContentType::from_static("text/plain")),
-//         date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
-//         canonicalized_resource: CanonicalizedResource::from_static(""),
-//         headers: HeaderMap::new(),
-//     };
+    assert_eq!(header_value.to_str().unwrap(), "GET");
+}
 
-//     let headers = auth.async_get_headers().await;
+#[test]
+fn test_verb_default(){
+    let verb = VERB::default();
+    assert_eq!(verb, VERB::GET);
+}
 
-//     assert!(headers.is_ok());
+mod to_oss_header{
+    use std::convert::TryInto;
 
-//     let header = headers.unwrap();
+    use crate::auth::{AuthBuilder, AuthToOssHeader};
 
-//     assert_eq!(header.get("AccessKeyId"), Some(&HeaderValue::from_str("foo_key").unwrap()));
-//     assert_eq!(header.get("SecretAccessKey"), Some(&HeaderValue::from_str("foo_secret").unwrap()));
-//     assert_eq!(header.get("VERB"), Some(&HeaderValue::from_str("GET").unwrap()));
-//     assert_eq!(header.get("Content-MD5"), None);
-//     assert_eq!(header.get("Content-Type"), Some(&HeaderValue::from_str("text/plain").unwrap()));
-//     assert_eq!(header.get("CanonicalizedResource"), Some(&HeaderValue::from_str("").unwrap()));
-//     assert_eq!(header.get("date"), Some(&HeaderValue::from_str("Sat, 03 Sep 2022 16:04:47 GMT").unwrap()));
-//     assert_eq!(header.get("Authorization"), Some(&HeaderValue::from_str("OSS foo_key:BoUvtc18Dc2q21W+sINIWidt+SE=").unwrap()));
+    #[test]
+    fn test_none(){
+        let builder = AuthBuilder::default();
+        let header = builder.auth.to_oss_header();
+        assert!(header.is_ok());
+        let header = header.unwrap();
+        assert!(header.is_none());
 
-//     let auth = crate::auth::Auth{
-//         access_key_id: KeyId::from_static("foo_key"),
-//         access_key_secret: "foo_secret".to_owned().into(),
-//         verb: VERB::GET,
-//         content_md5: Some(ContentMd5::from_static("bar")),
-//         content_type: Some(ContentType::from_static("text/plain")),
-//         date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
-//         canonicalized_resource: CanonicalizedResource::new(""),
-//         headers: HeaderMap::new(),
-//     };
+        let builder = AuthBuilder::default()
+            .header_insert("abc", "def".try_into().unwrap());
+        let header = builder.auth.to_oss_header();
+        assert!(header.is_ok());
+        let header = header.unwrap();
+        assert!(header.is_none());
+    }
 
-//     let headers = auth.async_get_headers().await;
+    #[test]
+    fn test_some(){
+        let builder = AuthBuilder::default()
+            .header_insert("x-oss-foo", "bar".try_into().unwrap())
+            .header_insert("x-oss-ffoo", "barbar".try_into().unwrap())
+            .header_insert("fffoo", "aabb".try_into().unwrap())
+            ;
+        let header = builder.auth.to_oss_header();
+        assert!(header.is_ok());
+        let header = header.unwrap();
+        let header: String = header.into();
+        assert_eq!(&header, "x-oss-ffoo:barbar\nx-oss-foo:bar\n");
+    }
+}
 
-//     assert!(headers.is_ok());
+// TODO TEST get_headers()
 
-//     let header = headers.unwrap();
-
-//     assert_eq!(header.get("Content-MD5"), Some(&HeaderValue::from_str("bar").unwrap()));
-// }
 
 
 mod auth_builder{
@@ -254,5 +259,109 @@ mod auth_builder{
         builder = builder.header_clear();
 
         assert_eq!(builder.auth.headers.len(), 0);
+    }
+
+    // #[test]
+    // TODO 
+    // fn test_get_headers(){
+    //     #[mockall_double::double]
+    //     use crate::auth::Auth;
+    //     let mut auth = MockAuth::default();
+    //     auth.expect_get_headers().times(1).returning(|| {
+    //         let mut headers = HeaderMap::new();
+    //         headers.insert(HOST, "example.com".parse().unwrap());
+    //         Ok(headers)
+    //     });
+
+    //     let builder = AuthBuilder{
+    //         auth,
+    //     };
+
+    // }
+}
+
+#[test]
+fn header_map_from_auth(){
+    let auth = crate::auth::Auth{
+        access_key_id: KeyId::from_static("foo_key"),
+        access_key_secret: KeySecret::from_static("foo_secret"),
+        verb: VERB::GET,
+        content_md5: None,
+        content_type: Some(ContentType::from_static("text/plain")),
+        date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
+        canonicalized_resource: CanonicalizedResource::from_static(""),
+        headers: HeaderMap::new(),
+    };
+
+    let headers = HeaderMap::from_auth(&auth);
+
+    assert!(headers.is_ok());
+
+    let header = headers.unwrap();
+
+    assert_eq!(header.get("AccessKeyId"), Some(&HeaderValue::from_str("foo_key").unwrap()));
+    assert_eq!(header.get("SecretAccessKey"), Some(&HeaderValue::from_str("foo_secret").unwrap()));
+    assert_eq!(header.get("VERB"), Some(&HeaderValue::from_str("GET").unwrap()));
+    assert_eq!(header.get("Content-MD5"), None);
+    assert_eq!(header.get("Content-Type"), Some(&HeaderValue::from_str("text/plain").unwrap()));
+    assert_eq!(header.get("CanonicalizedResource"), Some(&HeaderValue::from_str("").unwrap()));
+    assert_eq!(header.get("date"), Some(&HeaderValue::from_str("Sat, 03 Sep 2022 16:04:47 GMT").unwrap()));
+
+    let auth = crate::auth::Auth{
+        access_key_id: KeyId::from_static("foo_key"),
+        access_key_secret: "foo_secret".to_owned().into(),
+        verb: VERB::GET,
+        content_md5: Some(ContentMd5::from_static("bar")),
+        content_type: Some(ContentType::from_static("text/plain")),
+        date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
+        canonicalized_resource: CanonicalizedResource::new(""),
+        headers: HeaderMap::new(),
+    };
+
+    let headers = HeaderMap::from_auth(&auth);
+
+    assert!(headers.is_ok());
+
+    let header = headers.unwrap();
+
+    assert_eq!(header.get("Content-MD5"), Some(&HeaderValue::from_str("bar").unwrap()));
+}
+
+#[test]
+fn to_sign_string(){
+    let header = OssHeader::new(None);
+    let string = header.to_sign_string();
+    assert_eq!(&string, "");
+
+    let header = OssHeader::new(Some(String::from("")));
+    let string = header.to_sign_string();
+    assert_eq!(&string, "\n");
+
+    let header = OssHeader::new(Some(String::from("abc")));
+    let string = header.to_sign_string();
+    assert_eq!(&string, "abc\n");
+}
+
+#[test]
+fn header_into_string(){
+    let header = OssHeader::new(None);
+    let string: String = header.try_into().unwrap();
+    assert_eq!(&string, "");
+
+    let header = OssHeader::new(Some(String::from("")));
+    let string: String = header.try_into().unwrap();
+    assert_eq!(&string, "\n");
+
+    let header = OssHeader::new(Some(String::from("abc")));
+    let string: String = header.try_into().unwrap();
+    assert_eq!(&string, "abc\n");
+}
+
+mod sign_string_struct{
+    use crate::auth::AuthBuilder;
+
+    #[test]
+    fn test_new(){
+        let auth_builder = AuthBuilder::default();
     }
 }
