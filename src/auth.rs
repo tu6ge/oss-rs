@@ -148,42 +148,41 @@ impl AuthToOssHeader for Auth {
 #[cfg_attr(test, automock)]
 pub trait AuthSignString{
     fn key(&self) -> Cow<'_, KeyId>;
-    fn secret(&self) -> KeySecret;
+    fn secret(&self) -> Cow<'_, KeySecret>;
     fn verb(&self) -> String;
-    fn content_md5(&self) -> ContentMd5;
-    fn content_type(&self) -> ContentType;
-    fn date(&self) -> Date;
-    fn canonicalized_resource(&self) -> CanonicalizedResource;
+    fn content_md5(&self) -> Cow<'_, ContentMd5>;
+    fn content_type(&self) -> Cow<'_, ContentType>;
+    fn date(&self) -> Cow<'_, Date>;
+    fn canonicalized_resource(&self) -> Cow<'_, CanonicalizedResource>;
 }
 
 impl AuthSignString for Auth{
     fn key(&self) -> Cow<'_, KeyId> {
-        // TODO clone 可以优化
         Cow::Borrowed(&self.access_key_id)
     }
-    fn secret(&self) -> KeySecret {
-        self.access_key_secret.clone()
+    fn secret(&self) -> Cow<'_, KeySecret> {
+        Cow::Borrowed(&self.access_key_secret)
     }
     fn verb(&self) -> String {
         self.verb.to_string()
     }
-    fn content_md5(&self) -> ContentMd5 {
-        match self.content_md5.clone(){
-            Some(md5) => md5,
-            None => ContentMd5::new(""),
+    fn content_md5(&self) -> Cow<'_, ContentMd5> {
+        match self.content_md5.clone() {
+            Some(md5) => Cow::Owned(md5),
+            None => Cow::Owned(ContentMd5::new("")),
         }
     }
-    fn content_type(&self) -> ContentType {
+    fn content_type(&self) -> Cow<'_, ContentType> {
         match self.content_type.clone(){
-            Some(ct) => ct,
-            None => ContentType::new(""),
+            Some(ct) => Cow::Owned(ct),
+            None => Cow::Owned(ContentType::new("")),
         }
     }
-    fn date(&self) -> Date {
-        self.date.clone()
+    fn date(&self) -> Cow<'_, Date> {
+        Cow::Borrowed(&self.date)
     }
-    fn canonicalized_resource(&self) -> CanonicalizedResource {
-        self.canonicalized_resource.clone()
+    fn canonicalized_resource(&self) -> Cow<'_, CanonicalizedResource> {
+        Cow::Borrowed(&self.canonicalized_resource)
     }
 }
 
@@ -455,19 +454,19 @@ impl SignString {
 
         let str: String = method
             + "\n"
-            + auth.content_md5().as_ref()
+            + auth.content_md5().as_ref().as_ref()
             + "\n"
-            + auth.content_type().as_ref()
+            + auth.content_type().as_ref().as_ref()
             + "\n"
-            + auth.date().as_ref() 
+            + auth.date().as_ref().as_ref() 
             + "\n"
             + header.to_sign_string().as_ref()
-            + auth.canonicalized_resource().as_ref();
+            + auth.canonicalized_resource().as_ref().as_ref();
         
         Ok(SignString{
             data: str,
             key: auth.key().into_owned(),
-            secret: auth.secret(),
+            secret: auth.secret().into_owned(),
         })
     }
 
@@ -515,8 +514,14 @@ pub struct Sign{
     key: KeyId,
 }
 
-#[cfg(test)]
 impl Sign{
+    pub fn new(data: String, key: KeyId) -> Sign{
+        Sign{
+            data,
+            key,
+        }
+    }
+
     pub fn data(&self) -> String{
         self.data.clone()
     }

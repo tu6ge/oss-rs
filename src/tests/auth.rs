@@ -3,7 +3,7 @@ use std::{convert::TryInto};
 use mockall::mock;
 use reqwest::header::{HeaderMap, HeaderValue};
 
-use crate::{auth::{VERB, AuthHeader, OssHeader, HeaderToSign, MockAuthToHeaderMap}, errors::{OssError, OssResult}};
+use crate::{auth::{VERB, AuthHeader, OssHeader, HeaderToSign, MockAuthToHeaderMap, Sign}, errors::{OssError, OssResult}, types::KeyId};
 
 #[test]
 fn test_verb2string(){
@@ -161,22 +161,61 @@ mod auth_sign_string{
         assert_eq!(key.into_owned().as_ref(), "foo1");
 
         let secret = auth.secret();
-        assert_eq!(secret.as_ref(), "foo2");
+        assert_eq!(secret.into_owned().as_ref(), "foo2");
 
         let verb = auth.verb();
         assert_eq!(verb.to_string(), "POST".to_owned());
 
         let md5 = auth.content_md5();
-        assert_eq!(md5.as_ref(), "foo4");
+        assert_eq!(md5.into_owned().as_ref(), "foo4");
 
         let content_type = auth.content_type();
-        assert_eq!(content_type.as_ref(), "foo6");
+        assert_eq!(content_type.into_owned().as_ref(), "foo6");
 
         let inner_date = auth.date();
-        assert_eq!(inner_date.as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
+        assert_eq!(inner_date.into_owned().as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
 
         let canonicalized_resource = auth.canonicalized_resource();
-        assert_eq!(canonicalized_resource.as_ref(), "foo5");
+        assert_eq!(canonicalized_resource.into_owned().as_ref(), "foo5");
+    }
+
+    #[test]
+    fn auth_to_sign_string_none(){
+        let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
+
+        let builder = AuthBuilder::default()
+        .key("foo1")
+        .secret("foo2")
+        .verb("POST")
+        //.content_md5(ContentMd5::new("foo4"))
+        .date(date)
+        .canonicalized_resource(CanonicalizedResource::new("foo5"))
+        .header_insert("Content-Type", "foo6".try_into().unwrap())
+        //.type_with_header()
+        ;
+
+        let auth = builder.auth;
+
+        let key = auth.key();
+        assert_eq!(key.into_owned().as_ref(), "foo1");
+
+        let secret = auth.secret();
+        assert_eq!(secret.into_owned().as_ref(), "foo2");
+
+        let verb = auth.verb();
+        assert_eq!(verb.to_string(), "POST".to_owned());
+
+        let md5 = auth.content_md5();
+        assert_eq!(md5.into_owned().as_ref(), "");
+
+        let content_type = auth.content_type();
+        assert_eq!(content_type.into_owned().as_ref(), "");
+
+        let inner_date = auth.date();
+        assert_eq!(inner_date.into_owned().as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
+
+        let canonicalized_resource = auth.canonicalized_resource();
+        assert_eq!(canonicalized_resource.into_owned().as_ref(), "foo5");
     }
 }
 
@@ -368,6 +407,31 @@ mod auth_to_header_map{
         assert_eq!(resource, HeaderValue::from_bytes(b"foo5").unwrap());
 
     }
+
+    #[test]
+    fn test_to_header_map_none(){
+        let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
+
+        let builder = AuthBuilder::default()
+        .key("foo1")
+        .secret("foo2")
+        .verb("POST")
+        //.content_md5(ContentMd5::new("foo4"))
+        .date(date)
+        .canonicalized_resource(CanonicalizedResource::new("foo5"))
+        .header_insert("Content-Type", "foo6".try_into().unwrap())
+        //.type_with_header()
+        ;
+
+        let auth = builder.auth;
+
+        let md5 = auth.get_header_md5().unwrap();
+        let content_type = auth.get_header_content_type().unwrap();
+
+        assert!(matches!(md5, None));
+        assert!(matches!(content_type, None));
+
+    }
 }
 
 #[test]
@@ -493,7 +557,7 @@ mod sign_string_struct{
             Cow::Owned(KeyId::new("foo1"))
         });
         auth.expect_secret().times(1).returning(|| {
-            KeySecret::new("foo2")
+            Cow::Owned(KeySecret::new("foo2"))
         });
 
         auth.expect_verb().times(1).returning(|| {
@@ -501,19 +565,19 @@ mod sign_string_struct{
         });
 
         auth.expect_content_md5().times(1).returning(||{
-            ContentMd5::new("foo3")
+            Cow::Owned(ContentMd5::new("foo3"))
         });
 
         auth.expect_content_type().times(1).returning(||{
-            ContentType::new("foo4")
+            Cow::Owned(ContentType::new("foo4"))
         });
 
         auth.expect_date().times(1).returning(||{
-            Date::new("foo5")
+            Cow::Owned(Date::new("foo5"))
         });
 
         auth.expect_canonicalized_resource().times(1).returning(|| {
-            CanonicalizedResource::new("foo6")
+            Cow::Owned(CanonicalizedResource::new("foo6"))
         });
 
         let mut header = MockHeaderToSign::new();
@@ -542,4 +606,12 @@ mod sign_string_struct{
         assert_eq!(sign.data(), "gTzwiN1fRQV90YcecTvo1pH+kI8=".to_string());
         assert_eq!(sign.key_string(), "foo1".to_string());
     }
+}
+
+#[test]
+fn test_sign_to_headervalue(){
+    let sign = Sign::new("foo".to_string(), KeyId::from("bar"));
+    
+    let val: HeaderValue = sign.try_into().unwrap();
+    assert_eq!(val.to_str().unwrap(), "OSS bar:foo");
 }
