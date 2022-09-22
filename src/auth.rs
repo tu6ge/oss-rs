@@ -111,8 +111,7 @@ impl Default for VERB {
     }
 }
 
-#[cfg_attr(test, automock)]
-pub trait AuthToOssHeader{
+pub trait AuthToOssHeader: AuthToHeaderMap{
     fn to_oss_header(&self) -> OssResult<OssHeader>;
 }
 
@@ -145,8 +144,7 @@ impl AuthToOssHeader for Auth {
 }
 
 /// 从 auth 中提取各个字段，用于计算签名的原始字符串
-#[cfg_attr(test, automock)]
-pub trait AuthSignString{
+pub trait AuthSignString: AuthToOssHeader{
     fn key(&self) -> Cow<'_, KeyId>;
     fn secret(&self) -> Cow<'_, KeySecret>;
     fn verb(&self) -> String;
@@ -186,15 +184,10 @@ impl AuthSignString for Auth{
     }
 }
 
-//#[cfg_attr(test, automock)]
-pub trait AuthGetHeader{
-    fn get_headers(&self) -> OssResult<HeaderMap>;
-}
-
-impl AuthGetHeader for Auth{
-    /// 返回 auth 签名后的 header
-    /// TODO 单测
-    fn get_headers(&self) -> OssResult<HeaderMap>{
+pub trait AuthGetHeader: AuthSignString{
+    fn get_headers(&self) -> OssResult<HeaderMap>
+    where Self: Sized
+    {
         let mut map = HeaderMap::from_auth(self)?;
 
         let oss_header = self.to_oss_header()?;
@@ -205,6 +198,8 @@ impl AuthGetHeader for Auth{
         Ok(map)
     }
 }
+
+impl AuthGetHeader for Auth{}
 
 #[derive(Default, Clone)]
 pub struct AuthBuilder{

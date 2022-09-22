@@ -133,8 +133,6 @@ mod to_oss_header{
     }
 }
 
-// TODO TEST get_headers()
-
 mod auth_sign_string{
     use chrono::{Utc, TimeZone};
 
@@ -546,12 +544,43 @@ fn header_into_string(){
 
 mod sign_string_struct{
     use std::borrow::Cow;
+    use http::header::{HeaderMap, HeaderValue};
+    use mockall::mock;
 
-    use crate::{auth::{MockAuthSignString, MockHeaderToSign, SignString}, types::{KeyId, KeySecret, ContentMd5, ContentType, Date, CanonicalizedResource}};
+    use crate::{auth::{MockHeaderToSign, SignString, AuthSignString, AuthToOssHeader, AuthToHeaderMap, OssHeader}, types::{KeyId, KeySecret, ContentMd5, ContentType, Date, CanonicalizedResource}, errors::OssResult};
 
     #[test]
     fn test_from_auth(){
-        let mut auth = MockAuthSignString::new();
+        mock!{
+            Bar{}
+
+            impl AuthSignString for Bar{
+                fn key(&self) -> Cow<'_, KeyId>;
+                fn secret(&self) -> Cow<'_, KeySecret>;
+                fn verb(&self) -> String;
+                fn content_md5(&self) -> Cow<'_, ContentMd5>;
+                fn content_type(&self) -> Cow<'_, ContentType>;
+                fn date(&self) -> Cow<'_, Date>;
+                fn canonicalized_resource(&self) -> Cow<'_, CanonicalizedResource>;
+            }
+
+            impl AuthToOssHeader for Bar{
+                fn to_oss_header(&self) -> OssResult<OssHeader>;
+            }
+
+            impl AuthToHeaderMap for Bar{
+                fn get_original_header(&self) -> HeaderMap;
+                fn get_header_key(&self) -> OssResult<HeaderValue>;
+                fn get_header_secret(&self) -> OssResult<HeaderValue>;
+                fn get_header_verb(&self) -> OssResult<HeaderValue>;
+                fn get_header_md5(&self) -> OssResult<Option<HeaderValue>>;
+                fn get_header_content_type(&self) -> OssResult<Option<HeaderValue>>;
+                fn get_header_date(&self) -> OssResult<HeaderValue>;
+                fn get_header_resource(&self) -> OssResult<HeaderValue>;
+            }
+        }
+
+        let mut auth = MockBar::new();
 
         auth.expect_key().times(1).returning(|| {
             Cow::Owned(KeyId::new("foo1"))
@@ -615,3 +644,37 @@ fn test_sign_to_headervalue(){
     let val: HeaderValue = sign.try_into().unwrap();
     assert_eq!(val.to_str().unwrap(), "OSS bar:foo");
 }
+
+mod get_headers{
+    use crate::{auth::{AuthGetHeader, AuthBuilder}, types::{ ContentMd5, CanonicalizedResource}};
+
+    /// 集成测试，其他的都是单元测试
+    #[test]
+    fn test_get_headers(){
+
+        let builder = AuthBuilder::default()
+            .key("foo1")
+            .secret("foo2")
+            .verb("POST")
+            .content_md5(ContentMd5::new("foo4"))
+            .date("foo_date")
+            .canonicalized_resource(CanonicalizedResource::new("foo5"))
+            .header_insert("Content-Type", "foo6".try_into().unwrap())
+            .type_with_header()
+        ;
+        let map = builder.auth.get_headers();
+
+        assert!(map.is_ok());
+        let map = map.unwrap();
+        assert_eq!(map.len(), 8);
+        assert_eq!(map.get("Content-Type").unwrap(), &"foo6");
+        assert_eq!(map.get("accesskeyid").unwrap(), &"foo1");
+        assert_eq!(map.get("secretaccesskey").unwrap(), &"foo2");
+        assert_eq!(map.get("verb").unwrap(), &"POST");
+        assert_eq!(map.get("content-md5").unwrap(), &"foo4");
+        assert_eq!(map.get("date").unwrap(), &"foo_date");
+        assert_eq!(map.get("canonicalizedresource").unwrap(), &"foo5");
+        assert_eq!(map.get("authorization").unwrap(), &"OSS foo1:67qpyspFaWOYrWwahWKgNN+ngUY=");
+    }
+}
+
