@@ -1,8 +1,9 @@
-use std::convert::TryInto;
+use std::{convert::TryInto};
 
+use mockall::mock;
 use reqwest::header::{HeaderMap, HeaderValue};
 
-use crate::{auth::{VERB, AuthHeader, OssHeader, HeaderToSign}, types::{KeyId, KeySecret, CanonicalizedResource, ContentMd5, ContentType}};
+use crate::{auth::{VERB, AuthHeader, OssHeader, HeaderToSign, MockAuthToHeaderMap}, errors::{OssError, OssResult}};
 
 #[test]
 fn test_verb2string(){
@@ -134,6 +135,50 @@ mod to_oss_header{
 
 // TODO TEST get_headers()
 
+mod auth_sign_string{
+    use chrono::{Utc, TimeZone};
+
+    use crate::{auth::AuthBuilder, types::{ContentMd5, CanonicalizedResource}};
+    use crate::auth::AuthSignString;
+
+    #[test]
+    fn auth_to_sign_string(){
+        let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
+
+        let builder = AuthBuilder::default()
+        .key("foo1")
+        .secret("foo2")
+        .verb("POST")
+        .content_md5(ContentMd5::new("foo4"))
+        .date(date)
+        .canonicalized_resource(CanonicalizedResource::new("foo5"))
+        .header_insert("Content-Type", "foo6".try_into().unwrap())
+        .type_with_header();
+
+        let auth = builder.auth;
+
+        let key = auth.key();
+        assert_eq!(key.into_owned().as_ref(), "foo1");
+
+        let secret = auth.secret();
+        assert_eq!(secret.as_ref(), "foo2");
+
+        let verb = auth.verb();
+        assert_eq!(verb.to_string(), "POST".to_owned());
+
+        let md5 = auth.content_md5();
+        assert_eq!(md5.as_ref(), "foo4");
+
+        let content_type = auth.content_type();
+        assert_eq!(content_type.as_ref(), "foo6");
+
+        let inner_date = auth.date();
+        assert_eq!(inner_date.as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
+
+        let canonicalized_resource = auth.canonicalized_resource();
+        assert_eq!(canonicalized_resource.as_ref(), "foo5");
+    }
+}
 
 
 mod auth_builder{
@@ -280,51 +325,129 @@ mod auth_builder{
     // }
 }
 
+mod auth_to_header_map{
+    use chrono::{Utc, TimeZone};
+    use http::header::HeaderValue;
+
+    use crate::{auth::AuthBuilder, types::{ContentMd5, CanonicalizedResource}};
+    use crate::auth::AuthToHeaderMap;
+
+    #[test]
+    fn test_to_header_map(){
+        let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
+
+        let builder = AuthBuilder::default()
+        .key("foo1")
+        .secret("foo2")
+        .verb("POST")
+        .content_md5(ContentMd5::new("foo4"))
+        .date(date)
+        .canonicalized_resource(CanonicalizedResource::new("foo5"))
+        .header_insert("Content-Type", "foo6".try_into().unwrap())
+        .type_with_header();
+
+        let auth = builder.auth;
+
+        let header = auth.get_original_header();
+        assert_eq!(header.get("Content-Type").unwrap().to_str().unwrap(), "foo6");
+
+        let key = auth.get_header_key().unwrap();
+        let secret = auth.get_header_secret().unwrap();
+        let verb = auth.get_header_verb().unwrap();
+        let md5 = auth.get_header_md5().unwrap();
+        let content_type = auth.get_header_content_type().unwrap();
+        let date = auth.get_header_date().unwrap();
+        let resource = auth.get_header_resource().unwrap();
+
+        assert_eq!(key, HeaderValue::from_bytes(b"foo1").unwrap());
+        assert_eq!(secret, HeaderValue::from_bytes(b"foo2").unwrap());
+        assert_eq!(verb, HeaderValue::from_bytes(b"POST").unwrap());
+        assert!(matches!(md5, Some(v) if v==HeaderValue::from_bytes(b"foo4").unwrap()));
+        assert!(matches!(content_type, Some(v) if v==HeaderValue::from_bytes(b"foo6").unwrap()));
+        assert_eq!(date, HeaderValue::from_bytes(b"Sat, 01 Jan 2022 18:01:01 GMT").unwrap());
+        assert_eq!(resource, HeaderValue::from_bytes(b"foo5").unwrap());
+
+    }
+}
+
 #[test]
 fn header_map_from_auth(){
-    let auth = crate::auth::Auth{
-        access_key_id: KeyId::from_static("foo_key"),
-        access_key_secret: KeySecret::from_static("foo_secret"),
-        verb: VERB::GET,
-        content_md5: None,
-        content_type: Some(ContentType::from_static("text/plain")),
-        date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
-        canonicalized_resource: CanonicalizedResource::from_static(""),
-        headers: HeaderMap::new(),
-    };
+    let mut auth = MockAuthToHeaderMap::default();
+    auth.expect_get_original_header().times(1).returning(|| {
+        HeaderMap::new()
+    });
+    auth.expect_get_header_key().times(1).returning(|| {
+        Ok("foo1".parse().unwrap())
+    });
+    auth.expect_get_header_secret().times(1).returning(|| {
+        Ok("foo2".parse().unwrap())
+    });
+    auth.expect_get_header_verb().times(1).returning(|| {
+        Ok("foo3".parse().unwrap())
+    });
 
-    let headers = HeaderMap::from_auth(&auth);
+    auth.expect_get_header_md5().times(1).returning(|| {
+        let val: HeaderValue = "foo4".parse().unwrap();
+        Ok(Some(val))
+    });
+    auth.expect_get_header_content_type().times(1).returning(|| {
+        let val: HeaderValue = "foo5".parse().unwrap();
+        Ok(Some(val))
+    });
 
-    assert!(headers.is_ok());
+    auth.expect_get_header_date().times(1).returning(|| {
+        Ok("foo6".parse().unwrap())
+    });
+    auth.expect_get_header_resource().times(1).returning(|| {
+        Ok("foo7".parse().unwrap())
+    });
 
-    let header = headers.unwrap();
+    let map = HeaderMap::from_auth(&auth);
+    assert!(map.is_ok());
+    
+    let map = map.unwrap();
+    assert_eq!(map.get("AccessKeyId").unwrap().to_str().unwrap(), "foo1");
+    assert_eq!(map.get("SecretAccessKey").unwrap().to_str().unwrap(), "foo2");
+}
 
-    assert_eq!(header.get("AccessKeyId"), Some(&HeaderValue::from_str("foo_key").unwrap()));
-    assert_eq!(header.get("SecretAccessKey"), Some(&HeaderValue::from_str("foo_secret").unwrap()));
-    assert_eq!(header.get("VERB"), Some(&HeaderValue::from_str("GET").unwrap()));
-    assert_eq!(header.get("Content-MD5"), None);
-    assert_eq!(header.get("Content-Type"), Some(&HeaderValue::from_str("text/plain").unwrap()));
-    assert_eq!(header.get("CanonicalizedResource"), Some(&HeaderValue::from_str("").unwrap()));
-    assert_eq!(header.get("date"), Some(&HeaderValue::from_str("Sat, 03 Sep 2022 16:04:47 GMT").unwrap()));
+#[test]
+fn test_append_sign(){
+    mock!{
+        BarStruct {}
 
-    let auth = crate::auth::Auth{
-        access_key_id: KeyId::from_static("foo_key"),
-        access_key_secret: "foo_secret".to_owned().into(),
-        verb: VERB::GET,
-        content_md5: Some(ContentMd5::from_static("bar")),
-        content_type: Some(ContentType::from_static("text/plain")),
-        date: "Sat, 03 Sep 2022 16:04:47 GMT".into(),
-        canonicalized_resource: CanonicalizedResource::new(""),
-        headers: HeaderMap::new(),
-    };
+        impl TryInto<HeaderValue> for BarStruct {
+            type Error = OssError;
+            fn try_into(self) -> OssResult<HeaderValue>;
+        }
+    }
 
-    let headers = HeaderMap::from_auth(&auth);
+    let mut myinto = MockBarStruct::new();
+    myinto.expect_try_into().times(1).returning(||{
+        let val = HeaderValue::from_str("foo").unwrap();
+        Ok(val)
+    });
 
-    assert!(headers.is_ok());
+    let mut map = HeaderMap::new();
+    let res = map.append_sign(myinto);
 
-    let header = headers.unwrap();
+    assert!(res.is_ok());
+    let val = res.unwrap();
+    assert!(val.is_none());
+    assert!(!map.is_empty());
 
-    assert_eq!(header.get("Content-MD5"), Some(&HeaderValue::from_str("bar").unwrap()));
+    let mut myinto = MockBarStruct::new();
+    myinto.expect_try_into().times(1).returning(||{
+        let val = HeaderValue::from_str("foo").unwrap();
+        Ok(val)
+    });
+
+    let mut map = HeaderMap::new();
+    map.insert("Authorization", "bar".try_into().unwrap());
+    let res = map.append_sign(myinto);
+
+    assert!(res.is_ok());
+    let val = res.unwrap();
+    assert!(matches!(val, Some(v) if v==HeaderValue::from_bytes(b"bar").unwrap()));
 }
 
 #[test]
@@ -358,10 +481,65 @@ fn header_into_string(){
 }
 
 mod sign_string_struct{
-    use crate::auth::AuthBuilder;
+    use std::borrow::Cow;
+
+    use crate::{auth::{MockAuthSignString, MockHeaderToSign, SignString}, types::{KeyId, KeySecret, ContentMd5, ContentType, Date, CanonicalizedResource}};
 
     #[test]
-    fn test_new(){
-        let auth_builder = AuthBuilder::default();
+    fn test_from_auth(){
+        let mut auth = MockAuthSignString::new();
+
+        auth.expect_key().times(1).returning(|| {
+            Cow::Owned(KeyId::new("foo1"))
+        });
+        auth.expect_secret().times(1).returning(|| {
+            KeySecret::new("foo2")
+        });
+
+        auth.expect_verb().times(1).returning(|| {
+            "GET".to_string()
+        });
+
+        auth.expect_content_md5().times(1).returning(||{
+            ContentMd5::new("foo3")
+        });
+
+        auth.expect_content_type().times(1).returning(||{
+            ContentType::new("foo4")
+        });
+
+        auth.expect_date().times(1).returning(||{
+            Date::new("foo5")
+        });
+
+        auth.expect_canonicalized_resource().times(1).returning(|| {
+            CanonicalizedResource::new("foo6")
+        });
+
+        let mut header = MockHeaderToSign::new();
+
+        header.expect_to_sign_string().times(1).returning(|| {
+            "foo7".to_string()
+        });
+
+        let res = SignString::from_auth(&auth, &header);
+        
+        assert!(res.is_ok());
+        let val = res.unwrap();
+        assert_eq!(val.data(), "GET\nfoo3\nfoo4\nfoo5\nfoo7foo6".to_string());
+        assert_eq!(val.key_string(), "foo1".to_string());
+        assert_eq!(val.secret_string(), "foo2".to_string());
+    
+    }
+
+    #[test]
+    fn test_to_sign(){
+        let sign_string = SignString::new("bar".to_string(), KeyId::from("foo1"), KeySecret::from("foo2"));
+
+        let res = sign_string.to_sign();
+        assert!(res.is_ok());
+        let sign = res.unwrap();
+        assert_eq!(sign.data(), "gTzwiN1fRQV90YcecTvo1pH+kI8=".to_string());
+        assert_eq!(sign.key_string(), "foo1".to_string());
     }
 }
