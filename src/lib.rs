@@ -90,6 +90,8 @@ pub mod bucket;
 /// 包含查询当前 bucket 下所有存储对象的方法
 pub mod object;
 
+pub mod config;
+
 /// # 对 reqwest 进行了简单的封装，加上了 OSS 的签名验证功能
 pub mod client;
 

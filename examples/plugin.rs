@@ -1,7 +1,7 @@
 //! `cargo run --example plugin --features=blocking,plugin`
 extern crate dotenv;
 
-use aliyun_oss_client::errors::OssResult;
+use aliyun_oss_client::errors::{OssResult, OssError};
 use aliyun_oss_client::plugin::Plugin;
 use aliyun_oss_client::types::{EndPoint};
 use dotenv::dotenv;
@@ -64,7 +64,8 @@ impl Plugin for MyPlugin{
     self.bucket = client.endpoint.to_string();
 
     // 插件可以修改 client 结构体中的值
-    client.endpoint = EndPoint::new("https://oss-cn-shanghai.aliyuncs.com");
+    client.endpoint = EndPoint::new("https://oss-cn-shanghai.aliyuncs.com")
+      .map_err(|e|OssError::InvalidEndPoint(e))?;
     Ok(())
   }
 

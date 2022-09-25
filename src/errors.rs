@@ -6,6 +6,8 @@ use regex::Regex;
 #[cfg(test)]
 use mockall::{automock, predicate::*};
 
+use crate::types::InvalidEndPoint;
+
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum OssError{
@@ -52,6 +54,9 @@ pub enum OssError{
   #[cfg(feature = "plugin")]
   #[error("plugin : {0}")]
   Plugin(#[from] self::plugin::PluginError),
+
+  #[error("invalid endpoint name")]
+  InvalidEndPoint(#[from] InvalidEndPoint),
 
   #[error(transparent)]
   Other(#[from] anyhow::Error),

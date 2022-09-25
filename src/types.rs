@@ -1,12 +1,16 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
+use std::error::Error;
+use std::fmt::{Display, Formatter, self};
 
 use chrono::{DateTime, Utc};
 use reqwest::Url;
 use reqwest::header::{HeaderValue,InvalidHeaderValue};
 
+use crate::config::{BucketBase, ObjectBase};
 use crate::errors::{OssError, OssResult};
+#[cfg(feature = "plugin")]
+use crate::plugin::PluginStore;
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct KeyId(
@@ -150,8 +154,56 @@ impl From<&'static str> for EndPoint {
 }
 
 impl EndPoint {
-    pub fn new(url: impl Into<Cow<'static, str>>) -> Self {
-        Self(url.into())
+
+    /// 初始化 endpoint
+    /// 举例
+    /// ```
+    /// use aliyun_oss_client::types::EndPoint;
+    /// let res = EndPoint::new("https://a-b223c.aliyuncs.com");
+    /// assert!(res.is_ok());
+    /// let res = EndPoint::new("http://a-b223c.aliyuncs.com");
+    /// assert!(res.is_ok());
+    /// let res = EndPoint::new("https://abc.foo.aliyuncs.com");
+    /// assert!(res.is_err());
+    /// ```
+    pub fn new(url: impl Into<Cow<'static, str>>) -> Result<Self, InvalidEndPoint> {
+        let url = url.into();
+
+        let string = String::from(url.clone());
+        
+        if !string.ends_with(".aliyuncs.com") {
+            return Err(InvalidEndPoint)
+        }
+
+        if !(string.starts_with("http://") || string.starts_with("https://")) {
+            return Err(InvalidEndPoint)
+        }
+
+        let start: usize = if string.starts_with("http://") {
+            7
+        }else{
+            8
+        };
+
+        let end = string.len() - 13;
+
+        let second_name = &string[start..end];
+
+        fn valid_character(c: char) -> bool {
+            match c {
+                _ if c.is_ascii_alphanumeric() => true,
+                '-' => true,
+                _ => false,
+            }
+        }
+
+        if !second_name.chars().all(valid_character) {
+            return Err(InvalidEndPoint);
+        }
+
+        Ok(
+            Self(url)
+        )
     }
 
     pub const fn from_static(url: &'static str) -> Self {
@@ -159,9 +211,23 @@ impl EndPoint {
     }
 
     pub fn to_url(&self) -> OssResult<Url> {
-        Url::parse(self.as_ref()).map_err(|e|OssError::Input(e.to_string()))
+        let url = Url::parse(self.as_ref()).map_err(|e|OssError::Input(e.to_string()));
+        url
     }
 }
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct InvalidEndPoint;
+
+impl Error for InvalidEndPoint {}
+
+impl fmt::Display for InvalidEndPoint {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "endpoint must like with https://xxx.aliyuncs.com")
+    }
+}
+
 
 //===================================================================================================
 
@@ -407,6 +473,68 @@ impl CanonicalizedResource {
     pub const fn from_static(val: &'static str) -> Self {
         Self(Cow::Borrowed(val))
     }
+
+    /// 获取 bucket 的签名参数
+    pub fn from_bucket(bucket: BucketBase, query: Option<&str>) -> Self {
+        match query{
+            Some(q) =>{
+                if q == "acl"
+                || q == "bucketInfo"{
+                    return Self::from(format!("/{}/?{}", bucket.name(), q));
+                }
+
+                Self::from(format!("/{}/", bucket.name()))
+            },
+            None => {
+                Self::from_static("/")
+            }
+        }
+    }
+
+    /// 获取 bucket 的签名参数
+    /// 带查询条件的
+    /// 
+    /// 如果查询条件中有翻页的话，则忽略掉其他字段
+    pub fn from_bucket_query(bucket: BucketBase, query: Query) -> Self {
+        match query.get("continuation-token") {
+            Some(v) => {
+                Self::from(format!("/{}/?continuation-token={}", bucket.name(), v.as_ref()))
+            },
+            None => {
+                Self::from(format!("/{}/", bucket.name()))
+            },
+        }
+    }
+
+    /// 根据 OSS 存储对象（Object）查询签名参数
+    pub fn from_object(object: ObjectBase, query: Option<Query>) -> Self {
+        let bucket = object.bucket_name();
+        let path = object.path();
+
+        match query {
+            Some(q) => {
+                let query_value = q.to_url_query();
+                Self::from(format!("/{}/{}?{}", bucket, path, query_value))
+            },
+            None => {
+                Self::from(format!("/{}/{}", bucket, path))
+            }
+        }
+    }
+
+    #[cfg(feature = "plugin")]
+    pub fn from_plugin(plugin_stores: PluginStore, url: &Url) -> OssResult<Option<Self>> {
+        let result = plugin_stores.get_canonicalized_resource(
+            url
+        )?;
+
+        let res = match result {
+            Some(re) => Some(CanonicalizedResource::from(re)),
+            None => None,
+        };
+        
+        Ok(res)
+    }
 }
 
 //===================================================================================================
@@ -466,6 +594,21 @@ impl Query {
         }
         let query_str = "list-type=2".to_owned() + &query_str;
         query_str
+    }
+
+    /// 转化成 url 参数的形式
+    /// a=foo&b=bar
+    /// 未进行 urlencode 转码
+    pub fn to_url_query(&self) -> String{
+        let list: Vec<String> = self.inner.iter().map(|(k,v)|{
+            let mut res = String::new();
+            res.push_str(k.as_ref());
+            res.push_str("=");
+            res.push_str(v.as_ref());
+            res
+        }).collect();
+
+        list.join("&")
     }
 }
 
