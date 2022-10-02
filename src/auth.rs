@@ -111,6 +111,66 @@ impl Default for VERB {
     }
 }
 
+
+#[cfg_attr(test, automock)]
+pub trait AuthToHeaderMap{
+    fn get_original_header(&self) -> HeaderMap;
+    fn get_header_key(&self) -> OssResult<HeaderValue>;
+    fn get_header_secret(&self) -> OssResult<HeaderValue>;
+    fn get_header_verb(&self) -> OssResult<HeaderValue>;
+    fn get_header_md5(&self) -> OssResult<Option<HeaderValue>>;
+    fn get_header_content_type(&self) -> OssResult<Option<HeaderValue>>;
+    fn get_header_date(&self) -> OssResult<HeaderValue>;
+    fn get_header_resource(&self) -> OssResult<HeaderValue>;
+}
+
+impl AuthToHeaderMap for Auth{
+    fn get_original_header(&self) -> HeaderMap {
+        // TODO 可优化
+        self.headers.clone()
+    }
+    fn get_header_key(&self) -> OssResult<HeaderValue>{
+        let val: HeaderValue = self.access_key_id.as_ref().try_into()?;
+        Ok(val)
+    }
+    fn get_header_secret(&self) -> OssResult<HeaderValue>{
+        let val: HeaderValue = self.access_key_secret.as_ref().try_into()?;
+        Ok(val)
+    }
+    fn get_header_verb(&self) -> OssResult<HeaderValue> {
+        let val: HeaderValue = self.verb.clone().try_into()?;
+        Ok(val)
+    }
+    fn get_header_md5(&self) -> OssResult<Option<HeaderValue>> {
+        let res = match self.content_md5.clone() {
+            Some(val) => {
+                let val: HeaderValue = val.try_into()?;
+                Some(val)
+            },
+            None => None,
+        };
+        Ok(res)
+    }
+    fn get_header_content_type(&self) -> OssResult<Option<HeaderValue>> {
+        let res = match self.content_type.clone() {
+            Some(val) => {
+                let val: HeaderValue = val.try_into()?;
+                Some(val)
+            },
+            None => None,
+        };
+        Ok(res)
+    }
+    fn get_header_date(&self) -> OssResult<HeaderValue> {
+        let val: HeaderValue = self.date.as_ref().try_into()?;
+        Ok(val)
+    }
+    fn get_header_resource(&self) -> OssResult<HeaderValue> {
+        let val: HeaderValue = self.canonicalized_resource.as_ref().try_into()?;
+        Ok(val)
+    }
+}
+
 pub trait AuthToOssHeader: AuthToHeaderMap{
     fn to_oss_header(&self) -> OssResult<OssHeader>;
 }
@@ -294,65 +354,6 @@ impl AuthBuilder{
 
     pub fn get_headers(&self) -> OssResult<HeaderMap>{
         self.auth.get_headers()
-    }
-}
-
-#[cfg_attr(test, automock)]
-pub trait AuthToHeaderMap{
-    fn get_original_header(&self) -> HeaderMap;
-    fn get_header_key(&self) -> OssResult<HeaderValue>;
-    fn get_header_secret(&self) -> OssResult<HeaderValue>;
-    fn get_header_verb(&self) -> OssResult<HeaderValue>;
-    fn get_header_md5(&self) -> OssResult<Option<HeaderValue>>;
-    fn get_header_content_type(&self) -> OssResult<Option<HeaderValue>>;
-    fn get_header_date(&self) -> OssResult<HeaderValue>;
-    fn get_header_resource(&self) -> OssResult<HeaderValue>;
-}
-
-impl AuthToHeaderMap for Auth{
-    fn get_original_header(&self) -> HeaderMap {
-        // TODO 可优化
-        self.headers.clone()
-    }
-    fn get_header_key(&self) -> OssResult<HeaderValue>{
-        let val: HeaderValue = self.access_key_id.as_ref().try_into()?;
-        Ok(val)
-    }
-    fn get_header_secret(&self) -> OssResult<HeaderValue>{
-        let val: HeaderValue = self.access_key_secret.as_ref().try_into()?;
-        Ok(val)
-    }
-    fn get_header_verb(&self) -> OssResult<HeaderValue> {
-        let val: HeaderValue = self.verb.clone().try_into()?;
-        Ok(val)
-    }
-    fn get_header_md5(&self) -> OssResult<Option<HeaderValue>> {
-        let res = match self.content_md5.clone() {
-            Some(val) => {
-                let val: HeaderValue = val.try_into()?;
-                Some(val)
-            },
-            None => None,
-        };
-        Ok(res)
-    }
-    fn get_header_content_type(&self) -> OssResult<Option<HeaderValue>> {
-        let res = match self.content_type.clone() {
-            Some(val) => {
-                let val: HeaderValue = val.try_into()?;
-                Some(val)
-            },
-            None => None,
-        };
-        Ok(res)
-    }
-    fn get_header_date(&self) -> OssResult<HeaderValue> {
-        let val: HeaderValue = self.date.as_ref().try_into()?;
-        Ok(val)
-    }
-    fn get_header_resource(&self) -> OssResult<HeaderValue> {
-        let val: HeaderValue = self.canonicalized_resource.as_ref().try_into()?;
-        Ok(val)
     }
 }
 

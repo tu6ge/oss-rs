@@ -55,7 +55,7 @@ pub enum OssError{
   #[error("plugin : {0}")]
   Plugin(#[from] self::plugin::PluginError),
 
-  #[error("invalid endpoint name")]
+  #[error("{0}")]
   InvalidEndPoint(#[from] InvalidEndPoint),
 
   #[error(transparent)]
