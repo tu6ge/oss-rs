@@ -5,7 +5,7 @@ use reqwest::{Client as AsyncClient, RequestBuilder as AsyncRequestBuilder, Resp
 use reqwest::header::{HeaderMap};
 
 use crate::auth::{VERB, AuthBuilder};
-use crate::config::BucketBase;
+use crate::config::{BucketBase, Config};
 use chrono::prelude::*;
 use reqwest::Url;
 use crate::errors::{OssResult,OssError};
@@ -26,8 +26,8 @@ use crate::types::{KeyId, KeySecret, EndPoint, BucketName, CanonicalizedResource
 #[derive(Default)]
 pub struct Client{
     auth_builder: AuthBuilder,
-    pub endpoint: EndPoint,
-    pub bucket: BucketName,
+    endpoint: EndPoint,
+    bucket: BucketName,
     
     #[cfg(feature = "plugin")]
     pub plugins: Mutex<PluginStore>,
@@ -35,8 +35,7 @@ pub struct Client{
 }
 
 impl Client {
-
-    #[cfg(not(feature = "plugin"))]
+    
     pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Client {
         let auth_builder = AuthBuilder::default()
             .key(access_key_id)
@@ -46,35 +45,45 @@ impl Client {
             auth_builder,
             endpoint,
             bucket,
+            #[cfg(feature = "plugin")]
+            plugins: Mutex::new(PluginStore::default()),
             infer: Infer::default(),
         }
     }
-
-    #[cfg(feature = "plugin")]
-    pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Client {
+    
+    pub fn from_config(config: &Config) -> Client{
         let auth_builder = AuthBuilder::default()
-            .key(access_key_id)
-            .secret(access_key_secret);
+            .key(config.key())
+            .secret(config.secret());
         
         Client{
             auth_builder,
-            endpoint,
-            bucket,
+            endpoint: config.endpoint(),
+            bucket: config.bucket(),
+            #[cfg(feature = "plugin")]
             plugins: Mutex::new(PluginStore::default()),
             infer: Infer::default(),
         }
     }
 
+    #[inline]
     pub fn set_bucket_name(&mut self, bucket: BucketName){
         self.bucket = bucket
     }
 
+    #[inline]
     pub fn get_bucket_base(&self) -> BucketBase {
         BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned())
     }
 
+    #[inline]
     pub fn get_bucket_url(&self) -> OssResult<Url>{
         self.get_bucket_base().to_url()
+    }
+
+    #[inline]
+    pub fn get_endpoint_url(&self) -> OssResult<Url>{
+        self.endpoint.to_url()
     }
 
     /// # 注册插件

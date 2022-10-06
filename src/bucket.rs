@@ -14,13 +14,13 @@ use chrono::prelude::*;
 #[derive(Clone, Default)]
 #[non_exhaustive]
 pub struct ListBuckets {
-  pub prefix: Option<String>,
-  pub marker: Option<String>,
-  pub max_keys: Option<String>,
-  pub is_truncated: bool,
-  pub next_marker: Option<String>,
-  pub id: Option<String>,
-  pub display_name: Option<String>,
+  prefix: Option<String>,
+  marker: Option<String>,
+  max_keys: Option<String>,
+  is_truncated: bool,
+  next_marker: Option<String>,
+  id: Option<String>,
+  display_name: Option<String>,
   pub buckets: Vec<Bucket>,
   client: Arc<Client>,
 }
@@ -58,15 +58,15 @@ pub struct Bucket{
   base: BucketBase,
   // bucket_info: Option<Bucket<'b>>,
   // bucket: Option<Bucket<'c>>,
-  pub creation_date: DateTime<Utc>,
+  creation_date: DateTime<Utc>,
   //pub extranet_endpoint: String,
-  pub intranet_endpoint: String,
-  pub location: String,
+  intranet_endpoint: String,
+  location: String,
   // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
   // access_control_list;
   // pub grant: Grant,
   // pub data_redundancy_type: Option<DataRedundancyType>,
-  pub storage_class: String,
+  storage_class: String,
   // pub versioning: &'a str,
   // ServerSideEncryptionRule,
   // ApplyServerSideEncryptionByDefault,
@@ -262,7 +262,7 @@ impl Client {
   */
   #[cfg(feature = "blocking")]
   pub fn blocking_get_bucket_list(self) -> OssResult<ListBuckets> {
-    let url = self.endpoint.to_url()?;
+    let url = self.get_endpoint_url()?;
     
     let canonicalized = CanonicalizedResource::default();
 
@@ -277,7 +277,7 @@ impl Client {
   }
 
   pub async fn get_bucket_list(self) -> OssResult<ListBuckets>{
-    let url = self.endpoint.to_url()?;
+    let url = self.get_endpoint_url()?;
     //url.set_path(self.bucket)
 
     let canonicalized = CanonicalizedResource::default();

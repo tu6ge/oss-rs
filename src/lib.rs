@@ -77,6 +77,7 @@ client.blocking_delete_object("examples/bg2015071010.png").unwrap();
  */
 
 pub mod types;
+use config::Config;
 use types::{KeyId, KeySecret, EndPoint, BucketName};
 /// # 验证模块
 /// 包含了签名验证的一些方法，header 以及参数的封装
@@ -155,6 +156,6 @@ where ID: Into<KeyId>,
   E: Into<EndPoint>,
   B: Into<BucketName>,
 {
-  client::Client::new(access_key_id.into(),access_key_secret.into(), endpoint.into(), bucket.into())
+  let config = Config::new(access_key_id, access_key_secret, endpoint, bucket);
+  client::Client::from_config(&config)
 }
-

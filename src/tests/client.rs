@@ -16,7 +16,7 @@ fn set_bucket_name(){
     let mut client = client("a","b","c","d");
     client.set_bucket_name("abcaaa".to_owned().into());
 
-    assert_eq!(client.bucket.as_ref(), "abcaaa");
+    assert_eq!(client.get_bucket_base().name(), "abcaaa");
 }
 
 mod test_use_plugin{

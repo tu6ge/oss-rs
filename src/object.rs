@@ -19,14 +19,14 @@ use crate::types::{Query, UrlQuery, CanonicalizedResource};
 #[non_exhaustive]
 pub struct ObjectList {
     bucket: BucketBase,
-    pub name: String,
-    pub prefix: String,
-    pub max_keys: u32,
-    pub key_count: u64,
+    name: String,
+    prefix: String,
+    max_keys: u32,
+    key_count: u64,
     pub object_list: Vec<Object>,
-    pub next_continuation_token: Option<String>,
+    next_continuation_token: Option<String>,
     client: Arc<Client>,
-    pub search_query: Query,
+    search_query: Query,
 }
 
 impl fmt::Debug for ObjectList {
@@ -89,12 +89,12 @@ impl ObjectList {
 #[non_exhaustive]
 pub struct Object {
     base: ObjectBase,
-    pub key: String,
-    pub last_modified: DateTime<Utc>,
-    pub etag: String,
-    pub _type: String,
-    pub size: u64,
-    pub storage_class: String,
+    key: String,
+    last_modified: DateTime<Utc>,
+    etag: String,
+    _type: String,
+    size: u64,
+    storage_class: String,
 }
 
 
@@ -192,7 +192,7 @@ impl Client {
 
     url.set_search_query(&query);
 
-    let bucket = BucketBase::new(self.bucket.clone(), self.endpoint.clone());
+    let bucket = self.get_bucket_base();
     let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
     let response = self.blocking_builder(VERB::GET, &url, None, canonicalized)?;
@@ -211,7 +211,7 @@ impl Client {
 
     url.set_search_query(&query);
 
-    let bucket = BucketBase::new(self.bucket.clone(), self.endpoint.clone());
+    let bucket = self.get_bucket_base();
 
     let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
