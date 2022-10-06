@@ -1,18 +1,19 @@
 use std::fmt;
+use std::sync::Arc;
 use crate::client::{Client, AsyncRequestHandle};
 #[cfg(feature = "blocking")]
 use crate::client::ReqeustHandler;
 use crate::auth::VERB;
-use crate::errors::{OssResult,OssError};
+use crate::config::BucketBase;
+use crate::errors::{OssResult};
 use crate::object::ObjectList;
-use crate::traits::{ObjectListTrait, BucketTrait, ListBucketTrait};
-use crate::types::{Query, UrlQuery};
+use crate::traits::{OssIntoBucketList, InvalidBucketListValue, OssIntoBucket, InvalidBucketValue, OssIntoObjectList};
+use crate::types::{Query, UrlQuery, CanonicalizedResource};
 use chrono::prelude::*;
-use reqwest::Url;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[non_exhaustive]
-pub struct ListBuckets<'a> {
+pub struct ListBuckets {
   pub prefix: Option<String>,
   pub marker: Option<String>,
   pub max_keys: Option<String>,
@@ -20,11 +21,11 @@ pub struct ListBuckets<'a> {
   pub next_marker: Option<String>,
   pub id: Option<String>,
   pub display_name: Option<String>,
-  pub buckets: Vec<Bucket<'a>>,
-  client: Option<&'a Client>,
+  pub buckets: Vec<Bucket>,
+  client: Arc<Client>,
 }
 
-impl fmt::Debug for ListBuckets<'_> {
+impl fmt::Debug for ListBuckets {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
     f.debug_struct("ListBuckets")
       .field("prefix", &self.prefix)
@@ -39,53 +40,28 @@ impl fmt::Debug for ListBuckets<'_> {
   }
 }
 
-impl ListBucketTrait for ListBuckets<'_> {
-  type Bucket = Bucket<'static>;
-  fn from_oss(
-    prefix: Option<String>, 
-    marker: Option<String>,
-    max_keys: Option<String>,
-    is_truncated: bool,
-    next_marker: Option<String>,
-    id: Option<String>,
-    display_name: Option<String>,
-    buckets: Vec<Bucket>,
-  ) -> OssResult<ListBuckets<'_>> {
-    Ok(ListBuckets {
-      prefix,
-      marker,
-      max_keys,
-      is_truncated,
-      next_marker,
-      id,
-      display_name,
-      buckets,
-      client: None,
-    })
-  }
-}
-
-impl <'b> ListBuckets<'b>  {
-  pub fn set_client(&mut self, client: &'b Client){
-    self.client = Some(client);
-    for i in self.buckets.iter_mut() {
-      i.set_client(client);
+impl ListBuckets  {
+    pub fn set_client(&mut self, client: Arc<Client>) {
+        self.client = Arc::clone(&client);
+        for i in self.buckets.iter_mut() {
+            i.set_client(Arc::clone(&client));
+        }
+        
     }
-  }
 }
 
 
 
 #[derive(Clone)]
 #[non_exhaustive]
-pub struct Bucket<'a>{
+pub struct Bucket{
+  base: BucketBase,
   // bucket_info: Option<Bucket<'b>>,
   // bucket: Option<Bucket<'c>>,
   pub creation_date: DateTime<Utc>,
-  pub extranet_endpoint: String,
+  //pub extranet_endpoint: String,
   pub intranet_endpoint: String,
   pub location: String,
-  pub name: String,
   // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
   // access_control_list;
   // pub grant: Grant,
@@ -98,85 +74,185 @@ pub struct Bucket<'a>{
   // pub kms_master_key_id: Option<&'a str>,
   // pub cross_region_replication: &'a str,
   // pub transfer_acceleration: &'a str,
-  client: Option<&'a Client>,
+  client: Arc<Client>,
 }
 
-impl fmt::Debug for Bucket<'_> {
+impl fmt::Debug for Bucket{
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("Bucket")
+      .field("base", &self.base)
       .field("creation_date", &self.creation_date)
-      .field("extranet_endpoint", &self.extranet_endpoint)
+      //.field("extranet_endpoint", &self.extranet_endpoint)
       .field("intranet_endpoint", &self.intranet_endpoint)
       .field("location", &self.location)
-      .field("name", &self.name)
       .field("storage_class", &self.storage_class)
       .finish()
   }
 }
 
-impl BucketTrait for Bucket<'_> {
-  fn from_oss(
-    name: String,
-    creation_date: String,
-    location: String,
-    extranet_endpoint: String,
-    intranet_endpoint: String,
-    storage_class: String,
-  ) -> OssResult<Bucket<'static>> {
-    Ok(Bucket {
-      name,
-      creation_date: creation_date.parse::<DateTime<Utc>>()?,
-      // data_redundancy_type: None,
-      location,
-      extranet_endpoint,
-      intranet_endpoint,
-      storage_class,
-      client: None,
-    })
-  }
+impl Default for Bucket{
+    fn default() -> Self{
+        Self { 
+            base: BucketBase::default(),
+            creation_date: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
+            //extranet_endpoint: String::default(),
+            intranet_endpoint: String::default(),
+            location: String::default(),
+            storage_class: String::default(),
+            client: Arc::default(),
+        }
+    }
 }
-impl <'b> Bucket<'b> {
-  pub fn set_client(&mut self, client: &'b Client){
-    self.client = Some(client);
+
+impl OssIntoBucket for Bucket {
+    fn set_name(mut self, name: String)-> Result<Self, InvalidBucketValue> {
+        self.base.set_name(name);
+        Ok(self)
+    }
+
+    fn set_creation_date(mut self, creation_date: String) -> Result<Self, InvalidBucketValue> {
+        self.creation_date = creation_date.parse::<DateTime<Utc>>().map_err(|_|InvalidBucketValue{})?;
+        Ok(self)
+    }
+
+    fn set_location(mut self, location: String) -> Result<Self, InvalidBucketValue> {
+        self.location = location;
+        Ok(self)
+    }
+
+    fn set_extranet_endpoint(mut self, extranet_endpoint: String) -> Result<Self, InvalidBucketValue> {
+        let mut val = String::from("https://");
+        val.push_str(&extranet_endpoint);
+        if let Err(e) = self.base.set_endpoint(val) {
+          return Err(InvalidBucketValue::from(e))
+        }
+        Ok(self)
+    }
+
+    fn set_intranet_endpoint(mut self, intranet_endpoint: String) -> Result<Self, InvalidBucketValue> {
+        self.intranet_endpoint = intranet_endpoint;
+        Ok(self)
+    }
+
+    fn set_storage_class(mut self, storage_class: String) -> Result<Self, InvalidBucketValue> {
+        self.storage_class = storage_class;
+        Ok(self)
+    }
+     
+}
+
+
+impl Bucket {
+  pub fn set_client(&mut self, client: Arc<Client>){
+    self.client = client;
   }
 
-  pub fn client(&self) -> &Client{
-    self.client.unwrap()
+  // TODO
+  pub fn client(&self) -> Arc<Client>{
+      Arc::clone(&self.client)
   }
 
   #[cfg(feature = "blocking")]
   pub fn blocking_get_object_list(&self, query: Query) -> OssResult<ObjectList>{
-    let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
-    let mut url = Url::parse(&input).map_err(|_| OssError::Input("url parse error".to_string()))?;
+    let mut url = self.base.to_url()?;
 
     url.set_search_query(&query);
+
+    let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
 
     let client  = self.client();
 
-    let response = client.blocking_builder(VERB::GET, &url, None, Some(self.name.to_string()))?;
+    let response = client.blocking_builder(VERB::GET, &url, None, canonicalized)?;
     let content = response.send()?.handle_error()?;
     Ok(
-      ObjectList::from_xml(content.text()?)?.set_client(&client).set_search_query(query)
+      ObjectList::default().from_xml(content.text()?,&self.base)?
+          .set_bucket(self.base.clone())
+          .set_client(client)
+          .set_search_query(query)
     )
   }
 
-  pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList<'_>>{
-    // TODO 可优化
-    let input = "https://".to_owned() + &self.name + "." + &self.extranet_endpoint;
-    let mut url = Url::parse(&input).map_err(|_| OssError::Input("url parse error".to_string()))?;
+  pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList>{
+    let mut url = self.base.to_url()?;
 
     url.set_search_query(&query);
 
-    let response = self.client().builder(VERB::GET, &url, None, Some(self.name.to_string())).await?;
+    let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
+
+    let client = self.client();
+
+    let response = client.builder(VERB::GET, &url, None, canonicalized).await?;
     let content = response.send().await?.handle_error().await?; 
 
     // println!("{}", &content.text()?);
     // return Err(errors::OssError::Other(anyhow!("abc")));
 
     Ok(
-      ObjectList::from_xml(content.text().await?)?.set_client(&self.client()).set_search_query(query)
+      ObjectList::default().from_xml(content.text().await?, &self.base)?
+          .set_bucket(self.base.clone())
+          .set_client(client)
+          .set_search_query(query)
     )
   }
+}
+
+impl OssIntoBucketList<Bucket> for ListBuckets{
+    fn set_prefix(mut self, prefix: String) -> Result<Self, InvalidBucketListValue> {
+        self.prefix = if prefix.len()>0 {
+            Some(prefix)
+        } else {
+            None
+        };
+        Ok(self)
+    }
+    fn set_marker(mut self, marker: String) -> Result<Self, InvalidBucketListValue> {
+        self.marker = if marker.len()>0 {
+            Some(marker)
+        } else {
+            None
+        };
+        Ok(self)
+    }
+    fn set_max_keys(mut self, max_keys: String) -> Result<Self, InvalidBucketListValue>{
+        self.max_keys = if max_keys.len()>0 {
+            Some(max_keys)
+        }else {
+            None
+        };
+        Ok(self)
+    }
+    fn set_is_truncated(mut self, is_truncated: bool) -> Result<Self, InvalidBucketListValue>{
+        self.is_truncated = is_truncated;
+        Ok(self)
+    }
+    fn set_next_marker(mut self, marker: String) -> Result<Self, InvalidBucketListValue>{
+        self.next_marker = if marker.is_empty() {
+            None
+        }else{
+            Some(marker)
+        };
+        Ok(self)
+    }
+    fn set_id(mut self, id: String) -> Result<Self, InvalidBucketListValue>{
+        self.id = if id.is_empty() {
+           None
+        }else{
+            Some(id)
+        };
+        Ok(self)
+    }
+    fn set_display_name(mut self, display_name: String) -> Result<Self, InvalidBucketListValue> {
+        self.display_name = if display_name.is_empty() {
+            None
+        } else {
+            Some(display_name)
+        };
+        Ok(self)
+    }
+    fn set_list(mut self, list: Vec<Bucket>) -> Result<Self, InvalidBucketListValue> {
+        self.buckets = list;
+        Ok(self)
+    }
 }
 
 
@@ -185,52 +261,68 @@ impl Client {
   /** # 获取 buiket 列表
   */
   #[cfg(feature = "blocking")]
-  pub fn blocking_get_bucket_list(&self) -> OssResult<ListBuckets> {
+  pub fn blocking_get_bucket_list(self) -> OssResult<ListBuckets> {
     let url = self.endpoint.to_url()?;
-    //url.set_path(self.bucket)
+    
+    let canonicalized = CanonicalizedResource::default();
 
-    let response = self.blocking_builder(VERB::GET, &url, None, None)?;
+    let response = self.blocking_builder(VERB::GET, &url, None, canonicalized)?;
     let content = response.send()?.handle_error()?;
-    let mut list = ListBuckets::from_xml(content.text()?)?;
-    list.set_client(&self);
-    Ok(list)
+
+    let mut bucket_list = ListBuckets::default();
+
+    bucket_list = bucket_list.from_xml(content.text()?)?;
+    bucket_list.set_client(Arc::new(self));
+    Ok(bucket_list)
   }
 
-  pub async fn get_bucket_list(&self) -> OssResult<ListBuckets<'_>>{
+  pub async fn get_bucket_list(self) -> OssResult<ListBuckets>{
     let url = self.endpoint.to_url()?;
     //url.set_path(self.bucket)
 
-    let response = self.builder(VERB::GET, &url, None, None).await?;
+    let canonicalized = CanonicalizedResource::default();
+
+    let response = self.builder(VERB::GET, &url, None, canonicalized).await?;
     let content = response.send().await?.handle_error().await?;
+
+    let mut bucket_list = ListBuckets::default();
     
-    let mut list = ListBuckets::from_xml(content.text().await?)?;
-    list.set_client(&self);
-    Ok(list)
+    bucket_list = bucket_list.from_xml(content.text().await?)?;
+
+    bucket_list.set_client(Arc::new(self));
+    Ok(bucket_list)
   }
 
   #[cfg(feature = "blocking")]
-  pub fn blocking_get_bucket_info(&self) -> OssResult<Bucket> {
+  pub fn blocking_get_bucket_info(self) -> OssResult<Bucket> {
     let headers = None;
+    let query = Some("bucketInfo");
     let mut bucket_url = self.get_bucket_url()?;
-    bucket_url.set_query(Some("bucketInfo"));
+    bucket_url.set_query(query);
 
-    let response = self.blocking_builder(VERB::GET, &bucket_url, headers, None)?;
+    let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
+
+    let response = self.blocking_builder(VERB::GET, &bucket_url, headers, canonicalized)?;
     let content = response.send()?.handle_error()?;
-    let mut bucket = Bucket::from_xml(content.text()?)?;
-    bucket.set_client(&self);
+    let mut bucket = Bucket::default().from_xml(content.text()?)?;
+    bucket.set_client(Arc::new(self));
+
     Ok(bucket)
   }
 
-  pub async fn get_bucket_info(&self) -> OssResult<Bucket<'_>> {
+  pub async fn get_bucket_info(self) -> OssResult<Bucket> {
     let headers = None;
+    let query = Some("bucketInfo");
     let mut bucket_url = self.get_bucket_url()?;
-    bucket_url.set_query(Some("bucketInfo"));
+    bucket_url.set_query(query);
 
-    let response = self.builder(VERB::GET, &bucket_url, headers, None).await?;
+    let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
+
+    let response = self.builder(VERB::GET, &bucket_url, headers, canonicalized).await?;
     let content = response.send().await?.handle_error().await?;
 
-    let mut bucket = Bucket::from_xml(content.text().await?)?;
-    bucket.set_client(&self);
+    let mut bucket = Bucket::default().from_xml(content.text().await?)?;
+    bucket.set_client(Arc::new(self));
     
     Ok(bucket)
   }

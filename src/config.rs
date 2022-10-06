@@ -4,7 +4,7 @@ use std::{
 
 use reqwest::Url;
 
-use crate::{types::{KeyId, KeySecret, EndPoint, BucketName}, errors::{OssResult,OssError}};
+use crate::{types::{KeyId, KeySecret, EndPoint, BucketName, InvalidEndPoint}, errors::{OssResult,OssError}};
 
 pub struct Config{
     key: KeyId,
@@ -50,6 +50,7 @@ impl Config {
     }
 }
 
+#[derive(Debug, Clone, Default)]
 pub struct BucketBase{
     endpoint: EndPoint,
     name: BucketName,
@@ -68,6 +69,15 @@ impl BucketBase {
 
     pub fn name(&self) -> &str{
         self.name.as_ref()
+    }
+
+    pub fn set_name<N: Into<BucketName>>(&mut self, name: N) {
+        self.name = name.into();
+    }
+
+    pub fn set_endpoint<S: Into<Cow<'static, str>>>(&mut self, endpoint: S) -> Result<(), InvalidEndPoint>{
+        self.endpoint = EndPoint::new(endpoint)?;
+        Ok(())
     }
 
     /// 获取url
@@ -95,9 +105,16 @@ impl BucketBase {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ObjectBase {
     bucket: BucketBase,
     path: ObjectPath,
+}
+
+impl Default for ObjectBase{
+    fn default() -> Self{
+        Self::new(BucketBase::new("".into(),"".into()), "")
+    }
 }
 
 impl ObjectBase {
@@ -110,6 +127,10 @@ impl ObjectBase {
         }
     }
 
+    pub fn set_bucket(&mut self, bucket: BucketBase){
+        self.bucket = bucket;
+    }
+
     pub fn bucket_name(&self) -> &str{
         self.bucket.name()
     }
@@ -117,10 +138,15 @@ impl ObjectBase {
     pub fn path(&self) -> &str {
         self.path.as_ref()
     }
+
+    pub fn set_path<P: Into<ObjectPath>>(&mut self, path: P){
+        self.path = path.into();
+    }
 }
 
 /// OSS Object 存储对象的路径
 /// 不带前缀 `/`  
+#[derive(Debug, Clone)]
 pub struct ObjectPath(
     Cow<'static, str>
 );
@@ -135,5 +161,22 @@ impl ObjectPath {
     /// Creates a new `ObjectPath` from the given string.
     pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
         Self(val.into())
+    }
+
+    /// Const function that creates a new `KeySecret` from a static str.
+    pub const fn from_static(secret: &'static str) -> Self {
+        Self(Cow::Borrowed(secret))
+    }
+}
+
+impl From<String> for ObjectPath {
+    fn from(val: String) -> Self {
+        Self(val.into())
+    }
+}
+
+impl From<&'static str> for ObjectPath {
+    fn from(url: &'static str) -> Self {
+        Self::from_static(url)
     }
 }

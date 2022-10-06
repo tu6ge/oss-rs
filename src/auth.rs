@@ -319,6 +319,13 @@ impl AuthBuilder{
         self
     }
 
+    pub fn with_headers(mut self, headers: Option<HeaderMap>) -> Self {
+        if let Some(headers) = headers {
+            self = self.headers(headers);
+        }
+        self
+    }
+
     pub fn headers(mut self, headers: HeaderMap) -> Self {
         self.auth.headers = headers;
         self.type_with_header()

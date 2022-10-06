@@ -142,8 +142,9 @@ impl Display for EndPoint {
 // }
 
 impl From<String> for EndPoint {
-    fn from(s: String) -> Self {
-        Self(Cow::Owned(s))
+
+    fn from(value: String) -> Self {
+        Self(value.into())
     }
 }
 
@@ -231,7 +232,7 @@ impl fmt::Display for InvalidEndPoint {
 
 //===================================================================================================
 
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BucketName(
     Cow<'static, str>
 );
@@ -245,6 +246,12 @@ impl AsRef<str> for BucketName {
 impl Display for BucketName {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl Default for BucketName {
+    fn default() -> BucketName {
+        BucketName::new("")
     }
 }
 
@@ -434,7 +441,7 @@ impl Date {
 
 //===================================================================================================
 
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CanonicalizedResource(
     Cow<'static, str>
 );
@@ -463,6 +470,12 @@ impl From<String> for CanonicalizedResource {
     }
 }
 
+impl Default for CanonicalizedResource {
+    fn default() -> Self {
+        Self::new("/")
+    }
+}
+
 impl CanonicalizedResource {
     /// Creates a new `CanonicalizedResource` from the given string.
     pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
@@ -475,7 +488,7 @@ impl CanonicalizedResource {
     }
 
     /// 获取 bucket 的签名参数
-    pub fn from_bucket(bucket: BucketBase, query: Option<&str>) -> Self {
+    pub fn from_bucket(bucket: &BucketBase, query: Option<&str>) -> Self {
         match query{
             Some(q) =>{
                 if q == "acl"
@@ -495,7 +508,7 @@ impl CanonicalizedResource {
     /// 带查询条件的
     /// 
     /// 如果查询条件中有翻页的话，则忽略掉其他字段
-    pub fn from_bucket_query(bucket: BucketBase, query: Query) -> Self {
+    pub fn from_bucket_query(bucket: &BucketBase, query: &Query) -> Self {
         match query.get("continuation-token") {
             Some(v) => {
                 Self::from(format!("/{}/?continuation-token={}", bucket.name(), v.as_ref()))
@@ -507,7 +520,7 @@ impl CanonicalizedResource {
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
-    pub fn from_object(object: ObjectBase, query: Option<Query>) -> Self {
+    pub fn from_object(object: &ObjectBase, query: Option<&Query>) -> Self {
         let bucket = object.bucket_name();
         let path = object.path();
 
@@ -555,7 +568,7 @@ impl CanonicalizedResource {
 /// let str = query.to_oss_string();
 /// assert_eq!(str.as_str(), "list-type=2&abc=def");
 /// ```
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Query{
     inner: HashMap<QueryKey, QueryValue>,
 }

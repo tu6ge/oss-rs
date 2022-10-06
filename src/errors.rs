@@ -6,7 +6,7 @@ use regex::Regex;
 #[cfg(test)]
 use mockall::{automock, predicate::*};
 
-use crate::types::InvalidEndPoint;
+use crate::{types::InvalidEndPoint, traits::{InvalidObjectValue, InvalidObjectListValue, InvalidBucketValue, InvalidBucketListValue}};
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
@@ -57,6 +57,18 @@ pub enum OssError{
 
   #[error("{0}")]
   InvalidEndPoint(#[from] InvalidEndPoint),
+
+  #[error("{0}")]
+  InvalidObjectValue(#[from] InvalidObjectValue),
+
+  #[error("{0}")]
+  InvalidObjectListValue(#[from] InvalidObjectListValue),
+
+  #[error("{0}")]
+  InvalidBucketValue(#[from] InvalidBucketValue),
+
+  #[error("{0}")]
+  InvalidBucketListValue(#[from] InvalidBucketListValue),
 
   #[error(transparent)]
   Other(#[from] anyhow::Error),

@@ -1,59 +1,118 @@
-
 static mut OBEJCT_ITEM_ID:i8 = 0;
-
 mod object_list_xml{
+
+    use crate::{config::BucketBase, traits::{InvalidObjectListValue, InvalidObjectValue}};
     use crate::tests::traits::OBEJCT_ITEM_ID;
 
     #[test]
     fn from_xml(){
-        use crate::traits::ObjectTrait;
-        use crate::traits::ObjectListTrait;
-        struct ObjectA {}
+        use crate::traits::OssIntoObject;
+        use crate::traits::OssIntoObjectList;
 
-        impl ObjectTrait for ObjectA {
-            fn from_oss(key:String,last_modified:String,etag:String,_type:String,size:String,storage_class:String) -> crate::errors::OssResult<Self> {
+
+        #[derive(Default)]
+        struct ObjectA{}
+
+        impl OssIntoObject for ObjectA{
+            fn set_key(self, key: String) -> Result<Self, InvalidObjectValue>{
                 unsafe {
-                  if OBEJCT_ITEM_ID == 0 {
-                    assert_eq!(key, "9AB932LY.jpeg".to_string());
-                    assert_eq!(last_modified, "2022-06-26T09:53:21.000Z".to_string());
-                    assert_eq!(etag, "F75A15996D0857B16FA31A3B16624C26".to_string());
-                    assert_eq!(_type, "Normal".to_string());
-                    assert_eq!(size, "18027".to_string());
-                    assert_eq!(storage_class, "Standard".to_string());
-                  }else if OBEJCT_ITEM_ID == 1 {
-                    assert_eq!(key, "CHANGELOG.md".to_string());
-                    assert_eq!(last_modified, "2022-06-12T06:11:06.000Z".to_string());
-                    assert_eq!(etag, "09C37AC5B145D368D52D0AAB58B25213".to_string());
-                    assert_eq!(_type, "Normal".to_string());
-                    assert_eq!(size, "40845".to_string());
-                    assert_eq!(storage_class, "Standard".to_string());
-                  }else if OBEJCT_ITEM_ID == 2 {
-                    assert_eq!(key, "LICENSE".to_string());
-                    assert_eq!(last_modified, "2022-06-12T06:11:06.000Z".to_string());
-                    assert_eq!(etag, "2CBAB10A50CC6905EA2D7CCCEF31A6C9".to_string());
-                    assert_eq!(_type, "Normal".to_string());
-                    assert_eq!(size, "1065".to_string());
-                    assert_eq!(storage_class, "Standard".to_string());
-                  }
-
-                  OBEJCT_ITEM_ID += 1;
+                    if OBEJCT_ITEM_ID == 0 {
+                        assert_eq!(key, "9AB932LY.jpeg".to_string());
+                    }else if OBEJCT_ITEM_ID == 1 {
+                        assert_eq!(key, "CHANGELOG.md".to_string());
+                    }else if OBEJCT_ITEM_ID == 2 {
+                        assert_eq!(key, "LICENSE".to_string());
+                    }
                 }
-                Ok(ObjectA{})
+                Ok(self)
             }
+            fn set_last_modified(self, last_modified: String) -> Result<Self, InvalidObjectValue>{
+                unsafe {
+                    if OBEJCT_ITEM_ID == 0 {
+                        assert_eq!(last_modified, "2022-06-26T09:53:21.000Z".to_string());
+                    }else if OBEJCT_ITEM_ID == 1 {
+                        assert_eq!(last_modified, "2022-06-12T06:11:06.000Z".to_string());
+                    }else if OBEJCT_ITEM_ID == 2 {
+                        assert_eq!(last_modified, "2022-06-12T06:11:06.000Z".to_string());
+                    }
+                }
+                Ok(self)
+            }
+            fn set_etag(self, etag: String) -> Result<Self, InvalidObjectValue>{
+                unsafe {
+                    if OBEJCT_ITEM_ID == 0 {
+                        assert_eq!(etag, "F75A15996D0857B16FA31A3B16624C26".to_string());
+                    }else if OBEJCT_ITEM_ID == 1 {
+                        assert_eq!(etag, "09C37AC5B145D368D52D0AAB58B25213".to_string());
+                    }else if OBEJCT_ITEM_ID == 2 {
+                        assert_eq!(etag, "2CBAB10A50CC6905EA2D7CCCEF31A6C9".to_string());
+                    }
+                }
+                Ok(self)
+            }
+            fn set_type(self, _type: String) -> Result<Self, InvalidObjectValue>{
+                unsafe {
+                    if OBEJCT_ITEM_ID == 0 {
+                        assert_eq!(_type, "Normal".to_string());
+                    }else if OBEJCT_ITEM_ID == 1 {
+                        assert_eq!(_type, "Normal".to_string());
+                    }else if OBEJCT_ITEM_ID == 2 {
+                        assert_eq!(_type, "Normal".to_string());
+                    }
+                }
+                Ok(self)
+            }
+            fn set_size(self, size: String) -> Result<Self, InvalidObjectValue>{
+                unsafe {
+                    if OBEJCT_ITEM_ID == 0 {
+                        assert_eq!(size, "18027".to_string());
+                    }else if OBEJCT_ITEM_ID == 1 {
+                        assert_eq!(size, "40845".to_string());
+                    }else if OBEJCT_ITEM_ID == 2 {
+                        assert_eq!(size, "1065".to_string());
+                    }
+                }
+                Ok(self)
+            }
+            fn set_storage_class(self, storage_class: String) -> Result<Self, InvalidObjectValue>{
+                assert_eq!(storage_class, "Standard".to_string());
+                unsafe {
+                    OBEJCT_ITEM_ID += 1;
+                }
+                Ok(self)
+            }
+            fn set_bucket(self, bucket: BucketBase) -> Self{
+                assert_eq!(bucket.name(), "abc");
+                self
+            }
+        }
+        struct ListB{}
+        impl OssIntoObjectList<ObjectA> for ListB{
+            fn set_name(self, name: String) -> Result<Self, InvalidObjectListValue>{
+                assert_eq!(name, "foo_bucket".to_string());
+                Ok(self)
+            }
+            fn set_prefix(self, prefix: String) -> Result<Self, InvalidObjectListValue>{
+                assert_eq!(prefix, "".to_string());
+                Ok(self)
+            }
+            fn set_max_keys(self, max_keys: String) -> Result<Self, InvalidObjectListValue>{
+                assert_eq!(max_keys, "100".to_string());
+                Ok(self)
+            }
+            fn set_key_count(self, key_count: String) -> Result<Self, InvalidObjectListValue>{
+                assert_eq!(key_count, "3".to_string());
+                Ok(self)
+            }
+            fn set_next_continuation_token(self, token: Option<String>) -> Result<Self, InvalidObjectListValue>{
+                assert!(matches!(token, None));
+                Ok(self)
+            }
+            // fn set_list(self, list: Vec<T>) -> Result<Self, InvalidObjectListValue>{
+            //     Ok(self)
+            // }
         }
         
-        struct ListB {}
-        impl ObjectListTrait<ObjectA> for ListB {
-            fn from_oss(name:String,prefix:String,max_keys:String,key_count:String,_object_list:Vec<ObjectA>,next_continuation_token:Option<String>,) -> crate::errors::OssResult<Self>where Self:Sized {
-                assert_eq!(name, "foo_bucket".to_string());
-                assert_eq!(prefix, "".to_string());
-                assert_eq!(max_keys, "100".to_string());
-                assert_eq!(key_count, "3".to_string());
-                assert!(matches!(next_continuation_token, None));
-                //assert_eq!(max_keys, "100".to_string());
-                Ok(ListB {  })
-            }
-        }
 
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
         <ListBucketResult>
@@ -89,33 +148,32 @@ mod object_list_xml{
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        let list1 = ListB::from_xml(xml.to_string());
+        let base = BucketBase::new("abc".into(), "abc".into());
+
+        let list = ListB{};
+
+        let list1 = list.from_xml(xml.to_string(), &base);
         
         assert!(list1.is_ok());
     }
 
     #[test]
     fn from_xml_has_next(){
-        use crate::traits::ObjectTrait;
-        use crate::traits::ObjectListTrait;
-        struct ObjectA {}
+        use crate::traits::OssIntoObject;
+        use crate::traits::OssIntoObjectList;
 
-        impl ObjectTrait for ObjectA {
-            fn from_oss(_key:String,_last_modified:String,_etag:String,_type:String,_size:String,_storage_class:String) -> crate::errors::OssResult<Self> {
-                Ok(ObjectA{})
-            }
+        #[derive(Default)]
+        struct ObjectA{}
+
+        impl OssIntoObject for ObjectA{
+
         }
-        
-        struct ListB {}
-        impl ObjectListTrait<ObjectA> for ListB {
-            fn from_oss(name:String,prefix:String,max_keys:String,key_count:String,_object_list:Vec<ObjectA>,next_continuation_token:Option<String>,) -> crate::errors::OssResult<Self>where Self:Sized {
-                assert_eq!(name, "foo_bucket".to_string());
-                assert_eq!(prefix, "".to_string());
-                assert_eq!(max_keys, "100".to_string());
-                assert_eq!(key_count, "3".to_string());
-                assert!(matches!(next_continuation_token, Some(t) if t == "CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--".to_string()));
-                //assert_eq!(max_keys, "100".to_string());
-                Ok(ListB {  })
+
+        struct ListB{}
+        impl OssIntoObjectList<ObjectA> for ListB{
+            fn set_next_continuation_token(self, token: Option<String>) -> Result<Self, InvalidObjectListValue>{
+                assert!(matches!(token, Some(v) if v=="CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--".to_string()));
+                Ok(self)
             }
         }
 
@@ -154,36 +212,50 @@ mod object_list_xml{
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        let list1 = ListB::from_xml(xml.to_string());
+        let base = BucketBase::new("abc".into(), "abc".into());
+
+        let list = ListB{};
+
+        let list1 = list.from_xml(xml.to_string(), &base);
         
         assert!(list1.is_ok());
     }
 }
 
 mod bucket_xml{
+    use crate::traits::InvalidBucketValue;
+
     #[test]
     fn from_xml(){
-        use crate::traits::BucketTrait;
+        use crate::traits::OssIntoBucket;
 
-        struct BucketA {}
+    
+        struct BucketA{}
 
-        impl BucketTrait for BucketA{
-            fn from_oss<'a>(
-                name: String,
-                creation_date: String,
-                location: String,
-                extranet_endpoint: String,
-                intranet_endpoint: String,
-                storage_class: String,
-            ) -> crate::errors::OssResult<Self>
-            {
+        impl OssIntoBucket for BucketA{
+            fn set_name(self, name: String) -> Result<Self, InvalidBucketValue>{
                 assert_eq!(name, "foo".to_string());
+                Ok(self)
+            }
+            fn set_creation_date(self, creation_date: String) -> Result<Self, InvalidBucketValue>{
                 assert_eq!(creation_date, "2016-11-05T13:10:10.000Z".to_string());
+                Ok(self)
+            }
+            fn set_location(self, location: String) -> Result<Self, InvalidBucketValue>{
                 assert_eq!(location, "oss-cn-shanghai".to_string());
+                Ok(self)
+            }
+            fn set_extranet_endpoint(self, extranet_endpoint: String) -> Result<Self, InvalidBucketValue>{
                 assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com".to_string());
+                Ok(self)
+            }
+            fn set_intranet_endpoint(self, intranet_endpoint: String) -> Result<Self, InvalidBucketValue>{
                 assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com".to_string());
+                Ok(self)
+            }
+            fn set_storage_class(self, storage_class: String) -> Result<Self, InvalidBucketValue>{
                 assert_eq!(storage_class, "Standard".to_string());
-                Ok(BucketA{})
+                Ok(self)
             }
         }
 
@@ -219,81 +291,103 @@ mod bucket_xml{
           </Bucket>
         </BucketInfo>"#;
 
-        let info = BucketA::from_xml(xml.to_string());
+        let info = BucketA{}.from_xml(xml.to_string());
 
         assert!(info.is_ok());
     }
 }
-
 static mut BUCKETS_ITEM_ID:i8 = 0;
 mod bucket_list_xml{
+    use crate::traits::{InvalidBucketListValue, InvalidBucketValue};
+
     use super::BUCKETS_ITEM_ID;
 
     #[test]
     fn from_xml(){
-        use crate::traits::BucketTrait;
-        use crate::traits::ListBucketTrait;
+        use crate::traits::{OssIntoBucket, OssIntoBucketList};
 
-        struct BucketA {}
+        #[derive(Default)]
+        struct BucketA{}
 
-        impl BucketTrait for BucketA{
-            fn from_oss<'a>(
-                name: String,
-                creation_date: String,
-                location: String,
-                extranet_endpoint: String,
-                intranet_endpoint: String,
-                storage_class: String,
-            ) -> crate::errors::OssResult<Self>
-            {
+        impl OssIntoBucket for BucketA{
+            fn set_name(self, name: String) -> Result<Self, InvalidBucketValue>{
                 unsafe{
                     if BUCKETS_ITEM_ID==0 {
                         assert_eq!(name, "foo124442".to_string());
-                        assert_eq!(creation_date, "2020-09-13T03:14:54.000Z".to_string());
-                        assert_eq!(location, "oss-cn-shanghai".to_string());
-                        assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com".to_string());
-                        assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com".to_string());
-                        assert_eq!(storage_class, "Standard".to_string());
-                    }else if BUCKETS_ITEM_ID==1 {
+                    }else if BUCKETS_ITEM_ID==1{
                         assert_eq!(name, "foo342390bar".to_string());
-                        assert_eq!(creation_date, "2016-11-05T13:10:10.000Z".to_string());
-                        assert_eq!(location, "oss-cn-shanghai".to_string());
-                        assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com".to_string());
-                        assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com".to_string());
-                        assert_eq!(storage_class, "Standard".to_string());
                     }
-
-                    BUCKETS_ITEM_ID += 1;
                 }
                 
-                Ok(BucketA{})
+                Ok(self)
+            }
+            fn set_creation_date(self, creation_date: String) -> Result<Self, InvalidBucketValue>{
+                unsafe{
+                    if BUCKETS_ITEM_ID==0 {
+                        assert_eq!(creation_date, "2020-09-13T03:14:54.000Z".to_string());
+                    }else if BUCKETS_ITEM_ID==1{
+                        assert_eq!(creation_date, "2016-11-05T13:10:10.000Z".to_string());
+                    }
+                }
+                Ok(self)
+            }
+            fn set_location(self, location: String) -> Result<Self, InvalidBucketValue>{
+                unsafe{
+                    if BUCKETS_ITEM_ID==0 {
+                        assert_eq!(location, "oss-cn-shanghai".to_string());
+                    }else if BUCKETS_ITEM_ID==1{
+                        assert_eq!(location, "oss-cn-shanghai".to_string());
+                    }
+                }
+                Ok(self)
+            }
+            fn set_extranet_endpoint(self, extranet_endpoint: String) -> Result<Self, InvalidBucketValue>{
+                assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com".to_string());
+                Ok(self)
+            }
+            fn set_intranet_endpoint(self, intranet_endpoint: String) -> Result<Self, InvalidBucketValue>{
+                assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com".to_string());
+                Ok(self)
+            }
+            fn set_storage_class(self, storage_class: String) -> Result<Self, InvalidBucketValue>{
+                assert_eq!(storage_class, "Standard".to_string());
+                unsafe{
+                    BUCKETS_ITEM_ID += 1;
+                }
+                Ok(self)
             }
         }
 
-        struct BucketListA {}
+        struct ListA{}
 
-        impl ListBucketTrait for BucketListA{
-            type Bucket = BucketA;
-            fn from_oss(
-                prefix: Option<String>, 
-                marker: Option<String>,
-                max_keys: Option<String>,
-                is_truncated: bool,
-                next_marker: Option<String>,
-                id: Option<String>,
-                display_name: Option<String>,
-                buckets: Vec<Self::Bucket>,
-            ) -> crate::errors::OssResult<Self>
-            {
-                assert!(matches!(prefix, None));
-                assert!(matches!(marker, None));
-                assert!(matches!(max_keys, None));
+        impl OssIntoBucketList<BucketA> for ListA{
+            fn set_prefix(self, prefix: String) -> Result<Self, InvalidBucketListValue>{
+                assert_eq!(prefix, "".to_string());
+                Ok(self)
+            }
+            fn set_marker(self, marker: String) -> Result<Self, InvalidBucketListValue>{
+                assert_eq!(marker, "".to_string());
+                Ok(self)
+            }
+            fn set_max_keys(self, max_keys: String) -> Result<Self, InvalidBucketListValue>{
+                assert_eq!(max_keys, "".to_string());
+                Ok(self)
+            }
+            fn set_is_truncated(self, is_truncated: bool) -> Result<Self, InvalidBucketListValue>{
                 assert_eq!(is_truncated, false);
-                assert!(matches!(next_marker, None));
-                assert!(matches!(id, Some(v) if v =="100861222333".to_string()));
-                assert!(matches!(display_name, Some(v) if v =="100861222".to_string()));
-                assert_eq!(buckets.len(), 2);
-                Ok(BucketListA{})
+                Ok(self)
+            }
+            fn set_next_marker(self, next_marker: String) -> Result<Self, InvalidBucketListValue>{
+                assert_eq!(next_marker, "".to_string());
+                Ok(self)
+            }
+            fn set_id(self, id: String) -> Result<Self, InvalidBucketListValue>{
+                assert_eq!(id, "100861222333".to_string());
+                Ok(self)
+            }
+            fn set_display_name(self, display_name: String) -> Result<Self, InvalidBucketListValue>{
+                assert_eq!(display_name, "100861222".to_string());
+                Ok(self)
             }
         }
 
@@ -327,7 +421,7 @@ mod bucket_list_xml{
           </Buckets>
         </ListAllMyBucketsResult>"#;
 
-        let list = BucketListA::from_xml(xml.to_string());
+        let list = ListA{}.from_xml(xml.to_string());
 
         assert!(list.is_ok());
     }

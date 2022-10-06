@@ -15,6 +15,8 @@ use std::env;
 async fn main() {
   dotenv().ok();
   use futures::try_join;
+  use aliyun_oss_client::config::{ObjectBase, BucketBase};
+  use aliyun_oss_client::types::CanonicalizedResource;
 
   let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
   let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
@@ -23,7 +25,7 @@ async fn main() {
 
   let my_plugin = MyPlugin{bucket:"abc".to_string()};
 
-  let client = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket)
+  let client = aliyun_oss_client::client(key_id,key_secret, endpoint.clone(), bucket.clone())
     .plugin(Box::new(my_plugin)).unwrap()
     ;
 
@@ -34,14 +36,22 @@ async fn main() {
   headers.insert("x-oss-copy-source", "/honglei123/file1.txt".parse().unwrap());
   headers.insert("x-oss-metadata-directive", "COPY".parse().unwrap());
 
-  let request = client.builder(VERB::PUT, &url, Some(headers.clone()), None).await.unwrap();
+  let object_base = ObjectBase::new(BucketBase::new(bucket.clone().into(), endpoint.clone().into()), "file1.txt");
+    
+  let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+
+  let request = client.builder(VERB::PUT, &url, Some(headers.clone()), canonicalized).await.unwrap();
 
   //let response = request.send().await.unwrap();
 
   let mut url2 = client.get_bucket_url().unwrap();
   url2.set_path("file_copy2.txt");
 
-  let request2 = client.builder(VERB::PUT, &url2, Some(headers), None).await.unwrap();
+  let object_base = ObjectBase::new(BucketBase::new(bucket.into(), endpoint.into()), "file2.txt");
+    
+  let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+
+  let request2 = client.builder(VERB::PUT, &url2, Some(headers), canonicalized).await.unwrap();
 
   //let response2 = request2.send().await.unwrap();
 

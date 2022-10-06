@@ -2,111 +2,181 @@ use chrono::prelude::*;
 
 use std::fmt;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::{io::Read};
 
 use reqwest::header::{HeaderMap,HeaderValue};
 #[cfg(feature = "blocking")]
 use crate::client::ReqeustHandler;
+use crate::config::{ObjectBase, BucketBase};
 use crate::errors::{OssResult,OssError};
 use crate::client::{Client, AsyncRequestHandle};
 use crate::auth::{VERB};
-use crate::traits::{ObjectTrait, ObjectListTrait};
-use crate::types::{Query, UrlQuery};
+use crate::traits::{ OssIntoObject, InvalidObjectValue, OssIntoObjectList, InvalidObjectListValue};
+use crate::types::{Query, UrlQuery, CanonicalizedResource};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[non_exhaustive]
-pub struct ObjectList<'a> {
-  pub name: String,
-  pub prefix: String,
-  pub max_keys: u32,
-  pub key_count: u64,
-  pub object_list: Vec<Object>,
-  pub next_continuation_token: Option<String>,
-  client: Option<&'a Client>,
-  pub search_query: Query,
+pub struct ObjectList {
+    bucket: BucketBase,
+    pub name: String,
+    pub prefix: String,
+    pub max_keys: u32,
+    pub key_count: u64,
+    pub object_list: Vec<Object>,
+    pub next_continuation_token: Option<String>,
+    client: Arc<Client>,
+    pub search_query: Query,
 }
 
-impl fmt::Debug for ObjectList<'_> {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    f.debug_struct("ObjectList")
-      .field("name", &self.name)
-      .field("prefix", &self.prefix)
-      .field("max_keys", &self.max_keys)
-      .field("key_count", &self.key_count)
-      .field("next_continuation_token", &self.next_continuation_token)
-      .finish()
-  }
+impl fmt::Debug for ObjectList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("ObjectList")
+          .field("name", &self.name)
+          .field("bucket", &self.bucket)
+          .field("prefix", &self.prefix)
+          .field("max_keys", &self.max_keys)
+          .field("key_count", &self.key_count)
+          .field("next_continuation_token", &self.next_continuation_token)
+          .finish()
+    }
 }
 
-impl ObjectListTrait<Object> for ObjectList<'_> {
-  fn from_oss(
-    name: String,
-    prefix: String,
-    max_keys: String,
-    key_count: String,
-    object_list: Vec<Object>,
-    next_continuation_token: Option<String>,
-    // client: Option<&'a Client>,
-    // search_query: Option<HashMap<String, String>>
-  ) ->OssResult<ObjectList<'static>>{
-    let in_max_keys = max_keys.parse::<u32>()?;
-    let in_key_count = key_count.parse::<u64>()?;
-    Ok(ObjectList{
-      name,
-      prefix,
-      max_keys: in_max_keys,
-      key_count: in_key_count,
-      object_list,
-      next_continuation_token,
-      client: None,
-      search_query: Query::new(),
-    })
-  }
-}
-impl<'b> ObjectList<'b> {
+impl ObjectList {
+    pub fn set_client(mut self, client: Arc<Client>) -> Self{
+        self.client = client;
+        self
+    }
   
-  pub fn set_client(mut self, client: &'b Client) -> Self{
-    self.client = Some(client);
-    self
-  }
-  
-  pub fn set_search_query(mut self, search_query: Query) -> Self{
-    self.search_query = search_query;
-    self
-  }
+    pub fn set_search_query(mut self, search_query: Query) -> Self{
+        self.search_query = search_query;
+        self
+    }
+
+    pub fn client(&self) -> Arc<Client>{
+        Arc::clone(&self.client)
+    }
+
+    pub fn set_bucket(mut self, bucket: BucketBase) -> Self{
+        self.bucket = bucket;
+        self
+    }
+
+    pub fn len(&self) -> usize{
+        self.object_list.len()
+    }
+
+    #[cfg(feature = "blocking")]
+    pub fn blocking_get_object_list(&mut self, query: Query) -> OssResult<ObjectList>{
+        let mut url = self.bucket.to_url()?;
+
+        url.set_search_query(&query);
+
+        let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
+
+        let response = self.client().blocking_builder(VERB::GET, &url, None, canonicalized)?;
+        let content = response.send()?.handle_error()?;
+
+        let list = ObjectList::default().set_client(Arc::clone(&self.client()))
+            .set_bucket(self.bucket.clone());
+        Ok(
+            list.from_xml(content.text()?, &self.bucket)?.set_search_query(query)
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct Object {
-  pub key: String,
-  pub last_modified: DateTime<Utc>,
-  pub etag: String,
-  pub _type: String,
-  pub size: u64,
-  pub storage_class: String,
+    base: ObjectBase,
+    pub key: String,
+    pub last_modified: DateTime<Utc>,
+    pub etag: String,
+    pub _type: String,
+    pub size: u64,
+    pub storage_class: String,
 }
 
-impl ObjectTrait for Object {
-  fn from_oss(
-    key: String,
-    last_modified: String,
-    etag: String,
-    _type: String,
-    size: String,
-    storage_class: String
-  ) -> OssResult<Object> {
-    let in_last_modified = last_modified.parse::<DateTime<Utc>>()?;
-    let in_size = size.parse::<u64>()?;
-    Ok(Object {
-      key,
-      last_modified: in_last_modified,
-      etag,
-      _type,
-      size: in_size,
-      storage_class
-    })
-  }
+
+impl Default for Object {
+    fn default() -> Self {
+        Object {
+            base: ObjectBase::default(),
+            last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
+            key: String::default(),
+            etag: String::default(),
+            _type: String::default(),
+            size: 0,
+            storage_class: String::default(),
+        }
+    }
+}
+
+impl OssIntoObject for Object {
+    fn set_bucket(mut self, bucket: BucketBase) -> Self {
+        self.base.set_bucket(bucket);
+        self
+    }
+
+    fn set_key(mut self, key: String) -> Result<Self, InvalidObjectValue> {
+        self.key = key.clone();
+        self.base.set_path(key);
+        Ok(self)
+    }
+    fn set_last_modified(mut self, value: String) -> Result<Self, InvalidObjectValue> {
+        let last_modified = value.parse::<DateTime<Utc>>().map_err(|_|InvalidObjectValue{})?;
+        self.last_modified = last_modified;
+        Ok(self)
+    }
+    fn set_etag(mut self, value: String) -> Result<Self, InvalidObjectValue> {
+        self.etag = value;
+        Ok(self)
+    }
+    fn set_type(mut self, value: String) -> Result<Self, InvalidObjectValue> {
+        self._type = value;
+        Ok(self)
+    }
+    fn set_size(mut self, size: String) -> Result<Self, InvalidObjectValue> {
+        self.size = size.parse::<u64>().map_err(|_|InvalidObjectValue{})?;
+        Ok(self)
+    }
+
+    fn set_storage_class(mut self, value: String) -> Result<Self, InvalidObjectValue> {
+        self.storage_class = value;
+        Ok(self)
+    }
+}
+
+impl OssIntoObjectList<Object> for ObjectList{
+    fn set_key_count(mut self, key_count: String) -> Result<Self, InvalidObjectListValue> {
+        self.key_count = key_count.parse::<u64>().map_err(|_|InvalidObjectListValue{})?;
+        Ok(self)
+    }
+
+    fn set_name(mut self, name: String) -> Result<Self, InvalidObjectListValue> {
+        self.name = name;
+        Ok(self)
+    }
+
+    fn set_prefix(mut self, prefix: String) -> Result<Self, InvalidObjectListValue> {
+        self.prefix = prefix;
+        Ok(self)
+    }
+
+    fn set_max_keys(mut self, max_keys: String) -> Result<Self, InvalidObjectListValue> {
+        self.max_keys = max_keys.parse::<u32>().map_err(|_|InvalidObjectListValue{})?;
+        Ok(self)
+    }
+
+    fn set_next_continuation_token(mut self, token: Option<String>) -> Result<Self, InvalidObjectListValue> {
+        self.next_continuation_token = token;
+        Ok(self)
+    }
+
+    fn set_list(mut self, list: Vec<Object>) -> Result<Self, InvalidObjectListValue> {
+        self.object_list = list;
+        Ok(self)
+    }
 }
 
 impl Client {
@@ -117,30 +187,42 @@ impl Client {
   /// 
   /// [OSS 文档](https://help.aliyun.com/document_detail/187544.html)
   #[cfg(feature = "blocking")]
-  pub fn blocking_get_object_list(&self, query: Query) -> OssResult<ObjectList<'_>>{
+  pub fn blocking_get_object_list(self, query: Query) -> OssResult<ObjectList>{
     let mut url = self.get_bucket_url()?;
 
     url.set_search_query(&query);
 
-    let response = self.blocking_builder(VERB::GET, &url, None, None)?;
+    let bucket = BucketBase::new(self.bucket.clone(), self.endpoint.clone());
+    let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
+
+    let response = self.blocking_builder(VERB::GET, &url, None, canonicalized)?;
     let content = response.send()?.handle_error()?;
 
+    let list = ObjectList::default().set_client(Arc::new(self))
+        .set_bucket(bucket.clone());
     Ok(
-      ObjectList::from_xml(content.text()?)?.set_client(&self).set_search_query(query)
+      list.from_xml(content.text()?, &bucket)?.set_search_query(query)
     )
   }
 
-  pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList<'_>>{
+  pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList>{
 
     let mut url = self.get_bucket_url()?;
 
     url.set_search_query(&query);
 
-    let response = self.builder(VERB::GET, &url, None, None).await?;
+    let bucket = BucketBase::new(self.bucket.clone(), self.endpoint.clone());
+
+    let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
+
+    let response = self.builder(VERB::GET, &url, None, canonicalized).await?;
     let content = response.send().await?.handle_error().await?;
 
+    let list = ObjectList::default().set_client(Arc::new(self))
+        .set_bucket(bucket.clone());
+
     Ok(
-      ObjectList::from_xml(content.text().await?)?.set_client(&self).set_search_query(query)
+      list.from_xml(content.text().await?, &bucket)?.set_search_query(query)
     )
   }
 
@@ -194,7 +276,12 @@ impl Client {
     headers.insert(
       "Content-Type", 
       mime_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
-    let response = self.blocking_builder(VERB::PUT, &url, Some(headers), None)?
+    
+    let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+  
+    let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+    
+    let response = self.blocking_builder(VERB::PUT, &url, Some(headers), canonicalized)?
       .body(content.clone());
 
     let content = response.send()?.handle_error()?;
@@ -230,7 +317,12 @@ impl Client {
     headers.insert(
       "Content-Type", 
       mime_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
-    let response = self.builder(VERB::PUT, &url, Some(headers), None).await?
+
+    let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+    
+    let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+
+    let response = self.builder(VERB::PUT, &url, Some(headers), canonicalized).await?
       .body(content.clone());
 
     let content = response.send().await?.handle_error().await?;
@@ -251,7 +343,11 @@ impl Client {
     let mut url = self.get_bucket_url()?;
     url.set_path(key);
 
-    let response = self.blocking_builder(VERB::DELETE, &url, None, None)?;
+    let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+    
+    let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+
+    let response = self.blocking_builder(VERB::DELETE, &url, None, canonicalized)?;
 
     response.send()?.handle_error()?;
     
@@ -262,7 +358,11 @@ impl Client {
     let mut url = self.get_bucket_url()?;
     url.set_path(key);
 
-    let response = self.builder(VERB::DELETE, &url, None, None).await?;
+    let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+    
+    let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+
+    let response = self.builder(VERB::DELETE, &url, None, canonicalized).await?;
 
     response.send().await?.handle_error().await?;
     
@@ -270,24 +370,27 @@ impl Client {
   }
 }
 
+// TODO
 #[cfg(feature = "blocking")]
-impl <'a>Iterator for ObjectList<'a>{
-  type Item = ObjectList<'a>;
-  fn next(&mut self) -> Option<ObjectList<'a>> {
-    match self.next_continuation_token.clone() {
-      Some(token) => {
-        let mut query = self.search_query.clone();
-        query.insert("continuation-token".to_string(), token);
-        match self.client.unwrap().blocking_get_object_list(query) {
-          Ok(list) => Some(list),
-          Err(_) => None,
+impl Iterator for ObjectList{
+    type Item = ObjectList;
+    fn next(&mut self) -> Option<ObjectList> {
+        match self.next_continuation_token.clone() {
+            Some(token) => {
+                let mut query = self.search_query.clone();
+                query.insert("continuation-token".to_string(), token);
+
+                let result = self.blocking_get_object_list(query);
+                match result {
+                    Ok(v) => Some(v),
+                    _ => None,
+                }
+            },
+            None => {
+                None
+            }
         }
-      },
-      None => {
-        return None
-      }
     }
-  }
 }
 
 // use futures::Stream;

@@ -5,6 +5,7 @@ use reqwest::{Client as AsyncClient, RequestBuilder as AsyncRequestBuilder, Resp
 use reqwest::header::{HeaderMap};
 
 use crate::auth::{VERB, AuthBuilder};
+use crate::config::BucketBase;
 use chrono::prelude::*;
 use reqwest::Url;
 use crate::errors::{OssResult,OssError};
@@ -67,6 +68,10 @@ impl Client {
 
   pub fn set_bucket(&mut self, bucket: BucketName){
     self.bucket = bucket
+  }
+
+  pub fn get_bucket_base(&self) -> BucketBase {
+      BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned())
   }
 
   /// # 注册插件
@@ -187,20 +192,15 @@ impl Client {
   /// 返回后，可以再加请求参数，然后可选的进行发起请求
   /// 
   #[cfg(feature = "blocking")]
-  pub fn blocking_builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<RequestBuilder>{
+  pub fn blocking_builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, resource: CanonicalizedResource) -> OssResult<RequestBuilder>{
     let client = blocking::Client::new();
 
-    let canonicalized_resource = self.canonicalized_resource(&url, bucket)?;
-
-    let mut builder = self.auth_builder.clone()
+    let builder = self.auth_builder.clone()
       .verb(method.to_owned())
       .date(Utc::now())
-      .canonicalized_resource(CanonicalizedResource::new(canonicalized_resource))
+      .canonicalized_resource(resource)
+      .with_headers(headers)
     ;
-    
-    if let Some(headers) = headers {
-      builder = builder.headers(headers);
-    };
 
     let all_headers = builder.get_headers()?;
 
@@ -209,20 +209,15 @@ impl Client {
   }
 
   /// builder 方法的异步实现
-  pub async fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, bucket: Option<String>) -> OssResult<AsyncRequestBuilder>{
+  pub async fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, resource: CanonicalizedResource) -> OssResult<AsyncRequestBuilder>{
     let client = AsyncClient::new();
 
-    let canonicalized_resource = self.async_canonicalized_resource(&url, bucket).await?;
-
-    let mut builder = self.auth_builder.clone()
+    let builder = self.auth_builder.clone()
       .verb(method.to_owned())
       .date(Utc::now())
-      .canonicalized_resource(CanonicalizedResource::new(canonicalized_resource))
+      .canonicalized_resource(resource)
+      .with_headers(headers)
     ;
-    
-    if let Some(headers) = headers {
-      builder = builder.headers(headers);
-    };
 
     let all_headers = builder.get_headers()?;
 

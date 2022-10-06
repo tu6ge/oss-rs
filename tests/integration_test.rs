@@ -153,13 +153,15 @@ mod test_blocking{
 
         let bucket_list = client.blocking_get_bucket_list().unwrap();
         let mut query = Query::new();
-        query.insert("max-keys", "5");
-        query.insert("prefix".to_string(), "babel".to_string());
+        query.insert("max-keys", "2");
+        //query.insert("prefix".to_string(), "babel".to_string());
 
         let buckets = bucket_list.buckets;
         let the_bucket = &buckets[0];
         let object_list = the_bucket.blocking_get_object_list(query);
         assert_matches!(object_list, Ok(_));
+        let mut object_list = object_list.unwrap();
+        assert_matches!(object_list.next(), Some(_));
     }
 
 
@@ -192,9 +194,10 @@ mod test_blocking{
         let client = client(key_id,key_secret, endpoint, bucket);
         let mut query = Query::new();
         query.insert("max-keys".to_string(), "2".to_string());
-        let object_list = client.blocking_get_object_list(query).unwrap().next();
+        let mut object_list = client.blocking_get_object_list(query).unwrap();
 
-        assert_matches!(object_list, Some(_));
+        assert_matches!(object_list.next(), Some(_));
+        assert_matches!(object_list.next(), Some(_));
     }
 
     #[test]
