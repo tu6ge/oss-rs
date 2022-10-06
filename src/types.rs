@@ -9,8 +9,6 @@ use reqwest::header::{HeaderValue,InvalidHeaderValue};
 
 use crate::config::{BucketBase, ObjectBase};
 use crate::errors::{OssError, OssResult};
-#[cfg(feature = "plugin")]
-use crate::plugin::PluginStore;
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct KeyId(
@@ -533,20 +531,6 @@ impl CanonicalizedResource {
                 Self::from(format!("/{}/{}", bucket, path))
             }
         }
-    }
-
-    #[cfg(feature = "plugin")]
-    pub fn from_plugin(plugin_stores: PluginStore, url: &Url) -> OssResult<Option<Self>> {
-        let result = plugin_stores.get_canonicalized_resource(
-            url
-        )?;
-
-        let res = match result {
-            Some(re) => Some(CanonicalizedResource::from(re)),
-            None => None,
-        };
-        
-        Ok(res)
     }
 }
 

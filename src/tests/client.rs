@@ -1,4 +1,3 @@
-use reqwest::Url;
 use crate::client::Client;
 
 #[test]
@@ -12,10 +11,10 @@ fn init_client_without_plugin(){
 }
 
 #[test]
-fn set_bucket(){
+fn set_bucket_name(){
     use crate::client;
     let mut client = client("a","b","c","d");
-    client.set_bucket("abcaaa".to_owned().into());
+    client.set_bucket_name("abcaaa".to_owned().into());
 
     assert_eq!(client.bucket.as_ref(), "abcaaa");
 }
@@ -43,191 +42,12 @@ mod test_use_plugin{
             .returning(|_|Ok(()));
         
         plugin.expect_name().times(0).returning(||"foo_plugin");
-        plugin.expect_canonicalized_resource().times(0).returning(|_| None);
       
         let res = client.plugin(Box::new(plugin));
         assert!(res.is_ok());
     }
 }
 
-mod test_async_canonicalized_resource{
-    use reqwest::Url;
-    use crate::client::Client;
-
-    #[test]
-    #[cfg(feature = "plugin")]
-    fn test_call_plugin(){
-        use futures::executor::block_on;
-        block_on(test_plugin());
-    }
-
-    #[cfg(feature = "plugin")]
-    async fn test_plugin(){
-        use std::sync::Mutex;
-        use crate::plugin::MockPluginStore;
-        let mut plugin_store = MockPluginStore::new();
-        
-        plugin_store.expect_get_canonicalized_resource().times(1).returning(|_| Ok(Some("foo_string".to_string())));
-
-        let mut client = Client::new(
-            "foo1".to_owned().into(),
-            "foo2".to_owned().into(),
-            "foo3".to_owned().into(),
-            "foo4".to_owned().into()
-        );
-        client.plugins = Mutex::new(plugin_store);
-        let url = Url::parse("https://example.net").unwrap();
-        
-        let resource = client.async_canonicalized_resource(&url, Some("bucket_foo".to_string())).await;
-
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-
-        assert_eq!(resource, "foo_string".to_string());
-    }
-
-    #[cfg(feature = "plugin")]
-    fn init_default_plugin_store(mut client: Client) -> Client {
-        use std::sync::Mutex;
-        use crate::plugin::MockPluginStore;
-        let mut plugin_store = MockPluginStore::new();
-        
-        plugin_store.expect_get_canonicalized_resource().returning(|_| Ok(None));
-
-        client.plugins = Mutex::new(plugin_store);
-        client
-    }
-
-    #[cfg(not(feature = "plugin"))]
-    fn init_default_plugin_store(client: Client) -> Client {
-        client
-    }
-
-    #[tokio::test]
-    async fn test_empty_bucket(){
-
-        let client = Client::new(
-            "foo1".to_owned().into(),
-            "foo2".to_owned().into(),
-            "foo3".to_owned().into(),
-            "".to_owned().into()
-        );
-        let client = init_default_plugin_store(client);
-
-        let url = Url::parse("https://example.net").unwrap();
-        let resource = client.async_canonicalized_resource(&url, None).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/");
-
-        let resource = client.async_canonicalized_resource(&url, Some("".to_string())).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/");
-    }
-
-    #[tokio::test]
-    async fn test_has_path(){
-
-        let client = Client::new(
-            "foo1".to_owned().into(),
-            "foo2".to_owned().into(),
-            "foo3".to_owned().into(),
-            "foo4".to_owned().into()
-        );
-        let client = init_default_plugin_store(client);
-
-        let url = Url::parse("https://example.net/bar_path").unwrap();
-        let resource = client.async_canonicalized_resource(&url, None).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/foo4/bar_path");
-
-        let url = Url::parse("https://example.net/bar_path").unwrap();
-        let resource = client.async_canonicalized_resource(&url, Some("bucket_foo".to_string())).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/bucket_foo/bar_path");
-    }
-
-    #[tokio::test]
-    async fn test_has_path_query(){
-        let client = Client::new(
-            "foo1".to_owned().into(),
-            "foo2".to_owned().into(),
-            "foo3".to_owned().into(),
-            "foo4".to_owned().into()
-        );
-        let client = init_default_plugin_store(client);
-
-        let url = Url::parse("https://example.net/bar_path?abc=2").unwrap();
-        let resource = client.async_canonicalized_resource(&url, None).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/foo4/bar_path?abc=2");
-
-        let url = Url::parse("https://example.net/bar_path?abc=2").unwrap();
-        let resource = client.async_canonicalized_resource(&url, Some("bucket_foo".to_string())).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/bucket_foo/bar_path?abc=2");
-    }
-
-    #[tokio::test]
-    async fn test_not_path(){
-        let client = Client::new(
-            "foo1".to_owned().into(),
-            "foo2".to_owned().into(),
-            "foo3".to_owned().into(),
-            "foo4".to_owned().into()
-        );
-        let client = init_default_plugin_store(client);
-
-        let url = Url::parse("https://example.net/?acl").unwrap();
-        let resource = client.async_canonicalized_resource(&url, None).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/foo4/?acl");
-
-        let url = Url::parse("https://example.net/?bucketInfo").unwrap();
-        let resource = client.async_canonicalized_resource(&url, None).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/foo4/?bucketInfo");
-
-        let url = Url::parse("https://foo4.example.net/?continuation-token=fooxxx").unwrap();
-        let resource = client.async_canonicalized_resource(&url, None).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/foo4/?continuation-token=fooxxx");
-
-        let url = Url::parse("https://foo4.example.net/?abc").unwrap();
-        let resource = client.async_canonicalized_resource(&url, None).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/foo4/");
-
-        let url = Url::parse("https://fobar.example.net/").unwrap();
-        let resource = client.async_canonicalized_resource(&url, None).await;
-        assert!(resource.is_ok());
-
-        let resource = resource.unwrap();
-        assert_eq!(resource, "/");
-    }
-
-    
-}
 
 #[test]
 fn test_get_bucket_url(){
@@ -253,28 +73,6 @@ fn test_get_bucket_url(){
     assert_eq!(url, "https://foo4.fobar.example.net/".to_string());
 }
 
-#[test]
-fn test_is_bucket_url(){
-    let client = Client::new(
-        "foo1".to_owned().into(),
-        "foo2".to_owned().into(),
-        "foo3".to_owned().into(),
-        "foo4".to_owned().into()
-    );
-    let url = Url::parse("https://foo_bucket.example.net/abc").unwrap();
-    let bucket = "foo_bucket".to_string();
-    assert!(client.is_bucket_url(&url, &bucket));
-
-    let url = Url::parse("https://foo2.foo_bucket.net/abc").unwrap();
-    let bucket = "foo_bucket".to_string();
-    let bucket_real = "foo2".to_string();
-    assert!(!client.is_bucket_url(&url, &bucket));
-    assert!(client.is_bucket_url(&url, &bucket_real));
-
-    let url = Url::parse("https://foo2.example.net/foo_bucket").unwrap();
-    let bucket = "foo_bucket".to_string();
-    assert!(!client.is_bucket_url(&url, &bucket));
-}
 
 mod handle_error{
     use futures::executor::block_on;
