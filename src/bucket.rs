@@ -162,7 +162,7 @@ impl Bucket {
 
     let client  = self.client();
 
-    let response = client.blocking_builder(VERB::GET, &url, None, canonicalized)?;
+    let response = client.blocking_builder(VERB::GET, &url, canonicalized)?;
     let content = response.send()?.handle_error()?;
     Ok(
       ObjectList::default().from_xml(content.text()?,&self.base)?
@@ -181,7 +181,7 @@ impl Bucket {
 
     let client = self.client();
 
-    let response = client.builder(VERB::GET, &url, None, canonicalized).await?;
+    let response = client.builder(VERB::GET, &url, canonicalized).await?;
     let content = response.send().await?.handle_error().await?; 
 
     // println!("{}", &content.text()?);
@@ -266,7 +266,7 @@ impl Client {
     
     let canonicalized = CanonicalizedResource::default();
 
-    let response = self.blocking_builder(VERB::GET, &url, None, canonicalized)?;
+    let response = self.blocking_builder(VERB::GET, &url, canonicalized)?;
     let content = response.send()?.handle_error()?;
 
     let mut bucket_list = ListBuckets::default();
@@ -282,7 +282,7 @@ impl Client {
 
     let canonicalized = CanonicalizedResource::default();
 
-    let response = self.builder(VERB::GET, &url, None, canonicalized).await?;
+    let response = self.builder(VERB::GET, &url, canonicalized).await?;
     let content = response.send().await?.handle_error().await?;
 
     let mut bucket_list = ListBuckets::default();
@@ -295,14 +295,13 @@ impl Client {
 
   #[cfg(feature = "blocking")]
   pub fn blocking_get_bucket_info(self) -> OssResult<Bucket> {
-    let headers = None;
     let query = Some("bucketInfo");
     let mut bucket_url = self.get_bucket_url()?;
     bucket_url.set_query(query);
 
     let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
-    let response = self.blocking_builder(VERB::GET, &bucket_url, headers, canonicalized)?;
+    let response = self.blocking_builder(VERB::GET, &bucket_url, canonicalized)?;
     let content = response.send()?.handle_error()?;
     let mut bucket = Bucket::default().from_xml(content.text()?)?;
     bucket.set_client(Arc::new(self));
@@ -311,14 +310,13 @@ impl Client {
   }
 
   pub async fn get_bucket_info(self) -> OssResult<Bucket> {
-    let headers = None;
     let query = Some("bucketInfo");
     let mut bucket_url = self.get_bucket_url()?;
     bucket_url.set_query(query);
 
     let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
-    let response = self.builder(VERB::GET, &bucket_url, headers, canonicalized).await?;
+    let response = self.builder(VERB::GET, &bucket_url, canonicalized).await?;
     let content = response.send().await?.handle_error().await?;
 
     let mut bucket = Bucket::default().from_xml(content.text().await?)?;

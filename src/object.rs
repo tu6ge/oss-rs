@@ -74,7 +74,7 @@ impl ObjectList {
 
         let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
 
-        let response = self.client().blocking_builder(VERB::GET, &url, None, canonicalized)?;
+        let response = self.client().blocking_builder(VERB::GET, &url, canonicalized)?;
         let content = response.send()?.handle_error()?;
 
         let list = ObjectList::default().set_client(Arc::clone(&self.client()))
@@ -195,7 +195,7 @@ impl Client {
     let bucket = self.get_bucket_base();
     let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
-    let response = self.blocking_builder(VERB::GET, &url, None, canonicalized)?;
+    let response = self.blocking_builder(VERB::GET, &url, canonicalized)?;
     let content = response.send()?.handle_error()?;
 
     let list = ObjectList::default().set_client(Arc::new(self))
@@ -215,7 +215,7 @@ impl Client {
 
     let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
-    let response = self.builder(VERB::GET, &url, None, canonicalized).await?;
+    let response = self.builder(VERB::GET, &url, canonicalized).await?;
     let content = response.send().await?.handle_error().await?;
 
     let list = ObjectList::default().set_client(Arc::new(self))
@@ -281,7 +281,7 @@ impl Client {
   
     let canonicalized = CanonicalizedResource::from_object(&object_base, None);
     
-    let response = self.blocking_builder(VERB::PUT, &url, Some(headers), canonicalized)?
+    let response = self.blocking_builder_with_header(VERB::PUT, &url, canonicalized, Some(headers))?
       .body(content.clone());
 
     let content = response.send()?.handle_error()?;
@@ -322,7 +322,7 @@ impl Client {
     
     let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
-    let response = self.builder(VERB::PUT, &url, Some(headers), canonicalized).await?
+    let response = self.builder_with_header(VERB::PUT, &url, canonicalized, Some(headers)).await?
       .body(content.clone());
 
     let content = response.send().await?.handle_error().await?;
@@ -347,7 +347,7 @@ impl Client {
     
     let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
-    let response = self.blocking_builder(VERB::DELETE, &url, None, canonicalized)?;
+    let response = self.blocking_builder(VERB::DELETE, &url, canonicalized)?;
 
     response.send()?.handle_error()?;
     
@@ -362,7 +362,7 @@ impl Client {
     
     let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
-    let response = self.builder(VERB::DELETE, &url, None, canonicalized).await?;
+    let response = self.builder(VERB::DELETE, &url, canonicalized).await?;
 
     response.send().await?.handle_error().await?;
     

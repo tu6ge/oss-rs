@@ -34,6 +34,7 @@ pub struct Client{
     pub infer: Infer,
 }
 
+#[cfg_attr(test, mockall::automock)]
 impl Client {
     
     pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Client {
@@ -66,22 +67,18 @@ impl Client {
         }
     }
 
-    #[inline]
     pub fn set_bucket_name(&mut self, bucket: BucketName){
         self.bucket = bucket
     }
 
-    #[inline]
     pub fn get_bucket_base(&self) -> BucketBase {
         BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned())
     }
 
-    #[inline]
     pub fn get_bucket_url(&self) -> OssResult<Url>{
         self.get_bucket_base().to_url()
     }
 
-    #[inline]
     pub fn get_endpoint_url(&self) -> OssResult<Url>{
         self.endpoint.to_url()
     }
@@ -94,6 +91,21 @@ impl Client {
         self.plugins.lock().unwrap().insert(plugin);
         Ok(self)
     }
+
+    /// # 向 OSS 发送请求的封装
+    /// 参数包含请求的：
+    /// 
+    /// - method
+    /// - url
+    /// - [CanonicalizedResource](https://help.aliyun.com/document_detail/31951.html#section-rvv-dx2-xdb)  
+    /// 
+    /// 返回值是一个 reqwest 的请求创建器 `reqwest::blocking::RequestBuilder`
+    /// 
+    /// 返回后，可以再加请求参数，然后可选的进行发起请求
+    #[cfg(feature = "blocking")]
+    pub fn blocking_builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource) -> OssResult<RequestBuilder>{
+        self.blocking_builder_with_header(method, url, resource, None)
+    }
     
     /// # 向 OSS 发送请求的封装
     /// 参数包含请求的：
@@ -101,46 +113,77 @@ impl Client {
     /// - method
     /// - url
     /// - headers (可选)
-    /// - bucket 要操作的 bucket ，默认为当前配置的 bucket 
+    /// - [CanonicalizedResource](https://help.aliyun.com/document_detail/31951.html#section-rvv-dx2-xdb)
     /// 
     /// 返回值是一个 reqwest 的请求创建器 `reqwest::blocking::RequestBuilder`
     /// 
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
     /// 
     #[cfg(feature = "blocking")]
-    pub fn blocking_builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, resource: CanonicalizedResource) -> OssResult<RequestBuilder>{
+    pub fn blocking_builder_with_header(&self, method: VERB, url: &Url, resource: CanonicalizedResource, headers: Option<HeaderMap>) -> OssResult<RequestBuilder>{
         let client = blocking::Client::new();
 
-        let builder = self.auth_builder.clone()
+        let headers = self.auth_builder.clone()
             .verb(method.to_owned())
-            .date(Utc::now())
+            .date(now().into())
             .canonicalized_resource(resource)
             .with_headers(headers)
-            ;
+            .get_headers()?;
 
-        let all_headers = builder.get_headers()?;
-
-        Ok(client.request(method.0, url.to_owned())
-            .headers(all_headers))
+        Ok(client.request(method.into(), url.to_owned())
+            .headers(headers))
     }
 
     /// builder 方法的异步实现
-    pub async fn builder(&self, method: VERB, url: &Url, headers: Option<HeaderMap>, resource: CanonicalizedResource) -> OssResult<AsyncRequestBuilder>{
-        let client = AsyncClient::new();
-
-        let builder = self.auth_builder.clone()
-            .verb(method.to_owned())
-            .date(Utc::now())
-            .canonicalized_resource(resource)
-            .with_headers(headers)
-            ;
-
-        let all_headers = builder.get_headers()?;
-
-        Ok(client.request(method.0, url.to_owned())
-            .headers(all_headers))
+    pub async fn builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource) 
+    -> OssResult<AsyncRequestBuilder>
+    {
+        self.builder_with_header(method, url, resource, None).await
     }
 
+    /// builder 方法的异步实现
+    /// 带 header 参数
+    pub async fn builder_with_header(&self, method: VERB, url: &Url, resource: CanonicalizedResource, headers: Option<HeaderMap>) 
+    -> OssResult<AsyncRequestBuilder>
+    {
+        let client = AsyncClient::new();
+
+        let headers = self.auth_builder.clone()
+            .verb(method.to_owned())
+            .date(now().into())
+            .canonicalized_resource(resource)
+            .with_headers(headers)
+            .get_headers()?;
+
+        Ok(client.request(method.into(), url.to_owned())
+            .headers(headers))
+    }
+
+}
+
+// trait BuilderWithAuth where Self: Sized{
+//     fn with_auth(self, auth_builder: AuthBuilder) -> OssResult<Self>;
+// }
+
+// impl BuilderWithAuth for AsyncRequestBuilder{
+//     fn with_auth(self, auth_builder: AuthBuilder) -> OssResult<Self>
+//     {
+//         let headers = auth_builder.get_headers()?;
+//         Ok(self.headers(headers))
+//     }
+// }
+
+#[cfg(not(test))]
+#[inline]
+fn now() -> DateTime<Utc>{
+    Utc::now()
+}
+
+/// TODO 未测试
+#[cfg(test)]
+fn now() -> DateTime<Utc>{
+    let naive = NaiveDateTime::parse_from_str("2022/10/6 20:40:00", "%Y/%m/%d %H:%M:%S").unwrap();
+    DateTime::from_utc(naive, Utc)
 }
 
 #[cfg(feature = "blocking")]

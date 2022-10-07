@@ -105,6 +105,12 @@ impl From<&str> for VERB {
     }
 }
 
+impl Into<Method> for VERB {
+    fn into(self) -> Method {
+        self.0
+    }
+}
+
 impl Default for VERB {
     fn default() -> Self {
         Self::GET
@@ -260,109 +266,6 @@ pub trait AuthGetHeader: AuthSignString{
 }
 
 impl AuthGetHeader for Auth{}
-
-#[derive(Default, Clone)]
-pub struct AuthBuilder{
-    pub auth: Auth,
-}
-
-impl AuthBuilder{
-    /// 给 key 赋值
-    /// 
-    /// ```
-    /// use aliyun_oss_client::auth::AuthBuilder;
-    /// 
-    /// let mut builder = AuthBuilder::default();
-    /// assert_eq!(builder.auth.access_key_id.as_ref(), "");
-    /// builder = builder.key("bar");
-    /// assert_eq!(builder.auth.access_key_id.as_ref(), "bar");
-    /// ```
-    pub fn key<K: Into<KeyId>>(mut self, key: K) -> Self {
-        self.auth.access_key_id = key.into();
-        self
-    }
-
-    /// 给 secret 赋值
-    pub fn secret<K: Into<KeySecret>>(mut self, secret: K) -> Self {
-        self.auth.access_key_secret = secret.into();
-        self
-    }
-
-    /// 给 verb 赋值
-    pub fn verb<T: Into<VERB>>(mut self, verb: T) -> Self {
-        self.auth.verb = verb.into();
-        self
-    }
-
-    /// 给 content_md5 赋值
-    pub fn content_md5<M: Into<ContentMd5>>(mut self, content_md5: M) -> Self {
-        self.auth.content_md5 = Some(content_md5.into());
-        self
-    }
-
-    /// 给 date 赋值
-    /// 
-    /// example
-    /// ```
-    /// use chrono::Utc;
-    /// let builder = aliyun_oss_client::auth::AuthBuilder::default()
-    ///    .date(Utc::now());
-    /// ```
-    pub fn date<D: Into<Date>>(mut self, date: D) -> Self {
-        self.auth.date = date.into();
-        self
-    }
-
-    /// 给 content_md5 赋值
-    pub fn canonicalized_resource<C: Into<CanonicalizedResource>>(mut self, data: C) -> Self {
-        self.auth.canonicalized_resource = data.into();
-        self
-    }
-
-    pub fn with_headers(mut self, headers: Option<HeaderMap>) -> Self {
-        if let Some(headers) = headers {
-            self = self.headers(headers);
-        }
-        self
-    }
-
-    pub fn headers(mut self, headers: HeaderMap) -> Self {
-        self.auth.headers = headers;
-        self.type_with_header()
-    }
-
-    /// 给 header 序列添加新值
-    pub fn header_insert<K: IntoHeaderName>(mut self, key: K, val: HeaderValue ) -> Self
-    {
-        self.auth.headers.insert(key, val);
-        self
-    }
-
-    /// 通过 headers 给 content_type 赋值
-    /// 
-    /// TODO 需要处理异常的情况
-    pub fn type_with_header(mut self) -> Self {
-        let content_type = self.auth.headers.get(CONTENT_TYPE);
-
-        if let Some(ct) = content_type {
-            let t: OssResult<ContentType> = ct.clone().try_into();
-            if let Ok(value) = t {
-                self.auth.content_type = Some(value);
-            }
-        }
-        self
-    }
-
-    /// 清理 headers
-    pub fn header_clear(mut self) -> Self {
-        self.auth.headers.clear();
-        self
-    }
-
-    pub fn get_headers(&self) -> OssResult<HeaderMap>{
-        self.auth.get_headers()
-    }
-}
 
 pub trait AuthHeader {
     fn from_auth(auth: &impl AuthToHeaderMap) -> OssResult<Self> where Self: Sized;
@@ -541,5 +444,109 @@ impl TryInto<HeaderValue> for Sign {
     fn try_into(self) -> OssResult<HeaderValue> {
         let sign = format!("OSS {}:{}", self.key, self.data);
         Ok(sign.parse()?)
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct AuthBuilder{
+    pub auth: Auth,
+}
+
+#[cfg_attr(test, mockall::automock)]
+impl AuthBuilder{
+    /// 给 key 赋值
+    /// 
+    /// ```
+    /// use aliyun_oss_client::auth::AuthBuilder;
+    /// 
+    /// let mut builder = AuthBuilder::default();
+    /// assert_eq!(builder.auth.access_key_id.as_ref(), "");
+    /// builder = builder.key("bar".into());
+    /// assert_eq!(builder.auth.access_key_id.as_ref(), "bar");
+    /// ```
+    pub fn key(mut self, key: KeyId) -> Self {
+        self.auth.access_key_id = key;
+        self
+    }
+
+    /// 给 secret 赋值
+    pub fn secret(mut self, secret: KeySecret) -> Self {
+        self.auth.access_key_secret = secret;
+        self
+    }
+
+    /// 给 verb 赋值
+    pub fn verb(mut self, verb: VERB) -> Self {
+        self.auth.verb = verb;
+        self
+    }
+
+    /// 给 content_md5 赋值
+    pub fn content_md5(mut self, content_md5: ContentMd5) -> Self {
+        self.auth.content_md5 = Some(content_md5);
+        self
+    }
+
+    /// 给 date 赋值
+    /// 
+    /// example
+    /// ```
+    /// use chrono::Utc;
+    /// let builder = aliyun_oss_client::auth::AuthBuilder::default()
+    ///    .date(Utc::now().into());
+    /// ```
+    pub fn date(mut self, date: Date) -> Self {
+        self.auth.date = date;
+        self
+    }
+
+    /// 给 content_md5 赋值
+    pub fn canonicalized_resource(mut self, data: CanonicalizedResource) -> Self {
+        self.auth.canonicalized_resource = data;
+        self
+    }
+
+    pub fn with_headers(mut self, headers: Option<HeaderMap>) -> Self {
+        if let Some(headers) = headers {
+            self = self.headers(headers);
+        }
+        self
+    }
+
+    pub fn headers(mut self, headers: HeaderMap) -> Self {
+        self.auth.headers = headers;
+        self.type_with_header()
+    }
+
+    /// 给 header 序列添加新值
+    pub fn header_insert<K: IntoHeaderName + 'static>(mut self, key: K, val: HeaderValue ) -> Self
+    {
+        self.auth.headers.insert(key, val);
+        self
+    }
+
+    /// 通过 headers 给 content_type 赋值
+    /// 
+    /// TODO 需要处理异常的情况
+    pub fn type_with_header(mut self) -> Self {
+        let content_type = self.auth.headers.get(CONTENT_TYPE);
+
+        if let Some(ct) = content_type {
+            let t: OssResult<ContentType> = ct.clone().try_into();
+            if let Ok(value) = t {
+                self.auth.content_type = Some(value);
+            }
+        }
+        self
+    }
+
+    /// 清理 headers
+    pub fn header_clear(mut self) -> Self {
+        self.auth.headers.clear();
+        self
+    }
+
+    pub fn get_headers(&self) -> OssResult<HeaderMap>{
+        self.auth.get_headers()
     }
 }
