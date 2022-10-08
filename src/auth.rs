@@ -177,7 +177,7 @@ impl AuthToHeaderMap for Auth{
     }
 }
 
-pub trait AuthToOssHeader: AuthToHeaderMap{
+pub trait AuthToOssHeader{
     fn to_oss_header(&self) -> OssResult<OssHeader>;
 }
 
@@ -210,7 +210,7 @@ impl AuthToOssHeader for Auth {
 }
 
 /// 从 auth 中提取各个字段，用于计算签名的原始字符串
-pub trait AuthSignString: AuthToOssHeader{
+pub trait AuthSignString{
     fn key(&self) -> Cow<'_, KeyId>;
     fn secret(&self) -> Cow<'_, KeySecret>;
     fn verb(&self) -> String;
@@ -250,9 +250,12 @@ impl AuthSignString for Auth{
     }
 }
 
-pub trait AuthGetHeader: AuthSignString{
+pub trait AuthGetHeader{
+    fn get_headers(&self) -> OssResult<HeaderMap>;
+}
+
+impl AuthGetHeader for Auth{
     fn get_headers(&self) -> OssResult<HeaderMap>
-    where Self: Sized
     {
         let mut map = HeaderMap::from_auth(self)?;
 
@@ -264,8 +267,6 @@ pub trait AuthGetHeader: AuthSignString{
         Ok(map)
     }
 }
-
-impl AuthGetHeader for Auth{}
 
 pub trait AuthHeader {
     fn from_auth(auth: &impl AuthToHeaderMap) -> OssResult<Self> where Self: Sized;
