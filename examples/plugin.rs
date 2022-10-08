@@ -40,7 +40,7 @@ async fn main() {
     
   let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
-  let request = client.builder(VERB::PUT, &url, Some(headers.clone()), canonicalized).await.unwrap();
+  let request = client.builder_with_header(VERB::PUT, &url, canonicalized, Some(headers.clone())).await.unwrap();
 
   //let response = request.send().await.unwrap();
 
@@ -51,7 +51,7 @@ async fn main() {
     
   let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
-  let request2 = client.builder(VERB::PUT, &url2, Some(headers), canonicalized).await.unwrap();
+  let request2 = client.builder_with_header(VERB::PUT, &url2, canonicalized, Some(headers)).await.unwrap();
 
   //let response2 = request2.send().await.unwrap();
 
@@ -70,16 +70,12 @@ impl Plugin for MyPlugin{
   }
   
   fn initialize(&mut self, client: &mut Client) -> OssResult<()> {
-    // 插件可以读取 client 结构体中的值
-    self.bucket = client.endpoint.to_string();
+    // // 插件可以读取 client 结构体中的值
+    // self.bucket = client.endpoint.to_string();
 
-    // 插件可以修改 client 结构体中的值
-    client.endpoint = EndPoint::new("https://oss-cn-shanghai.aliyuncs.com")
-      .map_err(|e|OssError::InvalidEndPoint(e))?;
+    // // 插件可以修改 client 结构体中的值
+    // client.endpoint = EndPoint::new("https://oss-cn-shanghai.aliyuncs.com")
+    //   .map_err(|e|OssError::InvalidEndPoint(e))?;
     Ok(())
-  }
-
-  fn canonicalized_resource(&self, _url: &Url) -> Option<String>{
-    None
   }
 }
