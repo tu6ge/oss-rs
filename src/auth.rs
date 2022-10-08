@@ -546,8 +546,10 @@ impl AuthBuilder{
         self.auth.headers.clear();
         self
     }
+}
 
-    pub fn get_headers(&self) -> OssResult<HeaderMap>{
+impl AuthGetHeader for AuthBuilder{
+    fn get_headers(&self) -> OssResult<HeaderMap>{
         self.auth.get_headers()
     }
 }

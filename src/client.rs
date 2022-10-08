@@ -4,7 +4,7 @@ use reqwest::blocking::{self,RequestBuilder,Response};
 use reqwest::{Client as AsyncClient, RequestBuilder as AsyncRequestBuilder, Response as AsyncResponse};
 use reqwest::header::{HeaderMap};
 
-use crate::auth::{VERB, AuthBuilder};
+use crate::auth::{VERB, AuthBuilder, AuthGetHeader};
 use crate::config::{BucketBase, Config};
 use chrono::prelude::*;
 use reqwest::Url;
@@ -103,6 +103,7 @@ impl Client {
     /// 
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
     #[cfg(feature = "blocking")]
+    #[cfg_attr(not(test), inline)]
     pub fn blocking_builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource) -> OssResult<RequestBuilder>{
         self.blocking_builder_with_header(method, url, resource, None)
     }
@@ -135,6 +136,7 @@ impl Client {
     }
 
     /// builder 方法的异步实现
+    #[cfg_attr(not(test), inline)]
     pub async fn builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource) 
     -> OssResult<AsyncRequestBuilder>
     {
