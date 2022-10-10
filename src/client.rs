@@ -8,7 +8,7 @@ use crate::auth::{VERB, AuthBuilder, AuthGetHeader};
 use crate::config::{BucketBase, Config};
 use chrono::prelude::*;
 use reqwest::Url;
-use crate::errors::{OssResult,OssError};
+use crate::errors::{OssResult};
 
 #[cfg(feature = "plugin")]
 use std::sync::Mutex;
@@ -205,9 +205,7 @@ impl ReqeustHandler for Response {
         let status = self.status();
     
         if status != 200 && status != 204{
-            let body = self.text()?;
-            let error = OssService::new(body);
-            return Err(OssError::OssService(error));
+            return Err(OssService::new(self.text()?).into());
         }
 
         Ok(self)
@@ -230,9 +228,7 @@ impl AsyncRequestHandle for AsyncResponse{
         let status = self.status();
         
         if status != 200 && status != 204 {
-            let body = self.text().await?;
-            let error = OssService::new(body);
-            return Err(OssError::OssService(error));
+            return Err(OssService::new(self.text().await?).into());
         }
 
         Ok(self)
