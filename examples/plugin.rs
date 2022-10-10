@@ -1,13 +1,11 @@
 //! `cargo run --example plugin --features=blocking,plugin`
 extern crate dotenv;
 
-use aliyun_oss_client::errors::{OssResult, OssError};
+use aliyun_oss_client::errors::{OssResult};
 use aliyun_oss_client::plugin::Plugin;
-use aliyun_oss_client::types::{EndPoint};
 use dotenv::dotenv;
 use aliyun_oss_client::client::Client;
 use aliyun_oss_client::auth::{VERB};
-use reqwest::Url;
 use reqwest::header::{HeaderMap};
 use std::env;
 
@@ -61,7 +59,8 @@ async fn main() {
 }
 
 struct MyPlugin {
-  bucket: String,
+  #[allow(dead_code)]
+  pub bucket: String,
 }
 
 impl Plugin for MyPlugin{
@@ -69,7 +68,7 @@ impl Plugin for MyPlugin{
     "my_plugin"
   }
   
-  fn initialize(&mut self, client: &mut Client) -> OssResult<()> {
+  fn initialize(&mut self, _client: &mut Client) -> OssResult<()> {
     // // 插件可以读取 client 结构体中的值
     // self.bucket = client.endpoint.to_string();
 

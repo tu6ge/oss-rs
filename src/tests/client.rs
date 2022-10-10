@@ -1,4 +1,7 @@
-use crate::client::Client;
+use http::{HeaderMap, HeaderValue};
+use reqwest::Url;
+
+use crate::{client::Client, types::CanonicalizedResource};
 
 #[test]
 #[cfg(not(feature = "plugin"))]
@@ -73,20 +76,65 @@ fn test_get_bucket_url(){
     assert_eq!(url, "https://foo4.fobar.example.net/".to_string());
 }
 
+#[tokio::test]
+async fn test_builder_with_header(){
+    let client = Client::new("foo1".into(), "foo2".into(), "foo3".into(), "foo4".into());
+    let url = Url::parse("http://foo.example.net/foo").unwrap();
+    let resource = CanonicalizedResource::new("bar");
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let builder = client.builder_with_header("POST".into(), &url, resource, Some(headers)).await;
+
+    assert!(builder.is_ok());
+
+    let request = builder.unwrap().build().unwrap();
+    
+    assert_eq!(request.method(), "POST");
+    assert!(request.url().host().is_some());
+    assert_eq!(request.url().path(), "/foo");
+    assert_eq!(request.headers().get("content-type"), Some(&HeaderValue::from_str("application/json").unwrap()));
+    assert_eq!(request.headers().get("accesskeyid"), Some(&HeaderValue::from_str("foo1").unwrap()));
+    assert_eq!(request.headers().get("secretaccesskey"), Some(&HeaderValue::from_str("foo2").unwrap()));
+    assert_eq!(request.headers().get("verb"), Some(&HeaderValue::from_str("POST").unwrap()));
+    assert_eq!(request.headers().get("date"), Some(&HeaderValue::from_str("Thu, 06 Oct 2022 20:40:00 GMT").unwrap()));
+    assert_eq!(request.headers().get("canonicalizedresource"), Some(&HeaderValue::from_str("bar").unwrap()));
+    assert_eq!(request.headers().get("authorization"), Some(&HeaderValue::from_str("OSS foo1:FUrk4hgj2yIB8lJpnsSub+CTC9M=").unwrap()));
+}
+
+#[cfg(feature = "blocking")]
+#[test] 
+fn test_blocking_builder_with_header(){
+    let client = Client::new("foo1".into(), "foo2".into(), "foo3".into(), "foo4".into());
+    let url = Url::parse("http://foo.example.net/foo").unwrap();
+    let resource = CanonicalizedResource::new("bar");
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let builder = client.blocking_builder_with_header("POST".into(), &url, resource, Some(headers));
+
+    assert!(builder.is_ok());
+
+    let request = builder.unwrap().build().unwrap();
+
+    assert_eq!(request.method(), "POST");
+    assert!(request.url().host().is_some());
+    assert_eq!(request.url().path(), "/foo");
+    assert_eq!(request.headers().get("content-type"), Some(&HeaderValue::from_str("application/json").unwrap()));
+    assert_eq!(request.headers().get("accesskeyid"), Some(&HeaderValue::from_str("foo1").unwrap()));
+    assert_eq!(request.headers().get("secretaccesskey"), Some(&HeaderValue::from_str("foo2").unwrap()));
+    assert_eq!(request.headers().get("verb"), Some(&HeaderValue::from_str("POST").unwrap()));
+    assert_eq!(request.headers().get("date"), Some(&HeaderValue::from_str("Thu, 06 Oct 2022 20:40:00 GMT").unwrap()));
+    assert_eq!(request.headers().get("canonicalizedresource"), Some(&HeaderValue::from_str("bar").unwrap()));
+    assert_eq!(request.headers().get("authorization"), Some(&HeaderValue::from_str("OSS foo1:FUrk4hgj2yIB8lJpnsSub+CTC9M=").unwrap()));
+}
+
 
 mod handle_error{
-    use futures::executor::block_on;
     use reqwest::Response;
     use http::Response as HttpResponse;
     use crate::client::AsyncRequestHandle;
     use crate::errors::OssError;
-
-    #[test]
-    fn test_call_async(){
-        block_on(test_async_has_error());
-        block_on(test_async_ok());
-    }
     
+    #[tokio::test]
     async fn test_async_has_error(){
         use mockall::*;
         #[mockall_double::double]
@@ -121,6 +169,7 @@ mod handle_error{
         mock.checkpoint();
     }
 
+    #[tokio::test]
     async fn test_async_ok(){
         use mockall::*;
         #[mockall_double::double]
@@ -170,7 +219,7 @@ mod handle_error{
     // #[cfg(feature = "blocking")]
     // #[test]
     // fn test_blocking_has_error(){
-    //     use reqwest::blocking::Response;
+    //     use reqwest::blocking::Response as BlockingResponse;
     //     use crate::client::ReqeustHandler;
     //     use mockall::*;
     //     #[mockall_double::double]
@@ -193,7 +242,7 @@ mod handle_error{
     //         //.header("X-Custom-Foo", "Bar")
     //         .body("body_abc")
     //         .unwrap();
-    //     let response: Response = http.into();
+    //     let response: BlockingResponse = http.into();
 
     //     let res = response.handle_error();
 
@@ -208,7 +257,7 @@ mod handle_error{
     // #[cfg(feature = "blocking")]
     // #[test]
     // fn test_blocking_ok(){
-    //     use reqwest::blocking::Response;
+    //     use reqwest::blocking::Response as BlockingResponse;
     //     use crate::client::ReqeustHandler;
     //     use mockall::*;
     //     #[mockall_double::double]
@@ -231,7 +280,7 @@ mod handle_error{
     //         //.header("X-Custom-Foo", "Bar")
     //         .body("body_abc")
     //         .unwrap();
-    //     let response: Response = http.into();
+    //     let response: BlockingResponse = http.into();
 
     //     let res = response.handle_error();
     //     assert!(res.is_ok());
@@ -244,7 +293,7 @@ mod handle_error{
     //         //.header("X-Custom-Foo", "Bar")
     //         .body("body_abc")
     //         .unwrap();
-    //     let response: Response = http.into();
+    //     let response: BlockingResponse = http.into();
 
     //     let res = response.handle_error();
     //     assert!(res.is_ok());
