@@ -1,8 +1,6 @@
 use std::fmt;
 use std::sync::Arc;
-use crate::client::{Client, AsyncRequestHandle};
-#[cfg(feature = "blocking")]
-use crate::client::ReqeustHandler;
+use crate::client::{Client};
 use crate::auth::VERB;
 use crate::config::BucketBase;
 use crate::errors::{OssResult};
@@ -147,7 +145,6 @@ impl Bucket {
     self.client = client;
   }
 
-  // TODO
   pub fn client(&self) -> Arc<Client>{
       Arc::clone(&self.client)
   }
@@ -163,7 +160,7 @@ impl Bucket {
     let client  = self.client();
 
     let response = client.blocking_builder(VERB::GET, &url, canonicalized)?;
-    let content = response.send()?.handle_error()?;
+    let content = response.send()?;
     Ok(
       ObjectList::default().from_xml(content.text()?,&self.base)?
           .set_bucket(self.base.clone())
@@ -182,7 +179,7 @@ impl Bucket {
     let client = self.client();
 
     let response = client.builder(VERB::GET, &url, canonicalized).await?;
-    let content = response.send().await?.handle_error().await?; 
+    let content = response.send().await?;
 
     // println!("{}", &content.text()?);
     // return Err(errors::OssError::Other(anyhow!("abc")));
@@ -256,7 +253,8 @@ impl OssIntoBucketList<Bucket> for ListBuckets{
 }
 
 
-impl Client {
+impl Client
+{
 
   /** # 获取 buiket 列表
   */
@@ -267,7 +265,7 @@ impl Client {
     let canonicalized = CanonicalizedResource::default();
 
     let response = self.blocking_builder(VERB::GET, &url, canonicalized)?;
-    let content = response.send()?.handle_error()?;
+    let content = response.send()?;
 
     let mut bucket_list = ListBuckets::default();
 
@@ -276,14 +274,14 @@ impl Client {
     Ok(bucket_list)
   }
 
-  pub async fn get_bucket_list(self) -> OssResult<ListBuckets>{
+  pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
     let url = self.get_endpoint_url()?;
     //url.set_path(self.bucket)
 
     let canonicalized = CanonicalizedResource::default();
 
     let response = self.builder(VERB::GET, &url, canonicalized).await?;
-    let content = response.send().await?.handle_error().await?;
+    let content = response.send().await?;
 
     let mut bucket_list = ListBuckets::default();
     
@@ -302,7 +300,7 @@ impl Client {
     let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
     let response = self.blocking_builder(VERB::GET, &bucket_url, canonicalized)?;
-    let content = response.send()?.handle_error()?;
+    let content = response.send()?;
     let mut bucket = Bucket::default().from_xml(content.text()?)?;
     bucket.set_client(Arc::new(self));
 
@@ -317,7 +315,7 @@ impl Client {
     let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
     let response = self.builder(VERB::GET, &bucket_url, canonicalized).await?;
-    let content = response.send().await?.handle_error().await?;
+    let content = response.send().await?;
 
     let mut bucket = Bucket::default().from_xml(content.text().await?)?;
     bucket.set_client(Arc::new(self));

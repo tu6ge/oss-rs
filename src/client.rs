@@ -1,15 +1,16 @@
 use infer::Infer;
-#[cfg(feature = "blocking")]
-use reqwest::blocking::{self,RequestBuilder,Response};
-use reqwest::{Client as AsyncClient, RequestBuilder as AsyncRequestBuilder, Response as AsyncResponse};
 use reqwest::header::{HeaderMap};
 
 use crate::auth::{VERB, AuthBuilder, AuthGetHeader};
+use crate::builder::{ClientWithMiddleware, Middleware, RequestBuilder};
+#[cfg(feature = "blocking")]
+use crate::builder::blocking as blocking_builder;
 use crate::config::{BucketBase, Config};
 use chrono::prelude::*;
 use reqwest::Url;
 use crate::errors::{OssResult};
 
+use std::sync::Arc;
 #[cfg(feature = "plugin")]
 use std::sync::Mutex;
 #[cfg(feature = "plugin")]
@@ -18,7 +19,6 @@ use crate::plugin::{Plugin};
 #[cfg_attr(test, mockall_double::double)]
 use crate::plugin::PluginStore;
 
-use async_trait::async_trait;
 use crate::types::{KeyId, KeySecret, EndPoint, BucketName, CanonicalizedResource};
 
 /// # 构造请求的客户端结构体
@@ -26,6 +26,9 @@ use crate::types::{KeyId, KeySecret, EndPoint, BucketName, CanonicalizedResource
 #[derive(Default)]
 pub struct Client{
     auth_builder: AuthBuilder,
+    client_middleware: ClientWithMiddleware,
+    #[cfg(feature = "blocking")]
+    blocking_client_middleware: blocking_builder::ClientWithMiddleware,
     endpoint: EndPoint,
     bucket: BucketName,
     
@@ -44,6 +47,9 @@ impl Client {
         
         Client{
             auth_builder,
+            client_middleware: ClientWithMiddleware::default(),
+            #[cfg(feature = "blocking")]
+            blocking_client_middleware: blocking_builder::ClientWithMiddleware::default(),
             endpoint,
             bucket,
             #[cfg(feature = "plugin")]
@@ -59,6 +65,9 @@ impl Client {
         
         Client{
             auth_builder,
+            client_middleware: ClientWithMiddleware::default(),
+            #[cfg(feature = "blocking")]
+            blocking_client_middleware: blocking_builder::ClientWithMiddleware::default(),
             endpoint: config.endpoint(),
             bucket: config.bucket(),
             #[cfg(feature = "plugin")]
@@ -69,6 +78,26 @@ impl Client {
 
     pub fn set_bucket_name(&mut self, bucket: BucketName){
         self.bucket = bucket
+    }
+
+    /// # 用于模拟请求 OSS 接口
+    /// 默认直接请求 OSS 接口，如果设置中间件，则可以中断请求，对 Request 做一些断言，对 Response 做一些模拟操作
+    pub fn middleware(mut self, middleware: Arc<dyn Middleware>){
+        self.client_middleware.middleware(middleware);
+    }
+
+    #[cfg(feature = "blocking")]
+    pub fn blocking_middleware(mut self, middleware: Arc<dyn blocking_builder::Middleware>){
+        self.blocking_client_middleware.middleware(middleware);
+    }
+
+    /// # 注册插件
+    #[cfg(feature = "plugin")]
+    pub fn plugin(mut self, mut plugin: Box<dyn Plugin>) -> OssResult<Client> {
+        plugin.initialize(&mut self)?;
+
+        self.plugins.lock().unwrap().insert(plugin);
+        Ok(self)
     }
 
     pub fn get_bucket_base(&self) -> BucketBase {
@@ -83,15 +112,6 @@ impl Client {
         self.endpoint.to_url()
     }
 
-    /// # 注册插件
-    #[cfg(feature = "plugin")]
-    pub fn plugin(mut self, mut plugin: Box<dyn Plugin>) -> OssResult<Client> {
-        plugin.initialize(&mut self)?;
-
-        self.plugins.lock().unwrap().insert(plugin);
-        Ok(self)
-    }
-
     /// # 向 OSS 发送请求的封装
     /// 参数包含请求的：
     /// 
@@ -104,7 +124,7 @@ impl Client {
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
     #[cfg(feature = "blocking")]
     #[cfg_attr(not(test), inline)]
-    pub fn blocking_builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource) -> OssResult<RequestBuilder>{
+    pub fn blocking_builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource) -> OssResult<blocking_builder::RequestBuilder>{
         self.blocking_builder_with_header(method, url, resource, None)
     }
     
@@ -121,8 +141,7 @@ impl Client {
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
     /// 
     #[cfg(feature = "blocking")]
-    pub fn blocking_builder_with_header(&self, method: VERB, url: &Url, resource: CanonicalizedResource, headers: Option<HeaderMap>) -> OssResult<RequestBuilder>{
-        let client = blocking::Client::new();
+    pub fn blocking_builder_with_header(&self, method: VERB, url: &Url, resource: CanonicalizedResource, headers: Option<HeaderMap>) -> OssResult<blocking_builder::RequestBuilder>{
 
         let headers = self.auth_builder.clone()
             .verb(method.to_owned())
@@ -131,14 +150,14 @@ impl Client {
             .with_headers(headers)
             .get_headers()?;
 
-        Ok(client.request(method.into(), url.to_owned())
+        Ok(self.blocking_client_middleware.request(method.into(), url.to_owned())
             .headers(headers))
     }
 
     /// builder 方法的异步实现
     #[cfg_attr(not(test), inline)]
-    pub async fn builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource) 
-    -> OssResult<AsyncRequestBuilder>
+    pub async fn builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource)
+    -> OssResult<RequestBuilder>
     {
         self.builder_with_header(method, url, resource, None).await
     }
@@ -146,10 +165,8 @@ impl Client {
     /// builder 方法的异步实现
     /// 带 header 参数
     pub async fn builder_with_header(&self, method: VERB, url: &Url, resource: CanonicalizedResource, headers: Option<HeaderMap>) 
-    -> OssResult<AsyncRequestBuilder>
+    -> OssResult<RequestBuilder>
     {
-        let client = AsyncClient::new();
-
         let headers = self.auth_builder.clone()
             .verb(method.to_owned())
             .date(now().into())
@@ -157,23 +174,11 @@ impl Client {
             .with_headers(headers)
             .get_headers()?;
 
-        Ok(client.request(method.into(), url.to_owned())
+        Ok(self.client_middleware.request(method.into(), url.to_owned())
             .headers(headers))
     }
 
 }
-
-// trait BuilderWithAuth where Self: Sized{
-//     fn with_auth(self, auth_builder: AuthBuilder) -> OssResult<Self>;
-// }
-
-// impl BuilderWithAuth for AsyncRequestBuilder{
-//     fn with_auth(self, auth_builder: AuthBuilder) -> OssResult<Self>
-//     {
-//         let headers = auth_builder.get_headers()?;
-//         Ok(self.headers(headers))
-//     }
-// }
 
 #[cfg(not(test))]
 #[inline]
@@ -181,56 +186,8 @@ fn now() -> DateTime<Utc>{
     Utc::now()
 }
 
-/// TODO 未测试
 #[cfg(test)]
 fn now() -> DateTime<Utc>{
     let naive = NaiveDateTime::parse_from_str("2022/10/6 20:40:00", "%Y/%m/%d %H:%M:%S").unwrap();
     DateTime::from_utc(naive, Utc)
-}
-
-#[cfg(feature = "blocking")]
-pub trait ReqeustHandler {
-    fn handle_error(self) -> OssResult<Self> where Self: Sized;
-}
-
-#[cfg(feature = "blocking")]
-impl ReqeustHandler for Response {
-
-    /// # 收集并处理 OSS 接口返回的错误
-    fn handle_error(self) -> OssResult<Response>
-    {
-        #[cfg_attr(test, mockall_double::double)]
-        use crate::errors::OssService;
-
-        let status = self.status();
-    
-        if status != 200 && status != 204{
-            return Err(OssService::new(self.text()?).into());
-        }
-
-        Ok(self)
-    }
-}
-
-#[async_trait]
-pub trait AsyncRequestHandle {
-    async fn handle_error(self) -> OssResult<AsyncResponse>;
-}
-
-#[async_trait]
-impl AsyncRequestHandle for AsyncResponse{
-    /// # 收集并处理 OSS 接口返回的错误
-    async fn handle_error(self) -> OssResult<AsyncResponse>
-    {
-        #[cfg_attr(test, mockall_double::double)]
-        use crate::errors::OssService;
-
-        let status = self.status();
-        
-        if status != 200 && status != 204 {
-            return Err(OssService::new(self.text().await?).into());
-        }
-
-        Ok(self)
-    }
 }

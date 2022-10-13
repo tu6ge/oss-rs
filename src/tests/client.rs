@@ -1,7 +1,7 @@
 use http::{HeaderMap, HeaderValue};
 use reqwest::Url;
 
-use crate::{client::Client, types::CanonicalizedResource};
+use crate::{client::{Client}, types::CanonicalizedResource};
 
 #[test]
 #[cfg(not(feature = "plugin"))]
@@ -76,6 +76,7 @@ fn test_get_bucket_url(){
     assert_eq!(url, "https://foo4.fobar.example.net/".to_string());
 }
 
+#[cfg(not(feature = "blocking"))]
 #[tokio::test]
 async fn test_builder_with_header(){
     let client = Client::new("foo1".into(), "foo2".into(), "foo3".into(), "foo4".into());
@@ -131,7 +132,7 @@ fn test_blocking_builder_with_header(){
 mod handle_error{
     use reqwest::Response;
     use http::Response as HttpResponse;
-    use crate::client::AsyncRequestHandle;
+    use crate::builder::RequestHandler;
     use crate::errors::OssError;
     
     #[tokio::test]

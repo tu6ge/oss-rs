@@ -6,16 +6,14 @@ use std::sync::Arc;
 use std::{io::Read};
 
 use reqwest::header::{HeaderMap,HeaderValue};
-#[cfg(feature = "blocking")]
-use crate::client::ReqeustHandler;
 use crate::config::{ObjectBase, BucketBase};
 use crate::errors::{OssResult,OssError};
-use crate::client::{Client, AsyncRequestHandle};
+use crate::client::{Client};
 use crate::auth::{VERB};
 use crate::traits::{ OssIntoObject, InvalidObjectValue, OssIntoObjectList, InvalidObjectListValue};
 use crate::types::{Query, UrlQuery, CanonicalizedResource};
 
-#[derive(Clone, Default)]
+#[derive(Clone,Default)]
 #[non_exhaustive]
 pub struct ObjectList {
     bucket: BucketBase,
@@ -75,7 +73,7 @@ impl ObjectList {
         let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
 
         let response = self.client().blocking_builder(VERB::GET, &url, canonicalized)?;
-        let content = response.send()?.handle_error()?;
+        let content = response.send()?;
 
         let list = ObjectList::default().set_client(Arc::clone(&self.client()))
             .set_bucket(self.bucket.clone());
@@ -196,7 +194,7 @@ impl Client {
     let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
     let response = self.blocking_builder(VERB::GET, &url, canonicalized)?;
-    let content = response.send()?.handle_error()?;
+    let content = response.send()?;
 
     let list = ObjectList::default().set_client(Arc::new(self))
         .set_bucket(bucket.clone());
@@ -216,7 +214,7 @@ impl Client {
     let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
     let response = self.builder(VERB::GET, &url, canonicalized).await?;
-    let content = response.send().await?.handle_error().await?;
+    let content = response.send().await?;
 
     let list = ObjectList::default().set_client(Arc::new(self))
         .set_bucket(bucket.clone());
@@ -284,7 +282,7 @@ impl Client {
     let response = self.blocking_builder_with_header(VERB::PUT, &url, canonicalized, Some(headers))?
       .body(content.clone());
 
-    let content = response.send()?.handle_error()?;
+    let content = response.send()?;
 
     let result = content.headers().get("ETag")
       .ok_or(OssError::Input("get Etag error".to_string()))?
@@ -325,7 +323,7 @@ impl Client {
     let response = self.builder_with_header(VERB::PUT, &url, canonicalized, Some(headers)).await?
       .body(content.clone());
 
-    let content = response.send().await?.handle_error().await?;
+    let content = response.send().await?;
 
     // println!("{:#?}", content.text().await.unwrap());
     // return Ok("ok".into());
@@ -349,7 +347,7 @@ impl Client {
 
     let response = self.blocking_builder(VERB::DELETE, &url, canonicalized)?;
 
-    response.send()?.handle_error()?;
+    response.send()?;
     
     Ok(())
   }
@@ -364,7 +362,7 @@ impl Client {
 
     let response = self.builder(VERB::DELETE, &url, canonicalized).await?;
 
-    response.send().await?.handle_error().await?;
+    response.send().await?;
     
     Ok(())
   }

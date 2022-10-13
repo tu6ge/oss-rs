@@ -55,6 +55,7 @@ futures = {version = "^0.3", optional=true}
 urlencoding = "^2"
 async-trait = "^0.1"
 regex = "^1"
+http="^0.2"
 
 [dev-dependencies]
 dotenv = "0.15.0"
@@ -63,6 +64,5 @@ tokio = { version = "1.19.2", features = ["rt","macros","rt-multi-thread"] }
 mockall = "0.11.2"
 mockall_double= "0.3.0"
 #faux = "^0.1"
-http="0.2.8"
 reqwest = {version ="^0.11", features = ["blocking"]}
 futures = "^0.3"

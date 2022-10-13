@@ -1,4 +1,5 @@
 
+#[cfg(not(feature = "blocking"))]
 mod test_async{
     use std::{env, path::PathBuf};
 
