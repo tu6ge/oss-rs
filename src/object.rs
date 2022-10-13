@@ -89,7 +89,7 @@ impl ObjectList {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct Object {
     base: ObjectBase,
@@ -99,6 +99,20 @@ pub struct Object {
     _type: String,
     size: u64,
     storage_class: String,
+}
+
+impl Default for Object {
+    fn default() -> Self {
+        Object {
+            base: ObjectBase::default(),
+            last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
+            key: String::default(),
+            etag: String::default(),
+            _type: String::default(),
+            size: 0,
+            storage_class: String::default(),
+        }
+    }
 }
 
 impl OssIntoObject for Object {
