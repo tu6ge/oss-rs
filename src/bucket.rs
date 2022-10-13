@@ -33,7 +33,7 @@ impl fmt::Debug for ListBuckets {
       .field("next_marker", &self.next_marker)
       .field("id", &self.id)
       .field("display_name", &self.display_name)
-      .field("buckets", &"bucket list")
+      .field("buckets", &self.buckets)
       .finish()
   }
 }
@@ -276,16 +276,13 @@ impl Client
 
   pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
     let url = self.get_endpoint_url()?;
-    //url.set_path(self.bucket)
 
     let canonicalized = CanonicalizedResource::default();
 
     let response = self.builder(VERB::GET, &url, canonicalized).await?;
     let content = response.send().await?;
 
-    let mut bucket_list = ListBuckets::default();
-    
-    bucket_list = bucket_list.from_xml(content.text().await?)?;
+    let mut bucket_list = ListBuckets::default().from_xml(content.text().await?)?;
 
     bucket_list.set_client(Arc::new(self));
     Ok(bucket_list)

@@ -82,8 +82,9 @@ impl Client {
 
     /// # 用于模拟请求 OSS 接口
     /// 默认直接请求 OSS 接口，如果设置中间件，则可以中断请求，对 Request 做一些断言，对 Response 做一些模拟操作
-    pub fn middleware(mut self, middleware: Arc<dyn Middleware>){
+    pub fn middleware(mut self, middleware: Arc<dyn Middleware>) -> Self{
         self.client_middleware.middleware(middleware);
+        self
     }
 
     #[cfg(feature = "blocking")]

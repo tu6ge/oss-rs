@@ -36,6 +36,7 @@ impl fmt::Debug for ObjectList {
           .field("max_keys", &self.max_keys)
           .field("key_count", &self.key_count)
           .field("next_continuation_token", &self.next_continuation_token)
+          .field("search_query", &self.search_query)
           .finish()
     }
 }
@@ -58,6 +59,10 @@ impl ObjectList {
     pub fn set_bucket(mut self, bucket: BucketBase) -> Self{
         self.bucket = bucket;
         self
+    }
+
+    pub fn bucket_name(&self) -> &str{
+        self.bucket.name()
     }
 
     pub fn len(&self) -> usize{
@@ -83,7 +88,7 @@ impl ObjectList {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct Object {
     base: ObjectBase,
@@ -93,21 +98,6 @@ pub struct Object {
     _type: String,
     size: u64,
     storage_class: String,
-}
-
-
-impl Default for Object {
-    fn default() -> Self {
-        Object {
-            base: ObjectBase::default(),
-            last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
-            key: String::default(),
-            etag: String::default(),
-            _type: String::default(),
-            size: 0,
-            storage_class: String::default(),
-        }
-    }
 }
 
 impl OssIntoObject for Object {
@@ -204,7 +194,6 @@ impl Client {
   }
 
   pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList>{
-
     let mut url = self.get_bucket_url()?;
 
     url.set_search_query(&query);
@@ -324,9 +313,6 @@ impl Client {
       .body(content.clone());
 
     let content = response.send().await?;
-
-    // println!("{:#?}", content.text().await.unwrap());
-    // return Ok("ok".into());
 
     let result = content.headers().get("ETag")
       .ok_or(OssError::Input("get Etag error".to_string()))?

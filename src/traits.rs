@@ -77,6 +77,7 @@ where Self: Sized
     }
 
     fn from_xml(self, xml: String, bucket: &BucketBase) -> OssResult<Self> {
+        //println!("from_xml: {:#}", xml);
         let mut result = Vec::new();
         let mut reader = Reader::from_str(xml.as_str());
         reader.trim_text(true);
@@ -202,6 +203,7 @@ pub trait OssIntoBucket where Self: Sized {
     }
 
     fn from_xml(self, xml: String) -> OssResult<Self>{
+        //println!("from_xml: {:#}", xml);
         let mut reader = Reader::from_str(xml.as_str());
         reader.trim_text(true);
         let mut buf = Vec::with_capacity(xml.len());

@@ -8,3 +8,7 @@ mod plugin;
 mod traits;
 
 mod errors;
+
+mod bucket;
+
+mod object;
