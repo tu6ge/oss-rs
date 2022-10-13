@@ -1,4 +1,5 @@
 use chrono::prelude::*;
+use reqwest::Response;
 
 use std::fmt;
 use std::path::PathBuf;
@@ -230,7 +231,7 @@ impl Client {
     std::fs::File::open(file_name)?
       .read_to_end(&mut file_content)?;
 
-    self.put_content(&file_content, key).await
+    self.put_content(file_content, key).await
   }
 
   /// # 上传文件内容到 OSS
@@ -280,8 +281,8 @@ impl Client {
     Ok(result.to_string())
   }
 
-  pub async fn put_content(&self, content: &Vec<u8>, key: &str) -> OssResult<String>{
-    let kind = self.infer.get(content);
+  pub async fn put_content(&self, content: Vec<u8>, key: &str) -> OssResult<String>{
+    let kind = self.infer.get(&content);
 
     let con = match kind {
       Some(con) => {
@@ -290,8 +291,19 @@ impl Client {
       None => Err(OssError::Input("file type is known".to_string()))
     };
 
-    let mime_type = con?.mime_type();
+    let content_type = con?.mime_type();
 
+    let content = self.put_content_base(content, content_type, key).await?;
+
+    let result = content.headers().get("ETag")
+      .ok_or(OssError::Input("get Etag error".to_string()))?
+      .to_str().map_err(|_| OssError::Input("ETag parse error".to_string()))?;
+
+    Ok(result.to_string())
+  }
+
+  /// 最原始的上传文件的方法
+  pub async fn put_content_base(&self, content: Vec<u8>, content_type: &str, key: &str) -> OssResult<Response>{
     let mut url = self.get_bucket_url()?;
     url.set_path(key);
 
@@ -299,26 +311,23 @@ impl Client {
     let content_length = content.len().to_string();
     headers.insert(
       "Content-Length", 
-      HeaderValue::from_str(&content_length).map_err(|_| OssError::Input("Content-Length parse error".to_string()))?);
+      HeaderValue::from_str(&content_length).map_err(|_| OssError::Input("Content-Length parse error".to_string()))?
+    );
 
     headers.insert(
       "Content-Type", 
-      mime_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?);
+      content_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?
+    );
 
     let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
-    
+  
     let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
     let response = self.builder_with_header(VERB::PUT, &url, canonicalized, Some(headers)).await?
-      .body(content.clone());
+      .body(content);
 
     let content = response.send().await?;
-
-    let result = content.headers().get("ETag")
-      .ok_or(OssError::Input("get Etag error".to_string()))?
-      .to_str().map_err(|_| OssError::Input("ETag parse error".to_string()))?;
-
-    Ok(result.to_string())
+    Ok(content)
   }
 
   /// # 删除文件

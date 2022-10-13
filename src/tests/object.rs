@@ -62,7 +62,45 @@ async fn test_get_object_list(){
     assert_eq!(format!("{:?}", res), r#"Ok(ObjectList { name: "bar_name", bucket: BucketBase { endpoint: EndPoint("https://oss-cn-shanghai.aliyuncs.com"), name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"#);
 }
 
-// TODO put_content 本身需要优化，单测先一放
+#[tokio::test]
+async fn test_put_content_base(){
+    struct MyMiddleware{}
+
+    #[async_trait]
+    impl Middleware for MyMiddleware{
+        async fn handle(&self, request: Request) -> OssResult<Response>{
+            //println!("request {:?}", request);
+            assert_eq!(request.method(), "PUT");
+            assert_eq!(*request.url(), Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/abc.text").unwrap());
+            assert_eq!(request.headers().get("canonicalizedresource"), Some(&HeaderValue::from_str("/foo4/abc.text").unwrap()));
+            use http::response::Builder;
+            let response = Builder::new()
+                .status(200)
+                //.url(url.clone())
+                .body(r#"content bar"#)
+                .unwrap();
+            let response = Response::from(response);
+            Ok(response)
+        }
+    }
+
+    let client = Client::new(
+        "foo1".into(),
+        "foo2".into(),
+        "https://oss-cn-shanghai.aliyuncs.com".into(),
+        "foo4".into()
+    )
+    .middleware(Arc::new(MyMiddleware{}))
+    ;
+
+    let content = String::from("Hello world");
+    let content: Vec<u8> = content.into();
+
+    let res = client.put_content_base(content, "application/text", "abc.text").await;
+
+    //println!("{:?}", res);
+    assert!(res.is_ok());
+}
 
 #[tokio::test]
 async fn test_delete_object(){
