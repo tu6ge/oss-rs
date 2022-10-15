@@ -103,7 +103,7 @@ mod test_async{
 mod test_blocking{
     
     use std::{env, path::PathBuf};
-    use aliyun_oss_client::blocking::client::Client;
+    use aliyun_oss_client::blocking::client;
     use aliyun_oss_client::types::Query;
     use dotenv::dotenv;
     use assert_matches::assert_matches;
@@ -117,7 +117,7 @@ mod test_blocking{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = Client::new(key_id.into(),key_secret.into(), endpoint.into(), bucket.into());
+        let client = client(key_id,key_secret, endpoint, bucket);
 
         let bucket_list = client.get_bucket_list();
 
@@ -133,7 +133,7 @@ mod test_blocking{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = Client::new(key_id.into(),key_secret.into(), endpoint.into(), bucket.into());
+        let client = client(key_id,key_secret, endpoint, bucket);
 
         let bucket_list = client.get_bucket_info();
 
@@ -149,7 +149,7 @@ mod test_blocking{
         let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
 
-        let client = Client::new(key_id.into(),key_secret.into(), endpoint.into(), BucketName::from_static(""));
+        let client = client(key_id,key_secret, endpoint, BucketName::from_static(""));
 
         let bucket_list = client.get_bucket_list().unwrap();
         let mut query = Query::new();
@@ -174,7 +174,7 @@ mod test_blocking{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = Client::new(key_id.into(),key_secret.into(), endpoint.into(), bucket.into());
+        let client = client(key_id,key_secret, endpoint, bucket);
         let query = Query::new();
 
         let object_list = client.get_object_list(query);
@@ -191,7 +191,7 @@ mod test_blocking{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = Client::new(key_id.into(),key_secret.into(), endpoint.into(), bucket.into());
+        let client = client(key_id,key_secret, endpoint, bucket);
         let mut query = Query::new();
         query.insert("max-keys".to_string(), "2".to_string());
         let mut object_list = client.get_object_list(query).unwrap();
@@ -209,7 +209,7 @@ mod test_blocking{
         let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
         let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-        let client = Client::new(key_id.into(),key_secret.into(), endpoint.into(), bucket.into());
+        let client = client(key_id,key_secret, endpoint, bucket);
 
         // 第一种读取文件路径的方式
         let object_list = client.put_file(PathBuf::from("examples/bg2015071010.png"), "examples/bg2015071010.png");
