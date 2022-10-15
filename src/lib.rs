@@ -35,43 +35,62 @@ let client = aliyun_oss_client::client(key_id, key_secret, endpoint, bucket);
 
 ### 查询所有的 bucket 信息
 ```ignore
-let response = client.blocking_get_bucket_list().unwrap();
-println!("buckets list: {:?}", response);
+#[tokio::main]
+async fn main() {
+  let response = client.get_bucket_list().await.unwrap();
+  println!("buckets list: {:?}", response);
+}
+
 ```
 
 ### 获取 bucket 信息
 ```ignore
-let response = client.blocking_get_bucket_info().unwrap();
-println!("bucket info: {:?}", response);
+#[tokio::main]
+async fn main() {
+  let response = client.get_bucket_info().await.unwrap();
+  println!("bucket info: {:?}", response);
+}
 ```
 
 ### 查询当前 bucket 中的 object 列表
 ```ignore
-let query: HashMap<String,String> = HashMap::new();
-let result = client.blocking_get_object_list(query).unwrap();
+#[tokio::main]
+async fn main() {
+  let query: HashMap<String,String> = HashMap::new();
+  let result = client.get_object_list(query).await.unwrap();
 
-println!("object list : {:?}", result);
+  println!("object list : {:?}", result);
 
-// 翻页功能 获取下一页数据
-println!("next object list: {:?}", result.next().unwrap());
+  // 翻页功能 获取下一页数据
+  println!("next object list: {:?}", result.next().unwrap());
+}
 ```
 
 ### 上传文件
 ```ignore
-client.blocking_put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
-
-// 上传文件内容
-let mut file_content = Vec::new();
-std::fs::File::open(file_name)
-  .expect("open file failed").read_to_end(&mut file_content)
-  .expect("read_to_end failed");
-client.blocking_put_content(&file_content, "examples/bg2015071010.png").expect("上传失败");
+#[tokio::main]
+async fn main() {
+  client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败").await;
+}
+```
+```ignore
+#[tokio::main]
+async fn main() {
+  // 上传文件内容
+  let mut file_content = Vec::new();
+  std::fs::File::open(file_name)
+    .expect("open file failed").read_to_end(&mut file_content)
+    .expect("read_to_end failed");
+  client.put_content(file_content, "examples/bg2015071010.png").await.expect("上传失败");
+}
 ```
 
 ### 删除文件
 ```ignore
-client.blocking_delete_object("examples/bg2015071010.png").unwrap();
-
+#[tokio::main]
+async fn main() {
+  client.blocking_delete_object("examples/bg2015071010.png").await.unwrap();
+}
 ```
  * 
  */

@@ -75,11 +75,11 @@ let mut file_content = Vec::new();
 std::fs::File::open(file_name)
   .expect("open file failed").read_to_end(&mut file_content)
   .expect("read_to_end failed");
-client.put_content(&file_content, "examples/bg2015071010.png").await.expect("上传失败");
+client.put_content(file_content, "examples/bg2015071010.png").await.expect("上传失败");
+
+// or 自定义上传文件 Content-Type
+client.put_content_base(file_content, "image/png", "examples/bg2015071010.png")
 ```
-
-> 由于 aliyun 在上传文件时需要提供 `Content-Type`，本 lib 提供了一个基础的判断功能，对于不常用的文件类型，可参考 plugin 部分的文档，进行扩展
-
 
 ### 删除文件
 ```
@@ -90,22 +90,39 @@ client.delete_object("examples/bg2015071010.png").await.unwrap();
 
 > 如需使用，需要启用 `blocking` 特征
 
+### 获取 client
+```
+// dotenv 是用于获取配置信息的，可以不使用
+extern crate dotenv;
+use dotenv::dotenv;
+use std::env;
+
+// 需要提供四个配置信息
+let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
+let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
+let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+let bucket      = env::var("ALIYUN_BUCKET").unwrap();
+
+// 获取客户端实例
+let client = aliyun_oss_client::blocking::client(key_id,key_secret, endpoint, bucket);
+```
+
 ### 查询所有的 bucket 信息
 ```
-let response = client.blocking_get_bucket_list().unwrap();
+let response = client.get_bucket_list().unwrap();
 println!("buckets list: {:?}", response);
 ```
 
 ### 获取 bucket 信息
 ```
-let response = client.blocking_get_bucket_info().unwrap();
+let response = client.get_bucket_info().unwrap();
 println!("bucket info: {:?}", response);
 ```
 
 ### 查询当前 bucket 中的 object 列表
 ```
 let query: HashMap<String,String> = HashMap::new();
-let response = client.blocking_get_object_list(query).unwrap();
+let response = client.get_object_list(query).unwrap();
 println!("objects list: {:?}", response);
 ```
 
@@ -116,7 +133,7 @@ let mut query:HashMap<String,String> = HashMap::new();
 query.insert("max-keys".to_string(), "5".to_string());
 query.insert("prefix".to_string(), "babel".to_string());
 
-let result = client.blocking_get_bucket_info().unwrap().blocking_get_object_list(query).unwrap();
+let result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
 
 println!("object list : {:?}", result);
 
@@ -126,24 +143,27 @@ println!("next object list: {:?}", result.next().unwrap());
 
 ### 上传文件
 ```
-client.blocking_put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
+client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
 
 // or 上传文件内容
 let mut file_content = Vec::new();
 std::fs::File::open(file_name)
   .expect("open file failed").read_to_end(&mut file_content)
   .expect("read_to_end failed");
-client.blocking_put_content(&file_content, "examples/bg2015071010.png").expect("上传失败");
-```
+client.put_content(&file_content, "examples/bg2015071010.png").expect("上传失败");
 
-> 由于 aliyun 在上传文件时需要提供 `Content-Type`，本 lib 提供了一个基础的判断功能，对于不常用的文件类型，可参考 plugin 部分的文档，进行扩展
+// or 自定义上传文件 Content-Type
+client.put_content_base(file_content, "image/png", "examples/bg2015071010.png");
+```
 
 ### 删除文件
 ```
-client.blocking_delete_object("examples/bg2015071010.png").unwrap();
+client.delete_object("examples/bg2015071010.png").unwrap();
 ```
 
-## Plugin
+## Plugin *已弃用*
+
+> Rust 的类型系统足够好，不需要此插件进行扩展了
 
 插件机制，可以在保持项目本身不变动的情况下，提供更多功能
 
