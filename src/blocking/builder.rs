@@ -1,49 +1,48 @@
-
-use std::{sync::Arc, time::Duration};
-use async_trait::async_trait;
-use reqwest::{header::{HeaderMap, HeaderName, HeaderValue}, IntoUrl, Body};
-
-use reqwest::{Client, Response, Request};
-use crate::{errors::{OssResult, OssError}, auth::VERB};
+use crate::auth::VERB;
+use crate::errors::{OssError, OssResult};
+use reqwest::blocking::{self, Body, Request, Response};
+use reqwest::{
+    header::{HeaderMap, HeaderName, HeaderValue},
+    IntoUrl,
+};
+use std::{rc::Rc, time::Duration};
 
 #[derive(Default)]
-pub struct ClientWithMiddleware{
-    inner: Client,
-    middleware: Option<Arc<dyn Middleware>>,
+pub struct ClientWithMiddleware {
+    inner: blocking::Client,
+    middleware: Option<Rc<dyn Middleware>>,
 }
 
-#[async_trait]
-pub trait Middleware: 'static + Send + Sync{
-    async fn handle(&self, request: Request) -> OssResult<Response>;
+pub trait Middleware: 'static {
+    fn handle(&self, request: Request) -> OssResult<Response>;
 }
 
-impl ClientWithMiddleware{
-    pub fn new(inner: Client) ->Self{
-        Self{
+impl ClientWithMiddleware {
+    pub fn new(inner: blocking::Client) -> Self {
+        Self {
             inner,
             middleware: None,
         }
     }
 
-    pub fn request<U: IntoUrl>(&self, method: VERB, url: U) -> RequestBuilder{
-        RequestBuilder{
+    pub fn request<U: IntoUrl>(&self, method: VERB, url: U) -> RequestBuilder {
+        RequestBuilder {
             inner: self.inner.request(method.into(), url),
             middleware: self.middleware.clone(),
         }
-        
     }
 
-    pub fn middleware(&mut self, middleware: Arc<dyn Middleware>){
+    pub fn middleware(&mut self, middleware: Rc<dyn Middleware>) {
         self.middleware = Some(middleware);
     }
 }
 
-pub struct RequestBuilder{
-    inner: reqwest::RequestBuilder,
-    middleware: Option<Arc<dyn Middleware>>
+pub struct RequestBuilder {
+    inner: reqwest::blocking::RequestBuilder,
+    middleware: Option<Rc<dyn Middleware>>,
 }
 
-impl RequestBuilder{
+impl RequestBuilder {
     pub fn header<K, V>(self, key: K, value: V) -> Self
     where
         HeaderName: TryFrom<K>,
@@ -82,41 +81,35 @@ impl RequestBuilder{
         self.inner.build()
     }
 
-    pub async fn send(self) -> OssResult<Response> {
+    pub fn send(self) -> OssResult<Response> {
         match self.middleware {
-            Some(m) =>{
-                m.handle(self.inner.build().unwrap()).await
-            },
+            Some(m) => m.handle(self.inner.build().unwrap()),
             None => {
                 // TODO map_err 照这个改
-                self.inner.send().await.map_err(OssError::from)?.handle_error().await
+                self.inner.send().map_err(OssError::from)?.handle_error()
             }
         }
     }
 }
 
-#[async_trait]
-pub trait RequestHandler {
-    async fn handle_error(self) -> OssResult<Response>;
+pub trait BlockingReqeustHandler {
+    fn handle_error(self) -> OssResult<Self>
+    where
+        Self: Sized;
 }
 
-#[async_trait]
-impl RequestHandler for Response{
+impl BlockingReqeustHandler for Response {
     /// # 收集并处理 OSS 接口返回的错误
-    async fn handle_error(self) -> OssResult<Response>
-    {
+    fn handle_error(self) -> OssResult<Response> {
         #[cfg_attr(test, mockall_double::double)]
         use crate::errors::OssService;
 
         let status = self.status();
-        
+
         if status != 200 && status != 204 {
-            return Err(OssService::new(self.text().await?).into());
+            return Err(OssService::new(self.text()?).into());
         }
 
         Ok(self)
     }
 }
-
-
-

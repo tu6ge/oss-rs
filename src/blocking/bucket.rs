@@ -1,10 +1,10 @@
 use std::fmt;
-use std::sync::Arc;
-use crate::client::{Client};
+use std::rc::Rc;
+use super::client::{Client};
 use crate::auth::VERB;
 use crate::config::BucketBase;
-use crate::errors::{OssResult};
-use crate::object::ObjectList;
+use crate::errors::OssResult;
+use super::object::ObjectList;
 use crate::traits::{OssIntoBucketList, InvalidBucketListValue, OssIntoBucket, InvalidBucketValue, OssIntoObjectList};
 use crate::types::{Query, UrlQuery, CanonicalizedResource};
 use chrono::prelude::*;
@@ -20,7 +20,7 @@ pub struct ListBuckets {
   id: Option<String>,
   display_name: Option<String>,
   pub buckets: Vec<Bucket>,
-  client: Arc<Client>,
+  client: Rc<Client>,
 }
 
 impl fmt::Debug for ListBuckets {
@@ -39,10 +39,10 @@ impl fmt::Debug for ListBuckets {
 }
 
 impl ListBuckets  {
-    pub fn set_client(&mut self, client: Arc<Client>) {
-        self.client = Arc::clone(&client);
+    pub fn set_client(&mut self, client: Rc<Client>) {
+        self.client = Rc::clone(&client);
         for i in self.buckets.iter_mut() {
-            i.set_client(Arc::clone(&client));
+            i.set_client(Rc::clone(&client));
         }
     }
 }
@@ -71,7 +71,7 @@ pub struct Bucket{
   // pub kms_master_key_id: Option<&'a str>,
   // pub cross_region_replication: &'a str,
   // pub transfer_acceleration: &'a str,
-  client: Arc<Client>,
+  client: Rc<Client>,
 }
 
 impl fmt::Debug for Bucket{
@@ -96,7 +96,7 @@ impl Default for Bucket{
             intranet_endpoint: String::default(),
             location: String::default(),
             storage_class: String::default(),
-            client: Arc::default(),
+            client: Rc::default(),
         }
     }
 }
@@ -140,33 +140,33 @@ impl OssIntoBucket for Bucket {
 
 
 impl Bucket {
-  pub fn set_client(&mut self, client: Arc<Client>){
+  pub fn set_client(&mut self, client: Rc<Client>){
     self.client = client;
   }
 
-  pub fn client(&self) -> Arc<Client>{
-      Arc::clone(&self.client)
+  pub fn client(&self) -> Rc<Client>{
+    Rc::clone(&self.client)
   }
 
-  pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList>{
+  pub fn get_object_list(&self, query: Query) -> OssResult<ObjectList>{
     let mut url = self.base.to_url()?;
 
     url.set_search_query(&query);
 
     let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
 
-    let client = self.client();
+    let client  = self.client();
 
-    let response = client.builder(VERB::GET, &url, canonicalized).await?;
-    let content = response.send().await?;
-
+    let response = client.builder(VERB::GET, &url, canonicalized)?;
+    let content = response.send()?;
     Ok(
-      ObjectList::default().from_xml(content.text().await?, &self.base)?
+      ObjectList::default().from_xml(content.text()?,&self.base)?
           .set_bucket(self.base.clone())
           .set_client(client)
           .set_search_query(query)
     )
   }
+
 }
 
 impl OssIntoBucketList<Bucket> for ListBuckets{
@@ -228,36 +228,36 @@ impl OssIntoBucketList<Bucket> for ListBuckets{
     }
 }
 
-
-impl Client
-{
-  pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
+impl Client {
+  /** # 获取 buiket 列表
+  */
+  pub fn get_bucket_list(self) -> OssResult<ListBuckets> {
     let url = self.get_endpoint_url()?;
-
+    
     let canonicalized = CanonicalizedResource::default();
 
-    let response = self.builder(VERB::GET, &url, canonicalized).await?;
-    let content = response.send().await?;
+    let response = self.builder(VERB::GET, &url, canonicalized)?;
+    let content = response.send()?;
 
-    let mut bucket_list = ListBuckets::default().from_xml(content.text().await?)?;
+    let mut bucket_list = ListBuckets::default();
 
-    bucket_list.set_client(Arc::new(self));
+    bucket_list = bucket_list.from_xml(content.text()?)?;
+    bucket_list.set_client(Rc::new(self));
     Ok(bucket_list)
   }
 
-  pub async fn get_bucket_info(self) -> OssResult<Bucket> {
+  pub fn get_bucket_info(self) -> OssResult<Bucket> {
     let query = Some("bucketInfo");
     let mut bucket_url = self.get_bucket_url()?;
     bucket_url.set_query(query);
 
     let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
-    let response = self.builder(VERB::GET, &bucket_url, canonicalized).await?;
-    let content = response.send().await?;
+    let response = self.builder(VERB::GET, &bucket_url, canonicalized)?;
+    let content = response.send()?;
+    let mut bucket = Bucket::default().from_xml(content.text()?)?;
+    bucket.set_client(Rc::new(self));
 
-    let mut bucket = Bucket::default().from_xml(content.text().await?)?;
-    bucket.set_client(Arc::new(self));
-    
     Ok(bucket)
   }
 }

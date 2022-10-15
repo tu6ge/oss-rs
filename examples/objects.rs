@@ -1,6 +1,6 @@
 //! `cargo run --example objects --features=blocking`
 
-use aliyun_oss_client::client;
+use aliyun_oss_client::blocking::client;
 
 extern crate dotenv;
 
@@ -21,6 +21,6 @@ fn main() {
     let mut query = Query::new();
     query.insert("max-keys".to_string(), "5".to_string());
     //query.insert("prefix".to_string(), "babel".to_string());
-    let response = client.blocking_get_object_list(query).unwrap();
+    let response = client.get_object_list(query).unwrap();
     println!("objects list: {:?}", response);
 }

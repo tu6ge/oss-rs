@@ -1,6 +1,6 @@
 //! `cargo run --example delete_file --features=blocking`
 
-use aliyun_oss_client::client;
+use aliyun_oss_client::blocking::client;
 
 extern crate dotenv;
 
@@ -17,6 +17,6 @@ fn main() {
 
     let client = client::Client::new(key_id.into(),key_secret.into(), endpoint.into(), bucket.into());
     //let headers = None;
-    client.blocking_delete_object("examples/bg2015071010.png").unwrap();
+    client.delete_object("examples/bg2015071010.png").unwrap();
     println!("delet file success");
 }

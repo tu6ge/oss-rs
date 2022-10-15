@@ -37,7 +37,10 @@ name = "put_file"
 required-features = ["blocking"]
 
 [features]
-default = ["plugin"]
+default = [
+  "plugin",
+  #"blocking"
+]
 plugin = []
 blocking = ["reqwest/blocking","futures"]
 

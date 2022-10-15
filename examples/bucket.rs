@@ -2,6 +2,7 @@ extern crate dotenv;
 
 use dotenv::dotenv;
 use std::{env};
+use aliyun_oss_client::blocking::client::Client;
 use aliyun_oss_client::types::Query;
 
 fn main() {
@@ -12,14 +13,14 @@ fn main() {
     let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
     let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-    let client = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket);
+    let client = Client::new(key_id.into(),key_secret.into(), endpoint.into(), bucket.into());
     //let headers = None;
-    let response = client.blocking_get_bucket_info().unwrap();
+    let response = client.get_bucket_info().unwrap();
     println!("bucket info: {:?}", response);
 
     let mut query = Query::new();
     query.insert("max-keys".to_string(), "2".to_string());
-    let mut result = response.blocking_get_object_list(query).unwrap();
+    let mut result = response.get_object_list(query).unwrap();
     println!("object list: {:?}", result);
     println!("next object list: {:?}", result.next());
 }

@@ -1,7 +1,7 @@
 //! `cargo run --example buckets --features=blocking`
 #![deny(warnings)]
 
-use aliyun_oss_client::client;
+use aliyun_oss_client::blocking::client;
 use aliyun_oss_client::types::{BucketName, Query};
 
 extern crate dotenv;
@@ -18,7 +18,7 @@ fn main() {
 
     let client = client::Client::new(key_id.into(),key_secret.into(), endpoint.into(), BucketName::from_static(""));
     //let headers = None;
-    let response = client.blocking_get_bucket_list().unwrap();
+    let response = client.get_bucket_list().unwrap();
     println!("buckets list: {:?}", response.buckets.first().unwrap());
 
     let mut query = Query::new();
@@ -27,5 +27,5 @@ fn main() {
 
     let buckets = response.buckets;
     let the_bucket = &buckets[1];
-    println!("bucket object list: {:?}", the_bucket.blocking_get_object_list(query));
+    println!("bucket object list: {:?}", the_bucket.get_object_list(query));
 }
