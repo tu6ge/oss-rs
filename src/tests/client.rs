@@ -102,32 +102,32 @@ async fn test_builder_with_header(){
 }
 
 
-// #[cfg(feature = "blocking")]
-// #[test] 
-// fn test_blocking_builder_with_header(){
-//     use crate::blocking::client::Client;
-//     let client = Client::new("foo1".into(), "foo2".into(), "foo3".into(), "foo4".into());
-//     let url = Url::parse("http://foo.example.net/foo").unwrap();
-//     let resource = CanonicalizedResource::new("bar");
-//     let mut headers = HeaderMap::new();
-//     headers.insert("Content-Type", "application/json".parse().unwrap());
-//     let builder = client.builder_with_header("POST".into(), &url, resource, Some(headers));
+#[cfg(feature = "blocking")]
+#[test]
+fn test_blocking_builder_with_header(){
+    use crate::blocking::client::Client;
+    let client = Client::new("foo1".into(), "foo2".into(), "foo3".into(), "foo4".into());
+    let url = Url::parse("http://foo.example.net/foo").unwrap();
+    let resource = CanonicalizedResource::new("bar");
+    let mut headers = HeaderMap::new();
+    headers.insert("Content-Type", "application/json".parse().unwrap());
+    let builder = client.builder_with_header("POST".into(), &url, resource, Some(headers));
 
-//     assert!(builder.is_ok());
+    assert!(builder.is_ok());
 
-//     let request = builder.unwrap().build().unwrap();
+    let request = builder.unwrap().build().unwrap();
 
-//     assert_eq!(request.method(), "POST");
-//     assert!(request.url().host().is_some());
-//     assert_eq!(request.url().path(), "/foo");
-//     assert_eq!(request.headers().get("content-type"), Some(&HeaderValue::from_str("application/json").unwrap()));
-//     assert_eq!(request.headers().get("accesskeyid"), Some(&HeaderValue::from_str("foo1").unwrap()));
-//     assert_eq!(request.headers().get("secretaccesskey"), Some(&HeaderValue::from_str("foo2").unwrap()));
-//     assert_eq!(request.headers().get("verb"), Some(&HeaderValue::from_str("POST").unwrap()));
-//     assert_eq!(request.headers().get("date"), Some(&HeaderValue::from_str("Thu, 06 Oct 2022 20:40:00 GMT").unwrap()));
-//     assert_eq!(request.headers().get("canonicalizedresource"), Some(&HeaderValue::from_str("bar").unwrap()));
-//     assert_eq!(request.headers().get("authorization"), Some(&HeaderValue::from_str("OSS foo1:FUrk4hgj2yIB8lJpnsSub+CTC9M=").unwrap()));
-// }
+    assert_eq!(request.method(), "POST");
+    assert!(request.url().host().is_some());
+    assert_eq!(request.url().path(), "/foo");
+    assert_eq!(request.headers().get("content-type"), Some(&HeaderValue::from_str("application/json").unwrap()));
+    assert_eq!(request.headers().get("accesskeyid"), Some(&HeaderValue::from_str("foo1").unwrap()));
+    assert_eq!(request.headers().get("secretaccesskey"), Some(&HeaderValue::from_str("foo2").unwrap()));
+    assert_eq!(request.headers().get("verb"), Some(&HeaderValue::from_str("POST").unwrap()));
+    assert_eq!(request.headers().get("date"), Some(&HeaderValue::from_str("Thu, 06 Oct 2022 20:40:00 GMT").unwrap()));
+    assert_eq!(request.headers().get("canonicalizedresource"), Some(&HeaderValue::from_str("bar").unwrap()));
+    assert_eq!(request.headers().get("authorization"), Some(&HeaderValue::from_str("OSS foo1:FUrk4hgj2yIB8lJpnsSub+CTC9M=").unwrap()));
+}
 
 
 mod handle_error{
@@ -168,7 +168,7 @@ mod handle_error{
         assert!(matches!(err, OssError::OssService(_)));
         assert!(matches!(err, OssError::OssService(x) if x.code=="foo_code"));
 
-        mock.checkpoint();
+        //mock.checkpoint();
     }
 
     #[tokio::test]
@@ -215,7 +215,7 @@ mod handle_error{
         assert_eq!(ok.status(), 204);
         assert_eq!(ok.text().await.unwrap(), "body_abc".to_string());
 
-        mock.checkpoint();
+        //mock.checkpoint();
     }
 
     // #[cfg(feature = "blocking")]
