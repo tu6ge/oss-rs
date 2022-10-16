@@ -196,93 +196,70 @@ mod handle_error{
 
     }
 
-    // #[cfg(feature = "blocking")]
-    // #[test]
-    // fn test_blocking_has_error(){
-    //     use reqwest::blocking::Response as BlockingResponse;
-    //     use crate::blocking::builder::BlockingReqeustHandler;
-    //     use mockall::*;
-    //     #[mockall_double::double]
-    //     use crate::errors::OssService;
+    #[cfg(feature = "blocking")]
+    #[test]
+    fn test_blocking_has_error(){
+        use reqwest::blocking::Response as BlockingResponse;
+        use crate::blocking::builder::BlockingReqeustHandler;
 
-    //     let mock = OssService::new_context();
-    //     mock.expect()
-    //         .with(predicate::eq("body_abc".to_string()))
-    //         .times(1)
-    //         .returning(move|_x|{
-    //             crate::errors::OssService{
-    //                 code: "foo_code".to_string(),
-    //                 message: "bar".to_string(),
-    //                 request_id: "bar_id".to_string(),
-    //             }
-    //         });
+        let http = HttpResponse::builder()
+            .status(302)
+            //.header("X-Custom-Foo", "Bar")
+            .body(r#"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+            <Error>
+                <Code>foo_code</Code>
+                <Message>bar</Message>
+                <RequestId>63145DB90BFD85303279D56B</RequestId>
+                <HostId>honglei123.oss-cn-shanghai.aliyuncs.com</HostId>
+                <MaxAllowedSkewMilliseconds>900000</MaxAllowedSkewMilliseconds>
+                <RequestTime>2022-09-04T07:11:33.000Z</RequestTime>
+                <ServerTime>2022-09-04T08:11:37.000Z</ServerTime>
+            </Error>
+            "#)
+            .unwrap();
+        let response: BlockingResponse = http.into();
 
-    //     let http = HttpResponse::builder()
-    //         .status(302)
-    //         //.header("X-Custom-Foo", "Bar")
-    //         .body("body_abc")
-    //         .unwrap();
-    //     let response: BlockingResponse = http.into();
+        let res = response.handle_error();
 
-    //     let res = response.handle_error();
+        assert!(res.is_err());
+        let err = res.unwrap_err();
+        assert!(matches!(err, OssError::OssService(OssService{code,..}) if code=="foo_code"));
 
-    //     assert!(res.is_err());
-    //     let err = res.unwrap_err();
-    //     assert!(matches!(err, OssError::OssService(_)));
-    //     assert!(matches!(err, OssError::OssService(x) if x.code=="foo_code"));
+    }
 
-    //     mock.checkpoint();
-    // }
-
-    // #[cfg(feature = "blocking")]
-    // #[test]
-    // fn test_blocking_ok(){
-    //     use reqwest::blocking::Response as BlockingResponse;
-    //     use crate::blocking::builder::BlockingReqeustHandler;
-    //     use mockall::*;
-    //     #[mockall_double::double]
-    //     use crate::errors::OssService;
-
-    //     let mock = OssService::new_context();
-    //     mock.expect()
-    //         .with(predicate::eq("body_abc".to_string()))
-    //         .times(0)
-    //         .returning(move|_x|{
-    //             crate::errors::OssService{
-    //                 code: "foo_code".to_string(),
-    //                 message: "bar".to_string(),
-    //                 request_id: "bar_id".to_string(),
-    //             }
-    //         });
+    #[cfg(feature = "blocking")]
+    #[test]
+    fn test_blocking_ok(){
+        use reqwest::blocking::Response as BlockingResponse;
+        use crate::blocking::builder::BlockingReqeustHandler;
         
-    //     let http = HttpResponse::builder()
-    //         .status(200)
-    //         //.header("X-Custom-Foo", "Bar")
-    //         .body("body_abc")
-    //         .unwrap();
-    //     let response: BlockingResponse = http.into();
+        let http = HttpResponse::builder()
+            .status(200)
+            //.header("X-Custom-Foo", "Bar")
+            .body("body_abc")
+            .unwrap();
+        let response: BlockingResponse = http.into();
 
-    //     let res = response.handle_error();
-    //     assert!(res.is_ok());
-    //     let ok = res.unwrap();
-    //     assert_eq!(ok.status(), 200);
-    //     assert_eq!(ok.text().unwrap(), "body_abc".to_string());
+        let res = response.handle_error();
+        assert!(res.is_ok());
+        let ok = res.unwrap();
+        assert_eq!(ok.status(), 200);
+        assert_eq!(ok.text().unwrap(), "body_abc".to_string());
 
-    //     let http = HttpResponse::builder()
-    //         .status(204)
-    //         //.header("X-Custom-Foo", "Bar")
-    //         .body("body_abc")
-    //         .unwrap();
-    //     let response: BlockingResponse = http.into();
+        let http = HttpResponse::builder()
+            .status(204)
+            //.header("X-Custom-Foo", "Bar")
+            .body("body_abc")
+            .unwrap();
+        let response: BlockingResponse = http.into();
 
-    //     let res = response.handle_error();
-    //     assert!(res.is_ok());
-    //     let ok = res.unwrap();
-    //     assert_eq!(ok.status(), 204);
-    //     assert_eq!(ok.text().unwrap(), "body_abc".to_string());
+        let res = response.handle_error();
+        assert!(res.is_ok());
+        let ok = res.unwrap();
+        assert_eq!(ok.status(), 204);
+        assert_eq!(ok.text().unwrap(), "body_abc".to_string());
 
-    //     mock.checkpoint();
-    // }
+    }
 
 }
 

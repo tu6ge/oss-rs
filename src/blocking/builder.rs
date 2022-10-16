@@ -101,7 +101,6 @@ pub trait BlockingReqeustHandler {
 impl BlockingReqeustHandler for Response {
     /// # 收集并处理 OSS 接口返回的错误
     fn handle_error(self) -> OssResult<Response> {
-        #[cfg_attr(test, mockall_double::double)]
         use crate::errors::OssService;
 
         let status = self.status();
