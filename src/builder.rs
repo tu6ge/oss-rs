@@ -105,7 +105,6 @@ impl RequestHandler for Response{
     /// # 收集并处理 OSS 接口返回的错误
     async fn handle_error(self) -> OssResult<Response>
     {
-        #[cfg_attr(test, mockall_double::double)]
         use crate::errors::OssService;
 
         let status = self.status();

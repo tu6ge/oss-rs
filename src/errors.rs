@@ -85,7 +85,7 @@ impl OssError{
 }
 
 
-#[derive(Debug, Error, Default)]
+#[derive(Debug, Error, Default, PartialEq)]
 pub struct OssService {
   pub code: String,
   pub message: String,
