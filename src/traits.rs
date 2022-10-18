@@ -9,6 +9,7 @@ use crate::errors::{OssResult, OssError};
 use crate::types::InvalidEndPoint;
 
 pub trait OssIntoObject where Self: Sized{
+    // TODO: String 可以改成 Cow<'static, str>
     fn set_key(self, _key: String) -> Result<Self, InvalidObjectValue>{
         Ok(self)
     }
