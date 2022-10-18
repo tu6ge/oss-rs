@@ -25,7 +25,7 @@ use std::env;
 // 需要提供四个配置信息
 let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
 let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+let endpoint    = aliyun_oss_client::EndPoint::default();
 let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
 // 获取客户端实例
@@ -100,7 +100,7 @@ use std::env;
 // 需要提供四个配置信息
 let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
 let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+let endpoint    = aliyun_oss_client::EndPoint::default();
 let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
 // 获取客户端实例

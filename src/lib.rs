@@ -169,7 +169,7 @@ use std::env;
 // 需要提供四个配置信息
 let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
 let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
+let endpoint    = aliyun_oss_client::EndPoint::CnQingdao;
 let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
 let result = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket);
