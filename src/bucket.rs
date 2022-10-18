@@ -103,7 +103,7 @@ impl Default for Bucket{
 
 impl OssIntoBucket for Bucket {
     fn set_name(mut self, name: String)-> Result<Self, InvalidBucketValue> {
-        self.base.set_name(name);
+        self.base.set_name(name).map_err(|_| InvalidBucketValue)?;
         Ok(self)
     }
 
@@ -147,7 +147,7 @@ impl Bucket {
   }
 
   pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList>{
-    let mut url = self.base.to_url()?;
+    let mut url = self.base.to_url();
 
     url.set_search_query(&query);
 
@@ -245,7 +245,7 @@ impl Client
 
   pub async fn get_bucket_info(self) -> OssResult<Bucket> {
     let query = Some("bucketInfo");
-    let mut bucket_url = self.get_bucket_url()?;
+    let mut bucket_url = self.get_bucket_url();
     bucket_url.set_query(query);
 
     let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);

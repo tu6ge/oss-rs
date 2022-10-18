@@ -98,7 +98,7 @@ impl Client {
             auth_builder,
             client_middleware: ClientWithMiddleware::default(),
             endpoint: endpoint.try_into().map_err(InvalidConfig::from)?,
-            bucket: bucket.into(),
+            bucket: bucket.try_into().map_err(InvalidConfig::from)?,
             #[cfg(feature = "plugin")]
             plugins: Mutex::new(PluginStore::default()),
             infer: Infer::default(),
@@ -129,7 +129,7 @@ impl Client {
         BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned())
     }
 
-    pub fn get_bucket_url(&self) -> OssResult<Url>{
+    pub fn get_bucket_url(&self) -> Url{
         self.get_bucket_base().to_url()
     }
 

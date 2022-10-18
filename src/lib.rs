@@ -172,14 +172,13 @@ let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
 let endpoint    = aliyun_oss_client::EndPoint::CnQingdao;
 let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
-let result = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket);
+let result = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket.try_into().unwrap());
 ```
 */
-pub fn client<ID, S, E, B>(access_key_id: ID, access_key_secret: S, endpoint: E, bucket: B) -> client::Client
+pub fn client<ID, S, E>(access_key_id: ID, access_key_secret: S, endpoint: E, bucket: BucketName) -> client::Client
 where ID: Into<KeyId>,
   S: Into<KeySecret>,
   E: Into<EndPoint>,
-  B: Into<BucketName>,
 {
   let config = Config::new(access_key_id, access_key_secret, endpoint, bucket);
   client::Client::from_config(&config)

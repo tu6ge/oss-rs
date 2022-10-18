@@ -70,7 +70,7 @@ impl ObjectList {
     }
 
     pub fn get_object_list(&mut self, query: Query) -> OssResult<ObjectList>{
-        let mut url = self.bucket.to_url()?;
+        let mut url = self.bucket.to_url();
 
         url.set_search_query(&query);
 
@@ -188,7 +188,7 @@ impl Client {
   /// 
   /// [OSS 文档](https://help.aliyun.com/document_detail/187544.html)
   pub fn get_object_list(self, query: Query) -> OssResult<ObjectList>{
-    let mut url = self.get_bucket_url()?;
+    let mut url = self.get_bucket_url();
 
     url.set_search_query(&query);
 
@@ -234,7 +234,7 @@ impl Client {
 
     let mime_type = con?.mime_type();
 
-    let mut url = self.get_bucket_url()?;
+    let mut url = self.get_bucket_url();
     url.set_path(key);
 
     let mut headers = HeaderMap::new();
@@ -265,7 +265,7 @@ impl Client {
 
   /// # 删除文件
   pub fn delete_object(&self, key: &str) -> OssResult<()>{
-    let mut url = self.get_bucket_url()?;
+    let mut url = self.get_bucket_url();
     url.set_path(key);
 
     let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());

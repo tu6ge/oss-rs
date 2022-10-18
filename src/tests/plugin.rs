@@ -19,7 +19,7 @@ fn plugin_default_return(){
         "foo1".to_owned().into(),
         "foo2".to_owned().into(),
         EndPoint::CnQingdao,
-        "foo4".to_owned().into()
+        "foo4".try_into().unwrap()
     );
     let res = plugin.initialize(&mut client);
     assert!(res.is_ok());
@@ -64,7 +64,7 @@ fn test_initialize(){
         "foo1".to_owned().into(),
         "foo2".to_owned().into(),
         EndPoint::CnQingdao,
-        "foo4".to_owned().into()
+        "foo4".try_into().unwrap()
     );
 
     let res = plugin_store.initialize(&mut client);
@@ -91,7 +91,7 @@ fn test_initialize_with_plugin_error(){
         "foo1".to_owned().into(),
         "foo2".to_owned().into(),
         EndPoint::CnQingdao,
-        "foo4".to_owned().into()
+        "foo4".try_into().unwrap()
     );
 
     let res = plugin_store.initialize(&mut client);

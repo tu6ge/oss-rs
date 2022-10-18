@@ -32,8 +32,8 @@ async fn test_get_bucket_list(){
     let client = Client::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".into(),
-        "foo4".into()
+        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+        "foo4".try_into().unwrap()
     )
     .middleware(Arc::new(MyMiddleware{}))
     ;
@@ -73,7 +73,7 @@ async fn test_get_bucket_info(){
                     <ExtranetEndpoint>oss-cn-shanghai.aliyuncs.com</ExtranetEndpoint>
                     <IntranetEndpoint>oss-cn-shanghai-internal.aliyuncs.com</IntranetEndpoint>
                     <Location>oss-cn-shanghai</Location>
-                    <Name>bar_name</Name>
+                    <Name>barname</Name>
                     <ResourceGroupId>aaa</ResourceGroupId>
                     <StorageClass>Standard</StorageClass>
                     <TransferAcceleration>Disabled</TransferAcceleration>
@@ -102,8 +102,8 @@ async fn test_get_bucket_info(){
     let client = Client::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".into(),
-        "foo4".into()
+        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+        "foo4".try_into().unwrap()
     )
     .middleware(Arc::new(MyMiddleware{}))
     ;
@@ -111,5 +111,5 @@ async fn test_get_bucket_info(){
     let res = client.get_bucket_info().await;
 
     //println!("{:?}", res);
-    assert_eq!(format!("{:?}", res), r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("bar_name") }, creation_date: 2016-11-05T13:10:10Z, intranet_endpoint: "oss-cn-shanghai-internal.aliyuncs.com", location: "oss-cn-shanghai", storage_class: "Standard" })"#);
+    assert_eq!(format!("{:?}", res), r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, intranet_endpoint: "oss-cn-shanghai-internal.aliyuncs.com", location: "oss-cn-shanghai", storage_class: "Standard" })"#);
 }

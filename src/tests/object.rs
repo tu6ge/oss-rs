@@ -48,8 +48,8 @@ async fn test_get_object_list(){
     let client = Client::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".into(),
-        "foo4".into()
+        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+        "foo4".try_into().unwrap()
     )
     .middleware(Arc::new(MyMiddleware{}))
     ;
@@ -87,8 +87,8 @@ async fn test_put_content_base(){
     let client = Client::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".into(),
-        "foo4".into()
+        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+        "foo4".try_into().unwrap()
     )
     .middleware(Arc::new(MyMiddleware{}))
     ;
@@ -128,8 +128,8 @@ async fn test_delete_object(){
     let client = Client::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".into(),
-        "foo4".into()
+        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+        "foo4".try_into().unwrap()
     )
     .middleware(Arc::new(MyMiddleware{}))
     ;

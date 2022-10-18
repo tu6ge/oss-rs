@@ -16,8 +16,8 @@ fn init_client_without_plugin(){
 #[test]
 fn set_bucket_name(){
     use crate::client;
-    let mut client = client("a","b",EndPoint::CnQingdao,"d");
-    client.set_bucket_name("abcaaa".to_owned().into());
+    let mut client = client("a","b",EndPoint::CnQingdao,"d".try_into().unwrap());
+    client.set_bucket_name("abcaaa".try_into().unwrap());
 
     assert_eq!(client.get_bucket_base().name(), "abcaaa");
 }
@@ -36,7 +36,7 @@ mod test_use_plugin{
 
         plugin_store.expect_insert().times(1).returning(|_|());
         
-        let mut client = client("foo1","foo2",EndPoint::CnQingdao,"foo4");
+        let mut client = client("foo1","foo2",EndPoint::CnQingdao,"foo4".try_into().unwrap());
 
         client.plugins = Mutex::new(plugin_store);
 
@@ -68,18 +68,15 @@ fn test_get_bucket_url(){
         "foo1".to_owned().into(),
         "foo2".to_owned().into(),
         EndPoint::CnQingdao,
-        "foo4".to_owned().into()
+        "foo4".try_into().unwrap()
     );
-    let result = client.get_bucket_url();
-    assert!(result.is_ok());
-
-    let url = result.unwrap().to_string();
-    assert_eq!(url, "https://foo4.oss-cn-qingdao.aliyuncs.com/".to_string());
+    let url = client.get_bucket_url();
+    assert_eq!(url.as_str(), "https://foo4.oss-cn-qingdao.aliyuncs.com/");
 }
 
 #[tokio::test]
 async fn test_builder_with_header(){
-    let client = Client::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".into());
+    let client = Client::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".try_into().unwrap());
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
     let mut headers = HeaderMap::new();
@@ -107,7 +104,7 @@ async fn test_builder_with_header(){
 #[test]
 fn test_blocking_builder_with_header(){
     use crate::blocking::client::Client;
-    let client = Client::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".into());
+    let client = Client::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".try_into().unwrap());
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
     let mut headers = HeaderMap::new();

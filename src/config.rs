@@ -4,7 +4,7 @@ use std::{
 
 use reqwest::Url;
 
-use crate::{types::{KeyId, KeySecret, EndPoint, BucketName, InvalidEndPoint}, errors::{OssResult,OssError}};
+use crate::{types::{KeyId, KeySecret, EndPoint, BucketName, InvalidEndPoint, InvalidBucketName}};
 
 pub struct Config{
     key: KeyId,
@@ -59,6 +59,9 @@ pub enum InvalidConfig{
     EndPoint(#[from] InvalidEndPoint),
 
     #[error("{0}")]
+    BucketName(#[from] InvalidBucketName),
+
+    #[error("{0}")]
     VarError(#[from] VarError),
 }
 
@@ -91,11 +94,20 @@ impl BucketBase {
         self.name.as_ref()
     }
 
-    pub fn set_name<N: Into<BucketName>>(&mut self, name: N) {
-        self.name = name.into();
+    /// 设置 bucket name
+    /// 
+    /// ```
+    /// # use aliyun_oss_client::config::BucketBase;
+    /// let mut bucket = BucketBase::default();
+    /// assert!(bucket.set_name("abc").is_ok());
+    /// assert_eq!(bucket.name(), "abc");
+    /// ```
+    pub fn set_name<N: TryInto<BucketName>>(&mut self, name: N) -> Result<(), N::Error> {
+        self.name = name.try_into()?;
+        Ok(())
     }
 
-    pub fn set_endpoint(&mut self, endpoint: String) -> Result<(), InvalidEndPoint>{
+    pub fn set_endpoint<E: TryInto<EndPoint>>(&mut self, endpoint: E) -> Result<(), E::Error>{
         self.endpoint = endpoint.try_into()?;
         Ok(())
     }
@@ -103,20 +115,22 @@ impl BucketBase {
     /// 获取url
     /// 举例
     /// ```
-    /// use aliyun_oss_client::config::BucketBase;
-    /// let bucket = BucketBase::new("abc".into(), "https://oss-cn-shanghai.aliyuncs.com".into());
+    /// # use aliyun_oss_client::config::BucketBase;
+    /// let mut bucket = BucketBase::default();
+    /// bucket.set_name("abc");
+    /// bucket.set_endpoint("shanghai");
     /// let url = bucket.to_url();
-    /// assert!(url.is_ok());
-    /// let url = url.unwrap();
     /// assert_eq!(url.as_str(), "https://abc.oss-cn-shanghai.aliyuncs.com/");
     /// ```
-    pub fn to_url(&self) -> OssResult<Url>{
+    /// 
+    /// > 因为 BucketName,EndPoint 声明时已做限制,所以 BucketBase 可以安全的转换成 url
+    pub fn to_url(&self) -> Url{
         let mut url = String::from("https://");
         url.push_str(self.name.as_ref());
         url.push_str(".oss-");
         url.push_str(self.endpoint.as_ref());
         url.push_str(".aliyuncs.com");
-        Url::parse(&url).map_err(|e|OssError::Input(e.to_string()))
+        Url::parse(&url).unwrap()
     }
 }
 

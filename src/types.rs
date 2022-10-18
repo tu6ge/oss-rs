@@ -208,9 +208,10 @@ impl TryFrom<String> for EndPoint {
     }
 }
 
-impl From<&'static str> for EndPoint {
-    fn from(url: &'static str) -> Self {
-        Self::from_static(url)
+impl TryFrom<&'static str> for EndPoint {
+    type Error = InvalidEndPoint;
+    fn try_from(url: &'static str) -> Result<Self, Self::Error> {
+        Self::new(url)
     }
 }
 
@@ -313,7 +314,7 @@ impl Display for BucketName {
 
 impl Default for BucketName {
     fn default() -> BucketName {
-        BucketName::new("")
+        BucketName::new("a").unwrap()
     }
 }
 
@@ -323,27 +324,95 @@ impl Default for BucketName {
 //         HeaderValue::from_str(self.as_ref())
 //     }
 // }
-impl From<String> for BucketName {
-    fn from(s: String) -> Self {
-        Self(Cow::Owned(s))
+impl TryFrom<String> for BucketName {
+    type Error = InvalidBucketName;
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        Self::new(s)
     }
 }
 
-impl From<&'static str> for BucketName {
-    fn from(bucket: &'static str) -> Self {
+impl TryFrom<&'static str> for BucketName {
+    type Error = InvalidBucketName;
+    fn try_from(bucket: &'static str) -> Result<Self, Self::Error> {
         Self::from_static(bucket)
     }
 }
 
 impl BucketName {
     /// Creates a new `BucketName` from the given string.
-    pub fn new(bucket: impl Into<Cow<'static, str>>) -> Self {
-        Self(bucket.into())
+    /// 只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾
+    /// 
+    /// ```
+    /// # use aliyun_oss_client::types::BucketName;
+    /// 
+    /// assert!(BucketName::new("").is_err());
+    /// assert!(BucketName::new("abc").is_ok());
+    /// assert!(BucketName::new("abc-").is_err());
+    /// assert!(BucketName::new("-abc").is_err());
+    /// assert!(BucketName::new("abc-def234ab").is_ok());
+    /// assert!(BucketName::new("abc-def*#$%^ab").is_err());
+    /// ```
+    pub fn new(bucket: impl Into<Cow<'static, str>>) -> Result<Self, InvalidBucketName> {
+        let bucket = bucket.into();
+
+        fn valid_character(c: char) -> bool {
+            match c {
+                _ if c.is_ascii_lowercase() => true,
+                _ if c.is_numeric() => true,
+                '-' => true,
+                _ => false,
+            }
+        }
+        if !bucket.chars().all(valid_character) {
+            return Err(InvalidBucketName);
+        }
+
+        if bucket.len() < 1 {
+            return Err(InvalidBucketName);
+        }
+
+        if bucket.starts_with("-") || bucket.ends_with("-") {
+            return Err(InvalidBucketName);
+        }
+
+        Ok(Self(bucket))
     }
 
     /// Const function that creates a new `BucketName` from a static str.
-    pub const fn from_static(bucket: &'static str) -> Self {
-        Self(Cow::Borrowed(bucket))
+    pub fn from_static(bucket: &'static str) -> Result<Self, InvalidBucketName> {
+        fn valid_character(c: char) -> bool {
+            match c {
+                _ if c.is_ascii_lowercase() => true,
+                _ if c.is_numeric() => true,
+                '-' => true,
+                _ => false,
+            }
+        }
+        if !bucket.chars().all(valid_character) {
+            return Err(InvalidBucketName);
+        }
+
+        if bucket.len() < 1 {
+            return Err(InvalidBucketName);
+        }
+
+        if bucket.starts_with("-") || bucket.ends_with("-") {
+            return Err(InvalidBucketName);
+        }
+
+        Ok(Self(Cow::Borrowed(bucket)))
+    }
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct InvalidBucketName;
+
+impl Error for InvalidBucketName {}
+
+impl fmt::Display for InvalidBucketName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾")
     }
 }
 

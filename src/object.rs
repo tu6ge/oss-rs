@@ -167,7 +167,7 @@ impl OssIntoObjectList<Object> for ObjectList{
 impl Client {
 
   pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList>{
-    let mut url = self.get_bucket_url()?;
+    let mut url = self.get_bucket_url();
 
     url.set_search_query(&query);
 
@@ -217,7 +217,7 @@ impl Client {
 
   /// 最原始的上传文件的方法
   pub async fn put_content_base(&self, content: Vec<u8>, content_type: &str, key: &str) -> OssResult<Response>{
-    let mut url = self.get_bucket_url()?;
+    let mut url = self.get_bucket_url();
     url.set_path(key);
 
     let mut headers = HeaderMap::new();
@@ -244,7 +244,7 @@ impl Client {
   }
 
   pub async fn delete_object(&self, key: &str) -> OssResult<()>{
-    let mut url = self.get_bucket_url()?;
+    let mut url = self.get_bucket_url();
     url.set_path(key);
 
     let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
