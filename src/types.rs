@@ -114,20 +114,49 @@ impl KeySecret {
 
 //===================================================================================================
 
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct EndPoint(
-    Cow<'static, str>
-);
+/// OSS 的可用区
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum EndPoint{
+    CnHangzhou,
+    CnShanghai,
+    CnQingdao,
+    CnBeijing,
+    CnZhangjiakou, // 张家口 lenght=13
+    CnHongkong,
+    CnShenzhen,
+    UsWest1,
+    UsEast1,
+    ApSouthEast1,
+}
 
 impl AsRef<str> for EndPoint {
     fn as_ref(&self) -> &str {
-        &self.0
+        match *self {
+            Self::CnHangzhou => "cn-hangzhou",
+            Self::CnShanghai => "cn-shanghai",
+            Self::CnQingdao => "cn-qingdao",
+            Self::CnBeijing => "cn-beijing",
+            Self::CnZhangjiakou => "cn-zhangjiakou",
+            Self::CnHongkong => "cn-hongkong",
+            Self::CnShenzhen => "cn-shenzhen",
+            Self::UsWest1 => "us-west1",
+            Self::UsEast1 => "us-east1",
+            Self::ApSouthEast1 => "ap-south-east1",
+            //_ => "custom",
+        }
+    }
+}
+
+impl Default for EndPoint {
+    fn default() -> Self {
+        Self::CnHangzhou
     }
 }
 
 impl Display for EndPoint {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self)
     }
 }
 
@@ -140,9 +169,41 @@ impl Display for EndPoint {
 // }
 
 impl From<String> for EndPoint {
-
-    fn from(value: String) -> Self {
-        Self(value.into())
+    /// 字符串转 endpoint
+    /// 举例1 - 产生恐慌
+    /// ```should_panic
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// let e: EndPoint = String::from("weifang").into();
+    /// ```
+    /// 举例2 - 正常
+    /// ```
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// let e: EndPoint = String::from("qingdao").into();
+    /// ```
+    fn from(url: String) -> Self {
+        if url.contains("shanghai") {
+            Self::CnShanghai
+        } else if url.contains("hangzhou") {
+            Self::CnHangzhou
+        } else if url.contains("qingdao") {
+            Self::CnQingdao
+        } else if url.contains("beijing"){
+            Self::CnBeijing
+        } else if url.contains("zhangjiakou") {
+            Self::CnZhangjiakou
+        } else if url.contains("hongkong") {
+            Self::CnHongkong
+        } else if url.contains("shenzhen") {
+            Self::CnShenzhen
+        } else if url.contains("us-west1") {
+            Self::UsWest1
+        } else if url.contains("us-east1") {
+            Self::UsEast1
+        } else if url.contains("ap-south-east1") {
+            Self::ApSouthEast1
+        } else {
+            panic!("Unknown endpoint: {}", url);
+        }
     }
 }
 
@@ -154,64 +215,66 @@ impl From<&'static str> for EndPoint {
 
 impl EndPoint {
 
-    /// 初始化 endpoint
-    /// 举例
+    /// 通过字符串字面值初始化 endpoint
+    /// 
+    /// 举例1 - 产生恐慌
+    /// ```should_panic
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// EndPoint::from_static("weifang");
     /// ```
-    /// use aliyun_oss_client::types::EndPoint;
-    /// let res = EndPoint::new("https://a-b223c.aliyuncs.com");
-    /// assert!(res.is_ok());
-    /// let res = EndPoint::new("http://a-b223c.aliyuncs.com");
-    /// assert!(res.is_ok());
-    /// let res = EndPoint::new("https://abc.foo.aliyuncs.com");
-    /// assert!(res.is_err());
+    /// 举例2 - 正常
     /// ```
-    pub fn new(url: impl Into<Cow<'static, str>>) -> Result<Self, InvalidEndPoint> {
-        let url = url.into();
-
-        let string = String::from(url.clone());
-        
-        if !string.ends_with(".aliyuncs.com") {
-            return Err(InvalidEndPoint)
-        }
-
-        if !(string.starts_with("http://") || string.starts_with("https://")) {
-            return Err(InvalidEndPoint)
-        }
-
-        let start: usize = if string.starts_with("http://") {
-            7
-        }else{
-            8
-        };
-
-        let end = string.len() - 13;
-
-        let second_name = &string[start..end];
-
-        fn valid_character(c: char) -> bool {
-            match c {
-                _ if c.is_ascii_alphanumeric() => true,
-                '-' => true,
-                _ => false,
-            }
-        }
-
-        if !second_name.chars().all(valid_character) {
-            return Err(InvalidEndPoint);
-        }
-
-        Ok(
-            Self(url)
-        )
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// EndPoint::from_static("qingdao");
+    /// ```
+    pub fn from_static(url: &'static str) -> Self {
+        Self::new(url).expect(format!("Unknown Endpoint :{}", url).as_str())
     }
 
-    pub const fn from_static(url: &'static str) -> Self {
-        Self(Cow::Borrowed(url))
+    /// 初始化 endpoint enum
+    /// ```
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// assert!(matches!(EndPoint::new("shanghai"), Ok(EndPoint::CnShanghai)));
+    /// assert!(EndPoint::new("weifang").is_err());
+    /// ```
+    pub fn new(url: &'static str) -> Result<Self, InvalidEndPoint> {
+        if url.contains("shanghai") {
+            Ok(Self::CnShanghai)
+        } else if url.contains("hangzhou") {
+            Ok(Self::CnHangzhou)
+        } else if url.contains("qingdao") {
+            Ok(Self::CnQingdao)
+        } else if url.contains("beijing"){
+            Ok(Self::CnBeijing)
+        } else if url.contains("zhangjiakou") {
+            Ok(Self::CnZhangjiakou)
+        } else if url.contains("hongkong") {
+            Ok(Self::CnHongkong)
+        } else if url.contains("shenzhen") {
+            Ok(Self::CnShenzhen)
+        } else if url.contains("us-west1") {
+            Ok(Self::UsWest1)
+        } else if url.contains("us-east1") {
+            Ok(Self::UsEast1)
+        } else if url.contains("ap-south-east1") {
+            Ok(Self::ApSouthEast1)
+        } else {
+            Err(InvalidEndPoint)
+        }
     }
 
-    pub fn to_url(&self) -> OssResult<Url> {
-        let url = Url::parse(self.as_ref()).map_err(|e|OssError::Input(e.to_string()));
-        url
+    /// 转化成 Url
+    /// ```
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// use reqwest::Url;
+    /// let endpoint = EndPoint::new("shanghai").unwrap();
+    /// assert_eq!(endpoint.to_url(), Url::parse("https://oss-cn-shanghai.aliyuncs.com").unwrap());
+    /// ```
+    pub fn to_url(&self) -> Url {
+        let mut url = String::from("https://oss-");
+        url.push_str(self.as_ref());
+        url.push_str(".aliyuncs.com");
+        Url::parse(&url).unwrap()
     }
 }
 

@@ -148,7 +148,7 @@ mod object_list_xml{
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        let base = BucketBase::new("abc".into(), "abc".into());
+        let base = BucketBase::new("abc".into(), "qingdao".into());
 
         let list = ListB{};
 
@@ -212,7 +212,7 @@ mod object_list_xml{
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        let base = BucketBase::new("abc".into(), "abc".into());
+        let base = BucketBase::new("abc".into(), "qingdao".into());
 
         let list = ListB{};
 

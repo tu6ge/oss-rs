@@ -111,5 +111,5 @@ async fn test_get_bucket_info(){
     let res = client.get_bucket_info().await;
 
     //println!("{:?}", res);
-    assert_eq!(format!("{:?}", res), r#"Ok(Bucket { base: BucketBase { endpoint: EndPoint("https://oss-cn-shanghai.aliyuncs.com"), name: BucketName("bar_name") }, creation_date: 2016-11-05T13:10:10Z, intranet_endpoint: "oss-cn-shanghai-internal.aliyuncs.com", location: "oss-cn-shanghai", storage_class: "Standard" })"#);
+    assert_eq!(format!("{:?}", res), r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("bar_name") }, creation_date: 2016-11-05T13:10:10Z, intranet_endpoint: "oss-cn-shanghai-internal.aliyuncs.com", location: "oss-cn-shanghai", storage_class: "Standard" })"#);
 }

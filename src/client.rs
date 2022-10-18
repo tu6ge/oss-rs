@@ -96,7 +96,7 @@ impl Client {
         self.get_bucket_base().to_url()
     }
 
-    pub fn get_endpoint_url(&self) -> OssResult<Url>{
+    pub fn get_endpoint_url(&self) -> Url{
         self.endpoint.to_url()
     }
 

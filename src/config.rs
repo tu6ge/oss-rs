@@ -75,8 +75,8 @@ impl BucketBase {
         self.name = name.into();
     }
 
-    pub fn set_endpoint<S: Into<Cow<'static, str>>>(&mut self, endpoint: S) -> Result<(), InvalidEndPoint>{
-        self.endpoint = EndPoint::new(endpoint)?;
+    pub fn set_endpoint(&mut self, endpoint: String) -> Result<(), InvalidEndPoint>{
+        self.endpoint = endpoint.into();
         Ok(())
     }
 
@@ -91,17 +91,12 @@ impl BucketBase {
     /// assert_eq!(url.as_str(), "https://abc.oss-cn-shanghai.aliyuncs.com/");
     /// ```
     pub fn to_url(&self) -> OssResult<Url>{
-        let mut url = self.endpoint.to_url()?;
-
-        let host = url.host_str().unwrap();
-        let host = self.name.to_string() + "." + host;
-        let res = url.set_host(Some(&host));
-
-        if let Err(e) = res{
-            return Err(OssError::Input(format!("set bucket url failed: {}", e)));
-        }
-
-        Ok(url)
+        let mut url = String::from("https://");
+        url.push_str(self.name.as_ref());
+        url.push_str(".oss-");
+        url.push_str(self.endpoint.as_ref());
+        url.push_str(".aliyuncs.com");
+        Url::parse(&url).map_err(|e|OssError::Input(e.to_string()))
     }
 }
 
@@ -113,7 +108,7 @@ pub struct ObjectBase {
 
 impl Default for ObjectBase{
     fn default() -> Self{
-        Self::new(BucketBase::new("".into(),"".into()), "")
+        Self::new(BucketBase::new(BucketName::default(),EndPoint::default()), "")
     }
 }
 

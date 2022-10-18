@@ -16,7 +16,7 @@ fn plugin_default_return(){
     let mut client = Client::new(
         "foo1".to_owned().into(),
         "foo2".to_owned().into(),
-        "foo3".to_owned().into(),
+        "qingdao".into(),
         "foo4".to_owned().into()
     );
     let res = plugin.initialize(&mut client);
@@ -61,7 +61,7 @@ fn test_initialize(){
     let mut client = Client::new(
         "foo1".to_owned().into(),
         "foo2".to_owned().into(),
-        "foo3".to_owned().into(),
+        "qingdao".to_owned().into(),
         "foo4".to_owned().into()
     );
 
@@ -88,7 +88,7 @@ fn test_initialize_with_plugin_error(){
     let mut client = Client::new(
         "foo1".to_owned().into(),
         "foo2".to_owned().into(),
-        "foo3".to_owned().into(),
+        "qingdao".to_owned().into(),
         "foo4".to_owned().into()
     );
 

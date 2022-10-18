@@ -24,7 +24,7 @@ async fn test_get_object_list(){
                 //.url(url.clone())
                 .body(r#"<?xml version="1.0" encoding="UTF-8"?>
                 <ListBucketResult>
-                  <Name>bar_name</Name>
+                  <Name>barname</Name>
                   <Prefix></Prefix>
                   <MaxKeys>100</MaxKeys>
                   <Delimiter></Delimiter>
@@ -59,7 +59,7 @@ async fn test_get_object_list(){
     let res = client.get_object_list(query).await;
 
     //println!("{:?}", res);
-    assert_eq!(format!("{:?}", res), r#"Ok(ObjectList { name: "bar_name", bucket: BucketBase { endpoint: EndPoint("https://oss-cn-shanghai.aliyuncs.com"), name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"#);
+    assert_eq!(format!("{:?}", res), r##"Ok(ObjectList { name: "barname", bucket: BucketBase { endpoint: CnShanghai, name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"##);
 }
 
 #[tokio::test]

@@ -118,9 +118,7 @@ impl OssIntoBucket for Bucket {
     }
 
     fn set_extranet_endpoint(mut self, extranet_endpoint: String) -> Result<Self, InvalidBucketValue> {
-        let mut val = String::from("https://");
-        val.push_str(&extranet_endpoint);
-        if let Err(e) = self.base.set_endpoint(val) {
+        if let Err(e) = self.base.set_endpoint(extranet_endpoint) {
           return Err(InvalidBucketValue::from(e))
         }
         Ok(self)
@@ -232,7 +230,7 @@ impl OssIntoBucketList<Bucket> for ListBuckets{
 impl Client
 {
   pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
-    let url = self.get_endpoint_url()?;
+    let url = self.get_endpoint_url();
 
     let canonicalized = CanonicalizedResource::default();
 
