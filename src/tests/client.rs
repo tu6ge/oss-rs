@@ -1,13 +1,13 @@
 use http::{HeaderMap, HeaderValue};
 use reqwest::Url;
 
-use crate::{client::{Client}, types::CanonicalizedResource};
+use crate::{client::{Client}, types::CanonicalizedResource, EndPoint};
 
 #[test]
 #[cfg(not(feature = "plugin"))]
 fn init_client_without_plugin(){
-    use crate::client;
-    let client = client("foo1", "foo2", "foo3", "foo4");
+    use crate::{client, EndPoint};
+    let client = client("foo1", "foo2", EndPoint::CnQingdao, "foo4");
 
     let buf = [0x10, 0x11, 0x12, 0x13];
     assert!(!client.infer.is_custom(&buf));
@@ -16,7 +16,7 @@ fn init_client_without_plugin(){
 #[test]
 fn set_bucket_name(){
     use crate::client;
-    let mut client = client("a","b","qingdao","d");
+    let mut client = client("a","b",EndPoint::CnQingdao,"d");
     client.set_bucket_name("abcaaa".to_owned().into());
 
     assert_eq!(client.get_bucket_base().name(), "abcaaa");
@@ -27,7 +27,7 @@ mod test_use_plugin{
     #[test]
     fn test_install_plugin(){
         use std::sync::Mutex;
-        use crate::client;
+        use crate::{client, EndPoint};
 
         //#[mockall_double::double]
         use crate::plugin::{MockPlugin, MockPluginStore};
@@ -36,7 +36,7 @@ mod test_use_plugin{
 
         plugin_store.expect_insert().times(1).returning(|_|());
         
-        let mut client = client("foo1","foo2","qingdao","foo4");
+        let mut client = client("foo1","foo2",EndPoint::CnQingdao,"foo4");
 
         client.plugins = Mutex::new(plugin_store);
 
@@ -67,7 +67,7 @@ fn test_get_bucket_url(){
     let client = Client::new(
         "foo1".to_owned().into(),
         "foo2".to_owned().into(),
-        "qingdao".into(),
+        EndPoint::CnQingdao,
         "foo4".to_owned().into()
     );
     let result = client.get_bucket_url();
@@ -79,7 +79,7 @@ fn test_get_bucket_url(){
 
 #[tokio::test]
 async fn test_builder_with_header(){
-    let client = Client::new("foo1".into(), "foo2".into(), "qingdao".into(), "foo4".into());
+    let client = Client::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".into());
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
     let mut headers = HeaderMap::new();
@@ -107,7 +107,7 @@ async fn test_builder_with_header(){
 #[test]
 fn test_blocking_builder_with_header(){
     use crate::blocking::client::Client;
-    let client = Client::new("foo1".into(), "foo2".into(), "qingdao".into(), "foo4".into());
+    let client = Client::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".into());
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
     let mut headers = HeaderMap::new();

@@ -168,41 +168,42 @@ impl Display for EndPoint {
 //     }
 // }
 
-impl From<String> for EndPoint {
+impl TryFrom<String> for EndPoint {
+    type Error = InvalidEndPoint;
     /// 字符串转 endpoint
     /// 举例1 - 产生恐慌
     /// ```should_panic
     /// # use aliyun_oss_client::types::EndPoint;
-    /// let e: EndPoint = String::from("weifang").into();
+    /// let e: EndPoint = String::from("weifang").try_into().unwrap();
     /// ```
     /// 举例2 - 正常
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
-    /// let e: EndPoint = String::from("qingdao").into();
+    /// let e: EndPoint = String::from("qingdao").try_into().unwrap();
     /// ```
-    fn from(url: String) -> Self {
+    fn try_from(url: String) -> Result<Self, Self::Error> {
         if url.contains("shanghai") {
-            Self::CnShanghai
+            Ok(Self::CnShanghai)
         } else if url.contains("hangzhou") {
-            Self::CnHangzhou
+            Ok(Self::CnHangzhou)
         } else if url.contains("qingdao") {
-            Self::CnQingdao
+            Ok(Self::CnQingdao)
         } else if url.contains("beijing"){
-            Self::CnBeijing
+            Ok(Self::CnBeijing)
         } else if url.contains("zhangjiakou") {
-            Self::CnZhangjiakou
+            Ok(Self::CnZhangjiakou)
         } else if url.contains("hongkong") {
-            Self::CnHongkong
+            Ok(Self::CnHongkong)
         } else if url.contains("shenzhen") {
-            Self::CnShenzhen
+            Ok(Self::CnShenzhen)
         } else if url.contains("us-west1") {
-            Self::UsWest1
+            Ok(Self::UsWest1)
         } else if url.contains("us-east1") {
-            Self::UsEast1
+            Ok(Self::UsEast1)
         } else if url.contains("ap-south-east1") {
-            Self::ApSouthEast1
+            Ok(Self::ApSouthEast1)
         } else {
-            panic!("Unknown endpoint: {}", url);
+            Err(InvalidEndPoint)
         }
     }
 }

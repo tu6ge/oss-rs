@@ -2,21 +2,16 @@
 #![deny(warnings)]
 
 use aliyun_oss_client::blocking::client;
-use aliyun_oss_client::types::{BucketName, Query};
+use aliyun_oss_client::types::Query;
 
 extern crate dotenv;
 
 use dotenv::dotenv;
-use std::{env};
 
 fn main() {
     dotenv().ok();
 
-    let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-    let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-    let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
-
-    let client = client::Client::new(key_id.into(),key_secret.into(), endpoint.into(), BucketName::from_static(""));
+    let client = client::Client::from_env().unwrap();
     //let headers = None;
     let response = client.get_bucket_list().unwrap();
     println!("buckets list: {:?}", response.buckets.first().unwrap());

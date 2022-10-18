@@ -1,7 +1,7 @@
 static mut OBEJCT_ITEM_ID:i8 = 0;
 mod object_list_xml{
 
-    use crate::{config::BucketBase, traits::{InvalidObjectListValue, InvalidObjectValue}};
+    use crate::{config::BucketBase, traits::{InvalidObjectListValue, InvalidObjectValue}, EndPoint};
     use crate::tests::traits::OBEJCT_ITEM_ID;
 
     #[test]
@@ -148,7 +148,7 @@ mod object_list_xml{
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        let base = BucketBase::new("abc".into(), "qingdao".into());
+        let base = BucketBase::new("abc".into(), EndPoint::CnQingdao);
 
         let list = ListB{};
 
@@ -212,7 +212,7 @@ mod object_list_xml{
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        let base = BucketBase::new("abc".into(), "qingdao".into());
+        let base = BucketBase::new("abc".into(), EndPoint::CnQingdao);
 
         let list = ListB{};
 

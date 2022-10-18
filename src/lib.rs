@@ -97,7 +97,8 @@ async fn main() {
 
 pub mod types;
 use config::Config;
-use types::{KeyId, KeySecret, EndPoint, BucketName};
+pub use types::{KeyId, KeySecret, EndPoint, BucketName};
+
 /// # 验证模块
 /// 包含了签名验证的一些方法，header 以及参数的封装
 pub mod auth;

@@ -3,11 +3,12 @@ use reqwest::header::{HeaderMap};
 
 use crate::auth::{VERB, AuthBuilder, AuthGetHeader};
 use super::builder::{ClientWithMiddleware, Middleware, RequestBuilder};
-use crate::config::{BucketBase, Config};
+use crate::config::{BucketBase, Config, InvalidConfig};
 use chrono::prelude::*;
 use reqwest::Url;
 use crate::errors::{OssResult};
 
+use std::env;
 use std::{rc::Rc};
 
 use crate::types::{KeyId, KeySecret, EndPoint, BucketName, CanonicalizedResource};
@@ -53,6 +54,39 @@ impl Client {
             bucket: config.bucket(),
             infer: Infer::default(),
         }
+    }
+
+    /// # 通过环境变量初始化 Client
+    /// 
+    /// 示例
+    /// ```rust
+    /// use std::env::set_var;
+    /// set_var("ALIYUN_KEY_ID", "foo1");
+    /// set_var("ALIYUN_KEY_SECRET", "foo2");
+    /// set_var("ALIYUN_ENDPOINT", "qingdao");
+    /// set_var("ALIYUN_BUCKET", "foo4");
+    /// 
+    /// # use aliyun_oss_client::blocking::client::Client;
+    /// let client = Client::from_env();
+    /// assert!(client.is_ok());
+    /// ```
+    pub fn from_env() -> Result<Self, InvalidConfig> {
+        let key_id      = env::var("ALIYUN_KEY_ID").map_err(InvalidConfig::from)?;
+        let key_secret  = env::var("ALIYUN_KEY_SECRET").map_err(InvalidConfig::from)?;
+        let endpoint    = env::var("ALIYUN_ENDPOINT").map_err(InvalidConfig::from)?;
+        let bucket      = env::var("ALIYUN_BUCKET").map_err(InvalidConfig::from)?;
+
+        let auth_builder = AuthBuilder::default()
+            .key(key_id.into())
+            .secret(key_secret.into());
+        
+        Ok(Client{
+            auth_builder,
+            client_middleware: ClientWithMiddleware::default(),
+            endpoint: endpoint.try_into().map_err(InvalidConfig::from)?,
+            bucket: bucket.into(),
+            infer: Infer::default(),
+        })
     }
 
     pub fn set_bucket_name(&mut self, bucket: BucketName){

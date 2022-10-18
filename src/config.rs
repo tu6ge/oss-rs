@@ -1,5 +1,5 @@
 use std::{
-    borrow::Cow
+    borrow::Cow, env::VarError
 };
 
 use reqwest::Url;
@@ -50,6 +50,26 @@ impl Config {
     }
 }
 
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum InvalidConfig{
+    #[error("{0}")]
+    EndPoint(#[from] InvalidEndPoint),
+
+    #[error("{0}")]
+    VarError(#[from] VarError),
+}
+
+// impl Error for InvalidConfig{}
+
+// impl fmt::Display for InvalidConfig {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         write!(f, "endpoint must like with https://xxx.aliyuncs.com")
+//     }
+// }
+
 #[derive(Debug, Clone, Default)]
 pub struct BucketBase{
     endpoint: EndPoint,
@@ -76,7 +96,7 @@ impl BucketBase {
     }
 
     pub fn set_endpoint(&mut self, endpoint: String) -> Result<(), InvalidEndPoint>{
-        self.endpoint = endpoint.into();
+        self.endpoint = endpoint.try_into()?;
         Ok(())
     }
 
