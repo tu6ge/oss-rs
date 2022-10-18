@@ -29,10 +29,6 @@ name = "objects"
 required-features = ["blocking"]
 
 [[example]]
-name = "plugin"
-required-features = ["plugin","futures"]
-
-[[example]]
 name = "put_file"
 required-features = ["blocking"]
 
