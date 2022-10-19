@@ -115,15 +115,15 @@ impl Client {
 
     /// builder 方法的异步实现
     #[cfg_attr(not(test), inline)]
-    pub async fn builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource)
+    pub fn builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource)
     -> OssResult<RequestBuilder>
     {
-        self.builder_with_header(method, url, resource, None).await
+        self.builder_with_header(method, url, resource, None)
     }
 
     /// builder 方法的异步实现
     /// 带 header 参数
-    pub async fn builder_with_header(&self, method: VERB, url: &Url, resource: CanonicalizedResource, headers: Option<HeaderMap>) 
+    pub fn builder_with_header(&self, method: VERB, url: &Url, resource: CanonicalizedResource, headers: Option<HeaderMap>) 
     -> OssResult<RequestBuilder>
     {
         let headers = self.auth_builder.clone()

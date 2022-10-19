@@ -34,14 +34,14 @@ fn test_get_bucket_url(){
     assert_eq!(url.as_str(), "https://foo4.oss-cn-qingdao.aliyuncs.com/");
 }
 
-#[tokio::test]
-async fn test_builder_with_header(){
+#[test]
+fn test_builder_with_header(){
     let client = Client::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".try_into().unwrap());
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
     let mut headers = HeaderMap::new();
     headers.insert("Content-Type", "application/json".parse().unwrap());
-    let builder = client.builder_with_header("POST".into(), &url, resource, Some(headers)).await;
+    let builder = client.builder_with_header("POST".into(), &url, resource, Some(headers));
 
     assert!(builder.is_ok());
 

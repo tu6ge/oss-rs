@@ -155,7 +155,7 @@ impl Bucket {
 
     let client = self.client();
 
-    let response = client.builder(VERB::GET, &url, canonicalized).await?;
+    let response = client.builder(VERB::GET, &url, canonicalized)?;
     let content = response.send().await?;
 
     Ok(
@@ -234,7 +234,7 @@ impl Client
 
     let canonicalized = CanonicalizedResource::default();
 
-    let response = self.builder(VERB::GET, &url, canonicalized).await?;
+    let response = self.builder(VERB::GET, &url, canonicalized)?;
     let content = response.send().await?;
 
     let mut bucket_list = ListBuckets::default().from_xml(content.text().await?)?;
@@ -250,7 +250,7 @@ impl Client
 
     let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
-    let response = self.builder(VERB::GET, &bucket_url, canonicalized).await?;
+    let response = self.builder(VERB::GET, &bucket_url, canonicalized)?;
     let content = response.send().await?;
 
     let mut bucket = Bucket::default().from_xml(content.text().await?)?;

@@ -175,7 +175,7 @@ impl Client {
 
     let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
-    let response = self.builder(VERB::GET, &url, canonicalized).await?;
+    let response = self.builder(VERB::GET, &url, canonicalized)?;
     let content = response.send().await?;
 
     let list = ObjectList::default().set_client(Arc::new(self))
@@ -236,7 +236,7 @@ impl Client {
   
     let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
-    let response = self.builder_with_header(VERB::PUT, &url, canonicalized, Some(headers)).await?
+    let response = self.builder_with_header(VERB::PUT, &url, canonicalized, Some(headers))?
       .body(content);
 
     let content = response.send().await?;
@@ -251,7 +251,7 @@ impl Client {
     
     let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
-    let response = self.builder(VERB::DELETE, &url, canonicalized).await?;
+    let response = self.builder(VERB::DELETE, &url, canonicalized)?;
 
     response.send().await?;
     
