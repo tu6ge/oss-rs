@@ -4,16 +4,6 @@ use reqwest::Url;
 use crate::{client::{Client}, types::CanonicalizedResource, EndPoint};
 
 #[test]
-#[cfg(not(feature = "plugin"))]
-fn init_client_without_plugin(){
-    use crate::{client, EndPoint};
-    let client = client("foo1", "foo2", EndPoint::CnQingdao, "foo4");
-
-    let buf = [0x10, 0x11, 0x12, 0x13];
-    assert!(!client.infer.is_custom(&buf));
-}
-
-#[test]
 fn set_bucket_name(){
     use crate::client;
     let mut client = client("a","b",EndPoint::CnQingdao,"d".try_into().unwrap());
@@ -21,36 +11,6 @@ fn set_bucket_name(){
 
     assert_eq!(client.get_bucket_base().name(), "abcaaa");
 }
-
-mod test_use_plugin{
-    #[cfg(feature = "plugin")]
-    #[test]
-    fn test_install_plugin(){
-        use std::sync::Mutex;
-        use crate::{client, EndPoint};
-
-        //#[mockall_double::double]
-        use crate::plugin::{MockPlugin, MockPluginStore};
-
-        let mut plugin_store = MockPluginStore::new();
-
-        plugin_store.expect_insert().times(1).returning(|_|());
-        
-        let mut client = client("foo1","foo2",EndPoint::CnQingdao,"foo4".try_into().unwrap());
-
-        client.plugins = Mutex::new(plugin_store);
-
-        let mut plugin = MockPlugin::new();
-        plugin.expect_initialize().times(1)
-            .returning(|_|Ok(()));
-        
-        plugin.expect_name().times(0).returning(||"foo_plugin");
-      
-        let res = client.plugin(Box::new(plugin));
-        assert!(res.is_ok());
-    }
-}
-
 
 #[test]
 fn test_get_bucket_url(){

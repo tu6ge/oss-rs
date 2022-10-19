@@ -10,13 +10,6 @@ use crate::errors::{OssResult};
 
 use std::env;
 use std::sync::Arc;
-#[cfg(feature = "plugin")]
-use std::sync::Mutex;
-#[cfg(feature = "plugin")]
-use crate::plugin::{Plugin};
-#[cfg(feature = "plugin")]
-#[cfg_attr(test, mockall_double::double)]
-use crate::plugin::PluginStore;
 
 use crate::types::{KeyId, KeySecret, EndPoint, BucketName, CanonicalizedResource};
 
@@ -28,9 +21,6 @@ pub struct Client{
     client_middleware: ClientWithMiddleware,
     endpoint: EndPoint,
     bucket: BucketName,
-    
-    #[cfg(feature = "plugin")]
-    pub plugins: Mutex<PluginStore>,
     pub infer: Infer,
 }
 
@@ -47,8 +37,6 @@ impl Client {
             client_middleware: ClientWithMiddleware::default(),
             endpoint,
             bucket,
-            #[cfg(feature = "plugin")]
-            plugins: Mutex::new(PluginStore::default()),
             infer: Infer::default(),
         }
     }
@@ -64,8 +52,6 @@ impl Client {
             client_middleware: ClientWithMiddleware::default(),
             endpoint: config.endpoint(),
             bucket: config.bucket(),
-            #[cfg(feature = "plugin")]
-            plugins: Mutex::new(PluginStore::default()),
             infer: Infer::default(),
         }
     }
@@ -99,8 +85,6 @@ impl Client {
             client_middleware: ClientWithMiddleware::default(),
             endpoint: endpoint.try_into().map_err(InvalidConfig::from)?,
             bucket: bucket.try_into().map_err(InvalidConfig::from)?,
-            #[cfg(feature = "plugin")]
-            plugins: Mutex::new(PluginStore::default()),
             infer: Infer::default(),
         })
     }
@@ -114,15 +98,6 @@ impl Client {
     pub fn middleware(mut self, middleware: Arc<dyn Middleware>) -> Self{
         self.client_middleware.middleware(middleware);
         self
-    }
-
-    /// # 注册插件
-    #[cfg(feature = "plugin")]
-    pub fn plugin(mut self, mut plugin: Box<dyn Plugin>) -> OssResult<Client> {
-        plugin.initialize(&mut self)?;
-
-        self.plugins.lock().unwrap().insert(plugin);
-        Ok(self)
     }
 
     pub fn get_bucket_base(&self) -> BucketBase {

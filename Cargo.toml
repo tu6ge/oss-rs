@@ -34,10 +34,8 @@ required-features = ["blocking"]
 
 [features]
 default = [
-  "plugin",
   #"blocking"
 ]
-plugin = []
 blocking = ["reqwest/blocking","futures"]
 
 [dependencies]

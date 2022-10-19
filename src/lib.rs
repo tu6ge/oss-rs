@@ -123,9 +123,6 @@ pub mod traits;
 
 pub mod errors;
 
-#[cfg(feature = "plugin")]
-pub mod plugin;
-
 #[cfg(feature = "blocking")]
 pub mod blocking;
 
