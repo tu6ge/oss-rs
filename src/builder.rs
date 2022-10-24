@@ -1,10 +1,30 @@
 
-use std::{sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration, rc::Rc};
 use async_trait::async_trait;
 use reqwest::{header::{HeaderMap, HeaderName, HeaderValue}, IntoUrl, Body};
 
 use reqwest::{Client, Response, Request};
-use crate::{errors::{OssResult, OssError}, auth::VERB};
+use crate::{errors::{OssResult, OssError}, auth::VERB, client::Client as AliClient};
+#[cfg(feature = "blocking")]
+use crate::blocking::client::Client as AliBClient;
+
+pub trait PointerFamily {
+    type PointerType;
+}
+
+pub struct ArcPointer;
+
+impl PointerFamily for ArcPointer {
+    type PointerType = Arc<AliClient>;
+}
+
+#[cfg(feature = "blocking")]
+pub struct RcPointer;
+
+#[cfg(feature = "blocking")]
+impl PointerFamily for RcPointer {
+    type PointerType = Rc<AliBClient>;
+}
 
 #[derive(Default)]
 pub struct ClientWithMiddleware{

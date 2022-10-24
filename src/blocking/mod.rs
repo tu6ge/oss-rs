@@ -2,10 +2,6 @@ pub mod client;
 
 pub mod builder;
 
-pub mod bucket;
-
-pub mod object;
-
 use crate::config::Config;
 use crate::types::{KeyId, KeySecret, EndPoint, BucketName};
 

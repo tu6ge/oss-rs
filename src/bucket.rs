@@ -1,6 +1,13 @@
 use std::fmt;
 use std::sync::Arc;
+use crate::builder::{PointerFamily, ArcPointer};
 use crate::client::{Client};
+#[cfg(feature = "blocking")]
+use std::rc::Rc;
+#[cfg(feature = "blocking")]
+use crate::builder::RcPointer;
+#[cfg(feature = "blocking")]
+use crate::blocking::client::Client as BClient;
 use crate::auth::VERB;
 use crate::config::BucketBase;
 use crate::errors::{OssResult};
@@ -11,19 +18,19 @@ use chrono::prelude::*;
 
 #[derive(Clone, Default)]
 #[non_exhaustive]
-pub struct ListBuckets {
-  prefix: Option<String>,
-  marker: Option<String>,
-  max_keys: Option<String>,
-  is_truncated: bool,
-  next_marker: Option<String>,
-  id: Option<String>,
-  display_name: Option<String>,
-  pub buckets: Vec<Bucket>,
-  client: Arc<Client>,
+pub struct ListBuckets<PointerSel: PointerFamily> {
+    prefix: Option<String>,
+    marker: Option<String>,
+    max_keys: Option<String>,
+    is_truncated: bool,
+    next_marker: Option<String>,
+    id: Option<String>,
+    display_name: Option<String>,
+    pub buckets: Vec<Bucket<PointerSel>>,
+    client: PointerSel::PointerType,
 }
 
-impl fmt::Debug for ListBuckets {
+impl<T: PointerFamily> fmt::Debug for ListBuckets<T> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
     f.debug_struct("ListBuckets")
       .field("prefix", &self.prefix)
@@ -38,7 +45,7 @@ impl fmt::Debug for ListBuckets {
   }
 }
 
-impl ListBuckets  {
+impl ListBuckets<ArcPointer>  {
     pub fn set_client(&mut self, client: Arc<Client>) {
         self.client = Arc::clone(&client);
         for i in self.buckets.iter_mut() {
@@ -47,47 +54,88 @@ impl ListBuckets  {
     }
 }
 
+#[cfg(feature = "blocking")]
+impl ListBuckets<RcPointer>  {
+    pub fn set_client(&mut self, client: Rc<BClient>) {
+        self.client = Rc::clone(&client);
+        for i in self.buckets.iter_mut() {
+            i.set_client(Rc::clone(&client));
+        }
+    }
+}
 
+impl Default for ListBuckets<ArcPointer> {
+    fn default() -> Self {
+        Self { 
+            prefix: None, 
+            marker: None, 
+            max_keys: None, 
+            is_truncated: false, 
+            next_marker: None, 
+            id: None, 
+            display_name: None, 
+            buckets: Vec::default(), 
+            client:  Arc::default(),
+        }
+    }
+}
+
+#[cfg(feature = "blocking")]
+impl Default for ListBuckets<RcPointer> {
+    fn default() -> Self {
+        Self { 
+            prefix: None, 
+            marker: None, 
+            max_keys: None, 
+            is_truncated: false, 
+            next_marker: None, 
+            id: None, 
+            display_name: None, 
+            buckets: Vec::default(), 
+            client:  Rc::default(),
+        }
+    }
+}
 
 #[derive(Clone)]
 #[non_exhaustive]
-pub struct Bucket{
-  base: BucketBase,
-  // bucket_info: Option<Bucket<'b>>,
-  // bucket: Option<Bucket<'c>>,
-  creation_date: DateTime<Utc>,
-  //pub extranet_endpoint: String,
-  intranet_endpoint: String,
-  location: String,
-  // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
-  // access_control_list;
-  // pub grant: Grant,
-  // pub data_redundancy_type: Option<DataRedundancyType>,
-  storage_class: String,
-  // pub versioning: &'a str,
-  // ServerSideEncryptionRule,
-  // ApplyServerSideEncryptionByDefault,
-  // pub sse_algorithm: &'a str,
-  // pub kms_master_key_id: Option<&'a str>,
-  // pub cross_region_replication: &'a str,
-  // pub transfer_acceleration: &'a str,
-  client: Arc<Client>,
+pub struct Bucket<PointerSel: PointerFamily>{
+    base: BucketBase,
+    // bucket_info: Option<Bucket<'b>>,
+    // bucket: Option<Bucket<'c>>,
+    creation_date: DateTime<Utc>,
+    //pub extranet_endpoint: String,
+    intranet_endpoint: String,
+    location: String,
+    // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
+    // access_control_list;
+    // pub grant: Grant,
+    // pub data_redundancy_type: Option<DataRedundancyType>,
+    storage_class: String,
+    // pub versioning: &'a str,
+    // ServerSideEncryptionRule,
+    // ApplyServerSideEncryptionByDefault,
+    // pub sse_algorithm: &'a str,
+    // pub kms_master_key_id: Option<&'a str>,
+    // pub cross_region_replication: &'a str,
+    // pub transfer_acceleration: &'a str,
+    client: PointerSel::PointerType,
 }
 
-impl fmt::Debug for Bucket{
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("Bucket")
-      .field("base", &self.base)
-      .field("creation_date", &self.creation_date)
-      //.field("extranet_endpoint", &self.extranet_endpoint)
-      .field("intranet_endpoint", &self.intranet_endpoint)
-      .field("location", &self.location)
-      .field("storage_class", &self.storage_class)
-      .finish()
-  }
+impl<T: PointerFamily> fmt::Debug for Bucket<T>{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Bucket")
+            .field("base", &self.base)
+            .field("creation_date", &self.creation_date)
+            //.field("extranet_endpoint", &self.extranet_endpoint)
+            .field("intranet_endpoint", &self.intranet_endpoint)
+            .field("location", &self.location)
+            .field("storage_class", &self.storage_class)
+            .finish()
+    }
 }
 
-impl Default for Bucket{
+impl Default for Bucket<ArcPointer>{
     fn default() -> Self{
         Self { 
             base: BucketBase::default(),
@@ -101,7 +149,22 @@ impl Default for Bucket{
     }
 }
 
-impl OssIntoBucket for Bucket {
+#[cfg(feature = "blocking")]
+impl Default for Bucket<RcPointer>{
+    fn default() -> Self{
+        Self { 
+            base: BucketBase::default(),
+            creation_date: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
+            //extranet_endpoint: String::default(),
+            intranet_endpoint: String::default(),
+            location: String::default(),
+            storage_class: String::default(),
+            client: Rc::default(),
+        }
+    }
+}
+
+impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
     fn set_name(mut self, name: String)-> Result<Self, InvalidBucketValue> {
         self.base.set_name(name).map_err(|_| InvalidBucketValue)?;
         Ok(self)
@@ -133,41 +196,72 @@ impl OssIntoBucket for Bucket {
         self.storage_class = storage_class;
         Ok(self)
     }
-     
 }
 
+impl Bucket<ArcPointer> {
+    pub fn set_client(&mut self, client: Arc<Client>){
+        self.client = client;
+    }
 
-impl Bucket {
-  pub fn set_client(&mut self, client: Arc<Client>){
-    self.client = client;
-  }
+    pub fn client(&self) -> Arc<Client>{
+        Arc::clone(&self.client)
+    }
 
-  pub fn client(&self) -> Arc<Client>{
-      Arc::clone(&self.client)
-  }
+    pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList<ArcPointer>>{
+        let mut url = self.base.to_url();
 
-  pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList>{
-    let mut url = self.base.to_url();
+        url.set_search_query(&query);
 
-    url.set_search_query(&query);
+        let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
 
-    let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
+        let client = self.client();
 
-    let client = self.client();
+        let response = client.builder(VERB::GET, &url, canonicalized)?;
+        let content = response.send().await?;
 
-    let response = client.builder(VERB::GET, &url, canonicalized)?;
-    let content = response.send().await?;
-
-    Ok(
-      ObjectList::default().from_xml(content.text().await?, &self.base)?
-          .set_bucket(self.base.clone())
-          .set_client(client)
-          .set_search_query(query)
-    )
-  }
+        Ok(
+            ObjectList::<ArcPointer>::default().from_xml(content.text().await?, &self.base)?
+                .set_bucket(self.base.clone())
+                .set_client(client)
+                .set_search_query(query)
+        )
+    }
 }
 
-impl OssIntoBucketList<Bucket> for ListBuckets{
+#[cfg(feature = "blocking")]
+impl Bucket<RcPointer> {
+    pub fn set_client(&mut self, client: Rc<BClient>){
+        self.client = client;
+    }
+
+    pub fn client(&self) -> Rc<BClient>{
+        Rc::clone(&self.client)
+    }
+
+    pub fn get_object_list(&self, query: Query) -> OssResult<ObjectList<RcPointer>>{
+        let mut url = self.base.to_url();
+
+        url.set_search_query(&query);
+
+        let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
+
+        let client = self.client();
+
+        let response = client.builder(VERB::GET, &url, canonicalized)?;
+        let content = response.send()?;
+
+        Ok(
+            ObjectList::<RcPointer>::default().from_xml(content.text()?, &self.base)?
+            .set_bucket(self.base.clone())
+            .set_client(client)
+            .set_search_query(query)
+        )
+    }
+}
+
+impl<T: PointerFamily> OssIntoBucketList<Bucket<T>> for ListBuckets<T>
+where Bucket<T>: std::default::Default
+{
     fn set_prefix(mut self, prefix: String) -> Result<Self, InvalidBucketListValue> {
         self.prefix = if prefix.len()>0 {
             Some(prefix)
@@ -176,6 +270,7 @@ impl OssIntoBucketList<Bucket> for ListBuckets{
         };
         Ok(self)
     }
+
     fn set_marker(mut self, marker: String) -> Result<Self, InvalidBucketListValue> {
         self.marker = if marker.len()>0 {
             Some(marker)
@@ -184,6 +279,7 @@ impl OssIntoBucketList<Bucket> for ListBuckets{
         };
         Ok(self)
     }
+
     fn set_max_keys(mut self, max_keys: String) -> Result<Self, InvalidBucketListValue>{
         self.max_keys = if max_keys.len()>0 {
             Some(max_keys)
@@ -192,10 +288,12 @@ impl OssIntoBucketList<Bucket> for ListBuckets{
         };
         Ok(self)
     }
+
     fn set_is_truncated(mut self, is_truncated: bool) -> Result<Self, InvalidBucketListValue>{
         self.is_truncated = is_truncated;
         Ok(self)
     }
+
     fn set_next_marker(mut self, marker: String) -> Result<Self, InvalidBucketListValue>{
         self.next_marker = if marker.is_empty() {
             None
@@ -204,14 +302,16 @@ impl OssIntoBucketList<Bucket> for ListBuckets{
         };
         Ok(self)
     }
+
     fn set_id(mut self, id: String) -> Result<Self, InvalidBucketListValue>{
         self.id = if id.is_empty() {
-           None
+            None
         }else{
             Some(id)
         };
         Ok(self)
     }
+
     fn set_display_name(mut self, display_name: String) -> Result<Self, InvalidBucketListValue> {
         self.display_name = if display_name.is_empty() {
             None
@@ -220,44 +320,76 @@ impl OssIntoBucketList<Bucket> for ListBuckets{
         };
         Ok(self)
     }
-    fn set_list(mut self, list: Vec<Bucket>) -> Result<Self, InvalidBucketListValue> {
+
+    fn set_list(mut self, list: Vec<Bucket<T>>) -> Result<Self, InvalidBucketListValue> {
         self.buckets = list;
         Ok(self)
     }
 }
 
+impl Client {
+    pub async fn get_bucket_list(self) -> OssResult<ListBuckets<ArcPointer>> {
+        let url = self.get_endpoint_url();
 
-impl Client
-{
-  pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
-    let url = self.get_endpoint_url();
+        let canonicalized = CanonicalizedResource::default();
 
-    let canonicalized = CanonicalizedResource::default();
+        let response = self.builder(VERB::GET, &url, canonicalized)?;
+        let content = response.send().await?;
 
-    let response = self.builder(VERB::GET, &url, canonicalized)?;
-    let content = response.send().await?;
+        let mut bucket_list = ListBuckets::<ArcPointer>::default().from_xml(content.text().await?)?;
+        bucket_list.set_client(Arc::new(self));
+        
+        Ok(bucket_list)
+    }
 
-    let mut bucket_list = ListBuckets::default().from_xml(content.text().await?)?;
+    pub async fn get_bucket_info(self) -> OssResult<Bucket<ArcPointer>> {
+        let query = Some("bucketInfo");
+        let mut bucket_url = self.get_bucket_url();
+        bucket_url.set_query(query);
 
-    bucket_list.set_client(Arc::new(self));
-    Ok(bucket_list)
-  }
+        let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
-  pub async fn get_bucket_info(self) -> OssResult<Bucket> {
-    let query = Some("bucketInfo");
-    let mut bucket_url = self.get_bucket_url();
-    bucket_url.set_query(query);
+        let response = self.builder(VERB::GET, &bucket_url, canonicalized)?;
+        let content = response.send().await?;
 
-    let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
+        let mut bucket = Bucket::<ArcPointer>::default().from_xml(content.text().await?)?;
+        bucket.set_client(Arc::new(self));
+        
+        Ok(bucket)
+    }
+}
 
-    let response = self.builder(VERB::GET, &bucket_url, canonicalized)?;
-    let content = response.send().await?;
+#[cfg(feature = "blocking")]
+impl BClient {
+    pub fn get_bucket_list(self) -> OssResult<ListBuckets<RcPointer>> {
+        let url = self.get_endpoint_url();
 
-    let mut bucket = Bucket::default().from_xml(content.text().await?)?;
-    bucket.set_client(Arc::new(self));
-    
-    Ok(bucket)
-  }
+        let canonicalized = CanonicalizedResource::default();
+
+        let response = self.builder(VERB::GET, &url, canonicalized)?;
+        let content = response.send()?;
+
+        let mut bucket_list = ListBuckets::<RcPointer>::default().from_xml(content.text()?)?;
+        bucket_list.set_client(Rc::new(self));
+
+        Ok(bucket_list)
+    }
+
+    pub fn get_bucket_info(self) -> OssResult<Bucket<RcPointer>> {
+        let query = Some("bucketInfo");
+        let mut bucket_url = self.get_bucket_url();
+        bucket_url.set_query(query);
+
+        let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
+
+        let response = self.builder(VERB::GET, &bucket_url, canonicalized)?;
+        let content = response.send()?;
+
+        let mut bucket = Bucket::<RcPointer>::default().from_xml(content.text()?)?;
+        bucket.set_client(Rc::new(self));
+        
+        Ok(bucket)
+    }
 }
 
 pub enum Grant{

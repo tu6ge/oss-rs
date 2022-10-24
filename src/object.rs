@@ -7,16 +7,25 @@ use std::sync::Arc;
 use std::{io::Read};
 
 use reqwest::header::{HeaderMap,HeaderValue};
+use crate::builder::{PointerFamily, ArcPointer};
 use crate::config::{ObjectBase, BucketBase};
 use crate::errors::{OssResult,OssError};
 use crate::client::{Client};
+#[cfg(feature = "blocking")]
+use std::rc::Rc;
+#[cfg(feature = "blocking")]
+use crate::builder::RcPointer;
+#[cfg(feature = "blocking")]
+use crate::blocking::client::Client as BClient;
+#[cfg(feature = "blocking")]
+use reqwest::blocking::Response as BResponse;
 use crate::auth::{VERB};
 use crate::traits::{ OssIntoObject, InvalidObjectValue, OssIntoObjectList, InvalidObjectListValue};
 use crate::types::{Query, UrlQuery, CanonicalizedResource};
 
 #[derive(Clone,Default)]
 #[non_exhaustive]
-pub struct ObjectList {
+pub struct ObjectList<PointerSel: PointerFamily> {
     bucket: BucketBase,
     name: String,
     prefix: String,
@@ -24,11 +33,11 @@ pub struct ObjectList {
     key_count: u64,
     pub object_list: Vec<Object>,
     next_continuation_token: Option<String>,
-    client: Arc<Client>,
+    client: PointerSel::PointerType,
     search_query: Query,
 }
 
-impl fmt::Debug for ObjectList {
+impl<T: PointerFamily> fmt::Debug for ObjectList<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ObjectList")
           .field("name", &self.name)
@@ -42,7 +51,39 @@ impl fmt::Debug for ObjectList {
     }
 }
 
-impl ObjectList {
+impl Default for ObjectList<ArcPointer>{
+    fn default() -> Self{
+        Self{
+            bucket: BucketBase::default(),
+            name: String::default(),
+            prefix: String::default(),
+            max_keys: u32::default(),
+            key_count: u64::default(),
+            object_list: Vec::new(),
+            next_continuation_token: None,
+            client: Arc::new(Client::default()),
+            search_query: Query::default(),
+        }
+    }
+}
+
+impl Default for ObjectList<RcPointer>{
+    fn default() -> Self{
+        Self{
+            bucket: BucketBase::default(),
+            name: String::default(),
+            prefix: String::default(),
+            max_keys: u32::default(),
+            key_count: u64::default(),
+            object_list: Vec::new(),
+            next_continuation_token: None,
+            client: Rc::new(BClient::default()),
+            search_query: Query::default(),
+        }
+    }
+}
+
+impl ObjectList<ArcPointer> {
     pub fn set_client(mut self, client: Arc<Client>) -> Self{
         self.client = client;
         self
@@ -51,7 +92,39 @@ impl ObjectList {
     pub fn client(&self) -> Arc<Client>{
         Arc::clone(&self.client)
     }
+}
 
+#[cfg(feature = "blocking")]
+impl ObjectList<RcPointer> {
+    pub fn set_client(mut self, client: Rc<BClient>) -> Self{
+        self.client = client;
+        self
+    }
+
+    pub fn client(&self) -> Rc<BClient>{
+        Rc::clone(&self.client)
+    }
+
+    pub fn get_object_list(&mut self, query: Query) -> OssResult<Self>{
+        let mut url = self.bucket.to_url();
+
+        url.set_search_query(&query);
+
+        let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
+
+        let client = self.client();
+        let response = client.builder(VERB::GET, &url, canonicalized)?;
+        let content = response.send()?;
+
+        let list = Self::default().set_client(Rc::clone(&client))
+            .set_bucket(self.bucket.clone());
+        Ok(
+            list.from_xml(content.text()?, &self.bucket)?.set_search_query(query)
+        )
+    }
+}
+
+impl<T: PointerFamily> ObjectList<T> {
     pub fn set_search_query(mut self, search_query: Query) -> Self{
         self.search_query = search_query;
         self
@@ -108,19 +181,23 @@ impl OssIntoObject for Object {
         self.base.set_path(key);
         Ok(self)
     }
+    
     fn set_last_modified(mut self, value: String) -> Result<Self, InvalidObjectValue> {
         let last_modified = value.parse::<DateTime<Utc>>().map_err(|_|InvalidObjectValue{})?;
         self.last_modified = last_modified;
         Ok(self)
     }
+
     fn set_etag(mut self, value: String) -> Result<Self, InvalidObjectValue> {
         self.etag = value;
         Ok(self)
     }
+
     fn set_type(mut self, value: String) -> Result<Self, InvalidObjectValue> {
         self._type = value;
         Ok(self)
     }
+
     fn set_size(mut self, size: String) -> Result<Self, InvalidObjectValue> {
         self.size = size.parse::<u64>().map_err(|_|InvalidObjectValue{})?;
         Ok(self)
@@ -132,7 +209,7 @@ impl OssIntoObject for Object {
     }
 }
 
-impl OssIntoObjectList<Object> for ObjectList{
+impl<T: PointerFamily> OssIntoObjectList<Object> for ObjectList<T>{
     fn set_key_count(mut self, key_count: String) -> Result<Self, InvalidObjectListValue> {
         self.key_count = key_count.parse::<u64>().map_err(|_|InvalidObjectListValue{})?;
         Ok(self)
@@ -166,97 +243,211 @@ impl OssIntoObjectList<Object> for ObjectList{
 
 impl Client {
 
-  pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList>{
-    let mut url = self.get_bucket_url();
-
-    url.set_search_query(&query);
-
-    let bucket = self.get_bucket_base();
-
-    let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
-
-    let response = self.builder(VERB::GET, &url, canonicalized)?;
-    let content = response.send().await?;
-
-    let list = ObjectList::default().set_client(Arc::new(self))
-        .set_bucket(bucket.clone());
-
-    Ok(
-      list.from_xml(content.text().await?, &bucket)?.set_search_query(query)
-    )
-  }
-
-  pub async fn put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(&self, file_name: P, key: &'static str) -> OssResult<String> {
-    let mut file_content = Vec::new();
-    std::fs::File::open(file_name)?
-      .read_to_end(&mut file_content)?;
-
-    self.put_content(file_content, key).await
-  }
-
-  pub async fn put_content(&self, content: Vec<u8>, key: &str) -> OssResult<String>{
-    let kind = self.infer.get(&content);
-
-    let con = match kind {
-      Some(con) => {
-        Ok(con)
-      },
-      None => Err(OssError::Input("file type is known".to_string()))
-    };
-
-    let content_type = con?.mime_type();
-
-    let content = self.put_content_base(content, content_type, key).await?;
-
-    let result = content.headers().get("ETag")
-      .ok_or(OssError::Input("get Etag error".to_string()))?
-      .to_str().map_err(|_| OssError::Input("ETag parse error".to_string()))?;
-
-    Ok(result.to_string())
-  }
-
-  /// 最原始的上传文件的方法
-  pub async fn put_content_base(&self, content: Vec<u8>, content_type: &str, key: &str) -> OssResult<Response>{
-    let mut url = self.get_bucket_url();
-    url.set_path(key);
-
-    let mut headers = HeaderMap::new();
-    let content_length = content.len().to_string();
-    headers.insert(
-      "Content-Length", 
-      HeaderValue::from_str(&content_length).map_err(|_| OssError::Input("Content-Length parse error".to_string()))?
-    );
-
-    headers.insert(
-      "Content-Type", 
-      content_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?
-    );
-
-    let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+    pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList<ArcPointer>>{
+        let mut url = self.get_bucket_url();
+    
+        url.set_search_query(&query);
+    
+        let bucket = self.get_bucket_base();
+    
+        let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
+    
+        let response = self.builder(VERB::GET, &url, canonicalized)?;
+        let content = response.send().await?;
+    
+        let list = ObjectList::<ArcPointer>::default().set_client(Arc::new(self))
+            .set_bucket(bucket.clone());
+    
+        Ok(
+            list.from_xml(content.text().await?, &bucket)?.set_search_query(query)
+        )
+    }
   
-    let canonicalized = CanonicalizedResource::from_object(&object_base, None);
-
-    let response = self.builder_with_header(VERB::PUT, &url, canonicalized, Some(headers))?
-      .body(content);
-
-    let content = response.send().await?;
-    Ok(content)
-  }
-
-  pub async fn delete_object(&self, key: &str) -> OssResult<()>{
-    let mut url = self.get_bucket_url();
-    url.set_path(key);
-
-    let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+    pub async fn put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(&self, file_name: P, key: &'static str) -> OssResult<String> {
+        let mut file_content = Vec::new();
+        std::fs::File::open(file_name)?
+            .read_to_end(&mut file_content)?;
     
-    let canonicalized = CanonicalizedResource::from_object(&object_base, None);
-
-    let response = self.builder(VERB::DELETE, &url, canonicalized)?;
-
-    response.send().await?;
+        self.put_content(file_content, key).await
+    }
+  
+    pub async fn put_content(&self, content: Vec<u8>, key: &str) -> OssResult<String>{
+        let kind = self.infer.get(&content);
     
-    Ok(())
-  }
+        let con = match kind {
+            Some(con) => {
+                Ok(con)
+            },
+            None => Err(OssError::Input("file type is known".to_string()))
+        };
+    
+        let content_type = con?.mime_type();
+    
+        let content = self.put_content_base(content, content_type, key).await?;
+    
+        let result = content.headers().get("ETag")
+            .ok_or(OssError::Input("get Etag error".to_string()))?
+            .to_str().map_err(|_| OssError::Input("ETag parse error".to_string()))?;
+    
+        Ok(result.to_string())
+    }
+  
+    /// 最原始的上传文件的方法
+    pub async fn put_content_base(&self, content: Vec<u8>, content_type: &str, key: &str) -> OssResult<Response>{
+        let mut url = self.get_bucket_url();
+        url.set_path(key);
+    
+        let mut headers = HeaderMap::new();
+        let content_length = content.len().to_string();
+        headers.insert(
+            "Content-Length", 
+            HeaderValue::from_str(&content_length).map_err(|_| OssError::Input("Content-Length parse error".to_string()))?
+        );
+    
+        headers.insert(
+            "Content-Type", 
+            content_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?
+        );
+    
+        let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+        
+        let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+    
+        let response = self.builder_with_header(VERB::PUT, &url, canonicalized, Some(headers))?
+            .body(content);
+    
+        let content = response.send().await?;
+        Ok(content)
+    }
+  
+    pub async fn delete_object(&self, key: &str) -> OssResult<()>{
+        let mut url = self.get_bucket_url();
+        url.set_path(key);
+    
+        let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+        
+        let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+    
+        let response = self.builder(VERB::DELETE, &url, canonicalized)?;
+    
+        response.send().await?;
+        
+        Ok(())
+    }
+}
+
+impl BClient {
+    pub fn get_object_list(self, query: Query) -> OssResult<ObjectList<RcPointer>>{
+        let mut url = self.get_bucket_url();
+
+        url.set_search_query(&query);
+
+        let bucket = self.get_bucket_base();
+
+        let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
+
+        let response = self.builder(VERB::GET, &url, canonicalized)?;
+        let content = response.send()?;
+
+        let list = ObjectList::<RcPointer>::default().set_client(Rc::new(self))
+            .set_bucket(bucket.clone());
+
+        Ok(
+            list.from_xml(content.text()?, &bucket)?.set_search_query(query)
+        )
+    }
+    pub fn put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(&self, file_name: P, key: &'static str) -> OssResult<String> {
+        let mut file_content = Vec::new();
+        std::fs::File::open(file_name)?
+        .read_to_end(&mut file_content)?;
+
+        self.put_content(file_content, key)
+    }
+
+    pub fn put_content(&self, content: Vec<u8>, key: &str) -> OssResult<String>{
+        let kind = self.infer.get(&content);
+
+        let con = match kind {
+        Some(con) => {
+            Ok(con)
+        },
+        None => Err(OssError::Input("file type is known".to_string()))
+        };
+
+        let content_type = con?.mime_type();
+
+        let content = self.put_content_base(content, content_type, key)?;
+
+        let result = content.headers().get("ETag")
+        .ok_or(OssError::Input("get Etag error".to_string()))?
+        .to_str().map_err(|_| OssError::Input("ETag parse error".to_string()))?;
+
+        Ok(result.to_string())
+    }
+
+    /// 最原始的上传文件的方法
+    pub fn put_content_base(&self, content: Vec<u8>, content_type: &str, key: &str) -> OssResult<BResponse>{
+        let mut url = self.get_bucket_url();
+        url.set_path(key);
+
+        let mut headers = HeaderMap::new();
+        let content_length = content.len().to_string();
+        headers.insert(
+        "Content-Length", 
+        HeaderValue::from_str(&content_length).map_err(|_| OssError::Input("Content-Length parse error".to_string()))?
+        );
+
+        headers.insert(
+        "Content-Type", 
+        content_type.parse().map_err(|_| OssError::Input("Content-Type parse error".to_string()))?
+        );
+
+        let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+    
+        let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+
+        let response = self.builder_with_header(VERB::PUT, &url, canonicalized, Some(headers))?
+        .body(content);
+
+        let content = response.send()?;
+        Ok(content)
+    }
+
+    pub fn delete_object(&self, key: &str) -> OssResult<()>{
+        let mut url = self.get_bucket_url();
+        url.set_path(key);
+
+        let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+        
+        let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+
+        let response = self.builder(VERB::DELETE, &url, canonicalized)?;
+
+        response.send()?;
+        
+        Ok(())
+    }
+}
+
+impl Iterator for ObjectList<RcPointer>{
+    type Item = ObjectList<RcPointer>;
+    fn next(&mut self) -> Option<Self> {
+        match self.next_continuation_token.clone() {
+            Some(token) => {
+                let mut query = self.search_query.clone();
+                query.insert("continuation-token".to_string(), token);
+
+                let result = self.get_object_list(query);
+                match result {
+                    Ok(v) => Some(v),
+                    _ => None,
+                }
+            },
+            None => {
+                None
+            }
+        }
+    }
 }
 
 // use futures::Stream;
