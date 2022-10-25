@@ -1,5 +1,7 @@
 
-use std::{sync::Arc, time::Duration, rc::Rc};
+use std::{sync::Arc, time::Duration};
+#[cfg(feature = "blocking")]
+use std::rc::Rc;
 use async_trait::async_trait;
 use reqwest::{header::{HeaderMap, HeaderName, HeaderValue}, IntoUrl, Body};
 

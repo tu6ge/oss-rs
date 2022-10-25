@@ -67,6 +67,7 @@ impl Default for ObjectList<ArcPointer>{
     }
 }
 
+#[cfg(feature = "blocking")]
 impl Default for ObjectList<RcPointer>{
     fn default() -> Self{
         Self{
@@ -336,6 +337,7 @@ impl Client {
     }
 }
 
+#[cfg(feature = "blocking")]
 impl BClient {
     pub fn get_object_list(self, query: Query) -> OssResult<ObjectList<RcPointer>>{
         let mut url = self.get_bucket_url();
@@ -429,6 +431,7 @@ impl BClient {
     }
 }
 
+#[cfg(feature = "blocking")]
 impl Iterator for ObjectList<RcPointer>{
     type Item = ObjectList<RcPointer>;
     fn next(&mut self) -> Option<Self> {
