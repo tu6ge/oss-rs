@@ -3,12 +3,14 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use http::HeaderValue;
 use reqwest::{Request, Response, Url};
+use crate::builder::ClientWithMiddleware;
 
 use crate::{builder::Middleware, errors::{OssResult}, client::Client};
 
 
 #[tokio::test]
 async fn test_get_bucket_list(){
+  
     struct MyMiddleware{}
 
     #[async_trait]
@@ -29,7 +31,7 @@ async fn test_get_bucket_list(){
         }
     }
 
-    let client = Client::new(
+    let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
         "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
@@ -99,7 +101,7 @@ async fn test_get_bucket_info(){
         }
     }
 
-    let client = Client::new(
+    let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
         "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),

@@ -1,13 +1,14 @@
 extern crate dotenv;
 
+use aliyun_oss_client::blocking::builder::ClientWithMiddleware;
 use dotenv::dotenv;
-use aliyun_oss_client::blocking::client::Client;
+use aliyun_oss_client::client::Client;
 use aliyun_oss_client::types::Query;
 
 fn main() {
     dotenv().ok();
 
-    let client = Client::from_env().unwrap();
+    let client = Client::<ClientWithMiddleware>::from_env().unwrap();
     //let headers = None;
     let response = client.get_bucket_info().unwrap();
     println!("bucket info: {:?}", response);

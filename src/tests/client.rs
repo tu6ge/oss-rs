@@ -2,6 +2,7 @@ use http::{HeaderMap, HeaderValue};
 use reqwest::Url;
 
 use crate::{client::{Client}, types::CanonicalizedResource, EndPoint};
+use crate::builder::ClientWithMiddleware;
 
 #[test]
 fn set_bucket_name(){
@@ -24,7 +25,7 @@ fn test_get_bucket_url(){
     // let result = client.get_bucket_url();
     // assert!(result.is_err());
 
-    let client = Client::new(
+    let client = Client::<ClientWithMiddleware>::new(
         "foo1".to_owned().into(),
         "foo2".to_owned().into(),
         EndPoint::CnQingdao,
@@ -36,7 +37,7 @@ fn test_get_bucket_url(){
 
 #[test]
 fn test_builder_with_header(){
-    let client = Client::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".try_into().unwrap());
+    let client = Client::<ClientWithMiddleware>::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".try_into().unwrap());
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
     let mut headers = HeaderMap::new();
@@ -63,8 +64,9 @@ fn test_builder_with_header(){
 #[cfg(feature = "blocking")]
 #[test]
 fn test_blocking_builder_with_header(){
-    use crate::blocking::client::Client;
-    let client = Client::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".try_into().unwrap());
+    use crate::client::Client;
+    use crate::blocking::builder::ClientWithMiddleware;
+    let client = Client::<ClientWithMiddleware>::new("foo1".into(), "foo2".into(), EndPoint::CnQingdao, "foo4".try_into().unwrap());
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
     let mut headers = HeaderMap::new();

@@ -3,6 +3,10 @@ use reqwest::header::{HeaderMap};
 
 use crate::auth::{VERB, AuthBuilder, AuthGetHeader};
 use crate::builder::{ClientWithMiddleware, Middleware, RequestBuilder};
+#[cfg(feature = "blocking")]
+use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
+#[cfg(feature = "blocking")]
+use std::{rc::Rc};
 use crate::config::{BucketBase, Config, InvalidConfig};
 use chrono::prelude::*;
 use reqwest::Url;
@@ -16,24 +20,24 @@ use crate::types::{KeyId, KeySecret, EndPoint, BucketName, CanonicalizedResource
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
 #[derive(Default)]
-pub struct Client{
+pub struct Client<M: Default>{
     auth_builder: AuthBuilder,
-    client_middleware: ClientWithMiddleware,
+    client_middleware: M,
     endpoint: EndPoint,
     bucket: BucketName,
     pub infer: Infer,
 }
 
-impl Client {
+impl<M: Default> Client<M> {
     
-    pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Client {
+    pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Self {
         let auth_builder = AuthBuilder::default()
             .key(access_key_id)
             .secret(access_key_secret);
         
-        Client{
+        Self{
             auth_builder,
-            client_middleware: ClientWithMiddleware::default(),
+            client_middleware: M::default(),
             endpoint,
             bucket,
             infer: Infer::default(),
@@ -41,14 +45,14 @@ impl Client {
     }
     
     // TODO 去掉引用，改为本体参数
-    pub fn from_config(config: &Config) -> Client{
+    pub fn from_config(config: &Config) -> Self{
         let auth_builder = AuthBuilder::default()
             .key(config.key())
             .secret(config.secret());
         
-        Client{
+        Self{
             auth_builder,
-            client_middleware: ClientWithMiddleware::default(),
+            client_middleware: M::default(),
             endpoint: config.endpoint(),
             bucket: config.bucket(),
             infer: Infer::default(),
@@ -66,7 +70,8 @@ impl Client {
     /// set_var("ALIYUN_BUCKET", "foo4");
     /// 
     /// # use aliyun_oss_client::client::Client;
-    /// let client = Client::from_env();
+    /// use aliyun_oss_client::builder::ClientWithMiddleware;
+    /// let client = Client::<ClientWithMiddleware>::from_env();
     /// assert!(client.is_ok());
     /// ```
     pub fn from_env() -> Result<Self, InvalidConfig> {
@@ -79,9 +84,9 @@ impl Client {
             .key(key_id.into())
             .secret(key_secret.into());
         
-        Ok(Client{
+        Ok(Self{
             auth_builder,
-            client_middleware: ClientWithMiddleware::default(),
+            client_middleware: M::default(),
             endpoint: endpoint.try_into().map_err(InvalidConfig::from)?,
             bucket: bucket.try_into().map_err(InvalidConfig::from)?,
             infer: Infer::default(),
@@ -90,13 +95,6 @@ impl Client {
 
     pub fn set_bucket_name(&mut self, bucket: BucketName){
         self.bucket = bucket
-    }
-
-    /// # 用于模拟请求 OSS 接口
-    /// 默认直接请求 OSS 接口，如果设置中间件，则可以中断请求，对 Request 做一些断言，对 Response 做一些模拟操作
-    pub fn middleware(mut self, middleware: Arc<dyn Middleware>) -> Self{
-        self.client_middleware.middleware(middleware);
-        self
     }
 
     pub fn get_bucket_base(&self) -> BucketBase {
@@ -109,6 +107,30 @@ impl Client {
 
     pub fn get_endpoint_url(&self) -> Url{
         self.endpoint.to_url()
+    }
+
+    
+
+}
+
+#[cfg(not(test))]
+#[inline]
+fn now() -> DateTime<Utc>{
+    Utc::now()
+}
+
+#[cfg(test)]
+fn now() -> DateTime<Utc>{
+    let naive = NaiveDateTime::parse_from_str("2022/10/6 20:40:00", "%Y/%m/%d %H:%M:%S").unwrap();
+    DateTime::from_utc(naive, Utc)
+}
+
+impl Client<ClientWithMiddleware>{
+        /// # 用于模拟请求 OSS 接口
+    /// 默认直接请求 OSS 接口，如果设置中间件，则可以中断请求，对 Request 做一些断言，对 Response 做一些模拟操作
+    pub fn middleware(mut self, middleware: Arc<dyn Middleware>) -> Self{
+        self.client_middleware.middleware(middleware);
+        self
     }
 
     /// builder 方法的异步实现
@@ -134,17 +156,57 @@ impl Client {
         Ok(self.client_middleware.request(method.into(), url.to_owned())
             .headers(headers))
     }
-
 }
 
-#[cfg(not(test))]
-#[inline]
-fn now() -> DateTime<Utc>{
-    Utc::now()
-}
+#[cfg(feature = "blocking")]
+use crate::blocking::builder::{RequestBuilder as BlockingRequestBuilder, Middleware as BlockingMiddleware};
 
-#[cfg(test)]
-fn now() -> DateTime<Utc>{
-    let naive = NaiveDateTime::parse_from_str("2022/10/6 20:40:00", "%Y/%m/%d %H:%M:%S").unwrap();
-    DateTime::from_utc(naive, Utc)
+#[cfg(feature = "blocking")]
+impl Client<BlockingClientWithMiddleware>{
+    /// # 用于模拟请求 OSS 接口
+    /// 默认直接请求 OSS 接口，如果设置中间件，则可以中断请求，对 Request 做一些断言，对 Response 做一些模拟操作
+    pub fn middleware(mut self, middleware: Rc<dyn BlockingMiddleware>) -> Self{
+        self.client_middleware.middleware(middleware);
+        self
+    }
+
+    /// # 向 OSS 发送请求的封装
+    /// 参数包含请求的：
+    /// 
+    /// - method
+    /// - url
+    /// - [CanonicalizedResource](https://help.aliyun.com/document_detail/31951.html#section-rvv-dx2-xdb)  
+    /// 
+    /// 返回值是一个 reqwest 的请求创建器 `reqwest::blocking::RequestBuilder`
+    /// 
+    /// 返回后，可以再加请求参数，然后可选的进行发起请求
+    #[inline]
+    pub fn builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource) -> OssResult<BlockingRequestBuilder>{
+        self.builder_with_header(method, url, resource, None)
+    }
+    
+    /// # 向 OSS 发送请求的封装
+    /// 参数包含请求的：
+    /// 
+    /// - method
+    /// - url
+    /// - headers (可选)
+    /// - [CanonicalizedResource](https://help.aliyun.com/document_detail/31951.html#section-rvv-dx2-xdb)
+    /// 
+    /// 返回值是一个 reqwest 的请求创建器 `reqwest::blocking::RequestBuilder`
+    /// 
+    /// 返回后，可以再加请求参数，然后可选的进行发起请求
+    /// 
+    pub fn builder_with_header(&self, method: VERB, url: &Url, resource: CanonicalizedResource, headers: Option<HeaderMap>) -> OssResult<BlockingRequestBuilder>{
+
+        let headers = self.auth_builder.clone()
+            .verb(method.to_owned())
+            .date(now().into())
+            .canonicalized_resource(resource)
+            .with_headers(headers)
+            .get_headers()?;
+
+        Ok(self.client_middleware.request(method.into(), url.to_owned())
+            .headers(headers))
+    }
 }

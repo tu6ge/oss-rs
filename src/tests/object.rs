@@ -5,7 +5,9 @@ use http::HeaderValue;
 use reqwest::{Request, Response, Url};
 
 use crate::{builder::Middleware, errors::{OssResult}, client::Client, types::Query};
-
+use crate::builder::ClientWithMiddleware;
+// #[cfg(feature = "blocking")]
+// use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
 
 #[tokio::test]
 async fn test_get_object_list(){
@@ -45,7 +47,7 @@ async fn test_get_object_list(){
         }
     }
 
-    let client = Client::new(
+    let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
         "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
@@ -84,7 +86,7 @@ async fn test_put_content_base(){
         }
     }
 
-    let client = Client::new(
+    let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
         "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
@@ -125,7 +127,7 @@ async fn test_delete_object(){
         }
     }
 
-    let client = Client::new(
+    let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
         "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),

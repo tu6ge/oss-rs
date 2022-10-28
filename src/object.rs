@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::{io::Read};
 
 use reqwest::header::{HeaderMap,HeaderValue};
-use crate::builder::{PointerFamily, ArcPointer};
+use crate::builder::{PointerFamily, ArcPointer, ClientWithMiddleware};
 use crate::config::{ObjectBase, BucketBase};
 use crate::errors::{OssResult,OssError};
 use crate::client::{Client};
@@ -16,9 +16,9 @@ use std::rc::Rc;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 #[cfg(feature = "blocking")]
-use crate::blocking::client::Client as BClient;
-#[cfg(feature = "blocking")]
 use reqwest::blocking::Response as BResponse;
+#[cfg(feature = "blocking")]
+use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
 use crate::auth::{VERB};
 use crate::traits::{ OssIntoObject, InvalidObjectValue, OssIntoObjectList, InvalidObjectListValue};
 use crate::types::{Query, UrlQuery, CanonicalizedResource};
@@ -78,31 +78,31 @@ impl Default for ObjectList<RcPointer>{
             key_count: u64::default(),
             object_list: Vec::new(),
             next_continuation_token: None,
-            client: Rc::new(BClient::default()),
+            client: Rc::new(Client::<BlockingClientWithMiddleware>::default()),
             search_query: Query::default(),
         }
     }
 }
 
 impl ObjectList<ArcPointer> {
-    pub fn set_client(mut self, client: Arc<Client>) -> Self{
+    pub fn set_client(mut self, client: Arc<Client<ClientWithMiddleware>>) -> Self{
         self.client = client;
         self
     }
 
-    pub fn client(&self) -> Arc<Client>{
+    pub fn client(&self) -> Arc<Client<ClientWithMiddleware>>{
         Arc::clone(&self.client)
     }
 }
 
 #[cfg(feature = "blocking")]
 impl ObjectList<RcPointer> {
-    pub fn set_client(mut self, client: Rc<BClient>) -> Self{
+    pub fn set_client(mut self, client: Rc<Client<BlockingClientWithMiddleware>>) -> Self{
         self.client = client;
         self
     }
 
-    pub fn client(&self) -> Rc<BClient>{
+    pub fn client(&self) -> Rc<Client<BlockingClientWithMiddleware>>{
         Rc::clone(&self.client)
     }
 
@@ -242,7 +242,7 @@ impl<T: PointerFamily> OssIntoObjectList<Object> for ObjectList<T>{
     }
 }
 
-impl Client {
+impl Client<ClientWithMiddleware> {
 
     pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList<ArcPointer>>{
         let mut url = self.get_bucket_url();
@@ -338,7 +338,7 @@ impl Client {
 }
 
 #[cfg(feature = "blocking")]
-impl BClient {
+impl Client<BlockingClientWithMiddleware> {
     pub fn get_object_list(self, query: Query) -> OssResult<ObjectList<RcPointer>>{
         let mut url = self.get_bucket_url();
 

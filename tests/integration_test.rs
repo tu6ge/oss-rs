@@ -7,12 +7,13 @@ mod test_async{
     use assert_matches::assert_matches;
     use aliyun_oss_client::types::Query;
     use aliyun_oss_client::client::Client;
+    use aliyun_oss_client::builder::ClientWithMiddleware;
 
     #[tokio::test]
     async fn test_get_bucket_list(){
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list().await;
 
@@ -23,7 +24,7 @@ mod test_async{
     async fn test_get_bucket_info(){
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         let bucket_list = client.get_bucket_info().await;
 
@@ -34,7 +35,7 @@ mod test_async{
     async fn get_object_by_bucket_struct(){
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list().await.unwrap();
         let mut query = Query::new();
@@ -51,7 +52,7 @@ mod test_async{
     async fn test_get_object() {
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
         let query = Query::new();
 
         let object_list = client.get_object_list(query).await;
@@ -63,7 +64,7 @@ mod test_async{
     async fn test_put_and_delete_file(){
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         let object_list = client.put_file(PathBuf::from("examples/bg2015071010.png"), "examples/bg2015071010.png").await;
 
@@ -80,7 +81,8 @@ mod test_async{
 mod test_blocking{
     
     use std::path::PathBuf;
-    use aliyun_oss_client::blocking::client::Client;
+    use aliyun_oss_client::client::Client;
+    use aliyun_oss_client::blocking::builder::ClientWithMiddleware;
     use aliyun_oss_client::types::Query;
     use dotenv::dotenv;
     use assert_matches::assert_matches;
@@ -89,7 +91,7 @@ mod test_blocking{
     fn test_get_bucket_list(){
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list();
 
@@ -100,7 +102,7 @@ mod test_blocking{
     fn test_get_bucket_info(){
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         let bucket_list = client.get_bucket_info();
 
@@ -111,7 +113,7 @@ mod test_blocking{
     fn get_object_by_bucket_struct(){
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list().unwrap();
         let mut query = Query::new();
@@ -131,7 +133,7 @@ mod test_blocking{
     fn test_get_object() {
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
         let query = Query::new();
 
         let object_list = client.get_object_list(query);
@@ -143,7 +145,7 @@ mod test_blocking{
     fn test_get_object_next() {
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
         let mut query = Query::new();
         query.insert("max-keys".to_string(), "2".to_string());
         let mut object_list = client.get_object_list(query).unwrap();
@@ -156,7 +158,7 @@ mod test_blocking{
     fn test_put_and_delete_file(){
         dotenv().ok();
 
-        let client = Client::from_env().unwrap();
+        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         // 第一种读取文件路径的方式
         let object_list = client.put_file(PathBuf::from("examples/bg2015071010.png"), "examples/bg2015071010.png");

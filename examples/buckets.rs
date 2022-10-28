@@ -1,8 +1,8 @@
 //! `cargo run --example buckets --features=blocking`
-#![deny(warnings)]
 
-use aliyun_oss_client::blocking::client;
+use aliyun_oss_client::client;
 use aliyun_oss_client::types::Query;
+use aliyun_oss_client::blocking::builder::ClientWithMiddleware;
 
 extern crate dotenv;
 
@@ -11,7 +11,7 @@ use dotenv::dotenv;
 fn main() {
     dotenv().ok();
 
-    let client = client::Client::from_env().unwrap();
+    let client = client::Client::<ClientWithMiddleware>::from_env().unwrap();
     //let headers = None;
     let response = client.get_bucket_list().unwrap();
     println!("buckets list: {:?}", response.buckets.first().unwrap());

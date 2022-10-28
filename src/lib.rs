@@ -97,6 +97,7 @@ async fn main() {
 
 
 pub mod types;
+use builder::ClientWithMiddleware;
 use config::Config;
 pub use types::{KeyId, KeySecret, EndPoint, BucketName};
 
@@ -173,11 +174,11 @@ let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 let result = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket.try_into().unwrap());
 ```
 */
-pub fn client<ID, S, E>(access_key_id: ID, access_key_secret: S, endpoint: E, bucket: BucketName) -> client::Client
+pub fn client<ID, S, E>(access_key_id: ID, access_key_secret: S, endpoint: E, bucket: BucketName) -> client::Client<ClientWithMiddleware>
 where ID: Into<KeyId>,
   S: Into<KeySecret>,
   E: Into<EndPoint>,
 {
   let config = Config::new(access_key_id, access_key_secret, endpoint, bucket);
-  client::Client::from_config(&config)
+  client::Client::<ClientWithMiddleware>::from_config(&config)
 }
