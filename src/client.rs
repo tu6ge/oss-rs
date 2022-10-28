@@ -24,8 +24,6 @@ pub struct Client{
     pub infer: Infer,
 }
 
-// TODO mock 可以取消了
-#[cfg_attr(test, mockall::automock)]
 impl Client {
     
     pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Client {
@@ -114,7 +112,7 @@ impl Client {
     }
 
     /// builder 方法的异步实现
-    #[cfg_attr(not(test), inline)]
+    #[inline]
     pub fn builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource)
     -> OssResult<RequestBuilder>
     {

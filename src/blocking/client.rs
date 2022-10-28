@@ -25,7 +25,6 @@ pub struct Client{
     pub infer: Infer,
 }
 
-#[cfg_attr(test, mockall::automock)]
 impl Client {
     
     pub fn new(access_key_id: KeyId, access_key_secret: KeySecret, endpoint: EndPoint, bucket: BucketName) -> Client {
@@ -122,7 +121,7 @@ impl Client {
     /// 返回值是一个 reqwest 的请求创建器 `reqwest::blocking::RequestBuilder`
     /// 
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
-    #[cfg_attr(not(test), inline)]
+    #[inline]
     pub fn builder(&self, method: VERB, url: &Url, resource: CanonicalizedResource) -> OssResult<RequestBuilder>{
         self.builder_with_header(method, url, resource, None)
     }
