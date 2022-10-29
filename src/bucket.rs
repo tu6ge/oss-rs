@@ -1,13 +1,13 @@
 use std::fmt;
 use std::sync::Arc;
-use crate::builder::{PointerFamily, ArcPointer, ClientWithMiddleware};
-use crate::client::{Client};
+use crate::builder::{PointerFamily, ArcPointer};
+use crate::client::{ClientArc};
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 #[cfg(feature = "blocking")]
-use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
+use crate::client::ClientRc;
 use crate::auth::VERB;
 use crate::config::BucketBase;
 use crate::errors::{OssResult};
@@ -46,7 +46,7 @@ impl<T: PointerFamily> fmt::Debug for ListBuckets<T> {
 }
 
 impl ListBuckets<ArcPointer>  {
-    pub fn set_client(&mut self, client: Arc<Client<ClientWithMiddleware>>) {
+    pub fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = Arc::clone(&client);
         for i in self.buckets.iter_mut() {
             i.set_client(Arc::clone(&client));
@@ -56,7 +56,7 @@ impl ListBuckets<ArcPointer>  {
 
 #[cfg(feature = "blocking")]
 impl ListBuckets<RcPointer>  {
-    pub fn set_client(&mut self, client: Rc<Client<BlockingClientWithMiddleware>>) {
+    pub fn set_client(&mut self, client: Rc<ClientRc>) {
         self.client = Rc::clone(&client);
         for i in self.buckets.iter_mut() {
             i.set_client(Rc::clone(&client));
@@ -199,11 +199,11 @@ impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
 }
 
 impl Bucket<ArcPointer> {
-    pub fn set_client(&mut self, client: Arc<Client<ClientWithMiddleware>>){
+    pub fn set_client(&mut self, client: Arc<ClientArc>){
         self.client = client;
     }
 
-    pub fn client(&self) -> Arc<Client<ClientWithMiddleware>>{
+    pub fn client(&self) -> Arc<ClientArc>{
         Arc::clone(&self.client)
     }
 
@@ -230,11 +230,11 @@ impl Bucket<ArcPointer> {
 
 #[cfg(feature = "blocking")]
 impl Bucket<RcPointer> {
-    pub fn set_client(&mut self, client: Rc<Client<BlockingClientWithMiddleware>>){
+    pub fn set_client(&mut self, client: Rc<ClientRc>){
         self.client = client;
     }
 
-    pub fn client(&self) -> Rc<Client<BlockingClientWithMiddleware>>{
+    pub fn client(&self) -> Rc<ClientRc>{
         Rc::clone(&self.client)
     }
 
@@ -327,7 +327,7 @@ where Bucket<T>: std::default::Default
     }
 }
 
-impl Client<ClientWithMiddleware> {
+impl ClientArc {
     pub async fn get_bucket_list(self) -> OssResult<ListBuckets<ArcPointer>> {
         let url = self.get_endpoint_url();
 
@@ -360,7 +360,7 @@ impl Client<ClientWithMiddleware> {
 }
 
 #[cfg(feature = "blocking")]
-impl Client<BlockingClientWithMiddleware> {
+impl ClientRc {
     pub fn get_bucket_list(self) -> OssResult<ListBuckets<RcPointer>> {
         let url = self.get_endpoint_url();
 

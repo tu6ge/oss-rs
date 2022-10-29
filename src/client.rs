@@ -125,6 +125,8 @@ fn now() -> DateTime<Utc>{
     DateTime::from_utc(naive, Utc)
 }
 
+pub type ClientArc = Client<ClientWithMiddleware>;
+
 impl Client<ClientWithMiddleware>{
         /// # 用于模拟请求 OSS 接口
     /// 默认直接请求 OSS 接口，如果设置中间件，则可以中断请求，对 Request 做一些断言，对 Response 做一些模拟操作
@@ -160,6 +162,9 @@ impl Client<ClientWithMiddleware>{
 
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::{RequestBuilder as BlockingRequestBuilder, Middleware as BlockingMiddleware};
+
+#[cfg(feature = "blocking")]
+pub type ClientRc = Client<BlockingClientWithMiddleware>;
 
 #[cfg(feature = "blocking")]
 impl Client<BlockingClientWithMiddleware>{
