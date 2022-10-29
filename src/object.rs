@@ -10,7 +10,7 @@ use reqwest::header::{HeaderMap,HeaderValue};
 use crate::builder::{PointerFamily, ArcPointer};
 use crate::config::{ObjectBase, BucketBase};
 use crate::errors::{OssResult,OssError};
-use crate::client::ClientArc;
+use crate::client::{Client};
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 #[cfg(feature = "blocking")]
@@ -25,7 +25,7 @@ use crate::types::{Query, UrlQuery, CanonicalizedResource};
 
 #[derive(Clone,Default)]
 #[non_exhaustive]
-pub struct ObjectList<PointerSel: PointerFamily> {
+pub struct ObjectList<PointerSel: PointerFamily=ArcPointer> {
     bucket: BucketBase, // TODO: 改为指针
     name: String,
     prefix: String,
@@ -51,7 +51,7 @@ impl<T: PointerFamily> fmt::Debug for ObjectList<T> {
     }
 }
 
-impl Default for ObjectList<ArcPointer>{
+impl Default for ObjectList{
     fn default() -> Self{
         Self{
             bucket: BucketBase::default(),
@@ -61,7 +61,7 @@ impl Default for ObjectList<ArcPointer>{
             key_count: u64::default(),
             object_list: Vec::new(),
             next_continuation_token: None,
-            client: Arc::new(ClientArc::default()),
+            client: Arc::new(Client::default()),
             search_query: Query::default(),
         }
     }
@@ -84,13 +84,13 @@ impl Default for ObjectList<RcPointer>{
     }
 }
 
-impl ObjectList<ArcPointer> {
-    pub fn set_client(mut self, client: Arc<ClientArc>) -> Self{
+impl ObjectList {
+    pub fn set_client(mut self, client: Arc<Client>) -> Self{
         self.client = client;
         self
     }
 
-    pub fn client(&self) -> Arc<ClientArc>{
+    pub fn client(&self) -> Arc<Client>{
         Arc::clone(&self.client)
     }
 }
@@ -242,9 +242,9 @@ impl<T: PointerFamily> OssIntoObjectList<Object> for ObjectList<T>{
     }
 }
 
-impl ClientArc {
+impl Client {
 
-    pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList<ArcPointer>>{
+    pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList>{
         let mut url = self.get_bucket_url();
     
         url.set_search_query(&query);

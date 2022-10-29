@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::Arc;
 use crate::builder::{PointerFamily, ArcPointer};
-use crate::client::{ClientArc};
+use crate::client::Client;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 #[cfg(feature = "blocking")]
@@ -18,7 +18,7 @@ use chrono::prelude::*;
 
 #[derive(Clone, Default)]
 #[non_exhaustive]
-pub struct ListBuckets<PointerSel: PointerFamily> {
+pub struct ListBuckets<PointerSel: PointerFamily=ArcPointer> {
     prefix: Option<String>,
     marker: Option<String>,
     max_keys: Option<String>,
@@ -45,8 +45,8 @@ impl<T: PointerFamily> fmt::Debug for ListBuckets<T> {
   }
 }
 
-impl ListBuckets<ArcPointer>  {
-    pub fn set_client(&mut self, client: Arc<ClientArc>) {
+impl ListBuckets  {
+    pub fn set_client(&mut self, client: Arc<Client>) {
         self.client = Arc::clone(&client);
         for i in self.buckets.iter_mut() {
             i.set_client(Arc::clone(&client));
@@ -64,7 +64,7 @@ impl ListBuckets<RcPointer>  {
     }
 }
 
-impl Default for ListBuckets<ArcPointer> {
+impl Default for ListBuckets {
     fn default() -> Self {
         Self { 
             prefix: None, 
@@ -99,7 +99,7 @@ impl Default for ListBuckets<RcPointer> {
 
 #[derive(Clone)]
 #[non_exhaustive]
-pub struct Bucket<PointerSel: PointerFamily>{
+pub struct Bucket<PointerSel: PointerFamily=ArcPointer>{
     base: BucketBase,
     // bucket_info: Option<Bucket<'b>>,
     // bucket: Option<Bucket<'c>>,
@@ -135,7 +135,7 @@ impl<T: PointerFamily> fmt::Debug for Bucket<T>{
     }
 }
 
-impl Default for Bucket<ArcPointer>{
+impl Default for Bucket {
     fn default() -> Self{
         Self { 
             base: BucketBase::default(),
@@ -218,16 +218,16 @@ impl<T: PointerFamily> Bucket<T> {
     }
 }
 
-impl Bucket<ArcPointer> {
-    pub fn set_client(&mut self, client: Arc<ClientArc>){
+impl Bucket {
+    pub fn set_client(&mut self, client: Arc<Client>){
         self.client = client;
     }
 
-    pub fn client(&self) -> Arc<ClientArc>{
+    pub fn client(&self) -> Arc<Client>{
         Arc::clone(&self.client)
     }
 
-    pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList<ArcPointer>>{
+    pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList>{
         let mut url = self.base.to_url();
 
         url.set_search_query(&query);
@@ -347,8 +347,8 @@ where Bucket<T>: std::default::Default
     }
 }
 
-impl ClientArc {
-    pub async fn get_bucket_list(self) -> OssResult<ListBuckets<ArcPointer>> {
+impl Client {
+    pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
         let url = self.get_endpoint_url();
 
         let canonicalized = CanonicalizedResource::default();
@@ -362,7 +362,7 @@ impl ClientArc {
         Ok(bucket_list)
     }
 
-    pub async fn get_bucket_info(self) -> OssResult<Bucket<ArcPointer>> {
+    pub async fn get_bucket_info(self) -> OssResult<Bucket> {
         let query = Some("bucketInfo");
         let mut bucket_url = self.get_bucket_url();
         bucket_url.set_query(query);

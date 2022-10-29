@@ -20,7 +20,7 @@ use crate::types::{KeyId, KeySecret, EndPoint, BucketName, CanonicalizedResource
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
 #[derive(Default)]
-pub struct Client<M: Default>{
+pub struct Client<M: Default=ClientWithMiddleware>{
     auth_builder: AuthBuilder,
     client_middleware: M,
     endpoint: EndPoint,
@@ -127,7 +127,7 @@ fn now() -> DateTime<Utc>{
 
 pub type ClientArc = Client<ClientWithMiddleware>;
 
-impl Client<ClientWithMiddleware>{
+impl Client{
         /// # 用于模拟请求 OSS 接口
     /// 默认直接请求 OSS 接口，如果设置中间件，则可以中断请求，对 Request 做一些断言，对 Response 做一些模拟操作
     pub fn middleware(mut self, middleware: Arc<dyn Middleware>) -> Self{
