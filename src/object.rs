@@ -84,6 +84,32 @@ impl Default for ObjectList<RcPointer>{
     }
 }
 
+impl<T: PointerFamily> ObjectList<T>{
+    pub fn new(
+        bucket: BucketBase,
+        name: String,
+        prefix: String,
+        max_keys: u32,
+        key_count: u64,
+        object_list: Vec<Object>,
+        next_continuation_token: Option<String>,
+        client: T::PointerType,
+        search_query: Query,
+    ) -> Self{
+        Self{
+            bucket,
+            name,
+            prefix,
+            max_keys,
+            key_count,
+            object_list,
+            next_continuation_token,
+            client,
+            search_query,
+        }
+    }
+}
+
 impl ObjectList {
     pub fn set_client(mut self, client: Arc<Client>) -> Self{
         self.client = client;
@@ -106,12 +132,12 @@ impl ObjectList<RcPointer> {
         Rc::clone(&self.client)
     }
 
-    pub fn get_object_list(&mut self, query: Query) -> OssResult<Self>{
+    pub fn get_object_list(&mut self) -> OssResult<Self>{
         let mut url = self.bucket.to_url();
 
-        url.set_search_query(&query);
+        url.set_search_query(&self.search_query);
 
-        let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
+        let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &self.search_query);
 
         let client = self.client();
         let response = client.builder(VERB::GET, &url, canonicalized)?;
@@ -120,7 +146,7 @@ impl ObjectList<RcPointer> {
         let list = Self::default().set_client(Rc::clone(&client))
             .set_bucket(self.bucket.clone());
         Ok(
-            list.from_xml(content.text()?, &self.bucket)?.set_search_query(query)
+            list.from_xml(content.text()?, &self.bucket)?.set_search_query(self.search_query.clone())
         )
     }
 }
@@ -437,18 +463,14 @@ impl Iterator for ObjectList<RcPointer>{
     fn next(&mut self) -> Option<Self> {
         match self.next_continuation_token.clone() {
             Some(token) => {
-                let mut query = self.search_query.clone();
-                query.insert("continuation-token".to_string(), token);
+                self.search_query.insert("continuation-token", token);
 
-                let result = self.get_object_list(query);
-                match result {
+                match self.get_object_list() {
                     Ok(v) => Some(v),
                     _ => None,
                 }
             },
-            None => {
-                None
-            }
+            None => None
         }
     }
 }
