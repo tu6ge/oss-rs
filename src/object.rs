@@ -26,7 +26,7 @@ use crate::types::{Query, UrlQuery, CanonicalizedResource};
 #[derive(Clone,Default)]
 #[non_exhaustive]
 pub struct ObjectList<PointerSel: PointerFamily> {
-    bucket: BucketBase,
+    bucket: BucketBase, // TODO: 改为指针
     name: String,
     prefix: String,
     max_keys: u32,

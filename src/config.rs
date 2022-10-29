@@ -3,6 +3,8 @@ use std::{
 };
 
 use reqwest::Url;
+use std::error::Error;
+use std::fmt;
 
 use crate::{types::{KeyId, KeySecret, EndPoint, BucketName, InvalidEndPoint, InvalidBucketName}};
 
@@ -90,8 +92,48 @@ impl BucketBase {
         }
     }
 
+    /// 通过域名获取
+    /// 举例
+    /// ```
+    /// # use aliyun_oss_client::config::BucketBase;
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// let bucket = BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com");
+    /// assert!(bucket.is_ok());
+    /// let bucket = bucket.unwrap();
+    /// assert_eq!(bucket.name(), "abc");
+    /// assert_eq!(bucket.endpoint(), EndPoint::CnShanghai);
+    /// ```
+    pub fn from_str(domain: &'static str) -> Result<Self, InvalidBucketBase>{
+        fn valid_character(c: char) -> bool {
+            match c {
+                _ if c.is_ascii_lowercase() => true,
+                _ if c.is_numeric() => true,
+                '-' => true,
+                '.' => true,
+                _ => false,
+            }
+        }
+        if !domain.chars().all(valid_character) {
+            return Err(InvalidBucketBase);
+        }
+
+        let (bucket, endpoint) = match domain.split_once('.'){
+            Some(v) => v,
+            None => return Err(InvalidBucketBase),
+        };
+
+        Ok(Self{
+            name: BucketName::new(bucket)?,
+            endpoint: EndPoint::new(endpoint)?,
+        })
+    }
+
     pub fn name(&self) -> &str{
         self.name.as_ref()
+    }
+
+    pub fn endpoint(self) -> EndPoint{
+        self.endpoint
     }
 
     /// 设置 bucket name
@@ -131,6 +173,30 @@ impl BucketBase {
         url.push_str(self.endpoint.as_ref());
         url.push_str(".aliyuncs.com");
         Url::parse(&url).unwrap()
+    }
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct InvalidBucketBase;
+
+impl Error for InvalidBucketBase {}
+
+impl fmt::Display for InvalidBucketBase {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "bucket url must like with https://yyy.xxx.aliyuncs.com")
+    }
+}
+
+// TODO 转换细节需要优化
+impl From<InvalidBucketName> for InvalidBucketBase{
+    fn from(_value: InvalidBucketName) -> Self {
+        Self
+    }
+}
+impl From<InvalidEndPoint> for InvalidBucketBase{
+    fn from(_value: InvalidEndPoint) -> Self {
+        Self
     }
 }
 

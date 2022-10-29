@@ -198,6 +198,26 @@ impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
     }
 }
 
+impl<T: PointerFamily> Bucket<T> {
+    pub fn new(
+        base: BucketBase,
+        creation_date: DateTime<Utc>,
+        intranet_endpoint: String,
+        location: String,
+        storage_class: String,
+        client: T::PointerType,
+    ) -> Self {
+        Self{
+            base,
+            creation_date,
+            intranet_endpoint,
+            location,
+            storage_class,
+            client,
+        }
+    }
+}
+
 impl Bucket<ArcPointer> {
     pub fn set_client(&mut self, client: Arc<ClientArc>){
         self.client = client;
