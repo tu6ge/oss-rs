@@ -649,7 +649,7 @@ mod sign_string_struct {
             .times(1)
             .returning(|| "foo7".to_string());
 
-        let res = SignString::from_auth(&auth, &header);
+        let res = SignString::from_auth(&auth, header);
 
         assert!(res.is_ok());
         let val = res.unwrap();

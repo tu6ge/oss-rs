@@ -132,7 +132,6 @@ pub trait AuthToHeaderMap {
 
 impl AuthToHeaderMap for Auth {
     fn get_original_header(&self) -> HeaderMap {
-        // TODO 可优化
         self.headers.clone()
     }
     fn get_header_key(&self) -> OssResult<HeaderValue> {
@@ -263,7 +262,7 @@ impl AuthGetHeader for Auth {
         let mut map = HeaderMap::from_auth(self)?;
 
         let oss_header = self.to_oss_header()?;
-        let sign_string = SignString::from_auth(self, &oss_header)?;
+        let sign_string = SignString::from_auth(self, oss_header)?;
         let sign = sign_string.to_sign()?;
         map.append_sign(sign)?;
 
@@ -310,10 +309,9 @@ impl AuthHeader for HeaderMap {
     }
 }
 
-/// 前缀是 x-oss- 的 header 记录
+/// # 前缀是 x-oss- 的 header 记录
 ///
 /// 将他们按顺序组合成一个字符串，用于计算签名
-/// TODO String 可以改成 Cow
 pub struct OssHeader(Option<String>);
 
 impl OssHeader {
@@ -321,7 +319,6 @@ impl OssHeader {
         Self(string)
     }
 
-    #[cfg(test)]
     pub fn is_none(&self) -> bool {
         self.0.is_none()
     }
@@ -329,11 +326,11 @@ impl OssHeader {
 
 #[cfg_attr(test, automock)]
 pub trait HeaderToSign {
-    fn to_sign_string(&self) -> String;
+    fn to_sign_string(self) -> String;
 }
 
 impl HeaderToSign for OssHeader {
-    fn to_sign_string(&self) -> String {
+    fn to_sign_string(self) -> String {
         let mut content = String::new();
         match self.0.clone() {
             Some(str) => {
@@ -365,7 +362,7 @@ impl SignString {
     }
     pub fn from_auth(
         auth: &impl AuthSignString,
-        header: &impl HeaderToSign,
+        header: impl HeaderToSign,
     ) -> OssResult<SignString> {
         let method = auth.verb();
 
@@ -387,23 +384,20 @@ impl SignString {
         })
     }
 
-    #[cfg(test)]
     pub fn data(&self) -> String {
         self.data.clone()
     }
 
-    #[cfg(test)]
     pub fn key_string(&self) -> String {
         self.key.clone().to_string()
     }
 
-    #[cfg(test)]
     pub fn secret_string(&self) -> String {
         self.secret.clone().to_string()
     }
 
     // 转化成签名
-    pub fn to_sign(&self) -> OssResult<Sign> {
+    pub fn to_sign(self) -> OssResult<Sign> {
         use base64::encode;
         use hmac::{Hmac, Mac};
         use sha1::Sha1;
@@ -533,8 +527,6 @@ impl AuthBuilder {
     }
 
     /// 通过 headers 给 content_type 赋值
-    ///
-    /// TODO 需要处理异常的情况
     pub fn type_with_header(mut self) -> Self {
         let content_type = self.auth.headers.get(CONTENT_TYPE);
 
