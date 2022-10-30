@@ -141,7 +141,7 @@ impl ObjectList<RcPointer> {
             CanonicalizedResource::from_bucket_query(&self.bucket, &self.search_query);
 
         let client = self.client();
-        let response = client.builder(VERB::GET, &url, canonicalized)?;
+        let response = client.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
         let list = Self::default()
@@ -289,7 +289,7 @@ impl Client {
 
         let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
-        let response = self.builder(VERB::GET, &url, canonicalized)?;
+        let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send().await?;
 
         let list = ObjectList::<ArcPointer>::default()
@@ -364,7 +364,7 @@ impl Client {
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
         let response = self
-            .builder_with_header(VERB::PUT, &url, canonicalized, Some(headers))?
+            .builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
             .body(content);
 
         let content = response.send().await?;
@@ -379,7 +379,7 @@ impl Client {
 
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
-        let response = self.builder(VERB::DELETE, &url, canonicalized)?;
+        let response = self.builder(VERB::DELETE, url, canonicalized)?;
 
         response.send().await?;
 
@@ -398,7 +398,7 @@ impl ClientRc {
 
         let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
-        let response = self.builder(VERB::GET, &url, canonicalized)?;
+        let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
         let list = ObjectList::<RcPointer>::default()
@@ -472,7 +472,7 @@ impl ClientRc {
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
         let response = self
-            .builder_with_header(VERB::PUT, &url, canonicalized, Some(headers))?
+            .builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
             .body(content);
 
         let content = response.send()?;
@@ -487,7 +487,7 @@ impl ClientRc {
 
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
-        let response = self.builder(VERB::DELETE, &url, canonicalized)?;
+        let response = self.builder(VERB::DELETE, url, canonicalized)?;
 
         response.send()?;
 

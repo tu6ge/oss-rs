@@ -478,8 +478,8 @@ impl AuthBuilder {
     }
 
     /// 给 verb 赋值
-    pub fn verb(mut self, verb: VERB) -> Self {
-        self.auth.verb = verb;
+    pub fn verb(mut self, verb: &VERB) -> Self {
+        self.auth.verb = verb.to_owned();
         self
     }
 

@@ -137,10 +137,10 @@ impl Client {
 
     /// builder 方法的异步实现
     #[inline]
-    pub fn builder(
+    pub fn builder<M: Into<VERB>>(
         &self,
-        method: VERB,
-        url: &Url,
+        method: M,
+        url: Url,
         resource: CanonicalizedResource,
     ) -> OssResult<RequestBuilder> {
         self.builder_with_header(method, url, resource, None)
@@ -148,17 +148,18 @@ impl Client {
 
     /// builder 方法的异步实现
     /// 带 header 参数
-    pub fn builder_with_header(
+    pub fn builder_with_header<M: Into<VERB>>(
         &self,
-        method: VERB,
-        url: &Url,
+        method: M,
+        url: Url,
         resource: CanonicalizedResource,
         headers: Option<HeaderMap>,
     ) -> OssResult<RequestBuilder> {
+        let method = method.into();
         let headers = self
             .auth_builder
             .clone()
-            .verb(method.to_owned())
+            .verb(&method)
             .date(now().into())
             .canonicalized_resource(resource)
             .with_headers(headers)
@@ -166,7 +167,7 @@ impl Client {
 
         Ok(self
             .client_middleware
-            .request(method.into(), url.to_owned())
+            .request(method, url)
             .headers(headers))
     }
 }
@@ -199,10 +200,10 @@ impl Client<BlockingClientWithMiddleware> {
     ///
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
     #[inline]
-    pub fn builder(
+    pub fn builder<M: Into<VERB>>(
         &self,
-        method: VERB,
-        url: &Url,
+        method: M,
+        url: Url,
         resource: CanonicalizedResource,
     ) -> OssResult<BlockingRequestBuilder> {
         self.builder_with_header(method, url, resource, None)
@@ -220,17 +221,18 @@ impl Client<BlockingClientWithMiddleware> {
     ///
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
     ///
-    pub fn builder_with_header(
+    pub fn builder_with_header<M: Into<VERB>>(
         &self,
-        method: VERB,
-        url: &Url,
+        method: M,
+        url: Url,
         resource: CanonicalizedResource,
         headers: Option<HeaderMap>,
     ) -> OssResult<BlockingRequestBuilder> {
+        let method = method.into();
         let headers = self
             .auth_builder
             .clone()
-            .verb(method.to_owned())
+            .verb(&method)
             .date(now().into())
             .canonicalized_resource(resource)
             .with_headers(headers)
@@ -238,7 +240,7 @@ impl Client<BlockingClientWithMiddleware> {
 
         Ok(self
             .client_middleware
-            .request(method.into(), url.to_owned())
+            .request(method, url)
             .headers(headers))
     }
 }

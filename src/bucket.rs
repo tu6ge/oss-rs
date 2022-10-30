@@ -246,7 +246,7 @@ impl Bucket {
 
         let client = self.client();
 
-        let response = client.builder(VERB::GET, &url, canonicalized)?;
+        let response = client.builder("GET", url, canonicalized)?;
         let content = response.send().await?;
 
         Ok(ObjectList::<ArcPointer>::default()
@@ -276,7 +276,7 @@ impl Bucket<RcPointer> {
 
         let client = self.client();
 
-        let response = client.builder(VERB::GET, &url, canonicalized)?;
+        let response = client.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
         Ok(ObjectList::<RcPointer>::default()
@@ -350,7 +350,7 @@ impl Client {
 
         let canonicalized = CanonicalizedResource::default();
 
-        let response = self.builder(VERB::GET, &url, canonicalized)?;
+        let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send().await?;
 
         let mut bucket_list =
@@ -367,7 +367,7 @@ impl Client {
 
         let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
-        let response = self.builder(VERB::GET, &bucket_url, canonicalized)?;
+        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
         let content = response.send().await?;
 
         let mut bucket = Bucket::<ArcPointer>::default().from_xml(content.text().await?)?;
@@ -384,7 +384,7 @@ impl ClientRc {
 
         let canonicalized = CanonicalizedResource::default();
 
-        let response = self.builder(VERB::GET, &url, canonicalized)?;
+        let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
         let mut bucket_list = ListBuckets::<RcPointer>::default().from_xml(content.text()?)?;
@@ -400,7 +400,7 @@ impl ClientRc {
 
         let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
-        let response = self.builder(VERB::GET, &bucket_url, canonicalized)?;
+        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
         let content = response.send()?;
 
         let mut bucket = Bucket::<RcPointer>::default().from_xml(content.text()?)?;

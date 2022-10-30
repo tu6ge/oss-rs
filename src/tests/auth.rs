@@ -138,7 +138,7 @@ mod to_oss_header {
 mod auth_sign_string {
     use chrono::{TimeZone, Utc};
 
-    use crate::auth::AuthSignString;
+    use crate::auth::{AuthSignString, VERB};
     use crate::{
         auth::AuthBuilder,
         types::{CanonicalizedResource, ContentMd5},
@@ -151,7 +151,7 @@ mod auth_sign_string {
         let builder = AuthBuilder::default()
             .key("foo1".into())
             .secret("foo2".into())
-            .verb("POST".into())
+            .verb(&VERB::POST)
             .content_md5(ContentMd5::new("foo4"))
             .date(date.into())
             .canonicalized_resource(CanonicalizedResource::new("foo5"))
@@ -192,7 +192,7 @@ mod auth_sign_string {
         let builder = AuthBuilder::default()
         .key("foo1".into())
         .secret("foo2".into())
-        .verb("POST".into())
+        .verb(&VERB::POST)
         //.content_md5(ContentMd5::new("foo4"))
         .date(date.into())
         .canonicalized_resource(CanonicalizedResource::new("foo5"))
@@ -261,7 +261,7 @@ mod auth_builder {
     #[test]
     fn test_verb() {
         let mut builder = AuthBuilder::default();
-        builder = builder.verb("POST".into());
+        builder = builder.verb(&VERB::POST);
 
         assert!(matches!(builder.auth.verb, VERB::POST));
     }
@@ -382,7 +382,7 @@ mod auth_to_header_map {
     use chrono::{TimeZone, Utc};
     use http::header::HeaderValue;
 
-    use crate::auth::AuthToHeaderMap;
+    use crate::auth::{AuthToHeaderMap, VERB};
     use crate::{
         auth::AuthBuilder,
         types::{CanonicalizedResource, ContentMd5},
@@ -395,7 +395,7 @@ mod auth_to_header_map {
         let builder = AuthBuilder::default()
             .key("foo1".into())
             .secret("foo2".into())
-            .verb("POST".into())
+            .verb(&VERB::POST)
             .content_md5(ContentMd5::new("foo4"))
             .date(date.into())
             .canonicalized_resource(CanonicalizedResource::new("foo5"))
@@ -437,7 +437,7 @@ mod auth_to_header_map {
         let builder = AuthBuilder::default()
         .key("foo1".into())
         .secret("foo2".into())
-        .verb("POST".into())
+        .verb(&VERB::POST)
         //.content_md5(ContentMd5::new("foo4"))
         .date(date.into())
         .canonicalized_resource(CanonicalizedResource::new("foo5"))
@@ -684,7 +684,7 @@ fn test_sign_to_headervalue() {
 
 mod get_headers {
     use crate::{
-        auth::{AuthBuilder, AuthGetHeader},
+        auth::{AuthBuilder, AuthGetHeader, VERB},
         types::{CanonicalizedResource, ContentMd5},
     };
 
@@ -694,7 +694,7 @@ mod get_headers {
         let builder = AuthBuilder::default()
             .key("foo1".into())
             .secret("foo2".into())
-            .verb("POST".into())
+            .verb(&VERB::POST)
             .content_md5(ContentMd5::new("foo4"))
             .date("foo_date".into())
             .canonicalized_resource(CanonicalizedResource::new("foo5"))
