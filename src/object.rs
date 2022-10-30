@@ -26,12 +26,12 @@ use std::rc::Rc;
 #[derive(Clone, Default)]
 #[non_exhaustive]
 pub struct ObjectList<PointerSel: PointerFamily = ArcPointer> {
-    bucket: BucketBase, // TODO: 改为指针
+    bucket: BucketBase,
     name: String,
     prefix: String,
     max_keys: u32,
     key_count: u64,
-    pub object_list: Vec<Object>,
+    pub object_list: Vec<Object<PointerSel>>,
     next_continuation_token: Option<String>,
     client: PointerSel::PointerType,
     search_query: Query,
@@ -91,7 +91,7 @@ impl<T: PointerFamily> ObjectList<T> {
         prefix: String,
         max_keys: u32,
         key_count: u64,
-        object_list: Vec<Object>,
+        object_list: Vec<Object<T>>,
         next_continuation_token: Option<String>,
         client: T::PointerType,
         search_query: Query,
@@ -148,7 +148,7 @@ impl ObjectList<RcPointer> {
             .set_client(Rc::clone(&client))
             .set_bucket(self.bucket.clone());
         Ok(list
-            .from_xml(content.text()?, &self.bucket)?
+            .from_xml(content.text()?, Rc::new(self.bucket.clone()))?
             .set_search_query(self.search_query.clone()))
     }
 }
@@ -175,8 +175,8 @@ impl<T: PointerFamily> ObjectList<T> {
 
 #[derive(Clone, Debug)]
 #[non_exhaustive]
-pub struct Object {
-    base: ObjectBase,
+pub struct Object<PointerSel: PointerFamily = ArcPointer> {
+    base: ObjectBase<PointerSel>,
     key: String,
     last_modified: DateTime<Utc>,
     etag: String,
@@ -185,10 +185,10 @@ pub struct Object {
     storage_class: String,
 }
 
-impl Default for Object {
+impl<T: PointerFamily> Default for Object<T> {
     fn default() -> Self {
         Object {
-            base: ObjectBase::default(),
+            base: ObjectBase::<T>::default(),
             last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
             key: String::default(),
             etag: String::default(),
@@ -199,8 +199,8 @@ impl Default for Object {
     }
 }
 
-impl OssIntoObject for Object {
-    fn set_bucket(mut self, bucket: BucketBase) -> Self {
+impl<T: PointerFamily + Sized> OssIntoObject<T> for Object<T> {
+    fn set_bucket(mut self, bucket: T::Bucket)-> Self {
         self.base.set_bucket(bucket);
         self
     }
@@ -240,7 +240,8 @@ impl OssIntoObject for Object {
     }
 }
 
-impl<T: PointerFamily> OssIntoObjectList<Object> for ObjectList<T> {
+impl<T: PointerFamily> OssIntoObjectList<Object<T>, T> for ObjectList<T> 
+{
     fn set_key_count(mut self, key_count: String) -> Result<Self, InvalidObjectListValue> {
         self.key_count = key_count
             .parse::<u64>()
@@ -273,7 +274,7 @@ impl<T: PointerFamily> OssIntoObjectList<Object> for ObjectList<T> {
         Ok(self)
     }
 
-    fn set_list(mut self, list: Vec<Object>) -> Result<Self, InvalidObjectListValue> {
+    fn set_list(mut self, list: Vec<Object<T>>) -> Result<Self, InvalidObjectListValue> {
         self.object_list = list;
         Ok(self)
     }
@@ -297,7 +298,7 @@ impl Client {
             .set_bucket(bucket.clone());
 
         Ok(list
-            .from_xml(content.text().await?, &bucket)?
+            .from_xml(content.text().await?, Arc::new(bucket))?
             .set_search_query(query))
     }
 
@@ -359,7 +360,7 @@ impl Client {
                 .map_err(OssError::from)?,
         );
 
-        let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+        let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
 
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
@@ -375,7 +376,7 @@ impl Client {
         let mut url = self.get_bucket_url();
         url.set_path(key);
 
-        let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+        let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
 
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
@@ -406,7 +407,7 @@ impl ClientRc {
             .set_bucket(bucket.clone());
 
         Ok(list
-            .from_xml(content.text()?, &bucket)?
+            .from_xml(content.text()?, Rc::new(bucket))?
             .set_search_query(query))
     }
     pub fn put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(
@@ -467,7 +468,7 @@ impl ClientRc {
                 .map_err(OssError::from)?,
         );
 
-        let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+        let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
 
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
@@ -483,7 +484,7 @@ impl ClientRc {
         let mut url = self.get_bucket_url();
         url.set_path(key);
 
-        let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
+        let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
 
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 

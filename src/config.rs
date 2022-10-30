@@ -4,7 +4,9 @@ use reqwest::Url;
 use std::error::Error;
 use std::fmt;
 
-use crate::types::{BucketName, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId, KeySecret};
+use crate::{types::{BucketName, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId, KeySecret}, builder::{PointerFamily, ArcPointer}};
+#[cfg(feature = "blocking")]
+use crate::builder::RcPointer;
 
 pub struct Config {
     key: KeyId,
@@ -189,22 +191,22 @@ impl From<InvalidEndPoint> for InvalidBucketBase {
 }
 
 #[derive(Debug, Clone)]
-pub struct ObjectBase {
-    bucket: BucketBase,
+pub struct ObjectBase<PointerSel: PointerFamily = ArcPointer> {
+    bucket: PointerSel::Bucket,
     path: ObjectPath,
 }
 
-impl Default for ObjectBase {
+impl<T: PointerFamily> Default for ObjectBase<T> {
     fn default() -> Self {
         Self::new(
-            BucketBase::new(BucketName::default(), EndPoint::default()),
+            T::Bucket::default(),
             "",
         )
     }
 }
 
-impl ObjectBase {
-    pub fn new<P>(bucket: BucketBase, path: P) -> Self
+impl<T: PointerFamily> ObjectBase<T> {
+    pub fn new<P>(bucket: T::Bucket, path: P) -> Self
     where
         P: Into<ObjectPath>,
     {
@@ -214,20 +216,40 @@ impl ObjectBase {
         }
     }
 
-    pub fn set_bucket(&mut self, bucket: BucketBase) {
+    pub fn set_bucket(&mut self, bucket: T::Bucket) {
         self.bucket = bucket;
     }
 
-    pub fn bucket_name(&self) -> &str {
-        self.bucket.name()
-    }
-
-    pub fn path(&self) -> &str {
-        self.path.as_ref()
-    }
+    
 
     pub fn set_path<P: Into<ObjectPath>>(&mut self, path: P) {
         self.path = path.into();
+    }
+}
+
+pub trait GetObjectInfo{
+    fn bucket_name(&self) -> &str;
+    fn path(&self) -> &str;
+}
+
+impl GetObjectInfo for ObjectBase {
+    fn bucket_name(&self) -> &str {
+        self.bucket.name()
+    }
+
+    fn path(&self) -> &str {
+        self.path.as_ref()
+    }
+}
+
+#[cfg(feature = "blocking")]
+impl GetObjectInfo for ObjectBase<RcPointer> {
+    fn bucket_name(&self) -> &str {
+        self.bucket.name()
+    }
+    
+    fn path(&self) -> &str {
+        self.path.as_ref()
     }
 }
 

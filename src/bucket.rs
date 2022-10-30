@@ -249,9 +249,11 @@ impl Bucket {
         let response = client.builder("GET", url, canonicalized)?;
         let content = response.send().await?;
 
+        let base = self.base.clone();
+
         Ok(ObjectList::<ArcPointer>::default()
-            .from_xml(content.text().await?, &self.base)?
-            .set_bucket(self.base.clone())
+            .from_xml(content.text().await?, Arc::new(self.base.clone()))?
+            .set_bucket(base)
             .set_client(client)
             .set_search_query(query))
     }
@@ -279,9 +281,11 @@ impl Bucket<RcPointer> {
         let response = client.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
+        let base = self.base.clone();
+
         Ok(ObjectList::<RcPointer>::default()
-            .from_xml(content.text()?, &self.base)?
-            .set_bucket(self.base.clone())
+            .from_xml(content.text()?, Rc::new(self.base.clone()))?
+            .set_bucket(base)
             .set_client(client)
             .set_search_query(query))
     }

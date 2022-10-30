@@ -4,11 +4,11 @@ use std::fmt::{self, Debug};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
-use crate::config::BucketBase;
+use crate::builder::{PointerFamily};
 use crate::errors::{OssError, OssResult};
 use crate::types::InvalidEndPoint;
 
-pub trait OssIntoObject
+pub trait OssIntoObject<P: PointerFamily>
 where
     Self: Sized,
 {
@@ -31,7 +31,7 @@ where
     fn set_storage_class(self, _storage_class: String) -> Result<Self, InvalidObjectValue> {
         Ok(self)
     }
-    fn set_bucket(self, _bucket: BucketBase) -> Self {
+    fn set_bucket(self, _bucket: P::Bucket) -> Self {
         self
     }
 }
@@ -58,9 +58,10 @@ impl fmt::Display for InvalidObjectListValue {
 
 impl Error for InvalidObjectListValue {}
 
-pub trait OssIntoObjectList<T: OssIntoObject + Default>
+pub trait OssIntoObjectList<T,P: PointerFamily>
 where
     Self: Sized,
+    T: OssIntoObject<P> + Default,
 {
     fn set_name(self, _name: String) -> Result<Self, InvalidObjectListValue> {
         Ok(self)
@@ -84,7 +85,7 @@ where
         Ok(self)
     }
 
-    fn from_xml(self, xml: String, bucket: &BucketBase) -> OssResult<Self> {
+    fn from_xml(self, xml: String, bucket: P::Bucket) -> OssResult<Self> {
         //println!("from_xml: {:#}", xml);
         let mut result = Vec::new();
         let mut reader = Reader::from_str(xml.as_str());
@@ -186,7 +187,7 @@ where
                 }
                 Ok(Event::End(ref e)) if e.name().as_ref() == b"Contents" => {
                     let object = T::default()
-                        .set_bucket(bucket.to_owned())
+                        .set_bucket(bucket.clone())
                         .set_key(key.clone())
                         .map_err(|e| OssError::InvalidObjectValue(e))?
                         .set_last_modified(last_modified.clone())

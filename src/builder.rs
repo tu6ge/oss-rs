@@ -12,18 +12,22 @@ use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddlewa
 use crate::{
     auth::VERB,
     client::Client as AliClient,
-    errors::{OssError, OssResult},
+    errors::{OssError, OssResult}, config::BucketBase,
 };
 use reqwest::{Client, Request, Response};
 
-pub trait PointerFamily {
+pub trait PointerFamily 
+where Self::Bucket: std::fmt::Debug + Clone + Default
+{
     type PointerType;
+    type Bucket;
 }
 
 pub struct ArcPointer;
 
 impl PointerFamily for ArcPointer {
     type PointerType = Arc<AliClient<ClientWithMiddleware>>;
+    type Bucket = Arc<BucketBase>;
 }
 
 #[cfg(feature = "blocking")]
@@ -32,6 +36,7 @@ pub struct RcPointer;
 #[cfg(feature = "blocking")]
 impl PointerFamily for RcPointer {
     type PointerType = Rc<AliClient<BlockingClientWithMiddleware>>;
+    type Bucket = Rc<BucketBase>;
 }
 
 #[derive(Default)]

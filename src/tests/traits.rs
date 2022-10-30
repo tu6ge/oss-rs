@@ -1,6 +1,9 @@
 static mut OBEJCT_ITEM_ID: i8 = 0;
 mod object_list_xml {
 
+    use std::sync::Arc;
+
+    use crate::builder::{ArcPointer};
     use crate::tests::traits::OBEJCT_ITEM_ID;
     use crate::{
         config::BucketBase,
@@ -16,7 +19,7 @@ mod object_list_xml {
         #[derive(Default)]
         struct ObjectA {}
 
-        impl OssIntoObject for ObjectA {
+        impl OssIntoObject<ArcPointer> for ObjectA {
             fn set_key(self, key: String) -> Result<Self, InvalidObjectValue> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
@@ -84,13 +87,13 @@ mod object_list_xml {
                 }
                 Ok(self)
             }
-            fn set_bucket(self, bucket: BucketBase) -> Self {
+            fn set_bucket(self, bucket: Arc<BucketBase>) -> Self {
                 assert_eq!(bucket.name(), "abc");
                 self
             }
         }
         struct ListB {}
-        impl OssIntoObjectList<ObjectA> for ListB {
+        impl OssIntoObjectList<ObjectA, ArcPointer> for ListB {
             fn set_name(self, name: String) -> Result<Self, InvalidObjectListValue> {
                 assert_eq!(name, "foo_bucket".to_string());
                 Ok(self)
@@ -157,7 +160,7 @@ mod object_list_xml {
 
         let list = ListB {};
 
-        let list1 = list.from_xml(xml.to_string(), &base);
+        let list1 = list.from_xml(xml.to_string(), Arc::new(base));
 
         assert!(list1.is_ok());
     }
@@ -170,10 +173,10 @@ mod object_list_xml {
         #[derive(Default)]
         struct ObjectA {}
 
-        impl OssIntoObject for ObjectA {}
+        impl OssIntoObject<ArcPointer> for ObjectA {}
 
         struct ListB {}
-        impl OssIntoObjectList<ObjectA> for ListB {
+        impl OssIntoObjectList<ObjectA, ArcPointer> for ListB {
             fn set_next_continuation_token(
                 self,
                 token: Option<String>,
@@ -224,7 +227,7 @@ mod object_list_xml {
 
         let list = ListB {};
 
-        let list1 = list.from_xml(xml.to_string(), &base);
+        let list1 = list.from_xml(xml.to_string(), Arc::new(base));
 
         assert!(list1.is_ok());
     }

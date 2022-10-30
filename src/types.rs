@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use reqwest::header::{HeaderValue, InvalidHeaderValue};
 use reqwest::Url;
 
-use crate::config::{BucketBase, ObjectBase};
+use crate::config::{BucketBase, GetObjectInfo};
 use crate::errors::{OssError, OssResult};
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
@@ -632,7 +632,7 @@ impl CanonicalizedResource {
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
-    pub fn from_object(object: &ObjectBase, query: Option<&Query>) -> Self {
+    pub fn from_object<Obj: GetObjectInfo>(object: &Obj, query: Option<&Query>) -> Self {
         let bucket = object.bucket_name();
         let path = object.path();
 
