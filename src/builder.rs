@@ -113,7 +113,6 @@ impl RequestBuilder {
         match self.middleware {
             Some(m) => m.handle(self.inner.build().unwrap()).await,
             None => {
-                // TODO map_err 照这个改
                 self.inner
                     .send()
                     .await

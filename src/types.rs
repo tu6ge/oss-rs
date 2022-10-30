@@ -481,7 +481,7 @@ impl TryFrom<HeaderValue> for ContentType {
         Ok(Self(Cow::Owned(
             value
                 .to_str()
-                .map_err(|e| OssError::ToStr(e.to_string()))?
+                .map_err(OssError::from)?
                 .to_owned(),
         )))
     }

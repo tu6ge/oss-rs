@@ -68,7 +68,7 @@ impl TryInto<HeaderValue> for VERB {
         self.0
             .to_string()
             .parse::<HeaderValue>()
-            .map_err(|_| OssError::Input("VERB parse error".to_string()))
+            .map_err(OssError::from)
     }
 }
 
@@ -199,7 +199,7 @@ impl AuthToOssHeader for Auth {
         let header_vec: Vec<String> = header
             .into_iter()
             .map(|(k, v)| -> OssResult<String> {
-                let val = v.to_str().map_err(|e| OssError::ToStr(e.to_string()));
+                let val = v.to_str().map_err(OssError::from);
 
                 let value = k.as_str().to_owned() + ":" + val?;
                 Ok(value)

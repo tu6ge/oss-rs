@@ -48,7 +48,6 @@ impl<M: Default> Client<M> {
         }
     }
 
-    // TODO 去掉引用，改为本体参数
     pub fn from_config(config: &Config) -> Self {
         let auth_builder = AuthBuilder::default()
             .key(config.key())

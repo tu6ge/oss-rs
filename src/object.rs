@@ -329,7 +329,7 @@ impl Client {
             .get("ETag")
             .ok_or(OssError::Input("get Etag error".to_string()))?
             .to_str()
-            .map_err(|_| OssError::Input("ETag parse error".to_string()))?;
+            .map_err(OssError::from)?;
 
         Ok(result.to_string())
     }
@@ -349,14 +349,14 @@ impl Client {
         headers.insert(
             "Content-Length",
             HeaderValue::from_str(&content_length)
-                .map_err(|_| OssError::Input("Content-Length parse error".to_string()))?,
+                .map_err(OssError::from)?,
         );
 
         headers.insert(
             "Content-Type",
             content_type
                 .parse()
-                .map_err(|_| OssError::Input("Content-Type parse error".to_string()))?,
+                .map_err(OssError::from)?,
         );
 
         let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());
@@ -437,7 +437,7 @@ impl ClientRc {
             .get("ETag")
             .ok_or(OssError::Input("get Etag error".to_string()))?
             .to_str()
-            .map_err(|_| OssError::Input("ETag parse error".to_string()))?;
+            .map_err(OssError::from)?;
 
         Ok(result.to_string())
     }
@@ -457,14 +457,14 @@ impl ClientRc {
         headers.insert(
             "Content-Length",
             HeaderValue::from_str(&content_length)
-                .map_err(|_| OssError::Input("Content-Length parse error".to_string()))?,
+                .map_err(OssError::from)?,
         );
 
         headers.insert(
             "Content-Type",
             content_type
                 .parse()
-                .map_err(|_| OssError::Input("Content-Type parse error".to_string()))?,
+                .map_err(OssError::from)?,
         );
 
         let object_base = ObjectBase::new(self.get_bucket_base(), key.to_owned());

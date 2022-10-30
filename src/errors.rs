@@ -1,4 +1,5 @@
 use hmac::digest::crypto_common;
+use http::header::ToStrError;
 use regex::Regex;
 use std::fmt;
 use thiserror::Error;
@@ -44,6 +45,9 @@ pub enum OssError {
 
     #[error("toStrError: {0}")]
     ToStr(String),
+
+    #[error("{0}")]
+    ToStrError(#[from] ToStrError),
 
     #[error("ParseIntError: {0}")]
     ParseIntError(#[from] std::num::ParseIntError),
