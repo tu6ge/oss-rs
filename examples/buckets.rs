@@ -1,8 +1,8 @@
 //! `cargo run --example buckets --features=blocking`
 
+use aliyun_oss_client::blocking::builder::ClientWithMiddleware;
 use aliyun_oss_client::client;
 use aliyun_oss_client::types::Query;
-use aliyun_oss_client::blocking::builder::ClientWithMiddleware;
 
 extern crate dotenv;
 
@@ -22,5 +22,8 @@ fn main() {
 
     let buckets = response.buckets;
     let the_bucket = &buckets[1];
-    println!("bucket object list: {:?}", the_bucket.get_object_list(query));
+    println!(
+        "bucket object list: {:?}",
+        the_bucket.get_object_list(query)
+    );
 }

@@ -1,14 +1,20 @@
-
-use std::{sync::Arc, time::Duration};
+use async_trait::async_trait;
+use reqwest::{
+    header::{HeaderMap, HeaderName, HeaderValue},
+    Body, IntoUrl,
+};
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
-use async_trait::async_trait;
-use reqwest::{header::{HeaderMap, HeaderName, HeaderValue}, IntoUrl, Body};
+use std::{sync::Arc, time::Duration};
 
-use reqwest::{Client, Response, Request};
-use crate::{errors::{OssResult, OssError}, auth::VERB, client::Client as AliClient};
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
+use crate::{
+    auth::VERB,
+    client::Client as AliClient,
+    errors::{OssError, OssResult},
+};
+use reqwest::{Client, Request, Response};
 
 pub trait PointerFamily {
     type PointerType;
@@ -29,43 +35,42 @@ impl PointerFamily for RcPointer {
 }
 
 #[derive(Default)]
-pub struct ClientWithMiddleware{
+pub struct ClientWithMiddleware {
     inner: Client,
     middleware: Option<Arc<dyn Middleware>>,
 }
 
 #[async_trait]
-pub trait Middleware: 'static + Send + Sync{
+pub trait Middleware: 'static + Send + Sync {
     async fn handle(&self, request: Request) -> OssResult<Response>;
 }
 
-impl ClientWithMiddleware{
-    pub fn new(inner: Client) ->Self{
-        Self{
+impl ClientWithMiddleware {
+    pub fn new(inner: Client) -> Self {
+        Self {
             inner,
             middleware: None,
         }
     }
 
-    pub fn request<U: IntoUrl>(&self, method: VERB, url: U) -> RequestBuilder{
-        RequestBuilder{
+    pub fn request<U: IntoUrl>(&self, method: VERB, url: U) -> RequestBuilder {
+        RequestBuilder {
             inner: self.inner.request(method.into(), url),
             middleware: self.middleware.clone(),
         }
-        
     }
 
-    pub fn middleware(&mut self, middleware: Arc<dyn Middleware>){
+    pub fn middleware(&mut self, middleware: Arc<dyn Middleware>) {
         self.middleware = Some(middleware);
     }
 }
 
-pub struct RequestBuilder{
+pub struct RequestBuilder {
     inner: reqwest::RequestBuilder,
-    middleware: Option<Arc<dyn Middleware>>
+    middleware: Option<Arc<dyn Middleware>>,
 }
 
-impl RequestBuilder{
+impl RequestBuilder {
     pub fn header<K, V>(self, key: K, value: V) -> Self
     where
         HeaderName: TryFrom<K>,
@@ -106,12 +111,15 @@ impl RequestBuilder{
 
     pub async fn send(self) -> OssResult<Response> {
         match self.middleware {
-            Some(m) =>{
-                m.handle(self.inner.build().unwrap()).await
-            },
+            Some(m) => m.handle(self.inner.build().unwrap()).await,
             None => {
                 // TODO map_err 照这个改
-                self.inner.send().await.map_err(OssError::from)?.handle_error().await
+                self.inner
+                    .send()
+                    .await
+                    .map_err(OssError::from)?
+                    .handle_error()
+                    .await
             }
         }
     }
@@ -123,14 +131,13 @@ pub trait RequestHandler {
 }
 
 #[async_trait]
-impl RequestHandler for Response{
+impl RequestHandler for Response {
     /// # 收集并处理 OSS 接口返回的错误
-    async fn handle_error(self) -> OssResult<Response>
-    {
+    async fn handle_error(self) -> OssResult<Response> {
         use crate::errors::OssService;
 
         let status = self.status();
-        
+
         if status != 200 && status != 204 {
             return Err(OssService::new(self.text().await?).into());
         }
@@ -138,6 +145,3 @@ impl RequestHandler for Response{
         Ok(self)
     }
 }
-
-
-

@@ -1,19 +1,17 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::error::Error;
-use std::fmt::{Display, Formatter, self};
+use std::fmt::{self, Display, Formatter};
 
 use chrono::{DateTime, Utc};
+use reqwest::header::{HeaderValue, InvalidHeaderValue};
 use reqwest::Url;
-use reqwest::header::{HeaderValue,InvalidHeaderValue};
 
 use crate::config::{BucketBase, ObjectBase};
 use crate::errors::{OssError, OssResult};
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct KeyId(
-    Cow<'static, str>
-);
+pub struct KeyId(Cow<'static, str>);
 
 impl AsRef<str> for KeyId {
     fn as_ref(&self) -> &str {
@@ -61,9 +59,7 @@ impl KeyId {
 //===================================================================================================
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct KeySecret(
-    Cow<'static, str>
-);
+pub struct KeySecret(Cow<'static, str>);
 
 impl AsRef<str> for KeySecret {
     fn as_ref(&self) -> &str {
@@ -107,7 +103,7 @@ impl KeySecret {
         Self(Cow::Borrowed(secret))
     }
 
-    pub fn as_bytes(&self) -> &[u8]{
+    pub fn as_bytes(&self) -> &[u8] {
         self.as_ref().as_bytes()
     }
 }
@@ -117,7 +113,7 @@ impl KeySecret {
 /// OSS 的可用区
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum EndPoint{
+pub enum EndPoint {
     CnHangzhou,
     CnShanghai,
     CnQingdao,
@@ -188,7 +184,7 @@ impl TryFrom<String> for EndPoint {
             Ok(Self::CnHangzhou)
         } else if url.contains("qingdao") {
             Ok(Self::CnQingdao)
-        } else if url.contains("beijing"){
+        } else if url.contains("beijing") {
             Ok(Self::CnBeijing)
         } else if url.contains("zhangjiakou") {
             Ok(Self::CnZhangjiakou)
@@ -216,9 +212,8 @@ impl TryFrom<&'static str> for EndPoint {
 }
 
 impl EndPoint {
-
     /// 通过字符串字面值初始化 endpoint
-    /// 
+    ///
     /// 举例1 - 产生恐慌
     /// ```should_panic
     /// # use aliyun_oss_client::types::EndPoint;
@@ -246,7 +241,7 @@ impl EndPoint {
             Ok(Self::CnHangzhou)
         } else if url.contains("qingdao") {
             Ok(Self::CnQingdao)
-        } else if url.contains("beijing"){
+        } else if url.contains("beijing") {
             Ok(Self::CnBeijing)
         } else if url.contains("zhangjiakou") {
             Ok(Self::CnZhangjiakou)
@@ -292,13 +287,10 @@ impl fmt::Display for InvalidEndPoint {
     }
 }
 
-
 //===================================================================================================
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BucketName(
-    Cow<'static, str>
-);
+pub struct BucketName(Cow<'static, str>);
 
 impl AsRef<str> for BucketName {
     fn as_ref(&self) -> &str {
@@ -341,10 +333,10 @@ impl TryFrom<&'static str> for BucketName {
 impl BucketName {
     /// Creates a new `BucketName` from the given string.
     /// 只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾
-    /// 
+    ///
     /// ```
     /// # use aliyun_oss_client::types::BucketName;
-    /// 
+    ///
     /// assert!(BucketName::new("").is_err());
     /// assert!(BucketName::new("abc").is_ok());
     /// assert!(BucketName::new("abc-").is_err());
@@ -412,16 +404,17 @@ impl Error for InvalidBucketName {}
 
 impl fmt::Display for InvalidBucketName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾")
+        write!(
+            f,
+            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+        )
     }
 }
 
 //===================================================================================================
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct ContentMd5(
-    Cow<'static, str>
-);
+pub struct ContentMd5(Cow<'static, str>);
 
 impl AsRef<str> for ContentMd5 {
     fn as_ref(&self) -> &str {
@@ -462,9 +455,7 @@ impl ContentMd5 {
 //===================================================================================================
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct ContentType(
-    Cow<'static, str>
-);
+pub struct ContentType(Cow<'static, str>);
 
 impl AsRef<str> for ContentType {
     fn as_ref(&self) -> &str {
@@ -487,15 +478,12 @@ impl TryInto<HeaderValue> for ContentType {
 impl TryFrom<HeaderValue> for ContentType {
     type Error = OssError;
     fn try_from(value: HeaderValue) -> OssResult<Self> {
-        Ok(
-            Self(Cow::Owned(
-                value.to_str()
-                .map_err(|e|
-                    OssError::ToStr(e.to_string())
-                )?
-                .to_owned()
-            ))
-        )
+        Ok(Self(Cow::Owned(
+            value
+                .to_str()
+                .map_err(|e| OssError::ToStr(e.to_string()))?
+                .to_owned(),
+        )))
     }
 }
 impl From<String> for ContentType {
@@ -519,9 +507,7 @@ impl ContentType {
 //===================================================================================================
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct Date(
-    Cow<'static, str>
-);
+pub struct Date(Cow<'static, str>);
 
 impl AsRef<str> for Date {
     fn as_ref(&self) -> &str {
@@ -573,9 +559,7 @@ impl Date {
 //===================================================================================================
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CanonicalizedResource(
-    Cow<'static, str>
-);
+pub struct CanonicalizedResource(Cow<'static, str>);
 
 impl AsRef<str> for CanonicalizedResource {
     fn as_ref(&self) -> &str {
@@ -620,33 +604,30 @@ impl CanonicalizedResource {
 
     /// 获取 bucket 的签名参数
     pub fn from_bucket(bucket: &BucketBase, query: Option<&str>) -> Self {
-        match query{
-            Some(q) =>{
-                if q == "acl"
-                || q == "bucketInfo"{
+        match query {
+            Some(q) => {
+                if q == "acl" || q == "bucketInfo" {
                     return Self::from(format!("/{}/?{}", bucket.name(), q));
                 }
 
                 Self::from(format!("/{}/", bucket.name()))
-            },
-            None => {
-                Self::from_static("/")
             }
+            None => Self::from_static("/"),
         }
     }
 
     /// 获取 bucket 的签名参数
     /// 带查询条件的
-    /// 
+    ///
     /// 如果查询条件中有翻页的话，则忽略掉其他字段
     pub fn from_bucket_query(bucket: &BucketBase, query: &Query) -> Self {
         match query.get("continuation-token") {
-            Some(v) => {
-                Self::from(format!("/{}/?continuation-token={}", bucket.name(), v.as_ref()))
-            },
-            None => {
-                Self::from(format!("/{}/", bucket.name()))
-            },
+            Some(v) => Self::from(format!(
+                "/{}/?continuation-token={}",
+                bucket.name(),
+                v.as_ref()
+            )),
+            None => Self::from(format!("/{}/", bucket.name())),
         }
     }
 
@@ -659,34 +640,32 @@ impl CanonicalizedResource {
             Some(q) => {
                 let query_value = q.to_url_query();
                 Self::from(format!("/{}/{}?{}", bucket, path, query_value))
-            },
-            None => {
-                Self::from(format!("/{}/{}", bucket, path))
             }
+            None => Self::from(format!("/{}/{}", bucket, path)),
         }
     }
 }
 
 //===================================================================================================
 /// 查询条件
-/// 
+///
 /// ```
 /// use aliyun_oss_client::types::Query;
-/// 
+///
 /// let mut query = Query::new();
 /// query.insert("abc","def");
 /// assert_eq!(query.len(), 1);
-/// 
+///
 /// let value = query.get("abc");
 /// assert!(value.is_some());
 /// let value = value.unwrap();
 /// assert_eq!(value.as_ref(), "def");
-/// 
+///
 /// let str = query.to_oss_string();
 /// assert_eq!(str.as_str(), "list-type=2&abc=def");
 /// ```
 #[derive(Clone, Debug, Default)]
-pub struct Query{
+pub struct Query {
     inner: HashMap<QueryKey, QueryValue>,
 }
 
@@ -697,7 +676,7 @@ impl Query {
         }
     }
 
-    pub fn insert(&mut self, key: impl Into<QueryKey>, value: impl Into<QueryValue>){
+    pub fn insert(&mut self, key: impl Into<QueryKey>, value: impl Into<QueryValue>) {
         self.inner.insert(key.into(), value.into());
     }
 
@@ -709,14 +688,14 @@ impl Query {
         self.inner.len()
     }
 
-    pub fn remove(&mut self, key: impl Into<QueryKey>) -> Option<QueryValue>{
+    pub fn remove(&mut self, key: impl Into<QueryKey>) -> Option<QueryValue> {
         self.inner.remove(&key.into())
     }
 
     /// 将查询参数拼成 aliyun 接口需要的格式
-    pub fn to_oss_string(&self) -> String{
+    pub fn to_oss_string(&self) -> String {
         let mut query_str = String::new();
-        for (key,value) in self.inner.iter() {
+        for (key, value) in self.inner.iter() {
             query_str += "&";
             query_str += key.as_ref();
             query_str += "=";
@@ -729,14 +708,18 @@ impl Query {
     /// 转化成 url 参数的形式
     /// a=foo&b=bar
     /// 未进行 urlencode 转码
-    pub fn to_url_query(&self) -> String{
-        let list: Vec<String> = self.inner.iter().map(|(k,v)|{
-            let mut res = String::new();
-            res.push_str(k.as_ref());
-            res.push_str("=");
-            res.push_str(v.as_ref());
-            res
-        }).collect();
+    pub fn to_url_query(&self) -> String {
+        let list: Vec<String> = self
+            .inner
+            .iter()
+            .map(|(k, v)| {
+                let mut res = String::new();
+                res.push_str(k.as_ref());
+                res.push_str("=");
+                res.push_str(v.as_ref());
+                res
+            })
+            .collect();
 
         list.join("&")
     }
@@ -746,16 +729,15 @@ pub trait UrlQuery {
     fn set_search_query(&mut self, query: &Query);
 }
 
-impl UrlQuery for Url{
-
+impl UrlQuery for Url {
     /// 将查询参数拼接到 API 的 Url 上
-    /// 
+    ///
     /// # 例子
     /// ```
     /// use aliyun_oss_client::types::Query;
     /// use aliyun_oss_client::types::UrlQuery;
     /// use reqwest::Url;
-    /// 
+    ///
     /// let mut query = Query::new();
     /// query.insert("abc","def");
     /// let mut url = Url::parse("https://exapmle.com").unwrap();
@@ -770,10 +752,7 @@ impl UrlQuery for Url{
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
-pub struct QueryKey(
-    Cow<'static, str>
-);
-
+pub struct QueryKey(Cow<'static, str>);
 
 impl AsRef<str> for QueryKey {
     fn as_ref(&self) -> &str {
@@ -818,10 +797,7 @@ impl QueryKey {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct QueryValue(
-    Cow<'static, str>
-);
-
+pub struct QueryValue(Cow<'static, str>);
 
 impl AsRef<str> for QueryValue {
     fn as_ref(&self) -> &str {

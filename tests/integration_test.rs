@@ -1,16 +1,15 @@
-
-mod test_async{
+mod test_async {
     use std::path::PathBuf;
 
     use dotenv::dotenv;
 
-    use assert_matches::assert_matches;
-    use aliyun_oss_client::types::Query;
-    use aliyun_oss_client::client::Client;
     use aliyun_oss_client::builder::ClientWithMiddleware;
+    use aliyun_oss_client::client::Client;
+    use aliyun_oss_client::types::Query;
+    use assert_matches::assert_matches;
 
     #[tokio::test]
-    async fn test_get_bucket_list(){
+    async fn test_get_bucket_list() {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
@@ -21,7 +20,7 @@ mod test_async{
     }
 
     #[tokio::test]
-    async fn test_get_bucket_info(){
+    async fn test_get_bucket_info() {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
@@ -32,7 +31,7 @@ mod test_async{
     }
 
     #[tokio::test]
-    async fn get_object_by_bucket_struct(){
+    async fn get_object_by_bucket_struct() {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
@@ -61,12 +60,17 @@ mod test_async{
     }
 
     #[tokio::test]
-    async fn test_put_and_delete_file(){
+    async fn test_put_and_delete_file() {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
-        let object_list = client.put_file(PathBuf::from("examples/bg2015071010.png"), "examples/bg2015071010.png").await;
+        let object_list = client
+            .put_file(
+                PathBuf::from("examples/bg2015071010.png"),
+                "examples/bg2015071010.png",
+            )
+            .await;
 
         assert_matches!(object_list, Ok(_));
 
@@ -74,21 +78,20 @@ mod test_async{
 
         assert_matches!(result, Ok(_));
     }
-
 }
 
 #[cfg(feature = "blocking")]
-mod test_blocking{
-    
-    use std::path::PathBuf;
-    use aliyun_oss_client::client::Client;
+mod test_blocking {
+
     use aliyun_oss_client::blocking::builder::ClientWithMiddleware;
+    use aliyun_oss_client::client::Client;
     use aliyun_oss_client::types::Query;
-    use dotenv::dotenv;
     use assert_matches::assert_matches;
+    use dotenv::dotenv;
+    use std::path::PathBuf;
 
     #[test]
-    fn test_get_bucket_list(){
+    fn test_get_bucket_list() {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
@@ -99,7 +102,7 @@ mod test_blocking{
     }
 
     #[test]
-    fn test_get_bucket_info(){
+    fn test_get_bucket_info() {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
@@ -110,7 +113,7 @@ mod test_blocking{
     }
 
     #[test]
-    fn get_object_by_bucket_struct(){
+    fn get_object_by_bucket_struct() {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
@@ -127,7 +130,6 @@ mod test_blocking{
         let mut object_list = object_list.unwrap();
         assert_matches!(object_list.next(), Some(_));
     }
-
 
     #[test]
     fn test_get_object() {
@@ -155,13 +157,16 @@ mod test_blocking{
     }
 
     #[test]
-    fn test_put_and_delete_file(){
+    fn test_put_and_delete_file() {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         // 第一种读取文件路径的方式
-        let object_list = client.put_file(PathBuf::from("examples/bg2015071010.png"), "examples/bg2015071010.png");
+        let object_list = client.put_file(
+            PathBuf::from("examples/bg2015071010.png"),
+            "examples/bg2015071010.png",
+        );
 
         assert_matches!(object_list, Ok(_));
 
@@ -193,5 +198,4 @@ mod test_blocking{
     //     client.get_object_list();
     //   });
     // }
-
 }

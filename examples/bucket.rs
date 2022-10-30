@@ -1,9 +1,9 @@
 extern crate dotenv;
 
 use aliyun_oss_client::blocking::builder::ClientWithMiddleware;
-use dotenv::dotenv;
 use aliyun_oss_client::client::Client;
 use aliyun_oss_client::types::Query;
+use dotenv::dotenv;
 
 fn main() {
     dotenv().ok();

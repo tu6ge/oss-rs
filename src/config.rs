@@ -1,14 +1,12 @@
-use std::{
-    borrow::Cow, env::VarError
-};
+use std::{borrow::Cow, env::VarError};
 
 use reqwest::Url;
 use std::error::Error;
 use std::fmt;
 
-use crate::{types::{KeyId, KeySecret, EndPoint, BucketName, InvalidEndPoint, InvalidBucketName}};
+use crate::types::{BucketName, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId, KeySecret};
 
-pub struct Config{
+pub struct Config {
     key: KeyId,
     secret: KeySecret,
     endpoint: EndPoint,
@@ -16,18 +14,14 @@ pub struct Config{
 }
 
 impl Config {
-    pub fn new<ID, S, E, B>(
-        key: ID, 
-        secret: S, 
-        endpoint: E, 
-        bucket: B,
-    ) ->Config
-    where ID: Into<KeyId>,
-    S: Into<KeySecret>,
-    E: Into<EndPoint>,
-    B: Into<BucketName>,
+    pub fn new<ID, S, E, B>(key: ID, secret: S, endpoint: E, bucket: B) -> Config
+    where
+        ID: Into<KeyId>,
+        S: Into<KeySecret>,
+        E: Into<EndPoint>,
+        B: Into<BucketName>,
     {
-        Config{
+        Config {
             key: key.into(),
             secret: secret.into(),
             endpoint: endpoint.into(),
@@ -39,15 +33,15 @@ impl Config {
         self.key.clone()
     }
 
-    pub fn secret(&self) -> KeySecret{
+    pub fn secret(&self) -> KeySecret {
         self.secret.clone()
     }
 
-    pub fn bucket(&self) -> BucketName{
+    pub fn bucket(&self) -> BucketName {
         self.bucket.clone()
     }
 
-    pub fn endpoint(&self) -> EndPoint{
+    pub fn endpoint(&self) -> EndPoint {
         self.endpoint.clone()
     }
 }
@@ -56,7 +50,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 #[non_exhaustive]
-pub enum InvalidConfig{
+pub enum InvalidConfig {
     #[error("{0}")]
     EndPoint(#[from] InvalidEndPoint),
 
@@ -76,20 +70,14 @@ pub enum InvalidConfig{
 // }
 
 #[derive(Debug, Clone, Default)]
-pub struct BucketBase{
+pub struct BucketBase {
     endpoint: EndPoint,
     name: BucketName,
 }
 
 impl BucketBase {
-    pub fn new(
-        name: BucketName,
-        endpoint: EndPoint,
-    ) -> Self{
-        Self{
-            name,
-            endpoint,
-        }
+    pub fn new(name: BucketName, endpoint: EndPoint) -> Self {
+        Self { name, endpoint }
     }
 
     /// 通过域名获取
@@ -103,7 +91,7 @@ impl BucketBase {
     /// assert_eq!(bucket.name(), "abc");
     /// assert_eq!(bucket.endpoint(), EndPoint::CnShanghai);
     /// ```
-    pub fn from_str(domain: &'static str) -> Result<Self, InvalidBucketBase>{
+    pub fn from_str(domain: &'static str) -> Result<Self, InvalidBucketBase> {
         fn valid_character(c: char) -> bool {
             match c {
                 _ if c.is_ascii_lowercase() => true,
@@ -117,27 +105,27 @@ impl BucketBase {
             return Err(InvalidBucketBase);
         }
 
-        let (bucket, endpoint) = match domain.split_once('.'){
+        let (bucket, endpoint) = match domain.split_once('.') {
             Some(v) => v,
             None => return Err(InvalidBucketBase),
         };
 
-        Ok(Self{
+        Ok(Self {
             name: BucketName::new(bucket)?,
             endpoint: EndPoint::new(endpoint)?,
         })
     }
 
-    pub fn name(&self) -> &str{
+    pub fn name(&self) -> &str {
         self.name.as_ref()
     }
 
-    pub fn endpoint(self) -> EndPoint{
+    pub fn endpoint(self) -> EndPoint {
         self.endpoint
     }
 
     /// 设置 bucket name
-    /// 
+    ///
     /// ```
     /// # use aliyun_oss_client::config::BucketBase;
     /// let mut bucket = BucketBase::default();
@@ -149,7 +137,7 @@ impl BucketBase {
         Ok(())
     }
 
-    pub fn set_endpoint<E: TryInto<EndPoint>>(&mut self, endpoint: E) -> Result<(), E::Error>{
+    pub fn set_endpoint<E: TryInto<EndPoint>>(&mut self, endpoint: E) -> Result<(), E::Error> {
         self.endpoint = endpoint.try_into()?;
         Ok(())
     }
@@ -164,9 +152,9 @@ impl BucketBase {
     /// let url = bucket.to_url();
     /// assert_eq!(url.as_str(), "https://abc.oss-cn-shanghai.aliyuncs.com/");
     /// ```
-    /// 
+    ///
     /// > 因为 BucketName,EndPoint 声明时已做限制,所以 BucketBase 可以安全的转换成 url
-    pub fn to_url(&self) -> Url{
+    pub fn to_url(&self) -> Url {
         let mut url = String::from("https://");
         url.push_str(self.name.as_ref());
         url.push_str(".oss-");
@@ -189,12 +177,12 @@ impl fmt::Display for InvalidBucketBase {
 }
 
 // TODO 转换细节需要优化
-impl From<InvalidBucketName> for InvalidBucketBase{
+impl From<InvalidBucketName> for InvalidBucketBase {
     fn from(_value: InvalidBucketName) -> Self {
         Self
     }
 }
-impl From<InvalidEndPoint> for InvalidBucketBase{
+impl From<InvalidEndPoint> for InvalidBucketBase {
     fn from(_value: InvalidEndPoint) -> Self {
         Self
     }
@@ -206,27 +194,31 @@ pub struct ObjectBase {
     path: ObjectPath,
 }
 
-impl Default for ObjectBase{
-    fn default() -> Self{
-        Self::new(BucketBase::new(BucketName::default(),EndPoint::default()), "")
+impl Default for ObjectBase {
+    fn default() -> Self {
+        Self::new(
+            BucketBase::new(BucketName::default(), EndPoint::default()),
+            "",
+        )
     }
 }
 
 impl ObjectBase {
     pub fn new<P>(bucket: BucketBase, path: P) -> Self
-    where P: Into<ObjectPath>
+    where
+        P: Into<ObjectPath>,
     {
-        Self{
+        Self {
             bucket,
             path: path.into(),
         }
     }
 
-    pub fn set_bucket(&mut self, bucket: BucketBase){
+    pub fn set_bucket(&mut self, bucket: BucketBase) {
         self.bucket = bucket;
     }
 
-    pub fn bucket_name(&self) -> &str{
+    pub fn bucket_name(&self) -> &str {
         self.bucket.name()
     }
 
@@ -234,7 +226,7 @@ impl ObjectBase {
         self.path.as_ref()
     }
 
-    pub fn set_path<P: Into<ObjectPath>>(&mut self, path: P){
+    pub fn set_path<P: Into<ObjectPath>>(&mut self, path: P) {
         self.path = path.into();
     }
 }
@@ -242,9 +234,7 @@ impl ObjectBase {
 /// OSS Object 存储对象的路径
 /// 不带前缀 `/`  
 #[derive(Debug, Clone)]
-pub struct ObjectPath(
-    Cow<'static, str>
-);
+pub struct ObjectPath(Cow<'static, str>);
 
 impl AsRef<str> for ObjectPath {
     fn as_ref(&self) -> &str {

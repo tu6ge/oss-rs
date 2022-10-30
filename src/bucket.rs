@@ -1,24 +1,26 @@
-use std::fmt;
-use std::sync::Arc;
-use crate::builder::{PointerFamily, ArcPointer};
-use crate::client::Client;
-#[cfg(feature = "blocking")]
-use std::rc::Rc;
+use crate::auth::VERB;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
+use crate::builder::{ArcPointer, PointerFamily};
+use crate::client::Client;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
-use crate::auth::VERB;
 use crate::config::BucketBase;
-use crate::errors::{OssResult};
+use crate::errors::OssResult;
 use crate::object::ObjectList;
-use crate::traits::{OssIntoBucketList, InvalidBucketListValue, OssIntoBucket, InvalidBucketValue, OssIntoObjectList};
-use crate::types::{Query, UrlQuery, CanonicalizedResource};
+use crate::traits::{
+    InvalidBucketListValue, InvalidBucketValue, OssIntoBucket, OssIntoBucketList, OssIntoObjectList,
+};
+use crate::types::{CanonicalizedResource, Query, UrlQuery};
 use chrono::prelude::*;
+use std::fmt;
+#[cfg(feature = "blocking")]
+use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone, Default)]
 #[non_exhaustive]
-pub struct ListBuckets<PointerSel: PointerFamily=ArcPointer> {
+pub struct ListBuckets<PointerSel: PointerFamily = ArcPointer> {
     prefix: Option<String>,
     marker: Option<String>,
     max_keys: Option<String>,
@@ -31,21 +33,21 @@ pub struct ListBuckets<PointerSel: PointerFamily=ArcPointer> {
 }
 
 impl<T: PointerFamily> fmt::Debug for ListBuckets<T> {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
-    f.debug_struct("ListBuckets")
-      .field("prefix", &self.prefix)
-      .field("marker", &self.marker)
-      .field("max_keys", &self.max_keys)
-      .field("is_truncated", &self.is_truncated)
-      .field("next_marker", &self.next_marker)
-      .field("id", &self.id)
-      .field("display_name", &self.display_name)
-      .field("buckets", &self.buckets)
-      .finish()
-  }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("ListBuckets")
+            .field("prefix", &self.prefix)
+            .field("marker", &self.marker)
+            .field("max_keys", &self.max_keys)
+            .field("is_truncated", &self.is_truncated)
+            .field("next_marker", &self.next_marker)
+            .field("id", &self.id)
+            .field("display_name", &self.display_name)
+            .field("buckets", &self.buckets)
+            .finish()
+    }
 }
 
-impl ListBuckets  {
+impl ListBuckets {
     pub fn set_client(&mut self, client: Arc<Client>) {
         self.client = Arc::clone(&client);
         for i in self.buckets.iter_mut() {
@@ -55,7 +57,7 @@ impl ListBuckets  {
 }
 
 #[cfg(feature = "blocking")]
-impl ListBuckets<RcPointer>  {
+impl ListBuckets<RcPointer> {
     pub fn set_client(&mut self, client: Rc<ClientRc>) {
         self.client = Rc::clone(&client);
         for i in self.buckets.iter_mut() {
@@ -66,16 +68,16 @@ impl ListBuckets<RcPointer>  {
 
 impl Default for ListBuckets {
     fn default() -> Self {
-        Self { 
-            prefix: None, 
-            marker: None, 
-            max_keys: None, 
-            is_truncated: false, 
-            next_marker: None, 
-            id: None, 
-            display_name: None, 
-            buckets: Vec::default(), 
-            client:  Arc::default(),
+        Self {
+            prefix: None,
+            marker: None,
+            max_keys: None,
+            is_truncated: false,
+            next_marker: None,
+            id: None,
+            display_name: None,
+            buckets: Vec::default(),
+            client: Arc::default(),
         }
     }
 }
@@ -83,23 +85,23 @@ impl Default for ListBuckets {
 #[cfg(feature = "blocking")]
 impl Default for ListBuckets<RcPointer> {
     fn default() -> Self {
-        Self { 
-            prefix: None, 
-            marker: None, 
-            max_keys: None, 
-            is_truncated: false, 
-            next_marker: None, 
-            id: None, 
-            display_name: None, 
-            buckets: Vec::default(), 
-            client:  Rc::default(),
+        Self {
+            prefix: None,
+            marker: None,
+            max_keys: None,
+            is_truncated: false,
+            next_marker: None,
+            id: None,
+            display_name: None,
+            buckets: Vec::default(),
+            client: Rc::default(),
         }
     }
 }
 
 #[derive(Clone)]
 #[non_exhaustive]
-pub struct Bucket<PointerSel: PointerFamily=ArcPointer>{
+pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
     base: BucketBase,
     // bucket_info: Option<Bucket<'b>>,
     // bucket: Option<Bucket<'c>>,
@@ -122,7 +124,7 @@ pub struct Bucket<PointerSel: PointerFamily=ArcPointer>{
     client: PointerSel::PointerType,
 }
 
-impl<T: PointerFamily> fmt::Debug for Bucket<T>{
+impl<T: PointerFamily> fmt::Debug for Bucket<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Bucket")
             .field("base", &self.base)
@@ -136,8 +138,8 @@ impl<T: PointerFamily> fmt::Debug for Bucket<T>{
 }
 
 impl Default for Bucket {
-    fn default() -> Self{
-        Self { 
+    fn default() -> Self {
+        Self {
             base: BucketBase::default(),
             creation_date: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
             //extranet_endpoint: String::default(),
@@ -150,9 +152,9 @@ impl Default for Bucket {
 }
 
 #[cfg(feature = "blocking")]
-impl Default for Bucket<RcPointer>{
-    fn default() -> Self{
-        Self { 
+impl Default for Bucket<RcPointer> {
+    fn default() -> Self {
+        Self {
             base: BucketBase::default(),
             creation_date: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
             //extranet_endpoint: String::default(),
@@ -165,13 +167,15 @@ impl Default for Bucket<RcPointer>{
 }
 
 impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
-    fn set_name(mut self, name: String)-> Result<Self, InvalidBucketValue> {
+    fn set_name(mut self, name: String) -> Result<Self, InvalidBucketValue> {
         self.base.set_name(name).map_err(|_| InvalidBucketValue)?;
         Ok(self)
     }
 
     fn set_creation_date(mut self, creation_date: String) -> Result<Self, InvalidBucketValue> {
-        self.creation_date = creation_date.parse::<DateTime<Utc>>().map_err(|_|InvalidBucketValue{})?;
+        self.creation_date = creation_date
+            .parse::<DateTime<Utc>>()
+            .map_err(|_| InvalidBucketValue {})?;
         Ok(self)
     }
 
@@ -180,14 +184,20 @@ impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
         Ok(self)
     }
 
-    fn set_extranet_endpoint(mut self, extranet_endpoint: String) -> Result<Self, InvalidBucketValue> {
+    fn set_extranet_endpoint(
+        mut self,
+        extranet_endpoint: String,
+    ) -> Result<Self, InvalidBucketValue> {
         if let Err(e) = self.base.set_endpoint(extranet_endpoint) {
-          return Err(InvalidBucketValue::from(e))
+            return Err(InvalidBucketValue::from(e));
         }
         Ok(self)
     }
 
-    fn set_intranet_endpoint(mut self, intranet_endpoint: String) -> Result<Self, InvalidBucketValue> {
+    fn set_intranet_endpoint(
+        mut self,
+        intranet_endpoint: String,
+    ) -> Result<Self, InvalidBucketValue> {
         self.intranet_endpoint = intranet_endpoint;
         Ok(self)
     }
@@ -207,7 +217,7 @@ impl<T: PointerFamily> Bucket<T> {
         storage_class: String,
         client: T::PointerType,
     ) -> Self {
-        Self{
+        Self {
             base,
             creation_date,
             intranet_endpoint,
@@ -219,15 +229,15 @@ impl<T: PointerFamily> Bucket<T> {
 }
 
 impl Bucket {
-    pub fn set_client(&mut self, client: Arc<Client>){
+    pub fn set_client(&mut self, client: Arc<Client>) {
         self.client = client;
     }
 
-    pub fn client(&self) -> Arc<Client>{
+    pub fn client(&self) -> Arc<Client> {
         Arc::clone(&self.client)
     }
 
-    pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList>{
+    pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList> {
         let mut url = self.base.to_url();
 
         url.set_search_query(&query);
@@ -239,26 +249,25 @@ impl Bucket {
         let response = client.builder(VERB::GET, &url, canonicalized)?;
         let content = response.send().await?;
 
-        Ok(
-            ObjectList::<ArcPointer>::default().from_xml(content.text().await?, &self.base)?
-                .set_bucket(self.base.clone())
-                .set_client(client)
-                .set_search_query(query)
-        )
+        Ok(ObjectList::<ArcPointer>::default()
+            .from_xml(content.text().await?, &self.base)?
+            .set_bucket(self.base.clone())
+            .set_client(client)
+            .set_search_query(query))
     }
 }
 
 #[cfg(feature = "blocking")]
 impl Bucket<RcPointer> {
-    pub fn set_client(&mut self, client: Rc<ClientRc>){
+    pub fn set_client(&mut self, client: Rc<ClientRc>) {
         self.client = client;
     }
 
-    pub fn client(&self) -> Rc<ClientRc>{
+    pub fn client(&self) -> Rc<ClientRc> {
         Rc::clone(&self.client)
     }
 
-    pub fn get_object_list(&self, query: Query) -> OssResult<ObjectList<RcPointer>>{
+    pub fn get_object_list(&self, query: Query) -> OssResult<ObjectList<RcPointer>> {
         let mut url = self.base.to_url();
 
         url.set_search_query(&query);
@@ -270,65 +279,53 @@ impl Bucket<RcPointer> {
         let response = client.builder(VERB::GET, &url, canonicalized)?;
         let content = response.send()?;
 
-        Ok(
-            ObjectList::<RcPointer>::default().from_xml(content.text()?, &self.base)?
+        Ok(ObjectList::<RcPointer>::default()
+            .from_xml(content.text()?, &self.base)?
             .set_bucket(self.base.clone())
             .set_client(client)
-            .set_search_query(query)
-        )
+            .set_search_query(query))
     }
 }
 
 impl<T: PointerFamily> OssIntoBucketList<Bucket<T>> for ListBuckets<T>
-where Bucket<T>: std::default::Default
+where
+    Bucket<T>: std::default::Default,
 {
     fn set_prefix(mut self, prefix: String) -> Result<Self, InvalidBucketListValue> {
-        self.prefix = if prefix.len()>0 {
-            Some(prefix)
-        } else {
-            None
-        };
+        self.prefix = if prefix.len() > 0 { Some(prefix) } else { None };
         Ok(self)
     }
 
     fn set_marker(mut self, marker: String) -> Result<Self, InvalidBucketListValue> {
-        self.marker = if marker.len()>0 {
-            Some(marker)
+        self.marker = if marker.len() > 0 { Some(marker) } else { None };
+        Ok(self)
+    }
+
+    fn set_max_keys(mut self, max_keys: String) -> Result<Self, InvalidBucketListValue> {
+        self.max_keys = if max_keys.len() > 0 {
+            Some(max_keys)
         } else {
             None
         };
         Ok(self)
     }
 
-    fn set_max_keys(mut self, max_keys: String) -> Result<Self, InvalidBucketListValue>{
-        self.max_keys = if max_keys.len()>0 {
-            Some(max_keys)
-        }else {
-            None
-        };
-        Ok(self)
-    }
-
-    fn set_is_truncated(mut self, is_truncated: bool) -> Result<Self, InvalidBucketListValue>{
+    fn set_is_truncated(mut self, is_truncated: bool) -> Result<Self, InvalidBucketListValue> {
         self.is_truncated = is_truncated;
         Ok(self)
     }
 
-    fn set_next_marker(mut self, marker: String) -> Result<Self, InvalidBucketListValue>{
+    fn set_next_marker(mut self, marker: String) -> Result<Self, InvalidBucketListValue> {
         self.next_marker = if marker.is_empty() {
             None
-        }else{
+        } else {
             Some(marker)
         };
         Ok(self)
     }
 
-    fn set_id(mut self, id: String) -> Result<Self, InvalidBucketListValue>{
-        self.id = if id.is_empty() {
-            None
-        }else{
-            Some(id)
-        };
+    fn set_id(mut self, id: String) -> Result<Self, InvalidBucketListValue> {
+        self.id = if id.is_empty() { None } else { Some(id) };
         Ok(self)
     }
 
@@ -356,9 +353,10 @@ impl Client {
         let response = self.builder(VERB::GET, &url, canonicalized)?;
         let content = response.send().await?;
 
-        let mut bucket_list = ListBuckets::<ArcPointer>::default().from_xml(content.text().await?)?;
+        let mut bucket_list =
+            ListBuckets::<ArcPointer>::default().from_xml(content.text().await?)?;
         bucket_list.set_client(Arc::new(self));
-        
+
         Ok(bucket_list)
     }
 
@@ -374,7 +372,7 @@ impl Client {
 
         let mut bucket = Bucket::<ArcPointer>::default().from_xml(content.text().await?)?;
         bucket.set_client(Arc::new(self));
-        
+
         Ok(bucket)
     }
 }
@@ -407,103 +405,102 @@ impl ClientRc {
 
         let mut bucket = Bucket::<RcPointer>::default().from_xml(content.text()?)?;
         bucket.set_client(Rc::new(self));
-        
+
         Ok(bucket)
     }
 }
 
-pub enum Grant{
-  Private,
-  PublicRead,
-  PublicReadWrite,
+pub enum Grant {
+    Private,
+    PublicRead,
+    PublicReadWrite,
 }
 
 impl Default for Grant {
-  fn default() -> Self {
-    Self::Private
-  }
+    fn default() -> Self {
+        Self::Private
+    }
 }
 
 #[derive(Clone, Debug)]
-pub enum DataRedundancyType{
-  LRS,
-  ZRS,
+pub enum DataRedundancyType {
+    LRS,
+    ZRS,
 }
 
-impl Default for DataRedundancyType{
-  fn default() -> Self {
-    Self::LRS
-  }
+impl Default for DataRedundancyType {
+    fn default() -> Self {
+        Self::LRS
+    }
 }
 
-
-#[derive(Default,Clone, Debug)]
-pub struct BucketListObjectParms<'a>{
-  pub list_type: u8,
-  pub delimiter: &'a str,
-  pub continuation_token: &'a str,
-  pub max_keys: u32,
-  pub prefix: &'a str,
-  pub encoding_type: &'a str,
-  pub fetch_owner: bool,
+#[derive(Default, Clone, Debug)]
+pub struct BucketListObjectParms<'a> {
+    pub list_type: u8,
+    pub delimiter: &'a str,
+    pub continuation_token: &'a str,
+    pub max_keys: u32,
+    pub prefix: &'a str,
+    pub encoding_type: &'a str,
+    pub fetch_owner: bool,
 }
 
-#[derive(Default,Clone, Debug)]
-pub struct BucketListObject<'a>{
-  //pub content:
-  pub common_prefixes: &'a str,
-  pub delimiter: &'a str,
-  pub encoding_type: &'a str,
-  pub display_name: &'a str,
-  pub etag: &'a str,
-  pub id: &'a str,
-  pub is_truncated: bool,
-  pub key: &'a str,
-  pub last_modified: &'a str, // TODO 时间
-  pub list_bucket_result: Option<&'a str>,
-  pub start_after: Option<&'a str>,
-  pub max_keys: u32,
-  pub name: &'a str,
-  // pub owner: &'a str,
-  pub prefix: &'a str,
-  pub size: u64,
-  pub storage_class: &'a str,
-  pub continuation_token: Option<&'a str>,
-  pub key_count: i32,
-  pub next_continuation_token: Option<&'a str>,
-  pub restore_info: Option<&'a str>,
+#[derive(Default, Clone, Debug)]
+pub struct BucketListObject<'a> {
+    //pub content:
+    pub common_prefixes: &'a str,
+    pub delimiter: &'a str,
+    pub encoding_type: &'a str,
+    pub display_name: &'a str,
+    pub etag: &'a str,
+    pub id: &'a str,
+    pub is_truncated: bool,
+    pub key: &'a str,
+    pub last_modified: &'a str, // TODO 时间
+    pub list_bucket_result: Option<&'a str>,
+    pub start_after: Option<&'a str>,
+    pub max_keys: u32,
+    pub name: &'a str,
+    // pub owner: &'a str,
+    pub prefix: &'a str,
+    pub size: u64,
+    pub storage_class: &'a str,
+    pub continuation_token: Option<&'a str>,
+    pub key_count: i32,
+    pub next_continuation_token: Option<&'a str>,
+    pub restore_info: Option<&'a str>,
 }
 
 #[derive(Clone, Debug)]
 pub enum Location {
-  CnHangzhou,
-  CnShanghai,
-  CnQingdao,
-  CnBeijing,
-  CnZhangjiakou, // 张家口 lenght=13
-  CnHongkong,
-  CnShenzhen,
-  UsWest1,
-  UsEast1,
-  ApSouthEast1,
+    CnHangzhou,
+    CnShanghai,
+    CnQingdao,
+    CnBeijing,
+    CnZhangjiakou, // 张家口 lenght=13
+    CnHongkong,
+    CnShenzhen,
+    UsWest1,
+    UsEast1,
+    ApSouthEast1,
 }
 
 #[derive(Clone, Debug)]
-pub struct BucketStat{
-  pub storage: u64,
-  pub object_count: u32,
-  pub multipart_upload_count: u32,
-  pub live_channel_count: u32,
-  pub last_modified_time: u16,
-  pub standard_storage: u64,
-  pub standard_object_count: u32,
-  pub infrequent_access_storage: u64,
-  pub infrequent_access_real_storage: u64,
-  pub infrequent_access_object_count: u64,
-  pub archive_storage: u64,
-  pub archive_real_storage: u64,
-  pub archive_object_count: u64,
-  pub cold_archive_storage: u64,
-  pub cold_archive_real_storage: u64,
-  pub cold_archive_object_count: u64,
+pub struct BucketStat {
+    pub storage: u64,
+    pub object_count: u32,
+    pub multipart_upload_count: u32,
+    pub live_channel_count: u32,
+    pub last_modified_time: u16,
+    pub standard_storage: u64,
+    pub standard_object_count: u32,
+    pub infrequent_access_storage: u64,
+    pub infrequent_access_real_storage: u64,
+    pub infrequent_access_object_count: u64,
+    pub archive_storage: u64,
+    pub archive_real_storage: u64,
+    pub archive_object_count: u64,
+    pub cold_archive_storage: u64,
+    pub cold_archive_real_storage: u64,
+    pub cold_archive_object_count: u64,
 }

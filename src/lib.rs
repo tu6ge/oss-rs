@@ -92,14 +92,13 @@ async fn main() {
   client.blocking_delete_object("examples/bg2015071010.png").await.unwrap();
 }
 ```
- * 
+ *
  */
-
 
 pub mod types;
 use builder::ClientWithMiddleware;
 use config::Config;
-pub use types::{KeyId, KeySecret, EndPoint, BucketName};
+pub use types::{BucketName, EndPoint, KeyId, KeySecret};
 
 /// # 验证模块
 /// 包含了签名验证的一些方法，header 以及参数的封装
@@ -139,14 +138,14 @@ mod tests;
 
 /** # 主要入口
 
-## 简单使用方式为： 
+## 简单使用方式为：
 ```ignore
 let result = aliyun_oss_client::client("key_id_xxx","key_secret_xxxx", "my_endpoint", "my_bucket");
 ```
 
 ## 推荐的使用方式为
 
-1. 使用 cargo 安装 dotenv 
+1. 使用 cargo 安装 dotenv
 
 2. 在项目根目录创建 .env 文件，并添加 git 忽略，
 
@@ -174,11 +173,17 @@ let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 let result = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket.try_into().unwrap());
 ```
 */
-pub fn client<ID, S, E>(access_key_id: ID, access_key_secret: S, endpoint: E, bucket: BucketName) -> client::Client<ClientWithMiddleware>
-where ID: Into<KeyId>,
-  S: Into<KeySecret>,
-  E: Into<EndPoint>,
+pub fn client<ID, S, E>(
+    access_key_id: ID,
+    access_key_secret: S,
+    endpoint: E,
+    bucket: BucketName,
+) -> client::Client<ClientWithMiddleware>
+where
+    ID: Into<KeyId>,
+    S: Into<KeySecret>,
+    E: Into<EndPoint>,
 {
-  let config = Config::new(access_key_id, access_key_secret, endpoint, bucket);
-  client::Client::<ClientWithMiddleware>::from_config(&config)
+    let config = Config::new(access_key_id, access_key_secret, endpoint, bucket);
+    client::Client::<ClientWithMiddleware>::from_config(&config)
 }

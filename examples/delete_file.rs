@@ -1,7 +1,7 @@
 //! `cargo run --example delete_file --features=blocking`
 
-use aliyun_oss_client::client::Client;
 use aliyun_oss_client::blocking::builder::ClientWithMiddleware;
+use aliyun_oss_client::client::Client;
 
 extern crate dotenv;
 

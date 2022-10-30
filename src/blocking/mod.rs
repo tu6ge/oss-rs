@@ -1,13 +1,18 @@
-
 pub mod builder;
 
 use crate::config::Config;
-use crate::types::{KeyId, KeySecret, EndPoint, BucketName};
+use crate::types::{BucketName, EndPoint, KeyId, KeySecret};
 
 use self::builder::ClientWithMiddleware;
 
-pub fn client<ID, S, E, B>(access_key_id: ID, access_key_secret: S, endpoint: E, bucket: B) -> crate::client::Client<ClientWithMiddleware>
-where ID: Into<KeyId>,
+pub fn client<ID, S, E, B>(
+    access_key_id: ID,
+    access_key_secret: S,
+    endpoint: E,
+    bucket: B,
+) -> crate::client::Client<ClientWithMiddleware>
+where
+    ID: Into<KeyId>,
     S: Into<KeySecret>,
     E: Into<EndPoint>,
     B: Into<BucketName>,

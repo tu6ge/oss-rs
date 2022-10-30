@@ -1,14 +1,12 @@
 use crate::errors::{OssError, OssService};
 
-
-
 #[test]
-fn test_message(){
+fn test_message() {
     let err1 = OssError::Input("bar".to_string());
 
     assert_eq!(err1.message(), "input error: bar".to_string());
 
-    let oss_err = OssError::OssService(OssService{
+    let oss_err = OssError::OssService(OssService {
         code: "OSS_TEST_CODE".to_string(),
         message: "foo_msg".to_string(),
         request_id: "foo_req_id".to_string(),
@@ -18,20 +16,22 @@ fn test_message(){
 }
 
 #[test]
-fn test_oss_service_fmt(){
-    let oss_err = OssService{
+fn test_oss_service_fmt() {
+    let oss_err = OssService {
         code: "OSS_TEST_CODE".to_string(),
         message: "foo_msg".to_string(),
         request_id: "foo_req_id".to_string(),
     };
 
-    assert_eq!(format!("{}", oss_err), "OssService { code: \"OSS_TEST_CODE\", message: \"foo_msg\", request_id: \"foo_req_id\" }".to_string());
+    assert_eq!(
+        format!("{}", oss_err),
+        "OssService { code: \"OSS_TEST_CODE\", message: \"foo_msg\", request_id: \"foo_req_id\" }"
+            .to_string()
+    );
 }
 
-
-
 #[test]
-fn test_oss_service_new(){
+fn test_oss_service_new() {
     let content = r#"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
     <Error>
         <Code>RequestTimeTooSkewed</Code>
@@ -51,13 +51,16 @@ fn test_oss_service_new(){
 
 #[test]
 #[cfg(feature = "plugin")]
-fn test_plugin_fmt(){
+fn test_plugin_fmt() {
     use crate::errors::plugin::PluginError;
 
-    let err = PluginError{
+    let err = PluginError {
         name: "foo",
         message: "bar".to_string(),
     };
 
-    assert_eq!(format!("{}", err), "PluginError { name: \"foo\", message: \"bar\" }".to_string());
+    assert_eq!(
+        format!("{}", err),
+        "PluginError { name: \"foo\", message: \"bar\" }".to_string()
+    );
 }
