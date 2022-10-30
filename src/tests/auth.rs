@@ -358,24 +358,6 @@ mod auth_builder {
 
         assert_eq!(builder.auth.headers.len(), 0);
     }
-
-    // #[test]
-    // TODO
-    // fn test_get_headers(){
-    //     #[mockall_double::double]
-    //     use crate::auth::Auth;
-    //     let mut auth = MockAuth::default();
-    //     auth.expect_get_headers().times(1).returning(|| {
-    //         let mut headers = HeaderMap::new();
-    //         headers.insert(HOST, "example.com".parse().unwrap());
-    //         Ok(headers)
-    //     });
-
-    //     let builder = AuthBuilder{
-    //         auth,
-    //     };
-
-    // }
 }
 
 mod auth_to_header_map {

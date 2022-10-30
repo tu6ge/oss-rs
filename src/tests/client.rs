@@ -15,15 +15,6 @@ fn set_bucket_name() {
 
 #[test]
 fn test_get_bucket_url() {
-    // TODO expect is_err()
-    // let client = Client::new(
-    //     "foo1".into(),
-    //     "foo2".into(),
-    //     "qingdao".into(),
-    //     "foo4".into()
-    // );
-    // let result = client.get_bucket_url();
-    // assert!(result.is_err());
 
     let client = Client::<ClientWithMiddleware>::new(
         "foo1".to_owned().into(),
