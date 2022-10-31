@@ -2,13 +2,12 @@
 
 use crate::errors::{OssError, OssResult};
 use crate::types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret};
+#[cfg(test)]
+use mockall::automock;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName, CONTENT_TYPE};
 use reqwest::Method;
 use std::borrow::Cow;
 use std::convert::TryInto;
-// use http::Method;
-#[cfg(test)]
-use mockall::automock;
 
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(Debug))]
