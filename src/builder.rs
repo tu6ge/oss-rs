@@ -12,12 +12,14 @@ use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddlewa
 use crate::{
     auth::VERB,
     client::Client as AliClient,
-    errors::{OssError, OssResult}, config::BucketBase,
+    config::BucketBase,
+    errors::{OssError, OssResult},
 };
 use reqwest::{Client, Request, Response};
 
-pub trait PointerFamily 
-where Self::Bucket: std::fmt::Debug + Clone + Default
+pub trait PointerFamily
+where
+    Self::Bucket: std::fmt::Debug + Clone + Default,
 {
     type PointerType;
     type Bucket;

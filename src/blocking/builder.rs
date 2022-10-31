@@ -84,9 +84,7 @@ impl RequestBuilder {
     pub fn send(self) -> OssResult<Response> {
         match self.middleware {
             Some(m) => m.handle(self.inner.build().unwrap()),
-            None => {
-                self.inner.send().map_err(OssError::from)?.handle_error()
-            }
+            None => self.inner.send().map_err(OssError::from)?.handle_error(),
         }
     }
 }

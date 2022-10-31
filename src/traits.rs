@@ -4,7 +4,7 @@ use std::fmt::{self, Debug};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
-use crate::builder::{PointerFamily};
+use crate::builder::PointerFamily;
 use crate::errors::{OssError, OssResult};
 use crate::types::InvalidEndPoint;
 
@@ -58,7 +58,7 @@ impl fmt::Display for InvalidObjectListValue {
 
 impl Error for InvalidObjectListValue {}
 
-pub trait OssIntoObjectList<T,P: PointerFamily>
+pub trait OssIntoObjectList<T, P: PointerFamily>
 where
     Self: Sized,
     T: OssIntoObject<P> + Default,

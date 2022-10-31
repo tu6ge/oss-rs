@@ -3,7 +3,7 @@ mod object_list_xml {
 
     use std::sync::Arc;
 
-    use crate::builder::{ArcPointer};
+    use crate::builder::ArcPointer;
     use crate::tests::traits::OBEJCT_ITEM_ID;
     use crate::{
         config::BucketBase,

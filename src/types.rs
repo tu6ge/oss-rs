@@ -479,10 +479,7 @@ impl TryFrom<HeaderValue> for ContentType {
     type Error = OssError;
     fn try_from(value: HeaderValue) -> OssResult<Self> {
         Ok(Self(Cow::Owned(
-            value
-                .to_str()
-                .map_err(OssError::from)?
-                .to_owned(),
+            value.to_str().map_err(OssError::from)?.to_owned(),
         )))
     }
 }

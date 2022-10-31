@@ -4,9 +4,12 @@ use reqwest::Url;
 use std::error::Error;
 use std::fmt;
 
-use crate::{types::{BucketName, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId, KeySecret}, builder::{PointerFamily, ArcPointer}};
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
+use crate::{
+    builder::{ArcPointer, PointerFamily},
+    types::{BucketName, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId, KeySecret},
+};
 
 pub struct Config {
     key: KeyId,
@@ -198,10 +201,7 @@ pub struct ObjectBase<PointerSel: PointerFamily = ArcPointer> {
 
 impl<T: PointerFamily> Default for ObjectBase<T> {
     fn default() -> Self {
-        Self::new(
-            T::Bucket::default(),
-            "",
-        )
+        Self::new(T::Bucket::default(), "")
     }
 }
 
@@ -220,14 +220,12 @@ impl<T: PointerFamily> ObjectBase<T> {
         self.bucket = bucket;
     }
 
-    
-
     pub fn set_path<P: Into<ObjectPath>>(&mut self, path: P) {
         self.path = path.into();
     }
 }
 
-pub trait GetObjectInfo{
+pub trait GetObjectInfo {
     fn bucket_name(&self) -> &str;
     fn path(&self) -> &str;
 }
@@ -247,7 +245,7 @@ impl GetObjectInfo for ObjectBase<RcPointer> {
     fn bucket_name(&self) -> &str {
         self.bucket.name()
     }
-    
+
     fn path(&self) -> &str {
         self.path.as_ref()
     }

@@ -200,7 +200,7 @@ impl<T: PointerFamily> Default for Object<T> {
 }
 
 impl<T: PointerFamily + Sized> OssIntoObject<T> for Object<T> {
-    fn set_bucket(mut self, bucket: T::Bucket)-> Self {
+    fn set_bucket(mut self, bucket: T::Bucket) -> Self {
         self.base.set_bucket(bucket);
         self
     }
@@ -240,8 +240,7 @@ impl<T: PointerFamily + Sized> OssIntoObject<T> for Object<T> {
     }
 }
 
-impl<T: PointerFamily> OssIntoObjectList<Object<T>, T> for ObjectList<T> 
-{
+impl<T: PointerFamily> OssIntoObjectList<Object<T>, T> for ObjectList<T> {
     fn set_key_count(mut self, key_count: String) -> Result<Self, InvalidObjectListValue> {
         self.key_count = key_count
             .parse::<u64>()
@@ -349,18 +348,16 @@ impl Client {
         let content_length = content.len().to_string();
         headers.insert(
             "Content-Length",
-            HeaderValue::from_str(&content_length)
-                .map_err(OssError::from)?,
+            HeaderValue::from_str(&content_length).map_err(OssError::from)?,
         );
 
         headers.insert(
             "Content-Type",
-            content_type
-                .parse()
-                .map_err(OssError::from)?,
+            content_type.parse().map_err(OssError::from)?,
         );
 
-        let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
+        let object_base =
+            ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
 
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
@@ -376,7 +373,8 @@ impl Client {
         let mut url = self.get_bucket_url();
         url.set_path(key);
 
-        let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
+        let object_base =
+            ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
 
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
@@ -457,18 +455,16 @@ impl ClientRc {
         let content_length = content.len().to_string();
         headers.insert(
             "Content-Length",
-            HeaderValue::from_str(&content_length)
-                .map_err(OssError::from)?,
+            HeaderValue::from_str(&content_length).map_err(OssError::from)?,
         );
 
         headers.insert(
             "Content-Type",
-            content_type
-                .parse()
-                .map_err(OssError::from)?,
+            content_type.parse().map_err(OssError::from)?,
         );
 
-        let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
+        let object_base =
+            ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
 
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 
@@ -484,7 +480,8 @@ impl ClientRc {
         let mut url = self.get_bucket_url();
         url.set_path(key);
 
-        let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
+        let object_base =
+            ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
 
         let canonicalized = CanonicalizedResource::from_object(&object_base, None);
 

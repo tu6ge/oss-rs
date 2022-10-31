@@ -165,10 +165,7 @@ impl Client {
             .with_headers(headers)
             .get_headers()?;
 
-        Ok(self
-            .client_middleware
-            .request(method, url)
-            .headers(headers))
+        Ok(self.client_middleware.request(method, url).headers(headers))
     }
 }
 
@@ -238,9 +235,6 @@ impl Client<BlockingClientWithMiddleware> {
             .with_headers(headers)
             .get_headers()?;
 
-        Ok(self
-            .client_middleware
-            .request(method, url)
-            .headers(headers))
+        Ok(self.client_middleware.request(method, url).headers(headers))
     }
 }
