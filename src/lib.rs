@@ -95,6 +95,10 @@ async fn main() {
  *
  */
 
+// #![feature(test)]
+
+// extern crate test;
+
 pub mod types;
 use builder::ClientWithMiddleware;
 use config::Config;

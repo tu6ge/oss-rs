@@ -1,6 +1,5 @@
 use hmac::digest::crypto_common;
 use http::header::ToStrError;
-use regex::Regex;
 use std::fmt;
 use thiserror::Error;
 
@@ -113,19 +112,18 @@ impl fmt::Display for OssService {
 #[cfg_attr(test, automock)]
 impl OssService {
     /// 解析 oss 的错误信息
-    pub fn new(source: String) -> OssService {
-        let re = Regex::new(
-            r"(?x)<Code>(?P<code>\w+)</Code>
-          [\n]?[\s]+<Message>(?P<message>[\w\s.]+)</Message>
-          [\n]?[\s]+<RequestId>(?P<request_id>[\w]+)</RequestId>
-          ",
-        )
-        .unwrap();
-        let caps = re.captures(&source).unwrap();
-        OssService {
-            code: (&caps["code"]).to_string(),
-            message: (&caps["message"]).to_string(),
-            request_id: (&caps["request_id"]).to_string(),
+    pub fn new(source: String) -> Self {
+        let code0 = source.find("<Code>").unwrap();
+        let code1 = source.find("</Code>").unwrap();
+        let message0 = source.find("<Message>").unwrap();
+        let message1 = source.find("</Message>").unwrap();
+        let request_id0 = source.find("<RequestId>").unwrap();
+        let request_id1 = source.find("</RequestId>").unwrap();
+
+        Self {
+            code: (&source[code0 + 6..code1]).to_string(),
+            message: (&source[message0 + 9..message1]).to_string(),
+            request_id: (&source[request_id0 + 11..request_id1]).to_string(),
         }
     }
 }

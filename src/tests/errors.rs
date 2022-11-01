@@ -49,3 +49,4 @@ fn test_oss_service_new() {
     assert_eq!(service.request_id, format!("63145DB90BFD85303279D56B"))
 }
 
+//use test::Bencher;
