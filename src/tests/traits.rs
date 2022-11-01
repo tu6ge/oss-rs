@@ -165,6 +165,111 @@ mod object_list_xml {
         assert!(list1.is_ok());
     }
 
+    // bench result 5,210 ns/iter (+/- 151)
+    // #[cfg(test)]
+    // #[bench]
+    // fn from_xml_bench(b: &mut test::Bencher) {
+    //     use crate::traits::OssIntoObject;
+    //     use crate::traits::OssIntoObjectList;
+
+    //     #[derive(Default)]
+    //     struct ObjectA {}
+
+    //     impl OssIntoObject<ArcPointer> for ObjectA {
+    //         fn set_key(self, key: String) -> Result<Self, InvalidObjectValue> {
+                
+    //             Ok(self)
+    //         }
+    //         fn set_last_modified(self, last_modified: String) -> Result<Self, InvalidObjectValue> {
+                
+    //             Ok(self)
+    //         }
+    //         fn set_etag(self, etag: String) -> Result<Self, InvalidObjectValue> {
+                
+    //             Ok(self)
+    //         }
+    //         fn set_type(self, _type: String) -> Result<Self, InvalidObjectValue> {
+                
+    //             Ok(self)
+    //         }
+    //         fn set_size(self, size: String) -> Result<Self, InvalidObjectValue> {
+    //             Ok(self)
+    //         }
+    //         fn set_storage_class(self, storage_class: String) -> Result<Self, InvalidObjectValue> {
+                
+    //             Ok(self)
+    //         }
+    //         fn set_bucket(self, bucket: Arc<BucketBase>) -> Self {
+                
+    //             self
+    //         }
+    //     }
+    //     struct ListB {}
+    //     impl OssIntoObjectList<ObjectA, ArcPointer> for ListB {
+    //         fn set_name(self, name: String) -> Result<Self, InvalidObjectListValue> {
+    //             Ok(self)
+    //         }
+    //         fn set_prefix(self, prefix: String) -> Result<Self, InvalidObjectListValue> {
+    //             Ok(self)
+    //         }
+    //         fn set_max_keys(self, max_keys: String) -> Result<Self, InvalidObjectListValue> {
+    //             Ok(self)
+    //         }
+    //         fn set_key_count(self, key_count: String) -> Result<Self, InvalidObjectListValue> {
+    //             Ok(self)
+    //         }
+    //         fn set_next_continuation_token(
+    //             self,
+    //             token: Option<String>,
+    //         ) -> Result<Self, InvalidObjectListValue> {
+    //             Ok(self)
+    //         }
+    //         // fn set_list(self, list: Vec<T>) -> Result<Self, InvalidObjectListValue>{
+    //         //     Ok(self)
+    //         // }
+    //     }
+
+    //     let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+    //     <ListBucketResult>
+    //       <Name>foo_bucket</Name>
+    //       <Prefix></Prefix>
+    //       <MaxKeys>100</MaxKeys>
+    //       <Delimiter></Delimiter>
+    //       <IsTruncated>false</IsTruncated>
+    //       <Contents>
+    //         <Key>9AB932LY.jpeg</Key>
+    //         <LastModified>2022-06-26T09:53:21.000Z</LastModified>
+    //         <ETag>"F75A15996D0857B16FA31A3B16624C26"</ETag>
+    //         <Type>Normal</Type>
+    //         <Size>18027</Size>
+    //         <StorageClass>Standard</StorageClass>
+    //       </Contents>
+    //       <Contents>
+    //         <Key>CHANGELOG.md</Key>
+    //         <LastModified>2022-06-12T06:11:06.000Z</LastModified>
+    //         <ETag>"09C37AC5B145D368D52D0AAB58B25213"</ETag>
+    //         <Type>Normal</Type>
+    //         <Size>40845</Size>
+    //         <StorageClass>Standard</StorageClass>
+    //       </Contents>
+    //       <Contents>
+    //         <Key>LICENSE</Key>
+    //         <LastModified>2022-06-12T06:11:06.000Z</LastModified>
+    //         <ETag>"2CBAB10A50CC6905EA2D7CCCEF31A6C9"</ETag>
+    //         <Type>Normal</Type>
+    //         <Size>1065</Size>
+    //         <StorageClass>Standard</StorageClass>
+    //       </Contents>
+    //       <KeyCount>3</KeyCount>
+    //     </ListBucketResult>"#;
+
+    //     b.iter(||{
+    //         let list = ListB {};
+    //         let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
+    //         list.from_xml(xml.to_string(), Arc::new(base));
+    //     })
+    // }
+
     #[test]
     fn from_xml_has_next() {
         use crate::traits::OssIntoObject;
