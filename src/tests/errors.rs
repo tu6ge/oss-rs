@@ -49,18 +49,3 @@ fn test_oss_service_new() {
     assert_eq!(service.request_id, format!("63145DB90BFD85303279D56B"))
 }
 
-#[test]
-#[cfg(feature = "plugin")]
-fn test_plugin_fmt() {
-    use crate::errors::plugin::PluginError;
-
-    let err = PluginError {
-        name: "foo",
-        message: "bar".to_string(),
-    };
-
-    assert_eq!(
-        format!("{}", err),
-        "PluginError { name: \"foo\", message: \"bar\" }".to_string()
-    );
-}

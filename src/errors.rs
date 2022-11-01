@@ -61,10 +61,6 @@ pub enum OssError {
     #[error("aliyun response error: {0}")]
     OssService(#[from] OssService),
 
-    #[cfg(feature = "plugin")]
-    #[error("plugin : {0}")]
-    Plugin(#[from] self::plugin::PluginError),
-
     #[error("{0}")]
     InvalidEndPoint(#[from] InvalidEndPoint),
 
@@ -132,28 +128,6 @@ impl OssService {
             request_id: (&caps["request_id"]).to_string(),
         }
     }
-}
-
-#[cfg(feature = "plugin")]
-pub mod plugin {
-    use std::fmt;
-
-    #[derive(Debug)]
-    pub struct PluginError {
-        pub name: &'static str,
-        pub message: String,
-    }
-
-    impl fmt::Display for PluginError {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-            f.debug_struct("PluginError")
-                .field("name", &self.name)
-                .field("message", &self.message)
-                .finish()
-        }
-    }
-
-    impl std::error::Error for PluginError {}
 }
 
 pub type OssResult<T> = Result<T, OssError>;
