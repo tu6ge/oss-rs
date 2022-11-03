@@ -20,7 +20,9 @@ use crate::types::{BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
 #[derive(Default)]
-pub struct Client<M: Default = ClientWithMiddleware> {
+pub struct Client<M=ClientWithMiddleware> 
+where M: Default
+{
     auth_builder: AuthBuilder,
     client_middleware: M,
     endpoint: EndPoint,

@@ -10,87 +10,128 @@
 aliyun-oss-client = "0.2.0"
 ```
 
-2. 打开你需要使用 oss 的文件，在里面添加如下内容，即可使用：
+2. 初始化配置信息
 
-```ignore
-// dotenv 是用于获取配置信息的，可以不使用
-extern crate dotenv;
-use dotenv::dotenv;
-use std::env;
+```rust
+use std::env::set_var;
+set_var("ALIYUN_KEY_ID", "foo1");
+set_var("ALIYUN_KEY_SECRET", "foo2");
+set_var("ALIYUN_ENDPOINT", "qingdao");
+set_var("ALIYUN_BUCKET", "foo4");
+let client = aliyun_oss_client::Client::from_env();
+```
 
-# fn main() -> Result<(), aliyun_oss_client::errors::OssError> {
+或者
 
-// 需要提供四个配置信息
-let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-let endpoint    = env::var("ALIYUN_ENDPOINT").unwrap();
-let bucket      = env::var("ALIYUN_BUCKET").unwrap();
-
-// 获取客户端实例
-let client = aliyun_oss_client::client(key_id, key_secret, endpoint, bucket);
-# Ok(())
-# }
+```rust
+use aliyun_oss_client::BucketName;
+let bucket = BucketName::new("bbb").unwrap();
+let client = aliyun_oss_client::Client::new("key1".into(),"secret1".into(),"qingdao".try_into().unwrap(), bucket);
 ```
 
 
 ### 查询所有的 bucket 信息
-```ignore
-#[tokio::main]
-async fn main() {
-  let response = client.get_bucket_list().await.unwrap();
-  println!("buckets list: {:?}", response);
-}
 
+```rust
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    client.get_bucket_list().await;
+# }
 ```
 
 ### 获取 bucket 信息
-```ignore
-#[tokio::main]
-async fn main() {
-  let response = client.get_bucket_info().await.unwrap();
-  println!("bucket info: {:?}", response);
-}
+```rust
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    let response = client.get_bucket_info().await;
+    println!("bucket info: {:?}", response);
+# }
 ```
 
 ### 查询当前 bucket 中的 object 列表
+```rust
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    use aliyun_oss_client::Query;
+    let query = Query::new();
+    let response = client.get_object_list(query).await;
+    println!("objects list: {:?}", response);
+# }
+```
+
+### 也可以使用 bucket struct 查询 object 列表
 ```ignore
-#[tokio::main]
-async fn main() {
-  let query: HashMap<String,String> = HashMap::new();
-  let result = client.get_object_list(query).await.unwrap();
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    use aliyun_oss_client::Query;
+    let mut query = Query::new();
+    query.insert("max-keys", "5");
+    query.insert("prefix", "babel");
 
-  println!("object list : {:?}", result);
+    let result = client.get_bucket_info().await.unwrap().get_object_list(query).await;
 
-  // 翻页功能 获取下一页数据
-  println!("next object list: {:?}", result.next().unwrap());
-}
+    println!("object list : {:?}", result);
+# }
 ```
 
 ### 上传文件
-```ignore
-#[tokio::main]
-async fn main() {
-  client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败").await;
-}
-```
-```ignore
-#[tokio::main]
-async fn main() {
-  // 上传文件内容
-  let mut file_content = Vec::new();
-  std::fs::File::open(file_name)
-    .expect("open file failed").read_to_end(&mut file_content)
-    .expect("read_to_end failed");
-  client.put_content(file_content, "examples/bg2015071010.png").await.expect("上传失败");
-}
+```rust
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").await;
+
+    // or 上传文件内容
+    let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
+    client.put_content(file_content, "examples/bg2015071010.png").await;
+
+    // or 自定义上传文件 Content-Type
+    let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
+    client.put_content_base(file_content, "image/png", "examples/bg2015071010.png").await;
+# }
 ```
 
 ### 删除文件
-```ignore
-#[tokio::main]
-async fn main() {
-  client.blocking_delete_object("examples/bg2015071010.png").await.unwrap();
-}
+```rust
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    client.delete_object("examples/bg2015071010.png").await;
+# }
 ```
  *
  */
@@ -102,7 +143,7 @@ async fn main() {
 pub mod types;
 use builder::ClientWithMiddleware;
 use config::Config;
-pub use types::{BucketName, EndPoint, KeyId, KeySecret};
+pub use types::{BucketName, EndPoint, KeyId, KeySecret, Query};
 
 /// # 验证模块
 /// 包含了签名验证的一些方法，header 以及参数的封装
@@ -120,6 +161,13 @@ pub mod config;
 
 /// # 对 reqwest 进行了简单的封装，加上了 OSS 的签名验证功能
 pub mod client;
+pub use client::ClientArc as Client;
+
+#[cfg(feature = "blocking")]
+pub use client::ClientRc;
+
+#[cfg(feature = "blocking")]
+pub mod blocking;
 
 pub mod builder;
 
@@ -127,14 +175,6 @@ pub mod builder;
 pub mod traits;
 
 pub mod errors;
-
-#[cfg(feature = "blocking")]
-pub mod blocking;
-
-#[cfg(test)]
-#[allow(unused_imports)]
-#[macro_use]
-extern crate assert_matches;
 
 #[allow(soft_unstable)]
 #[cfg(test)]
@@ -146,51 +186,16 @@ pub struct ReadmeDoctests;
 
 /** # 主要入口
 
-## 简单使用方式为：
-```ignore
-let result = aliyun_oss_client::client("key_id_xxx","key_secret_xxxx", "my_endpoint", "my_bucket");
-```
-
-## 推荐的使用方式为
-
-1. 使用 cargo 安装 dotenv
-
-2. 在项目根目录创建 .env 文件，并添加 git 忽略，
-
-然后在 .env 文件中填入阿里云的配置信息
-```ignore
-ALIYUN_KEY_ID=key_id_xxx
-ALIYUN_KEY_SECRET=key_secret_xxxx
-ALIYUN_ENDPOINT=my_endpoint
-ALIYUN_BUCKET=my_bucket
-```
-
-3. 在自己项目里写入如下信息
-
-```ignore
-extern crate dotenv;
-use dotenv::dotenv;
-use std::env;
-
-// 需要提供四个配置信息
-let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-let endpoint    = aliyun_oss_client::EndPoint::CnQingdao;
-let bucket      = env::var("ALIYUN_BUCKET").unwrap();
-
-let result = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket.try_into().unwrap());
-```
 */
-pub fn client<ID, S, E>(
+pub fn client<ID, S>(
     access_key_id: ID,
     access_key_secret: S,
-    endpoint: E,
+    endpoint: EndPoint,
     bucket: BucketName,
 ) -> client::Client<ClientWithMiddleware>
 where
     ID: Into<KeyId>,
     S: Into<KeySecret>,
-    E: Into<EndPoint>,
 {
     let config = Config::new(access_key_id, access_key_secret, endpoint, bucket);
     client::Client::<ClientWithMiddleware>::from_config(&config)

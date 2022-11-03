@@ -17,19 +17,20 @@ aliyun-oss-client = "^0.7"
 2. 打开你需要使用 oss 的文件，在里面添加如下内容，即可使用：
 
 ```rust
-// dotenv 是用于获取配置信息的，可以不使用
-extern crate dotenv;
-use dotenv::dotenv;
-use std::env;
+use std::env::set_var;
+set_var("ALIYUN_KEY_ID", "foo1");
+set_var("ALIYUN_KEY_SECRET", "foo2");
+set_var("ALIYUN_ENDPOINT", "qingdao");
+set_var("ALIYUN_BUCKET", "foo4");
+let client = aliyun_oss_client::Client::from_env();
+```
 
-// 需要提供四个配置信息
-let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-let endpoint    = aliyun_oss_client::EndPoint::default();
-let bucket      = env::var("ALIYUN_BUCKET").unwrap();
+或者
 
-// 获取客户端实例
-let client = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket);
+```rust
+use aliyun_oss_client::BucketName;
+let bucket = BucketName::new("bbb").unwrap();
+let client = aliyun_oss_client::Client::new("key1".into(),"secret1".into(),"qingdao".try_into().unwrap(), bucket);
 ```
 
 ## 异步
@@ -38,61 +39,105 @@ let client = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket);
 ```rust
 
 # #[tokio::main]
-# async main(){
+# async fn main(){
     # use std::env::set_var;
     # set_var("ALIYUN_KEY_ID", "foo1");
     # set_var("ALIYUN_KEY_SECRET", "foo2");
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
-    # let client = aliyun_oss_client::client::Client::from_env();
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
     client.get_bucket_list().await;
 # }
 ```
 
 ### 获取 bucket 信息
 ```rust
-let response = client.get_bucket_info().await.unwrap();
-println!("bucket info: {:?}", response);
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    let response = client.get_bucket_info().await;
+    println!("bucket info: {:?}", response);
+# }
 ```
 
 ### 查询当前 bucket 中的 object 列表
 ```rust
-let query: HashMap<String,String> = HashMap::new();
-let response = client.get_object_list(query).await.unwrap();
-println!("objects list: {:?}", response);
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    use aliyun_oss_client::Query;
+    let query = Query::new();
+    let response = client.get_object_list(query).await;
+    println!("objects list: {:?}", response);
+# }
 ```
 
 ### 也可以使用 bucket struct 查询 object 列表
 
-```rust
-let mut query:HashMap<String,String> = HashMap::new();
-query.insert("max-keys".to_string(), "5".to_string());
-query.insert("prefix".to_string(), "babel".to_string());
+```ignore
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    use aliyun_oss_client::Query;
+    let mut query = Query::new();
+    query.insert("max-keys", "5");
+    query.insert("prefix", "babel");
 
-let result = client.get_bucket_info().await.unwrap().get_object_list(query).await.unwrap();
+    let result = client.get_bucket_info().await.unwrap().get_object_list(query).await;
 
-println!("object list : {:?}", result);
-
+    println!("object list : {:?}", result);
+# }
 ```
 
 ### 上传文件
 ```rust
-client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").await;
 
-// or 上传文件内容
-let mut file_content = Vec::new();
-std::fs::File::open(file_name)
-  .expect("open file failed").read_to_end(&mut file_content)
-  .expect("read_to_end failed");
-client.put_content(file_content, "examples/bg2015071010.png").await.expect("上传失败");
+    // or 上传文件内容
+    let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
+    client.put_content(file_content, "examples/bg2015071010.png").await;
 
-// or 自定义上传文件 Content-Type
-client.put_content_base(file_content, "image/png", "examples/bg2015071010.png")
+    // or 自定义上传文件 Content-Type
+    let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
+    client.put_content_base(file_content, "image/png", "examples/bg2015071010.png").await;
+# }
 ```
 
 ### 删除文件
 ```rust
-client.delete_object("examples/bg2015071010.png").await.unwrap();
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+    client.delete_object("examples/bg2015071010.png").await;
+# }
 ```
 
 ## 同步（阻塞模式）
@@ -100,7 +145,7 @@ client.delete_object("examples/bg2015071010.png").await.unwrap();
 > 如需使用，需要启用 `blocking` 特征
 
 ### 获取 client
-```rust
+```ignore
 // dotenv 是用于获取配置信息的，可以不使用
 extern crate dotenv;
 use dotenv::dotenv;
@@ -113,105 +158,97 @@ let endpoint    = aliyun_oss_client::EndPoint::default();
 let bucket      = env::var("ALIYUN_BUCKET").unwrap();
 
 // 获取客户端实例
-let client = aliyun_oss_client::blocking::client(key_id,key_secret, endpoint, bucket);
+let client = aliyun_oss_client::ClientRc::new(key_id,key_secret, endpoint, bucket);
 ```
 
 ### 查询所有的 bucket 信息
-```rust
-let response = client.get_bucket_list().unwrap();
+```ignore
+# use std::env::set_var;
+# set_var("ALIYUN_KEY_ID", "foo1");
+# set_var("ALIYUN_KEY_SECRET", "foo2");
+# set_var("ALIYUN_ENDPOINT", "qingdao");
+# set_var("ALIYUN_BUCKET", "foo4");
+# let client = aliyun_oss_client::ClientRc::from_env().unwrap();
+let response = client.get_bucket_list();
 println!("buckets list: {:?}", response);
 ```
 
 ### 获取 bucket 信息
-```rust
-let response = client.get_bucket_info().unwrap();
+```ignore
+# use std::env::set_var;
+# set_var("ALIYUN_KEY_ID", "foo1");
+# set_var("ALIYUN_KEY_SECRET", "foo2");
+# set_var("ALIYUN_ENDPOINT", "qingdao");
+# set_var("ALIYUN_BUCKET", "foo4");
+# let client = aliyun_oss_client::ClientRc::from_env().unwrap();
+let response = client.get_bucket_info();
 println!("bucket info: {:?}", response);
 ```
 
 ### 查询当前 bucket 中的 object 列表
-```rust
-let query: HashMap<String,String> = HashMap::new();
-let response = client.get_object_list(query).unwrap();
+```ignore
+# use std::env::set_var;
+# set_var("ALIYUN_KEY_ID", "foo1");
+# set_var("ALIYUN_KEY_SECRET", "foo2");
+# set_var("ALIYUN_ENDPOINT", "qingdao");
+# set_var("ALIYUN_BUCKET", "foo4");
+# let client = aliyun_oss_client::ClientRc::from_env().unwrap();
+use aliyun_oss_client::Query;
+let query = Query::new();
+let response = client.get_object_list(query);
 println!("objects list: {:?}", response);
 ```
 
 ### 也可以使用 bucket struct 查询 object 列表
 
-```rust
-let mut query:HashMap<String,String> = HashMap::new();
-query.insert("max-keys".to_string(), "5".to_string());
-query.insert("prefix".to_string(), "babel".to_string());
+```ignore
+# use std::env::set_var;
+# set_var("ALIYUN_KEY_ID", "foo1");
+# set_var("ALIYUN_KEY_SECRET", "foo2");
+# set_var("ALIYUN_ENDPOINT", "qingdao");
+# set_var("ALIYUN_BUCKET", "foo4");
+# let client = aliyun_oss_client::ClientRc::from_env().unwrap();
+use aliyun_oss_client::Query;
+let mut query = Query::new();
+query.insert("max-keys", "5");
+query.insert("prefix", "babel");
 
 let result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
 
 println!("object list : {:?}", result);
 
 // 翻页功能 获取下一页数据
-println!("next object list: {:?}", result.next().unwrap());
+println!("next object list: {:?}", result.next());
 ```
 
 ### 上传文件
-```rust
-client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
+```ignore
+# use std::env::set_var;
+# set_var("ALIYUN_KEY_ID", "foo1");
+# set_var("ALIYUN_KEY_SECRET", "foo2");
+# set_var("ALIYUN_ENDPOINT", "qingdao");
+# set_var("ALIYUN_BUCKET", "foo4");
+# let client = aliyun_oss_client::ClientRc::from_env().unwrap();
+client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
 // or 上传文件内容
-let mut file_content = Vec::new();
-std::fs::File::open(file_name)
-  .expect("open file failed").read_to_end(&mut file_content)
-  .expect("read_to_end failed");
-client.put_content(&file_content, "examples/bg2015071010.png").expect("上传失败");
+let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
+client.put_content(&file_content, "examples/bg2015071010.png");
 
 // or 自定义上传文件 Content-Type
+let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
 client.put_content_base(file_content, "image/png", "examples/bg2015071010.png");
 ```
 
 ### 删除文件
-```rust
-client.delete_object("examples/bg2015071010.png").unwrap();
-```
-
-## Plugin *已弃用*
-
-> Rust 的类型系统足够好，不需要此插件进行扩展了
-
-插件机制，可以在保持项目本身不变动的情况下，提供更多功能
-
-- 对签名中需要的 `canonicalized_resource` 计算规则进行扩展
-- 对上传文件的类型进行扩展
-
-### 扩展文件类型
-
-举个例子 Tauri 打包的升级包的签名文件，不在常用的文件类型中，可以使用如下的扩展，进行使用
-
-```rust
-use aliyun_oss_client::plugin::Plugin;
-
-// 创建一个扩展 struct
-struct SigFile;
-
-// 实现 Plugin trait 中的方法，
-impl Plugin for SigFile {
-    fn name(&self) -> &'static str {
-      "sig_file_ext"
-    }
-
-    // 这是扩展的初始化方法，在插件挂载时会运行
-    // 具体实现，请参考 https://docs.rs/infer/0.9.0 文档
-    fn initialize(&mut self, client: &mut Client) -> OssResult<()> {
-        let mime_type = "application/pgp-signature";
-        let extension = "sig";
-        fn m(buf: &[u8]) -> bool {
-            return buf.len() >= 3 && buf[0] == 0x64 && buf[1] == 0x57 && buf[2] == 0x35;
-        }
-        client.infer.add(mime_type, extension, m);
-    
-        Ok(())
-    }
-}
-
-// 在 lib 初始化时挂载该插件，
-let client_has_plugin = aliyun_oss_client::client("abc", "abc", "abc", "abc")
-          .plugin(Box::new(SigFile{})).unwrap();
+```ignore
+# use std::env::set_var;
+# set_var("ALIYUN_KEY_ID", "foo1");
+# set_var("ALIYUN_KEY_SECRET", "foo2");
+# set_var("ALIYUN_ENDPOINT", "qingdao");
+# set_var("ALIYUN_BUCKET", "foo4");
+# let client = aliyun_oss_client::ClientRc::from_env().unwrap();
+client.delete_object("examples/bg2015071010.png");
 ```
 
 ## 与 [官方 client](https://crates.io/crates/oss-rust-sdk) 对比
