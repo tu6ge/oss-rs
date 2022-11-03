@@ -9,14 +9,14 @@ aliyun OSS 的一个客户端
 
 1. 在自己的项目里添加如下依赖项 (项目遵循语义化版本规则，请放心使用)
 
-```
+```toml
 [dependencies]
 aliyun-oss-client = "^0.7"
 ```
 
 2. 打开你需要使用 oss 的文件，在里面添加如下内容，即可使用：
 
-```
+```rust
 // dotenv 是用于获取配置信息的，可以不使用
 extern crate dotenv;
 use dotenv::dotenv;
@@ -35,19 +35,28 @@ let client = aliyun_oss_client::client(key_id,key_secret, endpoint, bucket);
 ## 异步
 
 ### 查询所有的 bucket 信息
-```
-let response = client.get_bucket_list().await.unwrap();
-println!("buckets list: {:?}", response);
+```rust
+
+# #[tokio::main]
+# async main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::client::Client::from_env();
+    client.get_bucket_list().await;
+# }
 ```
 
 ### 获取 bucket 信息
-```
+```rust
 let response = client.get_bucket_info().await.unwrap();
 println!("bucket info: {:?}", response);
 ```
 
 ### 查询当前 bucket 中的 object 列表
-```
+```rust
 let query: HashMap<String,String> = HashMap::new();
 let response = client.get_object_list(query).await.unwrap();
 println!("objects list: {:?}", response);
@@ -55,7 +64,7 @@ println!("objects list: {:?}", response);
 
 ### 也可以使用 bucket struct 查询 object 列表
 
-```
+```rust
 let mut query:HashMap<String,String> = HashMap::new();
 query.insert("max-keys".to_string(), "5".to_string());
 query.insert("prefix".to_string(), "babel".to_string());
@@ -67,7 +76,7 @@ println!("object list : {:?}", result);
 ```
 
 ### 上传文件
-```
+```rust
 client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
 
 // or 上传文件内容
@@ -82,7 +91,7 @@ client.put_content_base(file_content, "image/png", "examples/bg2015071010.png")
 ```
 
 ### 删除文件
-```
+```rust
 client.delete_object("examples/bg2015071010.png").await.unwrap();
 ```
 
@@ -91,7 +100,7 @@ client.delete_object("examples/bg2015071010.png").await.unwrap();
 > 如需使用，需要启用 `blocking` 特征
 
 ### 获取 client
-```
+```rust
 // dotenv 是用于获取配置信息的，可以不使用
 extern crate dotenv;
 use dotenv::dotenv;
@@ -108,19 +117,19 @@ let client = aliyun_oss_client::blocking::client(key_id,key_secret, endpoint, bu
 ```
 
 ### 查询所有的 bucket 信息
-```
+```rust
 let response = client.get_bucket_list().unwrap();
 println!("buckets list: {:?}", response);
 ```
 
 ### 获取 bucket 信息
-```
+```rust
 let response = client.get_bucket_info().unwrap();
 println!("bucket info: {:?}", response);
 ```
 
 ### 查询当前 bucket 中的 object 列表
-```
+```rust
 let query: HashMap<String,String> = HashMap::new();
 let response = client.get_object_list(query).unwrap();
 println!("objects list: {:?}", response);
@@ -128,7 +137,7 @@ println!("objects list: {:?}", response);
 
 ### 也可以使用 bucket struct 查询 object 列表
 
-```
+```rust
 let mut query:HashMap<String,String> = HashMap::new();
 query.insert("max-keys".to_string(), "5".to_string());
 query.insert("prefix".to_string(), "babel".to_string());
@@ -142,7 +151,7 @@ println!("next object list: {:?}", result.next().unwrap());
 ```
 
 ### 上传文件
-```
+```rust
 client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").expect("上传失败");
 
 // or 上传文件内容
@@ -157,7 +166,7 @@ client.put_content_base(file_content, "image/png", "examples/bg2015071010.png");
 ```
 
 ### 删除文件
-```
+```rust
 client.delete_object("examples/bg2015071010.png").unwrap();
 ```
 
@@ -174,7 +183,7 @@ client.delete_object("examples/bg2015071010.png").unwrap();
 
 举个例子 Tauri 打包的升级包的签名文件，不在常用的文件类型中，可以使用如下的扩展，进行使用
 
-```
+```rust
 use aliyun_oss_client::plugin::Plugin;
 
 // 创建一个扩展 struct

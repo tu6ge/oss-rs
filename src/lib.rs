@@ -140,6 +140,10 @@ extern crate assert_matches;
 #[cfg(test)]
 mod tests;
 
+#[doc = include_str!("../README.md")]
+#[cfg(doctest)]
+pub struct ReadmeDoctests;
+
 /** # 主要入口
 
 ## 简单使用方式为：
