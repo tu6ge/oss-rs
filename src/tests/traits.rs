@@ -177,30 +177,30 @@ mod object_list_xml {
 
     //     impl OssIntoObject<ArcPointer> for ObjectA {
     //         fn set_key(self, key: String) -> Result<Self, InvalidObjectValue> {
-                
+
     //             Ok(self)
     //         }
     //         fn set_last_modified(self, last_modified: String) -> Result<Self, InvalidObjectValue> {
-                
+
     //             Ok(self)
     //         }
     //         fn set_etag(self, etag: String) -> Result<Self, InvalidObjectValue> {
-                
+
     //             Ok(self)
     //         }
     //         fn set_type(self, _type: String) -> Result<Self, InvalidObjectValue> {
-                
+
     //             Ok(self)
     //         }
     //         fn set_size(self, size: String) -> Result<Self, InvalidObjectValue> {
     //             Ok(self)
     //         }
     //         fn set_storage_class(self, storage_class: String) -> Result<Self, InvalidObjectValue> {
-                
+
     //             Ok(self)
     //         }
     //         fn set_bucket(self, bucket: Arc<BucketBase>) -> Self {
-                
+
     //             self
     //         }
     //     }
