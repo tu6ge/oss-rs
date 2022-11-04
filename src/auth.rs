@@ -388,11 +388,11 @@ impl SignString {
     }
 
     pub fn key_string(&self) -> String {
-        self.key.clone().to_string()
+        self.key.to_string()
     }
 
     pub fn secret_string(&self) -> String {
-        self.secret.clone().to_string()
+        self.secret.to_string()
     }
 
     // 转化成签名
