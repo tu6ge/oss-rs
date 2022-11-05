@@ -99,6 +99,16 @@ impl<M: Default> Client<M> {
         })
     }
 
+    pub fn from_builder(auth_builder: AuthBuilder, endpoint: EndPoint, bucket: BucketName) -> Self {
+        Self {
+            auth_builder,
+            client_middleware: M::default(),
+            endpoint,
+            bucket,
+            infer: Infer::default(),
+        }
+    }
+
     pub fn set_bucket_name(&mut self, bucket: BucketName) {
         self.bucket = bucket
     }

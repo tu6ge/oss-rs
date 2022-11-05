@@ -176,6 +176,9 @@ pub mod traits;
 
 pub mod errors;
 
+#[cfg(feature = "sts")]
+pub mod sts;
+
 #[allow(soft_unstable)]
 #[cfg(test)]
 mod tests;

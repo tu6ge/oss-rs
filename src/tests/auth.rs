@@ -328,17 +328,6 @@ mod auth_builder {
 
         let host = host.unwrap();
         assert_eq!(host.to_str().unwrap(), "127.0.0.1");
-
-        let content_type = builder.auth.content_type;
-        assert!(content_type.is_none());
-
-        let mut builder2 = AuthBuilder::default();
-        let mut header2 = HeaderMap::new();
-        header2.insert(HOST, "127.0.0.1".try_into().unwrap());
-        header2.insert(CONTENT_TYPE, "bar".try_into().unwrap());
-        builder2 = builder2.headers(header2);
-
-        assert!(matches!(builder2.auth.content_type, Some(v) if v.as_ref()=="bar"));
     }
 
     #[test]

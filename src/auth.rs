@@ -509,14 +509,19 @@ impl AuthBuilder {
 
     pub fn with_headers(mut self, headers: Option<HeaderMap>) -> Self {
         if let Some(headers) = headers {
-            self = self.headers(headers);
+            self = self.extend_headers(headers);
         }
-        self
+        self.type_with_header()
     }
 
     pub fn headers(mut self, headers: HeaderMap) -> Self {
         self.auth.headers = headers;
-        self.type_with_header()
+        self
+    }
+
+    pub fn extend_headers(mut self, headers: HeaderMap) -> Self {
+        self.auth.headers.extend(headers);
+        self
     }
 
     /// 给 header 序列添加新值

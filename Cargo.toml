@@ -35,11 +35,17 @@ required-features = ["blocking"]
 name = "put_file"
 required-features = ["blocking"]
 
+[[sts]]
+name = "sts"
+required-features = ["sts"]
+
 [features]
 default = [
   #"blocking"
+  "sts"
 ]
 blocking = ["reqwest/blocking","futures"]
+sts = []
 
 [dependencies]
 hmac = "^0.12"
