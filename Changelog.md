@@ -29,6 +29,37 @@
 ```
 
 
+## 2022-09-07, Version 0.7.6
+### Commits
+- [[`b786fbbd5d`](https://github.com/tu6ge/oss-rs/commit/b786fbbd5ddf238fa1a9b06fc18bc8457ef59eac)] chore(deps): update deps (tu6ge)
+- [[`e840a72c79`](https://github.com/tu6ge/oss-rs/commit/e840a72c79452d4a8a2aa1e7698143e5b1b457db)] chore: update gh action (tu6ge)
+- [[`cb412d0a62`](https://github.com/tu6ge/oss-rs/commit/cb412d0a620155fb2b76c48ddf23c9e8f2a0712c)] Update Changelog.md (tu6ge)
+- [[`5877a2127e`](https://github.com/tu6ge/oss-rs/commit/5877a2127ecebe9457a1665820a9e243067e211e)] chore: update gh action (tu6ge)
+- [[`aecff55102`](https://github.com/tu6ge/oss-rs/commit/aecff551021be5b3a032b00bbfc4e881d4ca4bc4)] chore: update gh action (tu6ge)
+- [[`4884ea7e4d`](https://github.com/tu6ge/oss-rs/commit/4884ea7e4d13198cd193133b4d30a3ae75fe0249)] chore: update gh action (tu6ge)
+- [[`edd3dae272`](https://github.com/tu6ge/oss-rs/commit/edd3dae2722a8f7b20cc21b22d51b74a7536a279)] chore: update gh action (tu6ge)
+- [[`ee53d84a21`](https://github.com/tu6ge/oss-rs/commit/ee53d84a21b61e8cfe91e72ddf31753304e245a6)] chore(deps): update deps (tu6ge)
+- [[`d0938b979c`](https://github.com/tu6ge/oss-rs/commit/d0938b979c7d5174d0c5b26613ab47c041ad1b8c)] feat(error): OssError 添加 message 方法 (tu6ge)
+- [[`7fe2808b4e`](https://github.com/tu6ge/oss-rs/commit/7fe2808b4e65900e17d54a0aa49853d8d1f6c21e)] refactor (tu6ge)
+- [[`28f32e5422`](https://github.com/tu6ge/oss-rs/commit/28f32e542219588c17d9cff5feea7b3410f701a2)] refactor (tu6ge)
+- [[`8151576a80`](https://github.com/tu6ge/oss-rs/commit/8151576a80b78638dba671024e805e100e81567f)] feat(auth): add auth builder (tu6ge)
+- [[`009b7b276b`](https://github.com/tu6ge/oss-rs/commit/009b7b276bf22aa3e63dce3c4c49ca1914022e0c)] fix(error): 解析oss错误信息修改 (tu6ge)
+- [[`9f4c17d5e0`](https://github.com/tu6ge/oss-rs/commit/9f4c17d5e0026849d93f63d82a439ba3fc378204)] chore(changelog) (tu6ge)
+
+### Stats
+```diff
+ .github/workflows/publish.yml |  31 ++++---
+ Cargo.toml                    |  10 +-
+ Changelog.md                  |  46 ++++++++++-
+ src/auth.rs                   | 158 ++++++++++++++++++++++++++++--------
+ src/bucket.rs                 |   6 +-
+ src/client.rs                 |  78 ++++++------------
+ src/errors.rs                 |  34 ++------
+ src/traits.rs                 | 189 ++++++++++++++++++++++---------------------
+ 8 files changed, 336 insertions(+), 216 deletions(-)
+```
+
+
 ## 2022-09-04, Version 0.7.5
 ### Commits
 - [[`70b2f8cc26`](https://github.com/tu6ge/oss/commit/70b2f8cc269068ae491a0d02fe80da5543ca1b6c)] chore(version) (tu6ge)
