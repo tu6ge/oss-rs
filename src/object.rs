@@ -16,7 +16,7 @@ use crate::client::ClientRc;
 use crate::config::{BucketBase, ObjectBase};
 use crate::errors::{OssError, OssResult};
 use crate::traits::{InvalidObjectListValue, InvalidObjectValue, OssIntoObject, OssIntoObjectList};
-use crate::types::{CanonicalizedResource, Query, UrlQuery};
+use crate::types::{CanonicalizedResource, ContentRange, Query, UrlQuery};
 #[cfg(feature = "blocking")]
 use reqwest::blocking::Response as BResponse;
 use reqwest::header::{HeaderMap, HeaderValue};
@@ -367,6 +367,35 @@ impl Client {
 
         let content = response.send().await?;
         Ok(content)
+    }
+
+    /// # 获取文件内容
+    pub async fn get_object<R: Into<ContentRange>>(
+        &self,
+        key: &str,
+        range: R,
+    ) -> OssResult<Vec<u8>> {
+        let mut url = self.get_bucket_url();
+        url.set_path(key);
+
+        let object_base =
+            ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
+
+        let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+
+        let headers = {
+            let mut headers = HeaderMap::new();
+            headers.insert("Range", range.into().into());
+            headers
+        };
+
+        let builder = self.builder_with_header("GET", url, canonicalized, Some(headers))?;
+
+        let response = builder.send().await?;
+
+        let content = response.text().await?;
+
+        Ok(content.into_bytes())
     }
 
     pub async fn delete_object(&self, key: &str) -> OssResult<()> {

@@ -277,6 +277,209 @@ async fn test_put_content_base() {
     assert!(res.is_ok());
 }
 
+mod get_object {
+    use std::sync::Arc;
+
+    use http::HeaderValue;
+    use reqwest::{Request, Response, Url};
+
+    use crate::builder::ClientWithMiddleware;
+    use crate::{builder::Middleware, client::Client, errors::OssResult};
+    use async_trait::async_trait;
+
+    #[tokio::test]
+    async fn test_all_range() {
+        struct MyMiddleware {}
+
+        #[async_trait]
+        impl Middleware for MyMiddleware {
+            async fn handle(&self, request: Request) -> OssResult<Response> {
+                //println!("request {:?}", request);
+                assert_eq!(request.method(), "GET");
+                assert_eq!(
+                    *request.url(),
+                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                );
+                assert_eq!(
+                    request.headers().get("canonicalizedresource"),
+                    Some(&HeaderValue::from_str("/foo4/foo.png").unwrap())
+                );
+                assert_eq!(
+                    request.headers().get("Range"),
+                    Some(&HeaderValue::from_str("bytes=0-").unwrap())
+                );
+                use http::response::Builder;
+                let response = Builder::new()
+                    .status(200)
+                    //.url(url.clone())
+                    .body(r#"content bar"#)
+                    .unwrap();
+                let response = Response::from(response);
+                Ok(response)
+            }
+        }
+
+        let client = Client::<ClientWithMiddleware>::new(
+            "foo1".into(),
+            "foo2".into(),
+            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+            "foo4".try_into().unwrap(),
+        )
+        .middleware(Arc::new(MyMiddleware {}));
+
+        let res = client.get_object("foo.png", ..).await;
+
+        //println!("{:?}", res);
+        assert!(res.is_ok());
+        let res = res.unwrap();
+        assert_eq!(res, String::from("content bar").into_bytes())
+    }
+
+    #[tokio::test]
+    async fn test_start_range() {
+        struct MyMiddleware {}
+
+        #[async_trait]
+        impl Middleware for MyMiddleware {
+            async fn handle(&self, request: Request) -> OssResult<Response> {
+                //println!("request {:?}", request);
+                assert_eq!(request.method(), "GET");
+                assert_eq!(
+                    *request.url(),
+                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                );
+                assert_eq!(
+                    request.headers().get("canonicalizedresource"),
+                    Some(&HeaderValue::from_str("/foo4/foo.png").unwrap())
+                );
+                assert_eq!(
+                    request.headers().get("Range"),
+                    Some(&HeaderValue::from_str("bytes=1-").unwrap())
+                );
+                use http::response::Builder;
+                let response = Builder::new()
+                    .status(206)
+                    //.url(url.clone())
+                    .body(r#"content bar"#)
+                    .unwrap();
+                let response = Response::from(response);
+                Ok(response)
+            }
+        }
+
+        let client = Client::<ClientWithMiddleware>::new(
+            "foo1".into(),
+            "foo2".into(),
+            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+            "foo4".try_into().unwrap(),
+        )
+        .middleware(Arc::new(MyMiddleware {}));
+
+        let res = client.get_object("foo.png", 1..).await;
+
+        //println!("{:?}", res);
+        assert!(res.is_ok());
+        let res = res.unwrap();
+        assert_eq!(res, String::from("content bar").into_bytes())
+    }
+
+    #[tokio::test]
+    async fn test_end_range() {
+        struct MyMiddleware {}
+
+        #[async_trait]
+        impl Middleware for MyMiddleware {
+            async fn handle(&self, request: Request) -> OssResult<Response> {
+                //println!("request {:?}", request);
+                assert_eq!(request.method(), "GET");
+                assert_eq!(
+                    *request.url(),
+                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                );
+                assert_eq!(
+                    request.headers().get("canonicalizedresource"),
+                    Some(&HeaderValue::from_str("/foo4/foo.png").unwrap())
+                );
+                assert_eq!(
+                    request.headers().get("Range"),
+                    Some(&HeaderValue::from_str("bytes=0-10").unwrap())
+                );
+                use http::response::Builder;
+                let response = Builder::new()
+                    .status(206)
+                    //.url(url.clone())
+                    .body(r#"content bar"#)
+                    .unwrap();
+                let response = Response::from(response);
+                Ok(response)
+            }
+        }
+
+        let client = Client::<ClientWithMiddleware>::new(
+            "foo1".into(),
+            "foo2".into(),
+            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+            "foo4".try_into().unwrap(),
+        )
+        .middleware(Arc::new(MyMiddleware {}));
+
+        let res = client.get_object("foo.png", ..10).await;
+
+        //println!("{:?}", res);
+        assert!(res.is_ok());
+        let res = res.unwrap();
+        assert_eq!(res, String::from("content bar").into_bytes())
+    }
+
+    #[tokio::test]
+    async fn test_start_end_range() {
+        struct MyMiddleware {}
+
+        #[async_trait]
+        impl Middleware for MyMiddleware {
+            async fn handle(&self, request: Request) -> OssResult<Response> {
+                //println!("request {:?}", request);
+                assert_eq!(request.method(), "GET");
+                assert_eq!(
+                    *request.url(),
+                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                );
+                assert_eq!(
+                    request.headers().get("canonicalizedresource"),
+                    Some(&HeaderValue::from_str("/foo4/foo.png").unwrap())
+                );
+                assert_eq!(
+                    request.headers().get("Range"),
+                    Some(&HeaderValue::from_str("bytes=2-10").unwrap())
+                );
+                use http::response::Builder;
+                let response = Builder::new()
+                    .status(206)
+                    //.url(url.clone())
+                    .body(r#"content bar"#)
+                    .unwrap();
+                let response = Response::from(response);
+                Ok(response)
+            }
+        }
+
+        let client = Client::<ClientWithMiddleware>::new(
+            "foo1".into(),
+            "foo2".into(),
+            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+            "foo4".try_into().unwrap(),
+        )
+        .middleware(Arc::new(MyMiddleware {}));
+
+        let res = client.get_object("foo.png", 2..10).await;
+
+        //println!("{:?}", res);
+        assert!(res.is_ok());
+        let res = res.unwrap();
+        assert_eq!(res, String::from("content bar").into_bytes())
+    }
+}
+
 #[cfg(feature = "blocking")]
 #[test]
 fn test_blocking_put_content_base() {

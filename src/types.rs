@@ -837,3 +837,61 @@ impl QueryValue {
         Self(Cow::Borrowed(val))
     }
 }
+
+use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
+
+pub struct ContentRange {
+    start: Option<i32>,
+    end: Option<i32>,
+}
+
+impl From<Range<i32>> for ContentRange {
+    fn from(r: Range<i32>) -> Self {
+        Self {
+            start: Some(r.start),
+            end: Some(r.end),
+        }
+    }
+}
+
+impl From<RangeFull> for ContentRange {
+    fn from(_f: RangeFull) -> Self {
+        Self {
+            start: None,
+            end: None,
+        }
+    }
+}
+
+impl From<RangeFrom<i32>> for ContentRange {
+    fn from(f: RangeFrom<i32>) -> Self {
+        Self {
+            start: Some(f.start),
+            end: None,
+        }
+    }
+}
+
+impl From<RangeTo<i32>> for ContentRange {
+    fn from(t: RangeTo<i32>) -> Self {
+        Self {
+            start: None,
+            end: Some(t.end),
+        }
+    }
+}
+
+impl Into<HeaderValue> for ContentRange {
+    fn into(self) -> HeaderValue {
+        match self.start {
+            Some(start) => match self.end {
+                Some(end) => HeaderValue::from_str(&format!("bytes={}-{}", start, end)).unwrap(),
+                None => HeaderValue::from_str(&format!("bytes={}-", start)).unwrap(),
+            },
+            None => match self.end {
+                Some(end) => HeaderValue::from_str(&format!("bytes=0-{}", end)).unwrap(),
+                None => HeaderValue::from_str(&format!("bytes=0-")).unwrap(),
+            },
+        }
+    }
+}

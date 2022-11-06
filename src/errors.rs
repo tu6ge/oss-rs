@@ -113,6 +113,7 @@ impl fmt::Display for OssService {
 impl OssService {
     /// 解析 oss 的错误信息
     pub fn new(source: String) -> Self {
+        println!("{}", source);
         let code0 = source.find("<Code>").unwrap();
         let code1 = source.find("</Code>").unwrap();
         let message0 = source.find("<Message>").unwrap();

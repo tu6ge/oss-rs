@@ -102,7 +102,7 @@ impl BlockingReqeustHandler for Response {
 
         let status = self.status();
 
-        if status != 200 && status != 204 {
+        if status != 200 && status != 204 && status != 206 {
             return Err(OssService::new(self.text()?).into());
         }
 
