@@ -196,15 +196,10 @@ impl AuthToOssHeader for Auth {
 
         let header_vec: Vec<String> = header
             .into_iter()
-            .map(|(k, v)| -> OssResult<String> {
-                let val = v.to_str().map_err(OssError::from);
-
-                let value = k.as_str().to_owned() + ":" + val?;
-                Ok(value)
+            .filter_map(|(k, v)| match v.to_str() {
+                Ok(val) => Some(k.as_str().to_owned() + ":" + val),
+                _ => None,
             })
-            .filter(|res| res.is_ok())
-            // 这里的 unwrap 不会 panic
-            .map(|res| res.unwrap())
             .collect();
 
         Ok(OssHeader(Some(header_vec.join("\n"))))
