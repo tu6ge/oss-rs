@@ -7,7 +7,7 @@
 
 ```ignore
 [dependencies]
-aliyun-oss-client = "0.2.0"
+aliyun-oss-client = "^0.8"
 ```
 
 2. 初始化配置信息

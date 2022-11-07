@@ -11,7 +11,7 @@ aliyun OSS 的一个客户端
 
 ```toml
 [dependencies]
-aliyun-oss-client = "^0.7"
+aliyun-oss-client = "^0.8"
 ```
 
 2. 打开你需要使用 oss 的文件，在里面添加如下内容，即可使用：
