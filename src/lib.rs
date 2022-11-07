@@ -12,6 +12,8 @@ aliyun-oss-client = "0.2.0"
 
 2. 初始化配置信息
 
+- 方式一
+
 ```rust
 use std::env::set_var;
 set_var("ALIYUN_KEY_ID", "foo1");
@@ -21,14 +23,36 @@ set_var("ALIYUN_BUCKET", "foo4");
 let client = aliyun_oss_client::Client::from_env();
 ```
 
-或者
+- 方式二
+
+在项目根目录下创建 `.env` 文件（需将其加入 .gitignore ），内容：
+
+```bash
+ALIYUN_KEY_ID=xxxxxxx
+ALIYUN_KEY_SECRET=yyyyyyyyyyyyyy
+ALIYUN_ENDPOINT=https://oss-cn-shanghai.aliyuncs.com
+ALIYUN_BUCKET=zzzzzzzzzz
+```
+
+在需要使用 OSS 的地方，这样设置：
+```rust
+use dotenv::dotenv;
+dotenv().ok();
+let client = aliyun_oss_client::Client::from_env();
+```
+
+- 方式三
 
 ```rust
 use aliyun_oss_client::BucketName;
 let bucket = BucketName::new("bbb").unwrap();
-let client = aliyun_oss_client::Client::new("key1".into(),"secret1".into(),"qingdao".try_into().unwrap(), bucket);
+let client = aliyun_oss_client::Client::new(
+    "key1".into(),
+    "secret1".into(),
+    "qingdao".try_into().unwrap(),
+    bucket
+);
 ```
-
 
 ### 查询所有的 bucket 信息
 
@@ -120,6 +144,27 @@ let client = aliyun_oss_client::Client::new("key1".into(),"secret1".into(),"qing
 # }
 ```
 
+### 下载文件
+```rust
+# #[tokio::main]
+# async fn main(){
+    # use std::env::set_var;
+    # set_var("ALIYUN_KEY_ID", "foo1");
+    # set_var("ALIYUN_KEY_SECRET", "foo2");
+    # set_var("ALIYUN_ENDPOINT", "qingdao");
+    # set_var("ALIYUN_BUCKET", "foo4");
+    # let client = aliyun_oss_client::Client::from_env().unwrap();
+
+    // 获取完整文件
+    let content = client.get_object("bar.json", ..).await;
+
+    // 获取文件一部分
+    let content = client.get_object("bar.json", ..100).await;
+    let content = client.get_object("bar.json", 100..).await;
+    let content = client.get_object("bar.json", 100..200).await;
+# }
+```
+
 ### 删除文件
 ```rust
 # #[tokio::main]
@@ -133,14 +178,15 @@ let client = aliyun_oss_client::Client::new("key1".into(),"secret1".into(),"qing
     client.delete_object("examples/bg2015071010.png").await;
 # }
 ```
- *
- */
+*/
 
 // #![feature(test)]
 
 // extern crate test;
 
+/// 库内置类型的定义模块
 pub mod types;
+
 use builder::ClientWithMiddleware;
 use config::Config;
 pub use types::{BucketName, EndPoint, KeyId, KeySecret, Query};
@@ -166,16 +212,20 @@ pub use client::ClientArc as Client;
 #[cfg(feature = "blocking")]
 pub use client::ClientRc;
 
+/// 阻塞模式（无需 async await）
 #[cfg(feature = "blocking")]
 pub mod blocking;
 
+/// 封装了 reqwest::RequestBuilder 模块
 pub mod builder;
 
 /// 定义 trait 们
 pub mod traits;
 
+/// 异常处理模块
 pub mod errors;
 
+/// 临时访问权限管理服务
 #[cfg(feature = "sts")]
 pub mod sts;
 

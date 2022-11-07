@@ -1,3 +1,27 @@
+//! # STS
+//! 阿里云STS（Security Token Service）是阿里云提供的一种临时访问权限管理服务。RAM提供RAM用户和RAM角色两种身份。
+//! 其中，RAM角色不具备永久身份凭证，而只能通过STS获取可以自定义时效和访问权限的临时身份凭证，即安全令牌（STS Token）。
+//! @link [文档](https://help.aliyun.com/document_detail/28756.html)
+//!
+//! ## 用法
+//!
+//! ```
+//! # async fn run() {
+//! use aliyun_oss_client::{sts::STS, BucketName, Client, EndPoint};
+//! let client = Client::new_with_sts(
+//!     "STS.xxxxxxxx".into(),                             // KeyId
+//!     "EVd6dXew6xxxxxxxxxxxxxxxxxxxxxxxxxxx".into(),     // KeySecret
+//!     EndPoint::CnShanghai,
+//!     BucketName::new("yyyyyy").unwrap(),
+//!     "CAIS4gF1q6Ft5Bxxxxxxxxxxx".to_string(),           // STS Token
+//! );
+//!
+//! let builder = client.get_bucket_list().await;
+//! println!("{:?}", builder);
+//! # }
+//! ```
+//!
+
 use crate::{auth::AuthBuilder, client::Client, BucketName, EndPoint, KeyId, KeySecret};
 
 pub trait STS {

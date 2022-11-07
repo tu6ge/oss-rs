@@ -6,7 +6,7 @@ async fn main() {
         "STS.xxxxxxxx".into(),
         "EVd6dXew6xxxxxxxxxxxxxxxxxxxxxxxxxxx".into(),
         EndPoint::CnShanghai,
-        BucketName::new("honglei123").unwrap(),
+        BucketName::new("yyyyyy").unwrap(),
         "CAIS4gF1q6Ft5Bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".to_string(),
     );
 

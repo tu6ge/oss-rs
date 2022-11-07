@@ -41,7 +41,7 @@ required-features = ["sts"]
 
 [features]
 default = [
-  #"blocking"
+  #"blocking",
   "sts"
 ]
 blocking = ["reqwest/blocking","futures"]
