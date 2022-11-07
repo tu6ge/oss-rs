@@ -841,12 +841,12 @@ impl QueryValue {
 use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
 
 pub struct ContentRange {
-    start: Option<i32>,
-    end: Option<i32>,
+    start: Option<u32>,
+    end: Option<u32>,
 }
 
-impl From<Range<i32>> for ContentRange {
-    fn from(r: Range<i32>) -> Self {
+impl From<Range<u32>> for ContentRange {
+    fn from(r: Range<u32>) -> Self {
         Self {
             start: Some(r.start),
             end: Some(r.end),
@@ -863,8 +863,8 @@ impl From<RangeFull> for ContentRange {
     }
 }
 
-impl From<RangeFrom<i32>> for ContentRange {
-    fn from(f: RangeFrom<i32>) -> Self {
+impl From<RangeFrom<u32>> for ContentRange {
+    fn from(f: RangeFrom<u32>) -> Self {
         Self {
             start: Some(f.start),
             end: None,
@@ -872,8 +872,8 @@ impl From<RangeFrom<i32>> for ContentRange {
     }
 }
 
-impl From<RangeTo<i32>> for ContentRange {
-    fn from(t: RangeTo<i32>) -> Self {
+impl From<RangeTo<u32>> for ContentRange {
+    fn from(t: RangeTo<u32>) -> Self {
         Self {
             start: None,
             end: Some(t.end),
@@ -882,6 +882,21 @@ impl From<RangeTo<i32>> for ContentRange {
 }
 
 impl Into<HeaderValue> for ContentRange {
+    /// # 转化成 OSS 需要的格式
+    /// @link [OSS 文档](https://help.aliyun.com/document_detail/31980.html)
+    /// 
+    /// ```
+    /// use reqwest::header::HeaderValue;
+    /// # use aliyun_oss_client::types::ContentRange;
+    /// fn abc<R: Into<ContentRange>>(range: R) -> HeaderValue {
+    ///     range.into().into()
+    /// }
+    /// 
+    /// assert_eq!(abc(..), HeaderValue::from_str("bytes=0-").unwrap());
+    /// assert_eq!(abc(1..), HeaderValue::from_str("bytes=1-").unwrap());
+    /// assert_eq!(abc(10..20), HeaderValue::from_str("bytes=10-20").unwrap());
+    /// assert_eq!(abc(..20), HeaderValue::from_str("bytes=0-20").unwrap());
+    /// ```
     fn into(self) -> HeaderValue {
         match self.start {
             Some(start) => match self.end {
