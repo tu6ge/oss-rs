@@ -1,20 +1,20 @@
-use reqwest::header::HeaderMap;
-
 use crate::auth::{AuthBuilder, AuthGetHeader, VERB};
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
-use crate::builder::{ClientWithMiddleware, Middleware, RequestBuilder};
+#[cfg(test)]
+use crate::builder::Middleware;
+use crate::builder::{ClientWithMiddleware, RequestBuilder};
 use crate::config::{BucketBase, Config, InvalidConfig};
 use crate::errors::OssResult;
-use chrono::prelude::*;
-use reqwest::Url;
-#[cfg(feature = "blocking")]
-use std::rc::Rc;
-
-use std::env;
-use std::sync::Arc;
-
 use crate::types::{BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret};
+use chrono::prelude::*;
+use reqwest::header::HeaderMap;
+use reqwest::Url;
+use std::env;
+#[cfg(all(feature = "blocking", test))]
+use std::rc::Rc;
+#[cfg(test)]
+use std::sync::Arc;
 
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
@@ -137,7 +137,8 @@ pub type ClientArc = Client<ClientWithMiddleware>;
 impl Client {
     /// # 用于模拟请求 OSS 接口
     /// 默认直接请求 OSS 接口，如果设置中间件，则可以中断请求，对 Request 做一些断言，对 Response 做一些模拟操作
-    pub fn middleware(mut self, middleware: Arc<dyn Middleware>) -> Self {
+    #[cfg(test)]
+    pub(crate) fn middleware(mut self, middleware: Arc<dyn Middleware>) -> Self {
         self.client_middleware.middleware(middleware);
         self
     }
@@ -176,10 +177,10 @@ impl Client {
     }
 }
 
+#[cfg(all(feature = "blocking", test))]
+use crate::blocking::builder::Middleware as BlockingMiddleware;
 #[cfg(feature = "blocking")]
-use crate::blocking::builder::{
-    Middleware as BlockingMiddleware, RequestBuilder as BlockingRequestBuilder,
-};
+use crate::blocking::builder::RequestBuilder as BlockingRequestBuilder;
 
 #[cfg(feature = "blocking")]
 pub type ClientRc = Client<BlockingClientWithMiddleware>;
@@ -188,7 +189,8 @@ pub type ClientRc = Client<BlockingClientWithMiddleware>;
 impl Client<BlockingClientWithMiddleware> {
     /// # 用于模拟请求 OSS 接口
     /// 默认直接请求 OSS 接口，如果设置中间件，则可以中断请求，对 Request 做一些断言，对 Response 做一些模拟操作
-    pub fn middleware(mut self, middleware: Rc<dyn BlockingMiddleware>) -> Self {
+    #[cfg(test)]
+    pub(crate) fn middleware(mut self, middleware: Rc<dyn BlockingMiddleware>) -> Self {
         self.client_middleware.middleware(middleware);
         self
     }
