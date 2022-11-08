@@ -114,15 +114,23 @@ let client = aliyun_oss_client::Client::new("key1".into(),"secret1".into(),"qing
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").await;
+    client
+        .put_file("examples/bg2015071010.png", "examples/bg2015071010.png")
+        .await;
 
     // or 上传文件内容
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
-    client.put_content(file_content, "examples/bg2015071010.png").await;
+    client
+        .put_content(file_content, "examples/bg2015071010.png", |_| {
+            Some("image/png")
+        })
+        .await;
 
     // or 自定义上传文件 Content-Type
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
-    client.put_content_base(file_content, "image/png", "examples/bg2015071010.png").await;
+    client
+        .put_content_base(file_content, "image/png", "examples/bg2015071010.png")
+        .await;
 # }
 ```
 
@@ -229,15 +237,20 @@ println!("next object list: {:?}", result.next());
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
-client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
+client
+    .put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
 // or 上传文件内容
 let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
-client.put_content(file_content, "examples/bg2015071010.png");
+client
+    .put_content(file_content, "examples/bg2015071010.png", |_| {
+        Some("image/png")
+    });
 
 // or 自定义上传文件 Content-Type
 let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
-client.put_content_base(file_content, "image/png", "examples/bg2015071010.png");
+client
+    .put_content_base(file_content, "image/png", "examples/bg2015071010.png");
 ```
 
 ### 删除文件

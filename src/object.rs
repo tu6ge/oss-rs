@@ -1,10 +1,4 @@
 use chrono::prelude::*;
-use reqwest::Response;
-
-use std::fmt;
-use std::io::Read;
-use std::path::PathBuf;
-use std::sync::Arc;
 
 use crate::auth::VERB;
 #[cfg(feature = "blocking")]
@@ -17,11 +11,17 @@ use crate::config::{BucketBase, ObjectBase};
 use crate::errors::{OssError, OssResult};
 use crate::traits::{InvalidObjectListValue, InvalidObjectValue, OssIntoObject, OssIntoObjectList};
 use crate::types::{CanonicalizedResource, ContentRange, Query, UrlQuery};
+#[cfg(feature = "put_file")]
+use infer::Infer;
 #[cfg(feature = "blocking")]
 use reqwest::blocking::Response as BResponse;
 use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::Response;
+use std::fmt;
+use std::path::PathBuf;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
+use std::sync::Arc;
 
 #[derive(Clone, Default)]
 #[non_exhaustive]
@@ -301,26 +301,69 @@ impl Client {
             .set_search_query(query))
     }
 
+    /// # 上传文件
+    ///
+    /// 需指定文件的路径
+    #[cfg(feature = "put_file")]
     pub async fn put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(
         &self,
         file_name: P,
         key: &'static str,
     ) -> OssResult<String> {
-        let mut file_content = Vec::new();
-        std::fs::File::open(file_name)?.read_to_end(&mut file_content)?;
+        let file_content = std::fs::read(file_name)?;
 
-        self.put_content(file_content, key).await
-    }
-
-    pub async fn put_content(&self, content: Vec<u8>, key: &str) -> OssResult<String> {
-        let kind = self.infer.get(&content);
-
-        let con = match kind {
-            Some(con) => Ok(con),
-            None => Err(OssError::Input("file type is known".to_string())),
+        let get_content_type = |content: &Vec<u8>| match Infer::new().get(content) {
+            Some(con) => Some(con.mime_type()),
+            None => None,
         };
 
-        let content_type = con?.mime_type();
+        self.put_content(file_content, key, get_content_type).await
+    }
+
+    /// # 上传文件内容
+    ///
+    /// 需指定要上传的文件内容
+    /// 以及获取文件类型的闭包
+    ///
+    /// # Examples
+    ///
+    /// 上传 tauri 升级用的签名文件
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main(){
+    /// use infer::Infer;
+    /// # use dotenv::dotenv;
+    /// # dotenv().ok();
+    /// # let client = aliyun_oss_client::Client::from_env().unwrap();
+    ///
+    /// fn sig_match(buf: &[u8]) -> bool {
+    ///     return buf.len() >= 3 && buf[0] == 0x64 && buf[1] == 0x57 && buf[2] == 0x35;
+    /// }
+    /// let mut infer = Infer::new();
+    /// infer.add("application/pgp-signature", "sig", sig_match);
+    ///
+    /// let get_content_type = |content: &Vec<u8>| match infer.get(content) {
+    ///     Some(con) => Some(con.mime_type()),
+    ///     None => None,
+    /// };
+    /// let content: Vec<u8> = String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
+    /// let res = client
+    ///     .put_content(content, "xxxxxx.msi.zip.sig", get_content_type)
+    ///     .await;
+    /// assert!(res.is_ok());
+    /// # }
+    /// ```
+    pub async fn put_content<F>(
+        &self,
+        content: Vec<u8>,
+        key: &str,
+        get_content_type: F,
+    ) -> OssResult<String>
+    where
+        F: Fn(&Vec<u8>) -> Option<&'static str>,
+    {
+        let content_type =
+            get_content_type(&content).ok_or(OssError::Input("file type is known".to_string()))?;
 
         let content = self.put_content_base(content, content_type, key).await?;
 
@@ -437,26 +480,34 @@ impl ClientRc {
             .from_xml(content.text()?, Rc::new(bucket))?
             .set_search_query(query))
     }
+
+    #[cfg(feature = "put_file")]
     pub fn put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(
         &self,
         file_name: P,
         key: &'static str,
     ) -> OssResult<String> {
-        let mut file_content = Vec::new();
-        std::fs::File::open(file_name)?.read_to_end(&mut file_content)?;
+        let file_content = std::fs::read(file_name)?;
 
-        self.put_content(file_content, key)
-    }
-
-    pub fn put_content(&self, content: Vec<u8>, key: &str) -> OssResult<String> {
-        let kind = self.infer.get(&content);
-
-        let con = match kind {
-            Some(con) => Ok(con),
-            None => Err(OssError::Input("file type is known".to_string())),
+        let get_content_type = |content: &Vec<u8>| match Infer::new().get(content) {
+            Some(con) => Some(con.mime_type()),
+            None => None,
         };
 
-        let content_type = con?.mime_type();
+        self.put_content(file_content, key, get_content_type)
+    }
+
+    pub fn put_content<F>(
+        &self,
+        content: Vec<u8>,
+        key: &str,
+        get_content_type: F,
+    ) -> OssResult<String>
+    where
+        F: Fn(&Vec<u8>) -> Option<&'static str>,
+    {
+        let content_type =
+            get_content_type(&content).ok_or(OssError::Input("file type is known".to_string()))?;
 
         let content = self.put_content_base(content, content_type, key)?;
 

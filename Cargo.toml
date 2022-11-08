@@ -33,7 +33,7 @@ required-features = ["blocking"]
 
 [[example]]
 name = "put_file"
-required-features = ["blocking"]
+required-features = ["blocking", "put_file"]
 
 [[sts]]
 name = "sts"
@@ -42,10 +42,12 @@ required-features = ["sts"]
 [features]
 default = [
   #"blocking",
-  "sts"
+  "sts",
+  "put_file"
 ]
-blocking = ["reqwest/blocking","futures"]
+blocking = ["reqwest/blocking", "futures"]
 sts = []
+put_file = ["infer"]
 
 [dependencies]
 hmac = "^0.12"
@@ -54,10 +56,10 @@ base64 = "^0.13"
 reqwest = {version ="^0.11"}
 chrono = "^0.4"
 quick-xml = "^0.26"
-infer = "^0.11"
+infer = {version = "^0.11", optional = true}
 thiserror = "^1"
 anyhow = "^1"
-futures = {version = "^0.3", optional=true}
+futures = {version = "^0.3", optional = true}
 urlencoding = "^2"
 async-trait = "^0.1"
 http="^0.2"

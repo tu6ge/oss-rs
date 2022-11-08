@@ -136,11 +136,17 @@ let client = aliyun_oss_client::Client::new(
 
     // or 上传文件内容
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
-    client.put_content(file_content, "examples/bg2015071010.png").await;
+    client
+        .put_content(file_content, "examples/bg2015071010.png", |_| {
+            Some("image/png")
+        })
+        .await;
 
     // or 自定义上传文件 Content-Type
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
-    client.put_content_base(file_content, "image/png", "examples/bg2015071010.png").await;
+    client
+        .put_content_base(file_content, "image/png", "examples/bg2015071010.png")
+        .await;
 # }
 ```
 

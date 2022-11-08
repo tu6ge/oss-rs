@@ -37,7 +37,7 @@ jobs:
           cargo test --lib --features blocking --no-default-features tests
           cargo test --lib --features blocking tests
           cargo test --lib --features sts --no-default-features tests
-          cargo test --lib --features sts tests
+          cargo test --lib --features put_file --no-default-features tests
           cargo test --doc --all-features
       
       - name: Run publish-action

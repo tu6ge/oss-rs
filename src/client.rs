@@ -1,4 +1,3 @@
-use infer::Infer;
 use reqwest::header::HeaderMap;
 
 use crate::auth::{AuthBuilder, AuthGetHeader, VERB};
@@ -28,7 +27,6 @@ where
     client_middleware: M,
     endpoint: EndPoint,
     bucket: BucketName,
-    pub infer: Infer,
 }
 
 impl<M: Default> Client<M> {
@@ -47,7 +45,6 @@ impl<M: Default> Client<M> {
             client_middleware: M::default(),
             endpoint,
             bucket,
-            infer: Infer::default(),
         }
     }
 
@@ -61,7 +58,6 @@ impl<M: Default> Client<M> {
             client_middleware: M::default(),
             endpoint: config.endpoint(),
             bucket: config.bucket(),
-            infer: Infer::default(),
         }
     }
 
@@ -95,7 +91,6 @@ impl<M: Default> Client<M> {
             client_middleware: M::default(),
             endpoint: endpoint.try_into().map_err(InvalidConfig::from)?,
             bucket: bucket.try_into().map_err(InvalidConfig::from)?,
-            infer: Infer::default(),
         })
     }
 
@@ -105,7 +100,6 @@ impl<M: Default> Client<M> {
             client_middleware: M::default(),
             endpoint,
             bucket,
-            infer: Infer::default(),
         }
     }
 
