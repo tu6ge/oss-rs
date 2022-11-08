@@ -1,10 +1,10 @@
-//extern crate base64;
-
 use crate::errors::{OssError, OssResult};
 use crate::types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret};
 #[cfg(test)]
+use http::header::AsHeaderName;
+#[cfg(test)]
 use mockall::automock;
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName, CONTENT_TYPE};
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName};
 use reqwest::Method;
 use std::borrow::Cow;
 use std::convert::TryInto;
@@ -16,15 +16,74 @@ pub struct VERB(pub Method);
 
 #[derive(Default, Clone)]
 pub struct Auth {
-    pub access_key_id: KeyId,
-    pub access_key_secret: KeySecret,
-    pub verb: VERB,
-    pub content_md5: Option<ContentMd5>,
-    pub content_type: Option<ContentType>,
-    pub date: Date,
+    access_key_id: KeyId,
+    access_key_secret: KeySecret,
+    verb: VERB,
+    content_md5: Option<ContentMd5>,
+    date: Date,
     // pub canonicalized_oss_headers: &'a str, // TODO
-    pub canonicalized_resource: CanonicalizedResource,
-    pub headers: HeaderMap,
+    canonicalized_resource: CanonicalizedResource,
+    headers: HeaderMap,
+}
+
+impl Auth {
+    fn set_key(&mut self, access_key_id: KeyId) {
+        self.access_key_id = access_key_id;
+    }
+
+    #[cfg(test)]
+    pub(crate) fn get_key(self) -> KeyId {
+        self.access_key_id
+    }
+
+    fn set_secret(&mut self, secret: KeySecret) {
+        self.access_key_secret = secret;
+    }
+    fn set_verb(&mut self, verb: VERB) {
+        self.verb = verb;
+    }
+    fn set_content_md5(&mut self, content_md5: ContentMd5) {
+        self.content_md5 = Some(content_md5)
+    }
+    fn set_date(&mut self, date: Date) {
+        self.date = date;
+    }
+    fn set_canonicalized_resource(&mut self, canonicalized_resource: CanonicalizedResource) {
+        self.canonicalized_resource = canonicalized_resource;
+    }
+    fn set_headers(&mut self, headers: HeaderMap) {
+        self.headers = headers;
+    }
+    fn extend_headers(&mut self, headers: HeaderMap) {
+        self.headers.extend(headers);
+    }
+    fn header_insert<K: IntoHeaderName + 'static>(&mut self, key: K, val: HeaderValue) {
+        self.headers.insert(key, val);
+    }
+    fn headers_clear(&mut self) {
+        self.headers.clear();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn get_header<K>(self, key: K) -> Option<HeaderValue>
+    where
+        K: AsHeaderName,
+    {
+        self.headers.get(key).cloned()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn header_len(&self) -> usize {
+        self.headers.len()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn header_contains_key<K>(&self, key: K) -> bool
+    where
+        K: AsHeaderName,
+    {
+        self.headers.contains_key(key)
+    }
 }
 
 impl VERB {
@@ -124,7 +183,6 @@ pub trait AuthToHeaderMap {
     fn get_header_secret(&self) -> OssResult<HeaderValue>;
     fn get_header_verb(&self) -> OssResult<HeaderValue>;
     fn get_header_md5(&self) -> OssResult<Option<HeaderValue>>;
-    fn get_header_content_type(&self) -> OssResult<Option<HeaderValue>>;
     fn get_header_date(&self) -> OssResult<HeaderValue>;
     fn get_header_resource(&self) -> OssResult<HeaderValue>;
 }
@@ -147,16 +205,6 @@ impl AuthToHeaderMap for Auth {
     }
     fn get_header_md5(&self) -> OssResult<Option<HeaderValue>> {
         let res = match self.content_md5.clone() {
-            Some(val) => {
-                let val: HeaderValue = val.try_into()?;
-                Some(val)
-            }
-            None => None,
-        };
-        Ok(res)
-    }
-    fn get_header_content_type(&self) -> OssResult<Option<HeaderValue>> {
-        let res = match self.content_type.clone() {
             Some(val) => {
                 let val: HeaderValue = val.try_into()?;
                 Some(val)
@@ -234,8 +282,8 @@ impl AuthSignString for Auth {
         }
     }
     fn content_type(&self) -> Cow<'_, ContentType> {
-        match self.content_type.clone() {
-            Some(ct) => Cow::Owned(ct),
+        match self.headers.get("Content-Type") {
+            Some(ct) => Cow::Owned(ct.to_owned().try_into().unwrap()),
             None => Cow::Owned(ContentType::new("")),
         }
     }
@@ -284,9 +332,6 @@ impl AuthHeader for HeaderMap {
 
         if let Some(a) = auth.get_header_md5()? {
             map.insert("Content-MD5", a);
-        }
-        if let Some(a) = auth.get_header_content_type()? {
-            map.insert("Content-Type", a);
         }
         map.insert("Date", auth.get_header_date()?);
         map.insert("CanonicalizedResource", auth.get_header_resource()?);
@@ -445,7 +490,7 @@ impl TryInto<HeaderValue> for Sign {
 
 #[derive(Default, Clone)]
 pub struct AuthBuilder {
-    pub auth: Auth,
+    auth: Auth,
 }
 
 #[cfg_attr(test, mockall::automock)]
@@ -453,52 +498,50 @@ impl AuthBuilder {
     /// 给 key 赋值
     ///
     /// ```
-    /// use aliyun_oss_client::auth::AuthBuilder;
-    ///
-    /// let mut builder = AuthBuilder::default();
-    /// assert_eq!(builder.auth.access_key_id.as_ref(), "");
-    /// builder = builder.key("bar".into());
-    /// assert_eq!(builder.auth.access_key_id.as_ref(), "bar");
+    /// # use aliyun_oss_client::auth::AuthBuilder;
+    /// let auth = AuthBuilder::default()
+    ///     .key("bar".into())
+    ///     .build();
     /// ```
     pub fn key(mut self, key: KeyId) -> Self {
-        self.auth.access_key_id = key;
+        self.auth.set_key(key);
         self
     }
 
     /// 给 secret 赋值
     pub fn secret(mut self, secret: KeySecret) -> Self {
-        self.auth.access_key_secret = secret;
+        self.auth.set_secret(secret);
         self
     }
 
     /// 给 verb 赋值
     pub fn verb(mut self, verb: &VERB) -> Self {
-        self.auth.verb = verb.to_owned();
+        self.auth.set_verb(verb.to_owned());
         self
     }
 
     /// 给 content_md5 赋值
     pub fn content_md5(mut self, content_md5: ContentMd5) -> Self {
-        self.auth.content_md5 = Some(content_md5);
+        self.auth.set_content_md5(content_md5);
         self
     }
 
-    /// 给 date 赋值
+    /// # 给 date 赋值
     ///
-    /// example
+    /// ## Example
     /// ```
     /// use chrono::Utc;
     /// let builder = aliyun_oss_client::auth::AuthBuilder::default()
     ///    .date(Utc::now().into());
     /// ```
     pub fn date(mut self, date: Date) -> Self {
-        self.auth.date = date;
+        self.auth.set_date(date);
         self
     }
 
     /// 给 content_md5 赋值
     pub fn canonicalized_resource(mut self, data: CanonicalizedResource) -> Self {
-        self.auth.canonicalized_resource = data;
+        self.auth.set_canonicalized_resource(data);
         self
     }
 
@@ -506,47 +549,53 @@ impl AuthBuilder {
         if let Some(headers) = headers {
             self = self.extend_headers(headers);
         }
-        self.type_with_header()
+        self
     }
 
     pub fn headers(mut self, headers: HeaderMap) -> Self {
-        self.auth.headers = headers;
+        self.auth.set_headers(headers);
         self
     }
 
     pub fn extend_headers(mut self, headers: HeaderMap) -> Self {
-        self.auth.headers.extend(headers);
+        self.auth.extend_headers(headers);
         self
     }
 
     /// 给 header 序列添加新值
     pub fn header_insert<K: IntoHeaderName + 'static>(mut self, key: K, val: HeaderValue) -> Self {
-        self.auth.headers.insert(key, val);
-        self
-    }
-
-    /// 通过 headers 给 content_type 赋值
-    pub fn type_with_header(mut self) -> Self {
-        let content_type = self.auth.headers.get(CONTENT_TYPE);
-
-        if let Some(ct) = content_type {
-            let t: OssResult<ContentType> = ct.clone().try_into();
-            if let Ok(value) = t {
-                self.auth.content_type = Some(value);
-            }
-        }
+        self.auth.header_insert(key, val);
         self
     }
 
     /// 清理 headers
     pub fn header_clear(mut self) -> Self {
-        self.auth.headers.clear();
+        self.auth.headers_clear();
         self
+    }
+
+    pub fn build(self) -> Auth {
+        self.auth
     }
 }
 
 impl AuthGetHeader for AuthBuilder {
     fn get_headers(&self) -> OssResult<HeaderMap> {
         self.auth.get_headers()
+    }
+}
+
+#[cfg(test)]
+mod builder_tests {
+    use super::AuthBuilder;
+
+    #[test]
+    fn key() {
+        let builder = AuthBuilder::default();
+        assert_eq!(builder.build().get_key().as_ref(), "");
+
+        let mut builder = AuthBuilder::default();
+        builder = builder.key("bar".into());
+        assert_eq!(builder.build().get_key().as_ref(), "bar");
     }
 }
