@@ -143,6 +143,151 @@
 ```
 
 
+## 2022-11-05, Version 0.8.0
+### Commits
+- [[`c35d2b6cd1`](https://github.com/tu6ge/oss-rs/commit/c35d2b6cd1b863229ccc22ffe834bbdc2e9c549e)] chore(version) (tu6ge)
+- [[`676935fad1`](https://github.com/tu6ge/oss-rs/commit/676935fad116faed65e70d501c19b0a95006be72)] feat: support STS (tu6ge)
+- [[`c889a314dc`](https://github.com/tu6ge/oss-rs/commit/c889a314dcc2042e9b533a4f65fa95ff2b539633)] prefact: remove redundant clone method (tu6ge)
+- [[`67ee80b4fa`](https://github.com/tu6ge/oss-rs/commit/67ee80b4faec8782554ee3ee8821190d2fb7e24f)] style(fmt) (tu6ge)
+- [[`4b086b69f1`](https://github.com/tu6ge/oss-rs/commit/4b086b69f1909665f4004aa745b0417552efe390)] chore(deps): 更新依赖 (tu6ge)
+- [[`8eb78f2651`](https://github.com/tu6ge/oss-rs/commit/8eb78f2651131731fce772862b98e04e57aa5ab3)] docs: README (tu6ge)
+- [[`c20e8f1da3`](https://github.com/tu6ge/oss-rs/commit/c20e8f1da3a4d79a6ae5bd64172e4f064ce813e0)] wip: docs test (tu6ge)
+- [[`aef10f30d5`](https://github.com/tu6ge/oss-rs/commit/aef10f30d5c7a2d8653b576a604931f6ca856621)] test(traits): bench parse xml (tu6ge)
+- [[`9329ee2026`](https://github.com/tu6ge/oss-rs/commit/9329ee2026d81519094b030d86a36356d2d5d6c0)] feat(error): 解析错误，去掉regex方案 (tu6ge)
+- [[`c27a1dee5d`](https://github.com/tu6ge/oss-rs/commit/c27a1dee5d988dc78bf7c8b6df63f2cd8ae576af)] feat(plugin): 清理 plugin 的残余内容 (tu6ge)
+- [[`cbedc831c5`](https://github.com/tu6ge/oss-rs/commit/cbedc831c546a8e74c2a6b6a55b935155d267fee)] style (tu6ge)
+- [[`eb74aa6a0b`](https://github.com/tu6ge/oss-rs/commit/eb74aa6a0bf962014f07be876ecd747d9da81c59)] chore(deps): upgrade quick-xml to 0.25+ (tu6ge)
+- [[`757e6c5bd9`](https://github.com/tu6ge/oss-rs/commit/757e6c5bd94f086be6794bd196ada0987ded0781)] style (tu6ge)
+- [[`6638e0a592`](https://github.com/tu6ge/oss-rs/commit/6638e0a592cfe477a0778214eea15022d9b0d0ab)] feat(config): add P in ObjectBase (tu6ge)
+- [[`3ded133069`](https://github.com/tu6ge/oss-rs/commit/3ded133069d29c17129df2eb3f6ae4d1ac97d03e)] docs: 去掉 TODO 记录 (tu6ge)
+- [[`5ce269d364`](https://github.com/tu6ge/oss-rs/commit/5ce269d364a47ad6a01398002a7b2fcc8efdfe52)] feat(client): upgrade builder method (tu6ge)
+- [[`038763c81e`](https://github.com/tu6ge/oss-rs/commit/038763c81e0d53517369ec033c5335e3b0b20b4e)] prefact(auth): 参数引用改成传值 (tu6ge)
+- [[`209e343d61`](https://github.com/tu6ge/oss-rs/commit/209e343d6105b20b9b84c69ac10620e15665ee58)] style: more update to OssError::from (tu6ge)
+- [[`acf0dbd4a1`](https://github.com/tu6ge/oss-rs/commit/acf0dbd4a19db49d178905bd49f3d2898b99711c)] style: cargo fmt (tu6ge)
+- [[`9a7ef4bc84`](https://github.com/tu6ge/oss-rs/commit/9a7ef4bc8448a369f05f3166dd70f7f088effc76)] chore(features): close default blocking (tu6ge)
+- [[`db8cfad81f`](https://github.com/tu6ge/oss-rs/commit/db8cfad81fe8f16ee1cb8ae6e0a77d0e3cfd90b2)] test(object): add ObjectList unit test (tu6ge)
+- [[`088809edf1`](https://github.com/tu6ge/oss-rs/commit/088809edf1b3663c2cccc3c3403041e49aa726db)] chore: 泛型参数加默认值 (tu6ge)
+- [[`be140c1442`](https://github.com/tu6ge/oss-rs/commit/be140c1442d0b3cd6e523118911ff1717478977e)] style (tu6ge)
+- [[`35eaea1e3e`](https://github.com/tu6ge/oss-rs/commit/35eaea1e3e53fc8f3db51e234bc4b9001898b651)] test(object): finished unit test (tu6ge)
+- [[`2873ea4034`](https://github.com/tu6ge/oss-rs/commit/2873ea403460c92b05745e9c81dfb36674820a34)] test(bucket): finished unit test (tu6ge)
+- [[`d0168694b0`](https://github.com/tu6ge/oss-rs/commit/d0168694b0de375ea465e3e3574290b26d1dfcb4)] test(bucket): test_get_object_list (tu6ge)
+- [[`6fd3b6cf0d`](https://github.com/tu6ge/oss-rs/commit/6fd3b6cf0d2951562035ede123f8a62a577adbdb)] refactor(client): add ClientArc,ClientRc type (tu6ge)
+- [[`46e17e12b4`](https://github.com/tu6ge/oss-rs/commit/46e17e12b45c40c43bf24b53ca4a95faca7cc261)] feat(client): add part in Client struct (tu6ge)
+- [[`2312605f76`](https://github.com/tu6ge/oss-rs/commit/2312605f765ba073f914ace7898ede64e7d3b9da)] test(client): remove mockall in client (tu6ge)
+- [[`d649a32460`](https://github.com/tu6ge/oss-rs/commit/d649a324600f7ea7d12ba97ca551dad99c74c51e)] fix(buckets) (tu6ge)
+- [[`8460f3374a`](https://github.com/tu6ge/oss-rs/commit/8460f3374a2f9fb0afbb98d229c0f903e75487ab)] feat: unite Arc and Rc in bucket,object (tu6ge)
+- [[`fabfe98703`](https://github.com/tu6ge/oss-rs/commit/fabfe987037291d886211d998fccaacdd92e34e7)] feat(client): 去掉多余的 async 标记 (tu6ge)
+- [[`8296bf7799`](https://github.com/tu6ge/oss-rs/commit/8296bf77998dd5fda45caf1e247de4e5718d9544)] docs: add todo list (tu6ge)
+- [[`4460faff02`](https://github.com/tu6ge/oss-rs/commit/4460faff028f9856598a1a1ff7bffda793fbf4b2)] feat(plugin): 移除 plugin 模块 (tu6ge)
+- [[`2a7517e67b`](https://github.com/tu6ge/oss-rs/commit/2a7517e67be1aee622447931858175c6e27e3384)] docs: todo 将来的优化计划 (tu6ge)
+- [[`e3daec482b`](https://github.com/tu6ge/oss-rs/commit/e3daec482b7b599a844dbd00b47102c755687601)] feat(types): BucketName 变得更安全 (tu6ge)
+- [[`3efa209a77`](https://github.com/tu6ge/oss-rs/commit/3efa209a77b228fcac8904070174fe2f75745d51)] docs: update init function (tu6ge)
+- [[`855e3efc13`](https://github.com/tu6ge/oss-rs/commit/855e3efc132b96e9838d21a6a79d87b5fb0d359d)] feat(client): client init method update (tu6ge)
+- [[`664ad06ab3`](https://github.com/tu6ge/oss-rs/commit/664ad06ab3ddcc98f61c7233584fcb831f803d93)] feat(plugin): remove plugin example (tu6ge)
+- [[`3f195706d6`](https://github.com/tu6ge/oss-rs/commit/3f195706d6d2c3f613b93aa71b3197baf8e6b069)] chore: todo list (tu6ge)
+- [[`b218e761ca`](https://github.com/tu6ge/oss-rs/commit/b218e761ca9d99fc5ffd208224839cd0a6c47101)] feat(types): EndPoint update to enum type (tu6ge)
+- [[`b21adb4026`](https://github.com/tu6ge/oss-rs/commit/b21adb40261d3155abb9c6b79def83dae5c32b1d)] test(client): open test_blocking_has_error (tu6ge)
+- [[`fd71bc88fd`](https://github.com/tu6ge/oss-rs/commit/fd71bc88fdf4ff7005471105c8a0966db4181c60)] test(client): 调整 unit test (tu6ge)
+- [[`f6abd528fa`](https://github.com/tu6ge/oss-rs/commit/f6abd528faeb0b8af560d33ff1c8b57a09e50f35)] test(client): 调整 unit test (tu6ge)
+- [[`ca82eb03c8`](https://github.com/tu6ge/oss-rs/commit/ca82eb03c83ef9b1383dbd73f7fecc21dce2ff0d)] test(client): 调整 blocking handle error (tu6ge)
+- [[`83bb9ad07e`](https://github.com/tu6ge/oss-rs/commit/83bb9ad07e2d27c121c23d3caa056f853bde7317)] test(client): 调整 blocking handle error (tu6ge)
+- [[`5e1351a8f2`](https://github.com/tu6ge/oss-rs/commit/5e1351a8f267ff9823adc6f8529521e71057b269)] docs: 调整使用文档 (tu6ge)
+- [[`a0ff03d35b`](https://github.com/tu6ge/oss-rs/commit/a0ff03d35b4fdac649e737f381a0dfd25a9f15fb)] feat(blocking): add client fn (tu6ge)
+- [[`17e5b32a9e`](https://github.com/tu6ge/oss-rs/commit/17e5b32a9e4ddf593004811c34f4e2e5c0e77a57)] feat(blocking): add bucket,object struct in block (tu6ge)
+- [[`a5b5b86110`](https://github.com/tu6ge/oss-rs/commit/a5b5b86110e5903ea8f69f84921cee473a21a5e6)] fix(object): 解决 object struct 默认值导致的问题 (tu6ge)
+- [[`b1caf7ea7e`](https://github.com/tu6ge/oss-rs/commit/b1caf7ea7effb2aacb234982b05bf12b59c1e32b)] feat(object): add put_content_base method (tu6ge)
+- [[`efe1a9fe13`](https://github.com/tu6ge/oss-rs/commit/efe1a9fe1323f8c89b94e8a44ef2c4e83c1fcfc8)] test: add bucket,object unit case (tu6ge)
+- [[`24733310b1`](https://github.com/tu6ge/oss-rs/commit/24733310b100006e7b2f63b0359714839620ca72)] feat(client): 对 reqwest 中的struct 进行包裹封装 (tu6ge)
+- [[`16044d9ee5`](https://github.com/tu6ge/oss-rs/commit/16044d9ee59b783970e129c8f4364fda7bb8ef70)] test(client): 单元测试完善 (tu6ge)
+- [[`7c9a146245`](https://github.com/tu6ge/oss-rs/commit/7c9a1462456c2a4f45f8c5752f3727de8f228b1a)] refactor (tu6ge)
+- [[`23e377d4ae`](https://github.com/tu6ge/oss-rs/commit/23e377d4aef16717954292069ed47bd52304eb0a)] feat(auth): builder 实现 trait (tu6ge)
+- [[`356d8e1020`](https://github.com/tu6ge/oss-rs/commit/356d8e10206fc33009a397985d867d3e9aa4fce3)] feat(auth): 减少 auth 中多个 trait 之间的耦合性 (tu6ge)
+- [[`442968154f`](https://github.com/tu6ge/oss-rs/commit/442968154f0412ba6a9c90b18728b81c18346d4f)] fix(plugin): 修复几个过时代码的错误 (tu6ge)
+- [[`1ac5293662`](https://github.com/tu6ge/oss-rs/commit/1ac529366257f0df45c4099309c85dd0b088eefb)] refactor(client): builder 方法调整 (tu6ge)
+- [[`7f50de366f`](https://github.com/tu6ge/oss-rs/commit/7f50de366f4f9637b62dbcb5f40b9211e9dc32e2)] feat(client): 支持用 config 初始化 client (tu6ge)
+- [[`6c8acf4b11`](https://github.com/tu6ge/oss-rs/commit/6c8acf4b11ade74ad1c272b6fc0821aa7255524a)] feat(client): 删除了过去的获取 canonicalized_resource 的方法 (tu6ge)
+- [[`7860fb8f6e`](https://github.com/tu6ge/oss-rs/commit/7860fb8f6ee0139e18f7a969ce7bb0e177183a0e)] feat(bucket,object): 新增了 BucketBase 等 (tu6ge)
+- [[`cf96914fe0`](https://github.com/tu6ge/oss-rs/commit/cf96914fe00dd0b3ed269e0c751f88038758d0fc)] style (tu6ge)
+- [[`ce97f54fc5`](https://github.com/tu6ge/oss-rs/commit/ce97f54fc59ac9385bf115e79f425b48ae1c7679)] feat: add BucketBase,ObjectBase struct (tu6ge)
+- [[`792b1081aa`](https://github.com/tu6ge/oss-rs/commit/792b1081aa3fb65f5980cf001cf3df87913597e6)] chore: gh action add run doc test (tu6ge)
+- [[`65392dfcd4`](https://github.com/tu6ge/oss-rs/commit/65392dfcd42f2e14cf1295ec4deb359a05c51c46)] test(auth): 完成单元测试 (tu6ge)
+- [[`9917fd3275`](https://github.com/tu6ge/oss-rs/commit/9917fd327587569c75bf3e4eaedcd9dba7d28b13)] feat(auth): 使用 Cow 减少 clone (tu6ge)
+- [[`2f8e86398d`](https://github.com/tu6ge/oss-rs/commit/2f8e86398d87a5588f207ead6d7e50b5a0946ce1)] test(auth) (tu6ge)
+- [[`527fd7a083`](https://github.com/tu6ge/oss-rs/commit/527fd7a0834d990cced0aa24248373237ca24788)] feat(auth): 加上了几个 trait (tu6ge)
+- [[`e9f6721b33`](https://github.com/tu6ge/oss-rs/commit/e9f6721b334053651ea5395e163e990cb0fb10c7)] style(auth): 缩进格式统一 (tu6ge)
+- [[`550f9ef7de`](https://github.com/tu6ge/oss-rs/commit/550f9ef7de1e5b4ead05d05e2527ecd302a1b4ab)] feat(auth): 整理 auth 模块的代码 (tu6ge)
+- [[`7f9c19b1fe`](https://github.com/tu6ge/oss-rs/commit/7f9c19b1fe106f89678b7499decf96d5d4cfb1e5)] feat(types): 更改方法名称 (tu6ge)
+- [[`54838aa561`](https://github.com/tu6ge/oss-rs/commit/54838aa561e6083fde8e75b257fdcf1132596c19)] feat(client): client结构体不再保持key ,secret (tu6ge)
+- [[`b1f29324c6`](https://github.com/tu6ge/oss-rs/commit/b1f29324c62b24a35af3e21b1b22672208047d20)] feat: 添加了几个新类型 (tu6ge)
+- [[`120c3432c4`](https://github.com/tu6ge/oss-rs/commit/120c3432c4c4c60d96714137357a8095525d37e6)] feat: 替代 object_list_query_generator 方法的方案 (tu6ge)
+- [[`98433a473c`](https://github.com/tu6ge/oss-rs/commit/98433a473cf100e09a1ef5faca2721de6625b68e)] fix(test): 测试用例更改 (tu6ge)
+- [[`4e8613e56a`](https://github.com/tu6ge/oss-rs/commit/4e8613e56a79535900a66934c2de449e10a26cf2)] feat: 引入 Cow 智能指针 (tu6ge)
+- [[`fd126df7e3`](https://github.com/tu6ge/oss-rs/commit/fd126df7e375b0cf1e1a7ac79de97533acad2c88)] test(auth): 补充 auth 和 errors 模块的用例 (tu6ge)
+- [[`4434e7b74a`](https://github.com/tu6ge/oss-rs/commit/4434e7b74a8ae811ed1409073e182a4ba8ff100e)] test(trait): test other from_xml (tu6ge)
+- [[`c695eb8822`](https://github.com/tu6ge/oss-rs/commit/c695eb8822748001ea8bec6eda6d168bf4405f3d)] test(trait): test from_xml without mock (tu6ge)
+- [[`9e87d70802`](https://github.com/tu6ge/oss-rs/commit/9e87d7080225f542d0741bc4319128a1d8a84d57)] test(trait): mock 测试 from_xml 的一种方式 (tu6ge)
+- [[`19c72cb933`](https://github.com/tu6ge/oss-rs/commit/19c72cb93376875696dde2cb5595c8369b1b7b40)] test: update gh action (tu6ge)
+- [[`dcc366fff4`](https://github.com/tu6ge/oss-rs/commit/dcc366fff4562553a9ee9ac33fcd25dbb46c68c4)] test: add more case and gh action (tu6ge)
+- [[`64bff586af`](https://github.com/tu6ge/oss-rs/commit/64bff586afb9c154e60e2fc75b64d43ed691d8bb)] test: add more case (tu6ge)
+- [[`2f42d10eb5`](https://github.com/tu6ge/oss-rs/commit/2f42d10eb5a8a919391fa437d87d63d92b445d4e)] wip: plugin update (tu6ge)
+- [[`5835b928c2`](https://github.com/tu6ge/oss-rs/commit/5835b928c2e6a5f3cdb3e3124dda9ef73f91384e)] test: add plugin test case (tu6ge)
+- [[`f96e4f1781`](https://github.com/tu6ge/oss-rs/commit/f96e4f17811ae68ab41edb8203a19f59e173516e)] test: add integration (tu6ge)
+- [[`56333f876d`](https://github.com/tu6ge/oss-rs/commit/56333f876dbc6ea4117c0ea20e12a2c23094f644)] chore: update gh action cache plan (tu6ge)
+- [[`17231ac207`](https://github.com/tu6ge/oss-rs/commit/17231ac2070093043b56960c12cd582fb1eb594c)] test: close blocking mockall case (tu6ge)
+- [[`2cce8afa78`](https://github.com/tu6ge/oss-rs/commit/2cce8afa78a69ccd2f3708c0117e060affdea3c8)] test: add blocking mockall case (tu6ge)
+- [[`3abe3476b0`](https://github.com/tu6ge/oss-rs/commit/3abe3476b051c10f2e8b87580913d70b629ddf29)] test: update testcase async run method (tu6ge)
+- [[`55f8401752`](https://github.com/tu6ge/oss-rs/commit/55f840175229aa3430c6e4beadb03e318b53d87b)] test: update mockall use method (tu6ge)
+- [[`23bd9dc320`](https://github.com/tu6ge/oss-rs/commit/23bd9dc320fc686cceb276725dfcc41181053258)] test: add mockall checkpoint (tu6ge)
+- [[`c177cabcd4`](https://github.com/tu6ge/oss-rs/commit/c177cabcd47fef0019ef92240a30014b9ba8f9ba)] test: remove coverage (tu6ge)
+- [[`a6683c2f40`](https://github.com/tu6ge/oss-rs/commit/a6683c2f4087ba78047a002b3cb807d952183b15)] test: add coverage (tu6ge)
+- [[`bd61963415`](https://github.com/tu6ge/oss-rs/commit/bd61963415c092aab8ebd0bfa9f100c527293374)] test: remove warning msg (tu6ge)
+- [[`a0d167ed8a`](https://github.com/tu6ge/oss-rs/commit/a0d167ed8a6072f3f941134f6fef775eba649ef7)] test: add some unit test (tu6ge)
+- [[`41e6f8a4cf`](https://github.com/tu6ge/oss-rs/commit/41e6f8a4cf7de1ef9fcdbc034fd4a6ba74f8df85)] chore(deps): futures改为可选依赖 (tu6ge)
+- [[`96e51135b7`](https://github.com/tu6ge/oss-rs/commit/96e51135b7a6e7d62bd9f9cd2a4d43d4392bacad)] docs: Iterator 再次尝试 (tu6ge)
+- [[`05303765b1`](https://github.com/tu6ge/oss-rs/commit/05303765b1d6b87769058e68d5407b11f660db95)] Update Changelog.md (tu6ge)
+
+### Stats
+```diff
+ .github/workflows/publish.yml |  31 +-
+ .gitignore                    |   3 +-
+ Cargo.toml                    |  38 +-
+ Changelog.md                  |  54 +++-
+ README.md                     | 288 +++++++++------
+ examples/bucket.rs            |  17 +-
+ examples/buckets.rs           |  19 +-
+ examples/delete_file.rs       |  13 +-
+ examples/objects.rs           |  18 +-
+ examples/plugin.rs            |  73 +----
+ examples/put_file.rs          |  19 +-
+ examples/sts.rs               |  15 +-
+ src/auth.rs                   | 793 ++++++++++++++++++++++++++---------------
+ src/blocking/builder.rs       | 111 ++++++-
+ src/blocking/mod.rs           |  22 +-
+ src/bucket.rs                 | 725 ++++++++++++++++++++++---------------
+ src/builder.rs                | 153 ++++++++-
+ src/client.rs                 | 459 ++++++++++--------------
+ src/config.rs                 | 287 +++++++++++++++-
+ src/errors.rs                 | 203 ++++------
+ src/lib.rs                    | 230 +++++++-----
+ src/object.rs                 | 831 +++++++++++++++++++++++++++----------------
+ src/plugin.rs                 | 158 +--------
+ src/sts.rs                    |  65 +++-
+ src/tests/auth.rs             | 691 +++++++++++++++++++++++++++++++++++-
+ src/tests/bucket.rs           | 430 ++++++++++++++++++++++-
+ src/tests/client.rs           | 264 ++++++++++++++-
+ src/tests/errors.rs           |  52 +++-
+ src/tests/mod.rs              |  13 +-
+ src/tests/object.rs           | 422 ++++++++++++++++++++++-
+ src/tests/tests_async.rs      | 111 +------
+ src/tests/tests_blocking.rs   | 137 +-------
+ src/tests/traits.rs           | 570 +++++++++++++++++++++++++++++-
+ src/traits.rs                 | 826 ++++++++++++++++++++++++++----------------
+ src/types.rs                  | 839 +++++++++++++++++++++++++++++++++++++++++++-
+ tests/integration_test.rs     | 201 ++++++++++-
+ 36 files changed, 6916 insertions(+), 2265 deletions(-)
+```
+
+
 ## 2022-09-07, Version 0.7.6
 ### Commits
 - [[`b786fbbd5d`](https://github.com/tu6ge/oss-rs/commit/b786fbbd5ddf238fa1a9b06fc18bc8457ef59eac)] chore(deps): update deps (tu6ge)
