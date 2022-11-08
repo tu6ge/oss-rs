@@ -631,42 +631,30 @@ pub struct PutObject<'a> {
     pub tagging: Option<&'a str>,
 }
 
+#[derive(Default)]
 pub enum Encryption {
+    #[default]
     Aes256,
     Kms,
     Sm4,
 }
 
-impl Default for Encryption {
-    fn default() -> Encryption {
-        Self::Aes256
-    }
-}
-
+#[derive(Default)]
 pub enum ObjectAcl {
+    #[default]
     Default,
     Private,
     PublicRead,
     PublicReadWrite,
 }
 
-impl Default for ObjectAcl {
-    fn default() -> Self {
-        Self::Default
-    }
-}
-
+#[derive(Default)]
 pub enum StorageClass {
+    #[default]
     Standard,
     IA,
     Archive,
     ColdArchive,
-}
-
-impl Default for StorageClass {
-    fn default() -> Self {
-        Self::Standard
-    }
 }
 
 #[derive(Default)]
@@ -686,13 +674,9 @@ pub struct CopyObject<'a> {
     pub tagging_directive: CopyDirective,
 }
 
+#[derive(Default)]
 pub enum CopyDirective {
+    #[default]
     Copy,
     Replace,
-}
-
-impl Default for CopyDirective {
-    fn default() -> Self {
-        Self::Copy
-    }
 }

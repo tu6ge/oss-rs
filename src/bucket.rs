@@ -414,28 +414,19 @@ impl ClientRc {
     }
 }
 
+#[derive(Default)]
 pub enum Grant {
+    #[default]
     Private,
     PublicRead,
     PublicReadWrite,
 }
 
-impl Default for Grant {
-    fn default() -> Self {
-        Self::Private
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub enum DataRedundancyType {
+    #[default]
     LRS,
     ZRS,
-}
-
-impl Default for DataRedundancyType {
-    fn default() -> Self {
-        Self::LRS
-    }
 }
 
 #[derive(Default, Clone, Debug)]

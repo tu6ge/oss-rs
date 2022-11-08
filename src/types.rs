@@ -111,9 +111,10 @@ impl KeySecret {
 //===================================================================================================
 
 /// OSS 的可用区
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum EndPoint {
+    #[default]
     CnHangzhou,
     CnShanghai,
     CnQingdao,
@@ -141,12 +142,6 @@ impl AsRef<str> for EndPoint {
             Self::ApSouthEast1 => "ap-south-east1",
             //_ => "custom",
         }
-    }
-}
-
-impl Default for EndPoint {
-    fn default() -> Self {
-        Self::CnHangzhou
     }
 }
 

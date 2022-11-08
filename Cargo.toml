@@ -6,7 +6,8 @@ resolver = "2"
 license = "MIT"
 description = "an aliyun oss client"
 keywords = ["aliyun", "oss", "sdk"]
-repository= "https://github.com/tu6ge/oss-rs"
+repository = "https://github.com/tu6ge/oss-rs"
+rust-version = "1.62"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
