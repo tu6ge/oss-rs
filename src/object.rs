@@ -328,7 +328,7 @@ impl Client {
     /// # Examples
     ///
     /// 上传 tauri 升级用的签名文件
-    /// ```
+    /// ```ignore
     /// # #[tokio::main]
     /// # async fn main(){
     /// use infer::Infer;
