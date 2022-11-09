@@ -665,6 +665,29 @@ impl ClientRc {
         Ok(content)
     }
 
+    /// # 获取文件内容
+    pub fn get_object<R: Into<ContentRange>>(&self, key: &str, range: R) -> OssResult<Vec<u8>> {
+        let mut url = self.get_bucket_url();
+        url.set_path(key);
+
+        let object_base =
+            ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
+
+        let canonicalized = CanonicalizedResource::from_object(object_base, None);
+
+        let headers = {
+            let mut headers = HeaderMap::new();
+            headers.insert("Range", range.into().into());
+            headers
+        };
+
+        Ok(self
+            .builder_with_header("GET", url, canonicalized, Some(headers))?
+            .send()?
+            .text()?
+            .into_bytes())
+    }
+
     pub fn delete_object(&self, key: &str) -> OssResult<()> {
         let mut url = self.get_bucket_url();
         url.set_path(key);
