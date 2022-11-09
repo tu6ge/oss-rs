@@ -624,7 +624,7 @@ impl CanonicalizedResource {
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
-    pub fn from_object<Obj: GetObjectInfo>(object: &Obj, query: Option<&Query>) -> Self {
+    pub fn from_object<Obj: GetObjectInfo>(object: Obj, query: Option<&Query>) -> Self {
         let bucket = object.bucket_name();
         let path = object.path();
 
@@ -655,6 +655,8 @@ impl CanonicalizedResource {
 ///
 /// let str = query.to_oss_string();
 /// assert_eq!(str.as_str(), "list-type=2&abc=def");
+/// let str = query.to_url_query();
+/// assert_eq!(str.as_str(), "abc=def");
 /// ```
 #[derive(Clone, Debug, Default)]
 pub struct Query {
@@ -701,19 +703,17 @@ impl Query {
     /// a=foo&b=bar
     /// 未进行 urlencode 转码
     pub fn to_url_query(&self) -> String {
-        let list: Vec<String> = self
-            .inner
+        self.inner
             .iter()
-            .map(|(k, v)| {
+            .map(|(k, v)| -> String {
                 let mut res = String::new();
                 res.push_str(k.as_ref());
                 res.push_str("=");
                 res.push_str(v.as_ref());
                 res
             })
-            .collect();
-
-        list.join("&")
+            .collect::<Vec<String>>()
+            .join("&")
     }
 }
 

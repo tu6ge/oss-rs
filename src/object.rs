@@ -511,7 +511,7 @@ impl Client {
         let object_base =
             ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
 
-        let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+        let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
         let response = self
             .builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
@@ -533,7 +533,7 @@ impl Client {
         let object_base =
             ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
 
-        let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+        let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
         let headers = {
             let mut headers = HeaderMap::new();
@@ -557,7 +557,7 @@ impl Client {
         let object_base =
             ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
 
-        let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+        let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
         let response = self.builder(VERB::DELETE, url, canonicalized)?;
 
@@ -655,7 +655,7 @@ impl ClientRc {
         let object_base =
             ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
 
-        let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+        let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
         let response = self
             .builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
@@ -672,7 +672,7 @@ impl ClientRc {
         let object_base =
             ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
 
-        let canonicalized = CanonicalizedResource::from_object(&object_base, None);
+        let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
         let response = self.builder(VERB::DELETE, url, canonicalized)?;
 
