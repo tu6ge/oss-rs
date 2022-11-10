@@ -2,6 +2,7 @@ use http::{HeaderMap, HeaderValue};
 use reqwest::Url;
 
 use crate::builder::ClientWithMiddleware;
+use crate::file::AlignBuilder;
 use crate::{client::Client, types::CanonicalizedResource, EndPoint};
 
 #[test]
@@ -81,6 +82,7 @@ fn test_builder_with_header() {
 fn test_blocking_builder_with_header() {
     use crate::blocking::builder::ClientWithMiddleware;
     use crate::client::Client;
+    use crate::file::blocking::AlignBuilder;
     let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),

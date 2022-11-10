@@ -116,6 +116,7 @@ query.insert("prefix", "babel");
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
+use aliyun_oss_client::file::blocking::File;
 client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
 // or 上传文件内容
@@ -135,6 +136,7 @@ client.put_content_base(file_content, "image/png", "examples/bg2015071010.png");
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
+use aliyun_oss_client::file::blocking::File;
 client.delete_object("examples/bg2015071010.png");
 ```
 */

@@ -7,6 +7,9 @@ use crate::client::Client;
 use crate::client::ClientRc;
 use crate::config::BucketBase;
 use crate::errors::OssResult;
+#[cfg(feature = "blocking")]
+use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
+use crate::file::AlignBuilder;
 use crate::object::ObjectList;
 use crate::traits::{
     InvalidBucketListValue, InvalidBucketValue, OssIntoBucket, OssIntoBucketList, OssIntoObjectList,
@@ -102,7 +105,7 @@ impl Default for ListBuckets<RcPointer> {
 #[derive(Clone)]
 #[non_exhaustive]
 pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
-    base: BucketBase,
+    pub(crate) base: BucketBase,
     // bucket_info: Option<Bucket<'b>>,
     // bucket: Option<Bucket<'c>>,
     creation_date: DateTime<Utc>,

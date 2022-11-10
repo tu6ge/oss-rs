@@ -2,6 +2,7 @@
 
 use aliyun_oss_client::builder::ClientWithMiddleware;
 use aliyun_oss_client::client::Client;
+use aliyun_oss_client::file::File;
 use dotenv::dotenv;
 
 #[tokio::main]

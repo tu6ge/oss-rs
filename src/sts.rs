@@ -55,7 +55,7 @@ impl<M: Default> STS for Client<M> {
 mod tests {
     use http::HeaderValue;
 
-    use crate::{types::CanonicalizedResource, BucketName, Client, EndPoint};
+    use crate::{file::AlignBuilder, types::CanonicalizedResource, BucketName, Client, EndPoint};
 
     use super::STS;
 

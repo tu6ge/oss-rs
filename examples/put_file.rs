@@ -4,6 +4,7 @@ use aliyun_oss_client::client::Client;
 
 extern crate dotenv;
 
+use aliyun_oss_client::file::blocking::File;
 use dotenv::dotenv;
 use std::path::PathBuf;
 

@@ -5,6 +5,7 @@ use aliyun_oss_client::client::Client;
 
 extern crate dotenv;
 
+use aliyun_oss_client::file::BlockingFile;
 use dotenv::dotenv;
 
 fn main() {

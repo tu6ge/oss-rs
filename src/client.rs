@@ -6,6 +6,7 @@ use crate::builder::Middleware;
 use crate::builder::{ClientWithMiddleware, RequestBuilder};
 use crate::config::{BucketBase, Config, InvalidConfig};
 use crate::errors::OssResult;
+use crate::file::AlignBuilder;
 use crate::types::{BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret};
 use chrono::prelude::*;
 use reqwest::header::HeaderMap;
@@ -142,21 +143,12 @@ impl Client {
         self.client_middleware.middleware(middleware);
         self
     }
+}
 
-    /// builder 方法的异步实现
-    #[inline]
-    pub fn builder<M: Into<VERB>>(
-        &self,
-        method: M,
-        url: Url,
-        resource: CanonicalizedResource,
-    ) -> OssResult<RequestBuilder> {
-        self.builder_with_header(method, url, resource, None)
-    }
-
+impl AlignBuilder for Client<ClientWithMiddleware> {
     /// builder 方法的异步实现
     /// 带 header 参数
-    pub fn builder_with_header<M: Into<VERB>>(
+    fn builder_with_header<M: Into<VERB>>(
         &self,
         method: M,
         url: Url,
@@ -194,27 +186,10 @@ impl Client<BlockingClientWithMiddleware> {
         self.client_middleware.middleware(middleware);
         self
     }
+}
 
-    /// # 向 OSS 发送请求的封装
-    /// 参数包含请求的：
-    ///
-    /// - method
-    /// - url
-    /// - [CanonicalizedResource](https://help.aliyun.com/document_detail/31951.html#section-rvv-dx2-xdb)  
-    ///
-    /// 返回值是一个 reqwest 的请求创建器 `reqwest::blocking::RequestBuilder`
-    ///
-    /// 返回后，可以再加请求参数，然后可选的进行发起请求
-    #[inline]
-    pub fn builder<M: Into<VERB>>(
-        &self,
-        method: M,
-        url: Url,
-        resource: CanonicalizedResource,
-    ) -> OssResult<BlockingRequestBuilder> {
-        self.builder_with_header(method, url, resource, None)
-    }
-
+#[cfg(feature = "blocking")]
+impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware> {
     /// # 向 OSS 发送请求的封装
     /// 参数包含请求的：
     ///
@@ -227,7 +202,7 @@ impl Client<BlockingClientWithMiddleware> {
     ///
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
     ///
-    pub fn builder_with_header<M: Into<VERB>>(
+    fn builder_with_header<M: Into<VERB>>(
         &self,
         method: M,
         url: Url,

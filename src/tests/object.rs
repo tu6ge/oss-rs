@@ -1,11 +1,10 @@
-use std::sync::Arc;
-
+use crate::builder::ClientWithMiddleware;
+use crate::file::File;
+use crate::{builder::Middleware, client::Client, errors::OssResult, types::Query};
 use async_trait::async_trait;
 use http::HeaderValue;
 use reqwest::{Request, Response, Url};
-
-use crate::builder::ClientWithMiddleware;
-use crate::{builder::Middleware, client::Client, errors::OssResult, types::Query};
+use std::sync::Arc;
 
 #[cfg(feature = "blocking")]
 #[test]
@@ -280,8 +279,8 @@ async fn test_put_content_base() {
 #[cfg(feature = "blocking")]
 #[test]
 fn test_blocking_put_content_base() {
-    use crate::blocking::builder::Middleware;
     use crate::client::ClientRc;
+    use crate::{blocking::builder::Middleware, file::blocking::File};
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
@@ -334,6 +333,7 @@ mod get_object {
     use reqwest::{Request, Response, Url};
 
     use crate::builder::ClientWithMiddleware;
+    use crate::file::File;
     use crate::{builder::Middleware, client::Client, errors::OssResult};
     use async_trait::async_trait;
 
@@ -539,6 +539,7 @@ mod blocking_get_object {
     use reqwest::Url;
 
     use crate::blocking::builder::ClientWithMiddleware;
+    use crate::file::blocking::File;
     use crate::{blocking::builder::Middleware, client::Client, errors::OssResult};
 
     #[test]
@@ -777,8 +778,8 @@ async fn test_delete_object() {
 #[cfg(feature = "blocking")]
 #[test]
 fn test_blocking_delete_object() {
-    use crate::blocking::builder::Middleware;
     use crate::client::ClientRc;
+    use crate::{blocking::builder::Middleware, file::BlockingFile};
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 

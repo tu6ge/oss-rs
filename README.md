@@ -114,6 +114,7 @@ let client = aliyun_oss_client::Client::new("key1".into(),"secret1".into(),"qing
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
+    use aliyun_oss_client::file::File;
     client
         .put_file("examples/bg2015071010.png", "examples/bg2015071010.png")
         .await;
@@ -144,6 +145,7 @@ let client = aliyun_oss_client::Client::new("key1".into(),"secret1".into(),"qing
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
+    use aliyun_oss_client::file::File;
     client.delete_object("examples/bg2015071010.png").await;
 # }
 ```
@@ -237,6 +239,7 @@ println!("next object list: {:?}", result.next());
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
+use aliyun_oss_client::file::blocking::File;
 client
     .put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
@@ -261,6 +264,7 @@ client
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
+use aliyun_oss_client::file::blocking::File;
 client.delete_object("examples/bg2015071010.png");
 ```
 

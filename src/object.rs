@@ -8,25 +8,22 @@ use crate::client::Client;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::{BucketBase, ObjectBase};
-use crate::errors::{OssError, OssResult};
-use crate::traits::{InvalidObjectListValue, InvalidObjectValue, OssIntoObject, OssIntoObjectList};
-use crate::types::{CanonicalizedResource, ContentRange, Query, UrlQuery};
-#[cfg(feature = "put_file")]
-use infer::Infer;
+use crate::errors::OssResult;
 #[cfg(feature = "blocking")]
-use reqwest::blocking::Response as BResponse;
-use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::Response;
+use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
+use crate::file::AlignBuilder;
+use crate::traits::{InvalidObjectListValue, InvalidObjectValue, OssIntoObject, OssIntoObjectList};
+use crate::types::{CanonicalizedResource, Query, UrlQuery};
 use std::fmt;
-use std::path::PathBuf;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::sync::Arc;
 
+/// # 存放对象列表的结构体
 #[derive(Clone, Default)]
 #[non_exhaustive]
 pub struct ObjectList<PointerSel: PointerFamily = ArcPointer> {
-    bucket: BucketBase,
+    pub(crate) bucket: BucketBase,
     name: String,
     prefix: String,
     max_keys: u32,
@@ -208,11 +205,12 @@ impl<T: PointerFamily> ObjectList<T> {
     }
 }
 
+/// 存放单个对象的结构体
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct Object<PointerSel: PointerFamily = ArcPointer> {
-    base: ObjectBase<PointerSel>,
-    key: String, // 打算弃用的字段
+    pub(crate) base: ObjectBase<PointerSel>,
+    key: String,
     last_modified: DateTime<Utc>,
     etag: String,
     _type: String,
@@ -409,162 +407,6 @@ impl Client {
             .from_xml(content.text().await?, Arc::new(bucket))?
             .set_search_query(query))
     }
-
-    /// # 上传文件
-    ///
-    /// 需指定文件的路径
-    #[cfg(feature = "put_file")]
-    pub async fn put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(
-        &self,
-        file_name: P,
-        key: &'static str,
-    ) -> OssResult<String> {
-        let file_content = std::fs::read(file_name)?;
-
-        let get_content_type = |content: &Vec<u8>| match Infer::new().get(content) {
-            Some(con) => Some(con.mime_type()),
-            None => None,
-        };
-
-        self.put_content(file_content, key, get_content_type).await
-    }
-
-    /// # 上传文件内容
-    ///
-    /// 需指定要上传的文件内容
-    /// 以及获取文件类型的闭包
-    ///
-    /// # Examples
-    ///
-    /// 上传 tauri 升级用的签名文件
-    /// ```ignore
-    /// # #[tokio::main]
-    /// # async fn main(){
-    /// use infer::Infer;
-    /// # use dotenv::dotenv;
-    /// # dotenv().ok();
-    /// # let client = aliyun_oss_client::Client::from_env().unwrap();
-    ///
-    /// fn sig_match(buf: &[u8]) -> bool {
-    ///     return buf.len() >= 3 && buf[0] == 0x64 && buf[1] == 0x57 && buf[2] == 0x35;
-    /// }
-    /// let mut infer = Infer::new();
-    /// infer.add("application/pgp-signature", "sig", sig_match);
-    ///
-    /// let get_content_type = |content: &Vec<u8>| match infer.get(content) {
-    ///     Some(con) => Some(con.mime_type()),
-    ///     None => None,
-    /// };
-    /// let content: Vec<u8> = String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
-    /// let res = client
-    ///     .put_content(content, "xxxxxx.msi.zip.sig", get_content_type)
-    ///     .await;
-    /// assert!(res.is_ok());
-    /// # }
-    /// ```
-    pub async fn put_content<F>(
-        &self,
-        content: Vec<u8>,
-        key: &str,
-        get_content_type: F,
-    ) -> OssResult<String>
-    where
-        F: Fn(&Vec<u8>) -> Option<&'static str>,
-    {
-        let content_type =
-            get_content_type(&content).ok_or(OssError::Input("file type is known".to_string()))?;
-
-        let content = self.put_content_base(content, content_type, key).await?;
-
-        let result = content
-            .headers()
-            .get("ETag")
-            .ok_or(OssError::Input("get Etag error".to_string()))?
-            .to_str()
-            .map_err(OssError::from)?;
-
-        Ok(result.to_string())
-    }
-
-    /// 最原始的上传文件的方法
-    pub async fn put_content_base(
-        &self,
-        content: Vec<u8>,
-        content_type: &str,
-        key: &str,
-    ) -> OssResult<Response> {
-        let mut url = self.get_bucket_url();
-        url.set_path(key);
-
-        let mut headers = HeaderMap::new();
-        let content_length = content.len().to_string();
-        headers.insert(
-            "Content-Length",
-            HeaderValue::from_str(&content_length).map_err(OssError::from)?,
-        );
-
-        headers.insert(
-            "Content-Type",
-            content_type.parse().map_err(OssError::from)?,
-        );
-
-        let object_base =
-            ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
-
-        let canonicalized = CanonicalizedResource::from_object(object_base, None);
-
-        let response = self
-            .builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
-            .body(content);
-
-        let content = response.send().await?;
-        Ok(content)
-    }
-
-    /// # 获取文件内容
-    pub async fn get_object<R: Into<ContentRange>>(
-        &self,
-        key: &str,
-        range: R,
-    ) -> OssResult<Vec<u8>> {
-        let mut url = self.get_bucket_url();
-        url.set_path(key);
-
-        let object_base =
-            ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
-
-        let canonicalized = CanonicalizedResource::from_object(object_base, None);
-
-        let headers = {
-            let mut headers = HeaderMap::new();
-            headers.insert("Range", range.into().into());
-            headers
-        };
-
-        let builder = self.builder_with_header("GET", url, canonicalized, Some(headers))?;
-
-        let response = builder.send().await?;
-
-        let content = response.text().await?;
-
-        Ok(content.into_bytes())
-    }
-
-    pub async fn delete_object(&self, key: &str) -> OssResult<()> {
-        let mut url = self.get_bucket_url();
-        url.set_path(key);
-
-        let object_base =
-            ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
-
-        let canonicalized = CanonicalizedResource::from_object(object_base, None);
-
-        let response = self.builder(VERB::DELETE, url, canonicalized)?;
-
-        response.send().await?;
-
-        Ok(())
-    }
 }
 
 #[cfg(feature = "blocking")]
@@ -588,120 +430,6 @@ impl ClientRc {
         Ok(list
             .from_xml(content.text()?, Rc::new(bucket))?
             .set_search_query(query))
-    }
-
-    #[cfg(feature = "put_file")]
-    pub fn put_file<P: Into<PathBuf> + std::convert::AsRef<std::path::Path>>(
-        &self,
-        file_name: P,
-        key: &'static str,
-    ) -> OssResult<String> {
-        let file_content = std::fs::read(file_name)?;
-
-        let get_content_type = |content: &Vec<u8>| match Infer::new().get(content) {
-            Some(con) => Some(con.mime_type()),
-            None => None,
-        };
-
-        self.put_content(file_content, key, get_content_type)
-    }
-
-    pub fn put_content<F>(
-        &self,
-        content: Vec<u8>,
-        key: &str,
-        get_content_type: F,
-    ) -> OssResult<String>
-    where
-        F: Fn(&Vec<u8>) -> Option<&'static str>,
-    {
-        let content_type =
-            get_content_type(&content).ok_or(OssError::Input("file type is known".to_string()))?;
-
-        let content = self.put_content_base(content, content_type, key)?;
-
-        let result = content
-            .headers()
-            .get("ETag")
-            .ok_or(OssError::Input("get Etag error".to_string()))?
-            .to_str()
-            .map_err(OssError::from)?;
-
-        Ok(result.to_string())
-    }
-
-    /// 最原始的上传文件的方法
-    pub fn put_content_base(
-        &self,
-        content: Vec<u8>,
-        content_type: &str,
-        key: &str,
-    ) -> OssResult<BResponse> {
-        let mut url = self.get_bucket_url();
-        url.set_path(key);
-
-        let mut headers = HeaderMap::new();
-        let content_length = content.len().to_string();
-        headers.insert(
-            "Content-Length",
-            HeaderValue::from_str(&content_length).map_err(OssError::from)?,
-        );
-
-        headers.insert(
-            "Content-Type",
-            content_type.parse().map_err(OssError::from)?,
-        );
-
-        let object_base =
-            ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
-
-        let canonicalized = CanonicalizedResource::from_object(object_base, None);
-
-        let response = self
-            .builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
-            .body(content);
-
-        let content = response.send()?;
-        Ok(content)
-    }
-
-    /// # 获取文件内容
-    pub fn get_object<R: Into<ContentRange>>(&self, key: &str, range: R) -> OssResult<Vec<u8>> {
-        let mut url = self.get_bucket_url();
-        url.set_path(key);
-
-        let object_base =
-            ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
-
-        let canonicalized = CanonicalizedResource::from_object(object_base, None);
-
-        let headers = {
-            let mut headers = HeaderMap::new();
-            headers.insert("Range", range.into().into());
-            headers
-        };
-
-        Ok(self
-            .builder_with_header("GET", url, canonicalized, Some(headers))?
-            .send()?
-            .text()?
-            .into_bytes())
-    }
-
-    pub fn delete_object(&self, key: &str) -> OssResult<()> {
-        let mut url = self.get_bucket_url();
-        url.set_path(key);
-
-        let object_base =
-            ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
-
-        let canonicalized = CanonicalizedResource::from_object(object_base, None);
-
-        let response = self.builder(VERB::DELETE, url, canonicalized)?;
-
-        response.send()?;
-
-        Ok(())
     }
 }
 
@@ -752,6 +480,7 @@ impl Iterator for ObjectList<RcPointer> {
 //   }
 // }
 
+/// 未来计划支持的功能
 #[derive(Default)]
 pub struct PutObject<'a> {
     pub forbid_overwrite: bool,
@@ -763,6 +492,7 @@ pub struct PutObject<'a> {
     pub tagging: Option<&'a str>,
 }
 
+/// 未来计划支持的功能
 #[derive(Default)]
 pub enum Encryption {
     #[default]
@@ -771,6 +501,7 @@ pub enum Encryption {
     Sm4,
 }
 
+/// 未来计划支持的功能
 #[derive(Default)]
 pub enum ObjectAcl {
     #[default]
@@ -780,6 +511,7 @@ pub enum ObjectAcl {
     PublicReadWrite,
 }
 
+/// 未来计划支持的功能
 #[derive(Default)]
 pub enum StorageClass {
     #[default]
@@ -789,6 +521,7 @@ pub enum StorageClass {
     ColdArchive,
 }
 
+/// 未来计划支持的功能
 #[derive(Default)]
 pub struct CopyObject<'a> {
     pub forbid_overwrite: bool,
@@ -806,6 +539,7 @@ pub struct CopyObject<'a> {
     pub tagging_directive: CopyDirective,
 }
 
+/// 未来计划支持的功能
 #[derive(Default)]
 pub enum CopyDirective {
     #[default]
