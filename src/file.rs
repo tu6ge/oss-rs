@@ -10,7 +10,7 @@ use crate::{
     builder::{ArcPointer, RequestBuilder},
     config::{ObjectBase, ObjectPath, UrlObjectPath},
     errors::{OssError, OssResult},
-    object::{Object, ObjectList},
+    object::ObjectList,
     types::{CanonicalizedResource, ContentRange},
     Client,
 };
@@ -220,109 +220,6 @@ impl File for ObjectList<ArcPointer> {
     }
 }
 
-/// Object 结构体支持 上传，下载和删除 OSS 文件
-impl Object<ArcPointer> {
-    /// 将本地 Object 对象上传到 OSS 上去
-    ///
-    /// # Examples
-    /// ```no_run
-    /// #[tokio::main]
-    /// async fn main() {
-    ///     # use aliyun_oss_client::config::BucketBase;
-    ///     # use aliyun_oss_client::object::ObjectBuilder;
-    ///     # use aliyun_oss_client::builder::ArcPointer;
-    ///     # use dotenv::dotenv;
-    ///     # use std::sync::Arc;
-    ///     # dotenv().ok();
-    ///     use aliyun_oss_client::file::File;
-    ///     let client = aliyun_oss_client::Client::from_env().unwrap();
-    ///     let bucket = Arc::new(BucketBase::from_env().unwrap());
-    ///     let object = ObjectBuilder::<ArcPointer>::new(bucket, "examples/bg2015071010.png").build();
-    ///     let res = object.put_file("examples/bg2015071010.png", &client).await;
-    ///     assert!(res.is_ok());
-    /// }
-    /// ```
-    #[cfg(feature = "put_file")]
-    #[inline]
-    pub async fn put_file<
-        P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path> + Send + Sync,
-        F,
-    >(
-        &self,
-        file_name: P,
-        filer: &F,
-    ) -> OssResult<String>
-    where
-        F: File,
-    {
-        filer.put_file(file_name, self.path()).await
-    }
-
-    /// # 将本 Object 结构体上传到 OSS 上去
-    ///
-    /// 需指定要上传的文件内容
-    /// 以及根据文件内容获取文件类型的闭包
-    ///
-    /// 参考 [`put_file`](../object/struct.Object.html#method.put_file)，[`put_content`](../file/trait.File.html#method.put_content)
-    #[inline]
-    pub async fn put_content<TF, F>(
-        &self,
-        content: Vec<u8>,
-        get_content_type: TF,
-        filer: &F,
-    ) -> OssResult<String>
-    where
-        TF: Fn(&Vec<u8>) -> Option<&'static str> + Send + Sync,
-        F: File,
-    {
-        filer
-            .put_content(content, self.path(), get_content_type)
-            .await
-    }
-
-    /// # 将本 Object 结构体上传到 OSS 上去
-    ///
-    /// 需指定文件内容，文件类型，以及有上传功能的 struct
-    ///
-    /// 参考 [`put_file`](../object/struct.Object.html#method.put_file)，[`put_content_base`](../file/trait.File.html#method.put_content_base)
-    #[inline]
-    pub async fn put_content_base<F>(
-        &self,
-        content: Vec<u8>,
-        content_type: &str,
-        filer: &F,
-    ) -> OssResult<Response>
-    where
-        F: File,
-    {
-        filer
-            .put_content_base(content, content_type, self.path())
-            .await
-    }
-
-    /// # 获取 OSS 上的文件内容
-    #[inline]
-    pub async fn get_object<R: Into<ContentRange> + Send + Sync, F>(
-        &self,
-        range: R,
-        filer: &F,
-    ) -> OssResult<Vec<u8>>
-    where
-        F: File,
-    {
-        filer.get_object(self.path(), range).await
-    }
-
-    /// # 在 OSS 上删除本 Object 对应的文件
-    #[inline]
-    pub async fn delete<F>(&self, filer: &F) -> OssResult<()>
-    where
-        F: File,
-    {
-        filer.delete_object(self.path()).await
-    }
-}
-
 /// # 对齐 Client, Bucket, ObjectList 等结构体的 trait
 ///
 /// 用于他们方便的实现 [`File`](./trait.File.html) trait
@@ -386,7 +283,7 @@ pub mod blocking {
         builder::RcPointer,
         config::{ObjectBase, ObjectPath, UrlObjectPath},
         errors::{OssError, OssResult},
-        object::{Object, ObjectList},
+        object::ObjectList,
         types::{CanonicalizedResource, ContentRange},
         ClientRc,
     };
@@ -575,100 +472,6 @@ pub mod blocking {
             let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
             (url, canonicalized)
-        }
-    }
-
-    /// Object 结构体支持 上传，下载和删除 OSS 文件
-    impl Object<RcPointer> {
-        /// 将本地 Object 对象上传到 OSS 上去
-        ///
-        /// # Examples
-        /// ```no_run
-        /// fn main() {
-        ///     use aliyun_oss_client::config::BucketBase;
-        ///     use aliyun_oss_client::object::ObjectBuilder;
-        ///     use aliyun_oss_client::builder::RcPointer;
-        ///     use dotenv::dotenv;
-        ///     use std::rc::Rc;
-        ///     dotenv().ok();
-        ///     let client = aliyun_oss_client::ClientRc::from_env().unwrap();
-        ///     let bucket = Rc::new(BucketBase::from_env().unwrap());
-        ///     let object = ObjectBuilder::<RcPointer>::new(bucket, "examples/bg2015071010.png").build();
-        ///     let res = object.put_file("examples/bg2015071010.png", &client);
-        ///     assert!(res.is_ok());
-        /// }
-        /// ```
-        #[cfg(feature = "put_file")]
-        #[inline]
-        pub fn put_file<P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path>, F>(
-            &self,
-            file_name: P,
-            filer: &F,
-        ) -> OssResult<String>
-        where
-            F: File,
-        {
-            filer.put_file(file_name, self.path())
-        }
-
-        /// # 将本 Object 结构体上传到 OSS 上去
-        ///
-        /// 需指定要上传的文件内容
-        /// 以及根据文件内容获取文件类型的闭包
-        ///
-        /// 参考 [`put_file`](../object/struct.Object.html#method.put_file)，[`put_content`](../file/trait.File.html#method.put_content)
-        #[inline]
-        pub fn put_content<TF, F>(
-            &self,
-            content: Vec<u8>,
-            get_content_type: TF,
-            filer: &F,
-        ) -> OssResult<String>
-        where
-            TF: Fn(&Vec<u8>) -> Option<&'static str>,
-            F: File,
-        {
-            filer.put_content(content, self.path(), get_content_type)
-        }
-
-        /// # 将本 Object 结构体上传到 OSS 上去
-        ///
-        /// 需指定文件内容，文件类型，以及有上传功能的 struct
-        ///
-        /// 参考 [`put_file`](../object/struct.Object.html#method.put_file)，[`put_content_base`](../file/trait.File.html#method.put_content_base)
-        #[inline]
-        pub fn put_content_base<F>(
-            &self,
-            content: Vec<u8>,
-            content_type: &str,
-            filer: &F,
-        ) -> OssResult<Response>
-        where
-            F: File,
-        {
-            filer.put_content_base(content, content_type, self.path())
-        }
-
-        /// # 获取 OSS 上的文件内容
-        #[inline]
-        pub fn get_object<R: Into<ContentRange>, F>(
-            &self,
-            range: R,
-            filer: &F,
-        ) -> OssResult<Vec<u8>>
-        where
-            F: File,
-        {
-            filer.get_object(self.path(), range)
-        }
-
-        /// # 在 OSS 上删除本 Object 对应的文件
-        #[inline]
-        pub fn delete<F>(&self, filer: &F) -> OssResult<()>
-        where
-            F: File,
-        {
-            filer.delete_object(self.path())
         }
     }
 
