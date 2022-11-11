@@ -1,4 +1,7 @@
-use std::{borrow::Cow, env::VarError};
+use std::{
+    borrow::Cow,
+    env::{self, VarError},
+};
 
 use reqwest::Url;
 use std::error::Error;
@@ -121,6 +124,17 @@ impl BucketBase {
         })
     }
 
+    /// 通过环境变量初始化
+    pub fn from_env() -> Result<Self, InvalidConfig> {
+        let endpoint = env::var("ALIYUN_ENDPOINT").map_err(InvalidConfig::from)?;
+        let bucket = env::var("ALIYUN_BUCKET").map_err(InvalidConfig::from)?;
+
+        Ok(Self {
+            name: BucketName::new(bucket)?,
+            endpoint: endpoint.try_into().map_err(InvalidConfig::from)?,
+        })
+    }
+
     pub fn name(&self) -> &str {
         self.name.as_ref()
     }
@@ -223,6 +237,10 @@ impl<T: PointerFamily> ObjectBase<T> {
     pub fn set_path<P: Into<ObjectPath>>(&mut self, path: P) {
         self.path = path.into();
     }
+
+    pub fn path(&self) -> ObjectPath {
+        self.path.to_owned()
+    }
 }
 
 pub trait GetObjectInfo {
@@ -262,6 +280,18 @@ impl AsRef<str> for ObjectPath {
     }
 }
 
+impl fmt::Display for ObjectPath {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0.to_owned())
+    }
+}
+
+impl Default for ObjectPath {
+    fn default() -> Self {
+        Self(Cow::Borrowed(""))
+    }
+}
+
 impl ObjectPath {
     /// Creates a new `ObjectPath` from the given string.
     pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
@@ -272,11 +302,21 @@ impl ObjectPath {
     pub const fn from_static(secret: &'static str) -> Self {
         Self(Cow::Borrowed(secret))
     }
+
+    pub fn to_str(&self) -> &str {
+        &self.0
+    }
 }
 
 impl From<String> for ObjectPath {
     fn from(val: String) -> Self {
         Self(val.into())
+    }
+}
+
+impl Into<String> for ObjectPath {
+    fn into(self) -> String {
+        self.0.to_owned().to_string()
     }
 }
 

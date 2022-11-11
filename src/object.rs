@@ -7,7 +7,7 @@ use crate::builder::{ArcPointer, PointerFamily};
 use crate::client::Client;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
-use crate::config::{BucketBase, ObjectBase};
+use crate::config::{BucketBase, ObjectBase, ObjectPath};
 use crate::errors::OssResult;
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
@@ -296,6 +296,82 @@ impl<T: PointerFamily> Object<T> {
             self.storage_class,
         )
     }
+    
+    /// 初始化 Object 结构体
+    pub fn new<P: Into<ObjectPath>>(
+        bucket: T::Bucket,
+        key: P,
+        last_modified: DateTime<Utc>,
+        etag: String,
+        _type: String,
+        size: u64,
+        storage_class: String,
+    ) -> Self {
+        let base = ObjectBase::<T>::new(bucket, key);
+        Self {
+            base,
+            last_modified,
+            etag,
+            _type,
+            size,
+            storage_class,
+        }
+    }
+
+    pub fn path_string(&self) -> String {
+        self.base.path().to_string()
+    }
+}
+
+/// Object 结构体的构建器
+pub struct ObjectBuilder<T: PointerFamily = ArcPointer> {
+    object: Object<T>,
+}
+
+impl<T: PointerFamily> ObjectBuilder<T> {
+    /// TODO 有待进一步优化
+    pub fn new<P: Into<ObjectPath>>(bucket: T::Bucket, key: P) -> Self {
+        let base = ObjectBase::<T>::new(bucket, key);
+        Self {
+            object: Object {
+                base,
+                last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
+                etag: String::default(),
+                _type: String::default(),
+                size: 0,
+                storage_class: String::default(),
+            },
+        }
+    }
+
+    pub fn last_modified(mut self, date: DateTime<Utc>) -> Self {
+        self.object.last_modified = date;
+        self
+    }
+
+    pub fn etag(mut self, etag: String) -> Self {
+        self.object.etag = etag;
+        self
+    }
+
+    pub fn set_type(mut self, _type: String) -> Self {
+        self.object._type = _type;
+        self
+    }
+
+    pub fn size(mut self, size: u64) -> Self {
+        self.object.size = size;
+        self
+    }
+
+    pub fn storage_class(mut self, storage_class: String) -> Self {
+        self.object.storage_class = storage_class;
+        self
+    }
+
+    pub fn build(self) -> Object<T> {
+        self.object
+    }
 }
 
 impl<T: PointerFamily + Sized> OssIntoObject<T> for Object<T> {
@@ -537,7 +613,9 @@ pub enum CopyDirective {
 mod tests {
     use std::sync::Arc;
 
-    use crate::{builder::ArcPointer, config::BucketBase, types::QueryValue, Client, Query};
+    use chrono::{DateTime, Utc, NaiveDateTime};
+
+    use crate::{builder::ArcPointer, config::BucketBase, types::QueryValue, Client, Query, object::{Object, ObjectBuilder}};
 
     use super::ObjectList;
 
@@ -554,7 +632,6 @@ mod tests {
 
         let object_list = ObjectList::<ArcPointer>::new(
             BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
-            String::from("foo1"),
             String::from("foo2"),
             100,
             200,
@@ -612,5 +689,51 @@ mod tests {
         let object_list = init_object_list(None);
         let query = object_list.next_query();
         assert!(query.is_none());
+    }
+
+    #[test]
+    fn test_object_new() {
+        let bucket = Arc::new(BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap());
+        let object = Object::<ArcPointer>::new(
+            bucket,
+            "foo2",
+            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+            "foo3".into(),
+            "foo4".into(),
+            100,
+            "foo5".into(),
+        );
+
+        assert_eq!(object.base.path().to_str(), "foo2");
+        assert_eq!(object.last_modified.to_string(), "1970-01-02 10:10:00 UTC");
+        assert_eq!(object.etag, "foo3");
+        assert_eq!(object._type, "foo4");
+        assert_eq!(object.size, 100);
+        assert_eq!(object.storage_class, "foo5");
+    }
+
+    #[test]
+    fn test_object_builder() {
+        let bucket = Arc::new(BucketBase::new(
+            "abc".try_into().unwrap(),
+            "qingdao".try_into().unwrap(),
+        ));
+        let object = ObjectBuilder::<ArcPointer>::new(bucket, "abc")
+            .last_modified(DateTime::<Utc>::from_utc(
+                NaiveDateTime::from_timestamp(123000, 0),
+                Utc,
+            ))
+            .etag("foo1".to_owned())
+            .set_type("foo2".to_owned())
+            .size(123)
+            .storage_class("foo3".to_owned())
+            .build();
+
+        assert_eq!(object.base.path().to_str(), "abc");
+        assert_eq!(object.last_modified.to_string(), "1970-01-02 10:10:00 UTC");
+        assert_eq!(object.etag, "foo1");
+        assert_eq!(object._type, "foo2");
+        assert_eq!(object.size, 123);
+        assert_eq!(object.storage_class, "foo3");
     }
 }

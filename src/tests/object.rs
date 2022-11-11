@@ -73,7 +73,6 @@ fn object_list_get_object_list() {
 
     let mut object_list = ObjectList::<RcPointer>::new(
         BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
-        String::from("foo1"),
         String::from("foo2"),
         100,
         200,
