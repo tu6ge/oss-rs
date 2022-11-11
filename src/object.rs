@@ -24,7 +24,6 @@ use std::sync::Arc;
 #[non_exhaustive]
 pub struct ObjectList<PointerSel: PointerFamily = ArcPointer> {
     pub(crate) bucket: BucketBase,
-    name: String,
     prefix: String,
     max_keys: u32,
     key_count: u64,
@@ -37,7 +36,6 @@ pub struct ObjectList<PointerSel: PointerFamily = ArcPointer> {
 impl<T: PointerFamily> fmt::Debug for ObjectList<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ObjectList")
-            .field("name", &self.name)
             .field("bucket", &self.bucket)
             .field("prefix", &self.prefix)
             .field("max_keys", &self.max_keys)
@@ -52,7 +50,6 @@ impl Default for ObjectList {
     fn default() -> Self {
         Self {
             bucket: BucketBase::default(),
-            name: String::default(),
             prefix: String::default(),
             max_keys: u32::default(),
             key_count: u64::default(),
@@ -69,7 +66,6 @@ impl Default for ObjectList<RcPointer> {
     fn default() -> Self {
         Self {
             bucket: BucketBase::default(),
-            name: String::default(),
             prefix: String::default(),
             max_keys: u32::default(),
             key_count: u64::default(),
@@ -84,7 +80,6 @@ impl Default for ObjectList<RcPointer> {
 impl<T: PointerFamily> ObjectList<T> {
     pub fn new(
         bucket: BucketBase,
-        name: String,
         prefix: String,
         max_keys: u32,
         key_count: u64,
@@ -95,7 +90,6 @@ impl<T: PointerFamily> ObjectList<T> {
     ) -> Self {
         Self {
             bucket,
-            name,
             prefix,
             max_keys,
             key_count,
@@ -210,7 +204,6 @@ impl<T: PointerFamily> ObjectList<T> {
 #[non_exhaustive]
 pub struct Object<PointerSel: PointerFamily = ArcPointer> {
     pub(crate) base: ObjectBase<PointerSel>,
-    key: String,
     last_modified: DateTime<Utc>,
     etag: String,
     _type: String,
@@ -223,7 +216,6 @@ impl<T: PointerFamily> Default for Object<T> {
         Object {
             base: ObjectBase::<T>::default(),
             last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
-            key: String::default(),
             etag: String::default(),
             _type: String::default(),
             size: 0,
@@ -313,7 +305,6 @@ impl<T: PointerFamily + Sized> OssIntoObject<T> for Object<T> {
     }
 
     fn set_key(mut self, key: String) -> Result<Self, InvalidObjectValue> {
-        self.key = key.clone();
         self.base.set_path(key);
         Ok(self)
     }
@@ -352,11 +343,6 @@ impl<T: PointerFamily> OssIntoObjectList<Object<T>, T> for ObjectList<T> {
         self.key_count = key_count
             .parse::<u64>()
             .map_err(|_| InvalidObjectListValue {})?;
-        Ok(self)
-    }
-
-    fn set_name(mut self, name: String) -> Result<Self, InvalidObjectListValue> {
-        self.name = name;
         Ok(self)
     }
 

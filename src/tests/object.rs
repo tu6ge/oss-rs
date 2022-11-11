@@ -88,7 +88,7 @@ fn object_list_get_object_list() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r##"Ok(ObjectList { name: "barname", bucket: BucketBase { endpoint: CnShanghai, name: BucketName("abc") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"##
+        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("abc") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"##
     );
 }
 
@@ -154,7 +154,7 @@ async fn test_get_object_list() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r##"Ok(ObjectList { name: "barname", bucket: BucketBase { endpoint: CnShanghai, name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"##
+        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"##
     );
 }
 
@@ -225,7 +225,7 @@ fn test_get_blocking_object_list() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r##"Ok(ObjectList { name: "barname", bucket: BucketBase { endpoint: CnShanghai, name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"##
+        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"##
     );
 }
 
