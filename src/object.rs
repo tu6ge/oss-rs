@@ -20,6 +20,7 @@ use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::vec::IntoIter;
+use oss_derive::File;
 
 /// # 存放对象列表的结构体
 /// TODO impl core::ops::Index
@@ -270,7 +271,7 @@ impl<T: PointerFamily> ObjectList<T> {
 }
 
 /// 存放单个对象的结构体
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, File)]
 #[non_exhaustive]
 pub struct Object<PointerSel: PointerFamily = ArcPointer> {
     pub(crate) base: ObjectBase<PointerSel>,
