@@ -10,17 +10,20 @@ use crate::{
     builder::{ArcPointer, RequestBuilder},
     config::{ObjectBase, ObjectPath, UrlObjectPath},
     errors::{OssError, OssResult},
-    object::{Object, ObjectList},
+    object::ObjectList,
     types::{CanonicalizedResource, ContentRange},
     Client,
 };
 #[cfg(feature = "put_file")]
 use infer::Infer;
 
+use oss_derive::oss_file;
+
 /// # 文件相关功能
 ///
 /// 包括 上传，下载，删除等功能
 #[async_trait]
+#[oss_file]
 pub trait File: AlignBuilder {
     /// 根据文件路径获取最终的调用接口以及相关参数
     fn get_url<OP: Into<ObjectPath> + Send + Sync>(&self, path: OP)
@@ -497,10 +500,7 @@ pub mod blocking {
         /// ```
         #[cfg(feature = "put_file")]
         #[inline]
-        pub fn put_file<
-            P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path>,
-            F,
-        >(
+        pub fn put_file<P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path>, F>(
             &self,
             file_name: P,
             filer: &F,
