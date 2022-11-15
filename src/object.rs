@@ -177,7 +177,7 @@ impl<T: PointerFamily> ObjectList<T> {
 #[non_exhaustive]
 pub struct Object<PointerSel: PointerFamily = ArcPointer> {
     base: ObjectBase<PointerSel>,
-    key: String,
+    key: String, // 打算弃用的字段
     last_modified: DateTime<Utc>,
     etag: String,
     _type: String,
@@ -196,6 +196,68 @@ impl<T: PointerFamily> Default for Object<T> {
             size: 0,
             storage_class: String::default(),
         }
+    }
+}
+
+impl<T: PointerFamily> Object<T> {
+    #[inline]
+    pub fn base(&self) -> &ObjectBase<T> {
+        &self.base
+    }
+
+    #[inline]
+    pub fn base_mut(&mut self) -> &mut ObjectBase<T> {
+        &mut self.base
+    }
+
+    #[inline]
+    pub fn last_modified(&self) -> &DateTime<Utc> {
+        &self.last_modified
+    }
+
+    #[inline]
+    pub fn last_modified_mut(&mut self) -> &mut DateTime<Utc> {
+        &mut self.last_modified
+    }
+
+    #[inline]
+    pub fn etag(&self) -> &String {
+        &self.etag
+    }
+
+    #[inline]
+    pub fn etag_mut(&mut self) -> &mut String {
+        &mut self.etag
+    }
+
+    #[inline]
+    pub fn get_type(&self) -> &String {
+        &self._type
+    }
+
+    #[inline]
+    pub fn get_type_mut(&mut self) -> &mut String {
+        &mut self._type
+    }
+
+    #[inline]
+    pub fn size(&self) -> &u64 {
+        &self.size
+    }
+
+    #[inline]
+    pub fn size_mut(&mut self) -> &mut u64 {
+        &mut self.size
+    }
+
+    #[inline]
+    pub fn storage_class(&self) -> &String {
+        &self.storage_class
+    }
+
+    #[inline]
+    pub fn storage_class_mut(&mut self) -> &mut String {
+        &mut self.storage_class
     }
 }
 
