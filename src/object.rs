@@ -201,63 +201,75 @@ impl<T: PointerFamily> Default for Object<T> {
 
 impl<T: PointerFamily> Object<T> {
     #[inline]
-    pub fn base(&self) -> &ObjectBase<T> {
-        &self.base
+    pub fn base(self) -> ObjectBase<T> {
+        self.base
     }
 
     #[inline]
-    pub fn base_mut(&mut self) -> &mut ObjectBase<T> {
-        &mut self.base
+    pub fn set_base(mut self, base: ObjectBase<T>) {
+        self.base = base;
     }
 
     #[inline]
-    pub fn last_modified(&self) -> &DateTime<Utc> {
-        &self.last_modified
+    pub fn last_modified(self) -> DateTime<Utc> {
+        self.last_modified
     }
 
     #[inline]
-    pub fn last_modified_mut(&mut self) -> &mut DateTime<Utc> {
-        &mut self.last_modified
+    pub fn set_last_modified(mut self, last_modified: DateTime<Utc>) {
+        self.last_modified = last_modified;
     }
 
     #[inline]
-    pub fn etag(&self) -> &String {
-        &self.etag
+    pub fn etag(self) -> String {
+        self.etag
     }
 
     #[inline]
-    pub fn etag_mut(&mut self) -> &mut String {
-        &mut self.etag
+    pub fn set_etag(mut self, etag: String) {
+        self.etag = etag
     }
 
     #[inline]
-    pub fn get_type(&self) -> &String {
-        &self._type
+    pub fn get_type(self) -> String {
+        self._type
     }
 
     #[inline]
-    pub fn get_type_mut(&mut self) -> &mut String {
-        &mut self._type
+    pub fn set_type(mut self, _type: String) {
+        self._type = _type;
     }
 
     #[inline]
-    pub fn size(&self) -> &u64 {
-        &self.size
+    pub fn size(self) -> u64 {
+        self.size
     }
 
     #[inline]
-    pub fn size_mut(&mut self) -> &mut u64 {
-        &mut self.size
+    pub fn set_size(mut self, size: u64) {
+        self.size = size;
     }
 
     #[inline]
-    pub fn storage_class(&self) -> &String {
-        &self.storage_class
+    pub fn storage_class(self) -> String {
+        self.storage_class
     }
 
     #[inline]
-    pub fn storage_class_mut(&mut self) -> &mut String {
-        &mut self.storage_class
+    pub fn set_storage_class(mut self, storage_class: String) {
+        self.storage_class = storage_class;
+    }
+
+    /// 获取一部分数据
+    pub fn pieces(self) -> (ObjectBase<T>, DateTime<Utc>, String, String, u64, String) {
+        (
+            self.base,
+            self.last_modified,
+            self.etag,
+            self._type,
+            self.size,
+            self.storage_class,
+        )
     }
 }
 
@@ -742,3 +754,6 @@ pub enum CopyDirective {
     Copy,
     Replace,
 }
+
+#[cfg(test)]
+mod tests {}
