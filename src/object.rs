@@ -108,6 +108,41 @@ impl<T: PointerFamily> ObjectList<T> {
             search_query,
         }
     }
+
+    pub fn bucket(&self) -> &BucketBase {
+        &self.bucket
+    }
+
+    pub fn prefix(&self) -> &String {
+        &self.prefix
+    }
+
+    pub fn max_keys(&self) -> &u32 {
+        &self.max_keys
+    }
+
+    pub fn key_count(&self) -> &u64 {
+        &self.key_count
+    }
+
+    pub fn next_continuation_token(&self) -> &Option<String> {
+        &self.next_continuation_token
+    }
+
+    /// # 下一页的查询条件
+    /// 
+    /// 如果有下一页，返回 Some(Query) 
+    /// 如果没有下一页，则返回 None
+    pub fn next_query(&self) -> Option<Query> {
+        match &self.next_continuation_token {
+            Some(token) => {
+                let mut search_query = self.search_query.clone();
+                search_query.insert("continuation-token", token.to_owned());
+                Some(search_query)
+            }
+            None => None,
+        }
+    }
 }
 
 impl ObjectList {
@@ -756,4 +791,83 @@ pub enum CopyDirective {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use std::sync::Arc;
+
+    use crate::{builder::ArcPointer, config::BucketBase, types::QueryValue, Client, Query};
+
+    use super::ObjectList;
+
+    fn init_object_list(token: Option<String>) -> ObjectList {
+        let client = Client::new(
+            "foo1".into(),
+            "foo2".into(),
+            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+            "foo4".try_into().unwrap(),
+        );
+
+        let mut query = Query::new();
+        query.insert("key1", "value1");
+
+        let object_list = ObjectList::<ArcPointer>::new(
+            BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
+            String::from("foo1"),
+            String::from("foo2"),
+            100,
+            200,
+            Vec::new(),
+            token,
+            Arc::new(client),
+            query,
+        );
+
+        object_list
+    }
+
+    #[test]
+    fn test_get_bucket() {
+        let object_list = init_object_list(Some(String::from("foo3")));
+
+        let bucket = object_list.bucket();
+
+        assert_eq!(bucket.name(), "abc");
+
+        assert!(object_list.prefix() == "foo2");
+        assert_eq!(object_list.prefix(), "foo2");
+
+        assert!(object_list.max_keys() == &100u32);
+        assert_eq!(object_list.max_keys().to_owned(), 100u32);
+
+        match &object_list.next_continuation_token() {
+            Some(a) => {
+                assert!(a == "foo3");
+                assert_eq!(a, "foo3");
+            }
+            None => {
+                panic!("token is valid value");
+            }
+        }
+    }
+
+    #[test]
+    fn test_next_query() {
+        let object_list = init_object_list(Some(String::from("foo3")));
+
+        let query = object_list.next_query();
+
+        assert!(query.is_some());
+        let inner_query = query.unwrap();
+        assert_eq!(
+            inner_query.get("key1"),
+            Some(&QueryValue::from_static("value1"))
+        );
+        assert_eq!(
+            inner_query.get("continuation-token"),
+            Some(&QueryValue::from_static("foo3"))
+        );
+
+        let object_list = init_object_list(None);
+        let query = object_list.next_query();
+        assert!(query.is_none());
+    }
+}
