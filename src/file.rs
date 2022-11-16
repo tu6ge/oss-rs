@@ -585,10 +585,7 @@ pub mod blocking {
         /// ```
         #[cfg(feature = "put_file")]
         #[inline]
-        pub fn put_file<
-            P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path>,
-            F,
-        >(
+        pub fn put_file<P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path>, F>(
             &self,
             file_name: P,
             filer: &F,

@@ -121,8 +121,8 @@ impl<T: PointerFamily> ObjectList<T> {
     }
 
     /// # 下一页的查询条件
-    /// 
-    /// 如果有下一页，返回 Some(Query) 
+    ///
+    /// 如果有下一页，返回 Some(Query)
     /// 如果没有下一页，则返回 None
     pub fn next_query(&self) -> Option<Query> {
         match &self.next_continuation_token {
@@ -296,7 +296,7 @@ impl<T: PointerFamily> Object<T> {
             self.storage_class,
         )
     }
-    
+
     /// 初始化 Object 结构体
     pub fn new<P: Into<ObjectPath>>(
         bucket: T::Bucket,
@@ -613,9 +613,15 @@ pub enum CopyDirective {
 mod tests {
     use std::sync::Arc;
 
-    use chrono::{DateTime, Utc, NaiveDateTime};
+    use chrono::{DateTime, NaiveDateTime, Utc};
 
-    use crate::{builder::ArcPointer, config::BucketBase, types::QueryValue, Client, Query, object::{Object, ObjectBuilder}};
+    use crate::{
+        builder::ArcPointer,
+        config::BucketBase,
+        object::{Object, ObjectBuilder},
+        types::QueryValue,
+        Client, Query,
+    };
 
     use super::ObjectList;
 
