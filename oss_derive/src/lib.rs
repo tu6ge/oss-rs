@@ -13,3 +13,12 @@ pub fn oss_file(_attr: TokenStream, input: TokenStream) -> TokenStream {
     impl_object(&mut item);
     TokenStream::from(quote!(#item))
 }
+
+#[cfg(test)]
+mod tests{
+    #[test]
+    fn ui() {
+        let t = trybuild::TestCases::new();
+        t.pass("tests/file.rs");
+    }
+}
