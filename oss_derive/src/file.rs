@@ -120,6 +120,7 @@ impl FileTrait {
         }
 
         let res = quote! {
+            use crate::object::Object;
             impl Object<RcPointer> {
                 #(#list)*
             }

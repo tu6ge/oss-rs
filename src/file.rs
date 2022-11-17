@@ -286,7 +286,7 @@ pub mod blocking {
         builder::RcPointer,
         config::{ObjectBase, ObjectPath, UrlObjectPath},
         errors::{OssError, OssResult},
-        object::{Object, ObjectList},
+        object::ObjectList,
         types::{CanonicalizedResource, ContentRange},
         ClientRc,
     };
@@ -526,6 +526,97 @@ pub mod blocking {
         ) -> OssResult<RequestBuilder> {
             self.client()
                 .builder_with_header(method, url, resource, headers)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests_macro {
+        use chrono::{DateTime, NaiveDateTime, Utc};
+
+        use crate::{builder::RcPointer, config::BucketBase, object::Object, ClientRc};
+        use std::rc::Rc;
+
+        fn init_object() -> Object<RcPointer> {
+            let bucket = Rc::new(BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap());
+            Object::<RcPointer>::new(
+                bucket,
+                "foo2",
+                DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+                "foo3".into(),
+                "foo4".into(),
+                100,
+                "foo5".into(),
+            )
+        }
+
+        fn init_client() -> ClientRc {
+            use std::env::set_var;
+            set_var("ALIYUN_KEY_ID", "foo1");
+            set_var("ALIYUN_KEY_SECRET", "foo2");
+            set_var("ALIYUN_ENDPOINT", "qingdao");
+            set_var("ALIYUN_BUCKET", "foo4");
+            ClientRc::from_env().unwrap()
+        }
+
+        #[test]
+        fn test_object_put_file() {
+            let object = init_object();
+
+            let client = init_client();
+
+            let res = object.put_file("abc", &client);
+
+            assert!(res.is_err());
+        }
+
+        #[test]
+        fn test_object_put_content() {
+            let object = init_object();
+
+            let client = init_client();
+
+            let content: Vec<u8> =
+                String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
+
+            let res = object.put_content(content, |_| Some("image/png"), &client);
+
+            assert!(res.is_err());
+        }
+
+        #[test]
+        fn test_object_put_content_base() {
+            let object = init_object();
+
+            let client = init_client();
+
+            let content: Vec<u8> =
+                String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
+
+            let res = object.put_content_base(content, "image/png", &client);
+
+            assert!(res.is_err());
+        }
+
+        #[test]
+        fn test_object_get_object() {
+            let object = init_object();
+
+            let client = init_client();
+
+            let res = object.get_object(.., &client);
+
+            assert!(res.is_err());
+        }
+
+        #[test]
+        fn test_object_delete() {
+            let object = init_object();
+
+            let client = init_client();
+
+            let res = object.delete_object(&client);
+
+            assert!(res.is_err());
         }
     }
 }
