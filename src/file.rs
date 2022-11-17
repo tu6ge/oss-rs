@@ -23,7 +23,7 @@ use oss_derive::oss_file;
 ///
 /// 包括 上传，下载，删除等功能
 #[async_trait]
-//#[oss_file]
+#[oss_file]
 pub trait File: AlignBuilder {
     /// 根据文件路径获取最终的调用接口以及相关参数
     fn get_url<OP: Into<ObjectPath> + Send + Sync>(&self, path: OP)
@@ -479,8 +479,6 @@ pub mod blocking {
             (url, canonicalized)
         }
     }
-
-    
 
     pub trait AlignBuilder {
         #[inline]
