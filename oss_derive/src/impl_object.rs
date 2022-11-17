@@ -2,20 +2,20 @@ use syn::TraitItem;
 
 use crate::file::FileTrait;
 
-pub fn impl_object(file: &mut FileTrait) {
+pub fn impl_object(file: &mut FileTrait, is_send: bool) {
     let items = &file.input.items;
+
+    let mut methods = Vec::new();
 
     for inner in items {
         if let TraitItem::Method(method) = inner {
-            let sig = &method.sig;
-            match sig.asyncness {
-                Some(_) => {
-                    file.async_methods.push(sig.clone());
-                }
-                None => {
-                    file.methods.push(sig.clone());
-                }
-            }
+            methods.push(method.sig.clone());
         }
+    }
+
+    if is_send {
+        file.async_methods = methods;
+    } else {
+        file.methods = methods;
     }
 }

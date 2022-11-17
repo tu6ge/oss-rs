@@ -133,9 +133,34 @@ impl FileTrait {
             return;
         }
 
-        let res = quote! {
-            impl Object<ArcPointer> {
+        let mut list = Vec::with_capacity(self.async_methods.len());
+        for method in &self.async_methods {
+            let ref output = method.output;
+            let ref method_name = method.ident;
+            if method_name.to_string() == "get_url".to_string() {
+                continue;
+            }
 
+            let inputs = FileTrait::get_inputs(&method.inputs);
+            let method_arg: Vec<TokenStream> = FileTrait::get_method_arg(&method.inputs);
+            let (final_params, where_clause) = FileTrait::params_where(&method.generics);
+
+            let inputs_str = quote! { #(#inputs,)* };
+            let method_args_str = quote! { #(#method_arg,)* };
+            let filer = quote! { filer: &Ft };
+
+            list.push(quote! {
+                pub fn async #method_name < #final_params >(#inputs_str #filer ) #output #where_clause  {
+                    let ref key = self.base.path().to_string();
+                    filer. #method_name ( #method_args_str ).await
+                }
+            });
+        }
+
+        let res = quote! {
+            use crate::object::Object;
+            impl Object<ArcPointer> {
+                #(#list)*
             }
         };
         res.to_tokens(tokens);
