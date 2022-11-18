@@ -325,3 +325,15 @@ impl From<&'static str> for ObjectPath {
         Self::from_static(url)
     }
 }
+
+/// 将 object 的路径拼接到 Url 上去
+pub trait UrlObjectPath {
+    fn set_object_path(&mut self, path: &ObjectPath);
+}
+
+impl UrlObjectPath for Url {
+    fn set_object_path(&mut self, path: &ObjectPath) {
+        let inner_path: String = path.clone().into();
+        self.set_path(&inner_path);
+    }
+}

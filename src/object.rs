@@ -225,6 +225,27 @@ impl<T: PointerFamily> Default for Object<T> {
 }
 
 impl<T: PointerFamily> Object<T> {
+    /// 初始化 Object 结构体
+    pub fn new<P: Into<ObjectPath>>(
+        bucket: T::Bucket,
+        key: P,
+        last_modified: DateTime<Utc>,
+        etag: String,
+        _type: String,
+        size: u64,
+        storage_class: String,
+    ) -> Self {
+        let base = ObjectBase::<T>::new(bucket, key);
+        Self {
+            base,
+            last_modified,
+            etag,
+            _type,
+            size,
+            storage_class,
+        }
+    }
+
     #[inline]
     pub fn base(self) -> ObjectBase<T> {
         self.base
@@ -297,25 +318,8 @@ impl<T: PointerFamily> Object<T> {
         )
     }
 
-    /// 初始化 Object 结构体
-    pub fn new<P: Into<ObjectPath>>(
-        bucket: T::Bucket,
-        key: P,
-        last_modified: DateTime<Utc>,
-        etag: String,
-        _type: String,
-        size: u64,
-        storage_class: String,
-    ) -> Self {
-        let base = ObjectBase::<T>::new(bucket, key);
-        Self {
-            base,
-            last_modified,
-            etag,
-            _type,
-            size,
-            storage_class,
-        }
+    pub fn path(&self) -> ObjectPath {
+        self.base.path()
     }
 
     pub fn path_string(&self) -> String {

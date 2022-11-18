@@ -8,7 +8,7 @@ use crate::{
     auth::VERB,
     bucket::Bucket,
     builder::{ArcPointer, RequestBuilder},
-    config::ObjectBase,
+    config::{ObjectBase, ObjectPath, UrlObjectPath},
     errors::{OssError, OssResult},
     object::{Object, ObjectList},
     types::{CanonicalizedResource, ContentRange},
@@ -23,7 +23,8 @@ use infer::Infer;
 #[async_trait]
 pub trait File: AlignBuilder {
     /// 根据文件路径获取最终的调用接口以及相关参数
-    fn get_url(&self, key: &str) -> (Url, CanonicalizedResource);
+    fn get_url<OP: Into<ObjectPath> + Send + Sync>(&self, path: OP)
+        -> (Url, CanonicalizedResource);
 
     /// # 上传文件到 OSS
     ///
@@ -31,10 +32,11 @@ pub trait File: AlignBuilder {
     #[cfg(feature = "put_file")]
     async fn put_file<
         P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path> + Send + Sync,
+        OP: Into<ObjectPath> + Send + Sync,
     >(
         &self,
         file_name: P,
-        key: &str,
+        path: OP,
     ) -> OssResult<String> {
         let file_content = std::fs::read(file_name)?;
 
@@ -43,7 +45,7 @@ pub trait File: AlignBuilder {
             None => None,
         };
 
-        self.put_content(file_content, key, get_content_type).await
+        self.put_content(file_content, path, get_content_type).await
     }
 
     /// # 上传文件内容到 OSS
@@ -79,10 +81,10 @@ pub trait File: AlignBuilder {
     /// assert!(res.is_ok());
     /// # }
     /// ```
-    async fn put_content<F>(
+    async fn put_content<F, OP: Into<ObjectPath> + Send + Sync>(
         &self,
         content: Vec<u8>,
-        key: &str,
+        path: OP,
         get_content_type: F,
     ) -> OssResult<String>
     where
@@ -91,7 +93,7 @@ pub trait File: AlignBuilder {
         let content_type =
             get_content_type(&content).ok_or(OssError::Input("file type is known".to_string()))?;
 
-        let content = self.put_content_base(content, content_type, key).await?;
+        let content = self.put_content_base(content, content_type, path).await?;
 
         let result = content
             .headers()
@@ -104,13 +106,13 @@ pub trait File: AlignBuilder {
     }
 
     /// 最核心的上传文件到 OSS 的方法
-    async fn put_content_base(
+    async fn put_content_base<OP: Into<ObjectPath> + Send + Sync>(
         &self,
         content: Vec<u8>,
         content_type: &str,
-        key: &str,
+        path: OP,
     ) -> OssResult<Response> {
-        let (url, canonicalized) = self.get_url(key);
+        let (url, canonicalized) = self.get_url(path);
 
         let mut headers = HeaderMap::new();
         let content_length = content.len().to_string();
@@ -131,12 +133,12 @@ pub trait File: AlignBuilder {
     }
 
     /// # 获取 OSS 上的文件内容
-    async fn get_object<R: Into<ContentRange> + Send + Sync>(
+    async fn get_object<R: Into<ContentRange> + Send + Sync, OP: Into<ObjectPath> + Send + Sync>(
         &self,
-        key: &str,
+        path: OP,
         range: R,
     ) -> OssResult<Vec<u8>> {
-        let (url, canonicalized) = self.get_url(key);
+        let (url, canonicalized) = self.get_url(path);
 
         let headers = {
             let mut headers = HeaderMap::new();
@@ -155,8 +157,8 @@ pub trait File: AlignBuilder {
     }
 
     /// # 删除 OSS 上的文件
-    async fn delete_object(&self, key: &str) -> OssResult<()> {
-        let (url, canonicalized) = self.get_url(key);
+    async fn delete_object<OP: Into<ObjectPath> + Send + Sync>(&self, path: OP) -> OssResult<()> {
+        let (url, canonicalized) = self.get_url(path);
 
         self.builder(VERB::DELETE, url, canonicalized)?
             .send()
@@ -167,12 +169,15 @@ pub trait File: AlignBuilder {
 }
 
 impl File for Client {
-    fn get_url(&self, key: &str) -> (Url, CanonicalizedResource) {
+    fn get_url<OP: Into<ObjectPath> + Send + Sync>(
+        &self,
+        path: OP,
+    ) -> (Url, CanonicalizedResource) {
+        let path = path.into();
         let mut url = self.get_bucket_url();
-        url.set_path(key);
+        url.set_object_path(&path);
 
-        let object_base =
-            ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), key.to_owned());
+        let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), path);
 
         let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
@@ -181,12 +186,15 @@ impl File for Client {
 }
 
 impl File for Bucket {
-    fn get_url(&self, key: &str) -> (Url, CanonicalizedResource) {
+    fn get_url<OP: Into<ObjectPath> + Send + Sync>(
+        &self,
+        path: OP,
+    ) -> (Url, CanonicalizedResource) {
+        let path = path.into();
         let mut url = self.base.to_url();
-        url.set_path(key);
+        url.set_object_path(&path);
 
-        let object_base =
-            ObjectBase::<ArcPointer>::new(Arc::new(self.base.clone()), key.to_owned());
+        let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.base.to_owned()), path);
 
         let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
@@ -195,12 +203,15 @@ impl File for Bucket {
 }
 
 impl File for ObjectList<ArcPointer> {
-    fn get_url(&self, key: &str) -> (Url, CanonicalizedResource) {
+    fn get_url<OP: Into<ObjectPath> + Send + Sync>(
+        &self,
+        path: OP,
+    ) -> (Url, CanonicalizedResource) {
+        let path = path.into();
         let mut url = self.bucket.to_url();
-        url.set_path(key);
+        url.set_object_path(&path);
 
-        let object_base =
-            ObjectBase::<ArcPointer>::new(Arc::new(self.bucket.clone()), key.to_owned());
+        let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.bucket.to_owned()), path);
 
         let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
@@ -241,9 +252,7 @@ impl Object<ArcPointer> {
     where
         F: File,
     {
-        let ref key = self.path_string();
-
-        filer.put_file(file_name, key).await
+        filer.put_file(file_name, self.path()).await
     }
 
     /// # 将本 Object 结构体上传到 OSS 上去
@@ -263,9 +272,9 @@ impl Object<ArcPointer> {
         TF: Fn(&Vec<u8>) -> Option<&'static str> + Send + Sync,
         F: File,
     {
-        let ref key = self.path_string();
-
-        filer.put_content(content, key, get_content_type).await
+        filer
+            .put_content(content, self.path(), get_content_type)
+            .await
     }
 
     /// # 将本 Object 结构体上传到 OSS 上去
@@ -283,9 +292,9 @@ impl Object<ArcPointer> {
     where
         F: File,
     {
-        let ref key = self.path_string();
-
-        filer.put_content_base(content, content_type, key).await
+        filer
+            .put_content_base(content, content_type, self.path())
+            .await
     }
 
     /// # 获取 OSS 上的文件内容
@@ -298,9 +307,7 @@ impl Object<ArcPointer> {
     where
         F: File,
     {
-        let ref key = self.path_string();
-
-        filer.get_object(key, range).await
+        filer.get_object(self.path(), range).await
     }
 
     /// # 在 OSS 上删除本 Object 对应的文件
@@ -309,9 +316,7 @@ impl Object<ArcPointer> {
     where
         F: File,
     {
-        let ref key = self.path_string();
-
-        filer.delete_object(key).await
+        filer.delete_object(self.path()).await
     }
 }
 
@@ -376,7 +381,7 @@ pub mod blocking {
         blocking::builder::RequestBuilder,
         bucket::Bucket,
         builder::RcPointer,
-        config::ObjectBase,
+        config::{ObjectBase, ObjectPath, UrlObjectPath},
         errors::{OssError, OssResult},
         object::{Object, ObjectList},
         types::{CanonicalizedResource, ContentRange},
@@ -389,16 +394,19 @@ pub mod blocking {
 
     pub trait File: AlignBuilder {
         /// 根据文件路径获取最终的调用接口以及相关参数
-        fn get_url(&self, key: &str) -> (Url, CanonicalizedResource);
+        fn get_url<OP: Into<ObjectPath>>(&self, path: OP) -> (Url, CanonicalizedResource);
 
         /// # 上传文件到 OSS
         ///
         /// 需指定文件的路径
         #[cfg(feature = "put_file")]
-        fn put_file<P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path>>(
+        fn put_file<
+            P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path>,
+            OP: Into<ObjectPath>,
+        >(
             &self,
             file_name: P,
-            key: &str,
+            path: OP,
         ) -> OssResult<String> {
             let file_content = std::fs::read(file_name)?;
 
@@ -407,7 +415,7 @@ pub mod blocking {
                 None => None,
             };
 
-            self.put_content(file_content, key, get_content_type)
+            self.put_content(file_content, path, get_content_type)
         }
 
         /// # 上传文件内容到 OSS
@@ -442,10 +450,10 @@ pub mod blocking {
         /// assert!(res.is_ok());
         /// # }
         /// ```
-        fn put_content<F>(
+        fn put_content<F, OP: Into<ObjectPath>>(
             &self,
             content: Vec<u8>,
-            key: &str,
+            path: OP,
             get_content_type: F,
         ) -> OssResult<String>
         where
@@ -454,7 +462,7 @@ pub mod blocking {
             let content_type = get_content_type(&content)
                 .ok_or(OssError::Input("file type is known".to_string()))?;
 
-            let content = self.put_content_base(content, content_type, key)?;
+            let content = self.put_content_base(content, content_type, path)?;
 
             let result = content
                 .headers()
@@ -467,13 +475,13 @@ pub mod blocking {
         }
 
         /// 最原始的上传文件的方法
-        fn put_content_base(
+        fn put_content_base<OP: Into<ObjectPath>>(
             &self,
             content: Vec<u8>,
             content_type: &str,
-            key: &str,
+            path: OP,
         ) -> OssResult<Response> {
-            let (url, canonicalized) = self.get_url(key);
+            let (url, canonicalized) = self.get_url(path);
 
             let mut headers = HeaderMap::new();
             let content_length = content.len().to_string();
@@ -496,8 +504,12 @@ pub mod blocking {
         }
 
         /// # 获取文件内容
-        fn get_object<R: Into<ContentRange>>(&self, key: &str, range: R) -> OssResult<Vec<u8>> {
-            let (url, canonicalized) = self.get_url(key);
+        fn get_object<R: Into<ContentRange>, OP: Into<ObjectPath>>(
+            &self,
+            path: OP,
+            range: R,
+        ) -> OssResult<Vec<u8>> {
+            let (url, canonicalized) = self.get_url(path);
 
             let headers = {
                 let mut headers = HeaderMap::new();
@@ -512,8 +524,8 @@ pub mod blocking {
                 .into_bytes())
         }
 
-        fn delete_object(&self, key: &str) -> OssResult<()> {
-            let (url, canonicalized) = self.get_url(key);
+        fn delete_object<OP: Into<ObjectPath>>(&self, path: OP) -> OssResult<()> {
+            let (url, canonicalized) = self.get_url(path);
 
             self.builder(VERB::DELETE, url, canonicalized)?.send()?;
 
@@ -522,12 +534,12 @@ pub mod blocking {
     }
 
     impl File for ClientRc {
-        fn get_url(&self, key: &str) -> (Url, CanonicalizedResource) {
+        fn get_url<OP: Into<ObjectPath>>(&self, path: OP) -> (Url, CanonicalizedResource) {
+            let path = path.into();
             let mut url = self.get_bucket_url();
-            url.set_path(key);
+            url.set_object_path(&path);
 
-            let object_base =
-                ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), key.to_owned());
+            let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), path);
 
             let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
@@ -536,12 +548,12 @@ pub mod blocking {
     }
 
     impl File for Bucket<RcPointer> {
-        fn get_url(&self, key: &str) -> (Url, CanonicalizedResource) {
+        fn get_url<OP: Into<ObjectPath>>(&self, path: OP) -> (Url, CanonicalizedResource) {
+            let path = path.into();
             let mut url = self.base.to_url();
-            url.set_path(key);
+            url.set_object_path(&path);
 
-            let object_base =
-                ObjectBase::<RcPointer>::new(Rc::new(self.base.clone()), key.to_owned());
+            let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.base.clone()), path);
 
             let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
@@ -550,12 +562,12 @@ pub mod blocking {
     }
 
     impl File for ObjectList<RcPointer> {
-        fn get_url(&self, key: &str) -> (Url, CanonicalizedResource) {
+        fn get_url<OP: Into<ObjectPath>>(&self, path: OP) -> (Url, CanonicalizedResource) {
+            let path = path.into();
             let mut url = self.bucket.to_url();
-            url.set_path(key);
+            url.set_object_path(&path);
 
-            let object_base =
-                ObjectBase::<RcPointer>::new(Rc::new(self.bucket.clone()), key.to_owned());
+            let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.bucket.clone()), path);
 
             let canonicalized = CanonicalizedResource::from_object(object_base, None);
 
@@ -593,9 +605,7 @@ pub mod blocking {
         where
             F: File,
         {
-            let ref key = self.base.path().to_string();
-
-            filer.put_file(file_name, key)
+            filer.put_file(file_name, self.path())
         }
 
         /// # 将本 Object 结构体上传到 OSS 上去
@@ -615,9 +625,7 @@ pub mod blocking {
             TF: Fn(&Vec<u8>) -> Option<&'static str>,
             F: File,
         {
-            let ref key = self.base.path().to_string();
-
-            filer.put_content(content, key, get_content_type)
+            filer.put_content(content, self.path(), get_content_type)
         }
 
         /// # 将本 Object 结构体上传到 OSS 上去
@@ -635,9 +643,7 @@ pub mod blocking {
         where
             F: File,
         {
-            let ref key = self.base.path().to_string();
-
-            filer.put_content_base(content, content_type, key)
+            filer.put_content_base(content, content_type, self.path())
         }
 
         /// # 获取 OSS 上的文件内容
@@ -650,9 +656,7 @@ pub mod blocking {
         where
             F: File,
         {
-            let ref key = self.path_string();
-
-            filer.get_object(key, range)
+            filer.get_object(self.path(), range)
         }
 
         /// # 在 OSS 上删除本 Object 对应的文件
@@ -661,9 +665,7 @@ pub mod blocking {
         where
             F: File,
         {
-            let ref key = self.base.path().to_string();
-
-            filer.delete_object(key)
+            filer.delete_object(self.path())
         }
     }
 
