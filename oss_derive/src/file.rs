@@ -150,7 +150,7 @@ impl FileTrait {
             let filer = quote! { filer: &Ft };
 
             list.push(quote! {
-                pub fn async #method_name < #final_params >(#inputs_str #filer ) #output #where_clause  {
+                pub async fn #method_name < #final_params >(#inputs_str #filer ) #output #where_clause  {
                     let ref key = self.base.path().to_string();
                     filer. #method_name ( #method_args_str ).await
                 }
