@@ -1,12 +1,19 @@
+use async_trait::async_trait;
 use oss_derive::oss_file;
 
 fn main() {
     assert!(true);
 }
 
-#[oss_file]
-pub trait File {
-    fn foo1<OP: Into<ObjectPath>>(&self, _a: String, path: OP, _b: String) -> String {
+//#[oss_file(ASYNC)]
+#[async_trait]
+pub trait File: Send + Sync {
+    async fn foo1<OP: Into<ObjectPath> + Send + Sync>(
+        &self,
+        _a: String,
+        path: OP,
+        _b: String,
+    ) -> String {
         let _p = path.into();
         String::from("abc")
     }
@@ -25,7 +32,7 @@ pub trait File {
     }
 }
 
-pub struct RcPointer;
+pub struct ArcPointer;
 
 pub struct Base;
 

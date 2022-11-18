@@ -10,7 +10,7 @@ use crate::{
     builder::{ArcPointer, RequestBuilder},
     config::{ObjectBase, ObjectPath, UrlObjectPath},
     errors::{OssError, OssResult},
-    object::ObjectList,
+    object::{Object, ObjectList},
     types::{CanonicalizedResource, ContentRange},
     Client,
 };
@@ -22,8 +22,8 @@ use oss_derive::oss_file;
 /// # 文件相关功能
 ///
 /// 包括 上传，下载，删除等功能
-#[async_trait]
 #[oss_file(ASYNC)]
+#[async_trait]
 pub trait File: AlignBuilder {
     /// 根据文件路径获取最终的调用接口以及相关参数
     fn get_url<OP: Into<ObjectPath> + Send + Sync>(&self, path: OP)
@@ -272,6 +272,98 @@ impl AlignBuilder for ObjectList<ArcPointer> {
     }
 }
 
+#[cfg(test)]
+mod tests_macro {
+    use std::sync::Arc;
+
+    use chrono::{DateTime, NaiveDateTime, Utc};
+
+    use crate::{config::BucketBase, object::Object, Client};
+
+    fn init_object() -> Object {
+        let bucket = Arc::new(BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap());
+        Object::new(
+            bucket,
+            "foo2",
+            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+            "foo3".into(),
+            "foo4".into(),
+            100,
+            "foo5".into(),
+        )
+    }
+
+    fn init_client() -> Client {
+        use std::env::set_var;
+        set_var("ALIYUN_KEY_ID", "foo1");
+        set_var("ALIYUN_KEY_SECRET", "foo2");
+        set_var("ALIYUN_ENDPOINT", "qingdao");
+        set_var("ALIYUN_BUCKET", "foo4");
+        Client::from_env().unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_object_put_file() {
+        let object = init_object();
+
+        let client = init_client();
+
+        let res = object.put_file("abc", &client).await;
+
+        assert!(res.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_object_put_content() {
+        let object = init_object();
+
+        let client = init_client();
+
+        let content: Vec<u8> = String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
+
+        let res = object
+            .put_content(content, |_| Some("image/png"), &client)
+            .await;
+
+        assert!(res.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_object_put_content_base() {
+        let object = init_object();
+
+        let client = init_client();
+
+        let content: Vec<u8> = String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
+
+        let res = object.put_content_base(content, "image/png", &client).await;
+
+        assert!(res.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_object_get_object() {
+        let object = init_object();
+
+        let client = init_client();
+
+        let res = object.get_object(.., &client).await;
+
+        assert!(res.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_object_delete() {
+        let object = init_object();
+
+        let client = init_client();
+
+        let res = object.delete_object(&client).await;
+
+        assert!(res.is_err());
+    }
+}
+
 #[cfg(feature = "blocking")]
 pub use blocking::File as BlockingFile;
 
@@ -286,7 +378,7 @@ pub mod blocking {
         builder::RcPointer,
         config::{ObjectBase, ObjectPath, UrlObjectPath},
         errors::{OssError, OssResult},
-        object::ObjectList,
+        object::{Object, ObjectList},
         types::{CanonicalizedResource, ContentRange},
         ClientRc,
     };

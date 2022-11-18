@@ -17,3 +17,4 @@ version = "1.0"
 
 [dev-dependencies]
 trybuild = "1.0"
+async-trait = "^0.1"

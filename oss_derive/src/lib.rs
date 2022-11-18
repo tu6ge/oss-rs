@@ -5,9 +5,9 @@ use proc_macro::TokenStream;
 
 use quote::quote;
 use syn::parse_macro_input;
+mod attr;
 mod file;
 mod impl_object;
-mod attr;
 
 #[proc_macro_attribute]
 pub fn oss_file(attr: TokenStream, input: TokenStream) -> TokenStream {

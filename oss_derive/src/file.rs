@@ -6,8 +6,10 @@ use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::visit::{self, Visit};
 use syn::FnArg;
+use syn::GenericParam;
 use syn::Generics;
 use syn::Pat;
+use syn::Token;
 use syn::WhereClause;
 use syn::{
     parse::{Parse, ParseStream, Result},
@@ -65,16 +67,36 @@ impl FileTrait {
     }
 
     pub fn params_where(generics: &Generics) -> (TokenStream, TokenStream) {
-        let final_params = if generics.params.is_empty() {
-            quote! { Ft }
-        } else {
-            let token = generics.params.to_token_stream();
-            quote! { #token , Ft}
-        };
-
+        let final_params = Self::get_params(&generics.params);
         let where_clause = Self::get_where_clause(&generics.where_clause);
 
         (final_params, where_clause)
+    }
+
+    #[inline]
+    fn get_params(params: &Punctuated<GenericParam, Token![,]>) -> TokenStream {
+        let final_params = if params.is_empty() {
+            quote! { Ft }
+        } else {
+            let params: Vec<TokenStream> = params
+                .into_iter()
+                .filter(|p| match p {
+                    GenericParam::Type(t) => {
+                        if t.ident.to_string() == "OP" {
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                    _ => true,
+                })
+                .map(|p| p.to_token_stream())
+                .collect();
+
+            quote! { #(#params,)* Ft }
+        };
+
+        final_params
     }
 
     #[inline]
@@ -85,7 +107,7 @@ impl FileTrait {
                 quote! { where #predicates Ft: File  }
             }
             None => {
-                quote! { where Ft: File  }
+                quote! { where Ft: File }
             }
         }
     }
@@ -113,14 +135,13 @@ impl FileTrait {
 
             list.push(quote! {
                 pub fn #method_name < #final_params >(#inputs_str #filer ) #output #where_clause  {
-                    let ref key = self.base.path().to_string();
+                    let path = self.path();
                     filer. #method_name ( #method_args_str )
                 }
             });
         }
 
         let res = quote! {
-            use crate::object::Object;
             impl Object<RcPointer> {
                 #(#list)*
             }
@@ -147,18 +168,17 @@ impl FileTrait {
 
             let inputs_str = quote! { #(#inputs,)* };
             let method_args_str = quote! { #(#method_arg,)* };
-            let filer = quote! { filer: &Ft };
+            let filer = quote! { filer: &Ft , };
 
             list.push(quote! {
                 pub async fn #method_name < #final_params >(#inputs_str #filer ) #output #where_clause  {
-                    let ref key = self.base.path().to_string();
+                    let path = self.path();
                     filer. #method_name ( #method_args_str ).await
                 }
             });
         }
 
         let res = quote! {
-            use crate::object::Object;
             impl Object<ArcPointer> {
                 #(#list)*
             }
@@ -192,7 +212,7 @@ impl<'ast> Visit<'ast> for IdentWrapper {
 
 impl IdentWrapper {
     fn is_key(&self) -> bool {
-        self.key == "key".to_string()
+        self.key == "path".to_string()
     }
 }
 

@@ -779,8 +779,7 @@ pub enum CopyDirective {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-    use chrono::{DateTime, NaiveDateTime, Utc};
+    use super::ObjectList;
     use crate::{
         builder::ArcPointer,
         config::BucketBase,
@@ -788,7 +787,8 @@ mod tests {
         types::QueryValue,
         Client, Query,
     };
-    use super::ObjectList;
+    use chrono::{DateTime, NaiveDateTime, Utc};
+    use std::sync::Arc;
 
     fn init_object_list(token: Option<String>, list: Vec<Object>) -> ObjectList {
         let client = Client::new(
@@ -861,7 +861,6 @@ mod tests {
         let query = object_list.next_query();
         assert!(query.is_none());
     }
-    
 
     #[test]
     fn test_object_iter_in_list() {
