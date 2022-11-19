@@ -17,7 +17,7 @@ pub struct VERB(pub Method);
 #[derive(Default, Clone)]
 pub struct Auth {
     pub access_key_id: KeyId,
-    pub access_key_secret: KeySecret,
+    pub(crate) access_key_secret: KeySecret,
     pub verb: VERB,
     pub content_md5: Option<ContentMd5>,
     pub content_type: Option<ContentType>,
@@ -118,7 +118,7 @@ impl Default for VERB {
 }
 
 #[cfg_attr(test, automock)]
-pub trait AuthToHeaderMap {
+pub(crate) trait AuthToHeaderMap {
     fn get_original_header(&self) -> HeaderMap;
     fn get_header_key(&self) -> OssResult<HeaderValue>;
     fn get_header_secret(&self) -> OssResult<HeaderValue>;
@@ -212,7 +212,7 @@ impl AuthToOssHeader for Auth {
 }
 
 /// 从 auth 中提取各个字段，用于计算签名的原始字符串
-pub trait AuthSignString {
+pub(crate) trait AuthSignString {
     fn key(&self) -> Cow<'_, KeyId>;
     fn secret(&self) -> Cow<'_, KeySecret>;
     fn verb(&self) -> String;
@@ -269,7 +269,7 @@ impl AuthGetHeader for Auth {
     }
 }
 
-pub trait AuthHeader {
+pub(crate) trait AuthHeader {
     fn from_auth(auth: &impl AuthToHeaderMap) -> OssResult<Self>
     where
         Self: Sized;
@@ -349,17 +349,17 @@ impl Into<String> for OssHeader {
 }
 
 /// 待签名的数据
-pub struct SignString {
+pub(crate) struct SignString {
     data: String,
     key: KeyId,
     secret: KeySecret,
 }
 
 impl SignString {
-    pub fn new(data: String, key: KeyId, secret: KeySecret) -> SignString {
+    pub(crate) fn new(data: String, key: KeyId, secret: KeySecret) -> SignString {
         SignString { data, key, secret }
     }
-    pub fn from_auth(
+    pub(crate) fn from_auth(
         auth: &impl AuthSignString,
         header: impl HeaderToSign,
     ) -> OssResult<SignString> {
@@ -383,15 +383,18 @@ impl SignString {
         })
     }
 
+    #[allow(dead_code)]
     pub fn data(&self) -> String {
         self.data.clone()
     }
 
+    #[allow(dead_code)]
     pub fn key_string(&self) -> String {
         self.key.to_string()
     }
 
-    pub fn secret_string(&self) -> String {
+    #[allow(dead_code)]
+    pub(crate) fn secret_string(&self) -> String {
         self.secret.to_string()
     }
 
