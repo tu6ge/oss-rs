@@ -22,6 +22,9 @@ use oss_derive::oss_file;
 /// # 文件相关功能
 ///
 /// 包括 上传，下载，删除等功能
+/// 在 [`Client`](../client/struct.Client.html)，[`Bucket`](../bucket/struct.Bucket.html)
+/// , [`ObjectList`](../object/struct.ObjectList.html) 等结构体中均已实现，其中 Client 是在默认的 bucket 上操作文件，
+/// 而 Bucket, ObjectList 则是在当前的 bucket 上操作文件
 #[oss_file(ASYNC)]
 #[async_trait]
 pub trait File: AlignBuilder {
