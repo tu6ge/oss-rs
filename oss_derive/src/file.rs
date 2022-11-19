@@ -134,6 +134,7 @@ impl FileTrait {
             let filer = quote! { filer: &Ft };
 
             list.push(quote! {
+                #[inline]
                 pub fn #method_name < #final_params >(#inputs_str #filer ) #output #where_clause  {
                     let path = self.path();
                     filer. #method_name ( #method_args_str )
@@ -171,6 +172,7 @@ impl FileTrait {
             let filer = quote! { filer: &Ft , };
 
             list.push(quote! {
+                #[inline]
                 pub async fn #method_name < #final_params >(#inputs_str #filer ) #output #where_clause  {
                     let path = self.path();
                     filer. #method_name ( #method_args_str ).await
