@@ -8,7 +8,7 @@ use crate::client::Client;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::{BucketBase, ObjectBase, ObjectPath};
-use crate::errors::OssResult;
+use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
@@ -20,7 +20,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 /// # 存放对象列表的结构体
-#[derive(Clone, Default)]
+#[derive(Clone)]
 #[non_exhaustive]
 pub struct ObjectList<PointerSel: PointerFamily = ArcPointer> {
     pub(crate) bucket: BucketBase,
@@ -144,6 +144,29 @@ impl ObjectList {
 
     pub fn client(&self) -> Arc<Client> {
         Arc::clone(&self.client)
+    }
+
+    pub async fn get_next_list(self) -> OssResult<Self> {
+        match self.next_query() {
+            None => Err(OssError::Input("没有更多数据了".to_owned())),
+            Some(query) => {
+                let mut url = self.bucket.to_url();
+                url.set_search_query(&query);
+
+                let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
+
+                let response = self.builder(VERB::GET, url, canonicalized)?;
+                let content = response.send().await?;
+
+                let list = ObjectList::<ArcPointer>::default()
+                    .set_client(self.client().clone())
+                    .set_bucket(self.bucket.clone());
+
+                Ok(list
+                    .from_xml(content.text().await?, Arc::new(self.bucket.clone()))?
+                    .set_search_query(query))
+            }
+        }
     }
 }
 
@@ -452,6 +475,12 @@ impl<T: PointerFamily> OssIntoObjectList<Object<T>, T> for ObjectList<T> {
     }
 }
 
+use async_stream::try_stream;
+
+use futures_core::stream::Stream;
+use futures_util::pin_mut;
+use futures_util::stream::StreamExt;
+
 impl Client {
     pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList> {
         let mut url = self.get_bucket_url();
@@ -472,6 +501,26 @@ impl Client {
         Ok(list
             .from_xml(content.text().await?, Arc::new(bucket))?
             .set_search_query(query))
+    }
+}
+
+pub fn get_next_list(object_list: ObjectList) -> impl Stream<Item = OssResult<ObjectList>> {
+    try_stream! {
+        let result = object_list.get_next_list().await?;
+        yield result;
+    }
+}
+
+pub async fn loop_get_next_list(object_list: ObjectList) {
+    let list = get_next_list(object_list);
+
+    pin_mut!(list);
+
+    loop {
+        let result = list.next().await;
+        if let None = result {
+            break;
+        }
     }
 }
 

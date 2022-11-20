@@ -21,7 +21,7 @@ use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 #[non_exhaustive]
 pub struct ListBuckets<PointerSel: PointerFamily = ArcPointer> {
     prefix: Option<String>,

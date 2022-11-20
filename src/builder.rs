@@ -25,6 +25,7 @@ where
     type Bucket;
 }
 
+#[derive(Default)]
 pub struct ArcPointer;
 
 impl PointerFamily for ArcPointer {

@@ -46,7 +46,7 @@ default = [
   "sts",
   "put_file"
 ]
-blocking = ["reqwest/blocking", "futures"]
+blocking = ["reqwest/blocking"]
 sts = []
 put_file = ["infer"]
 
@@ -60,10 +60,13 @@ quick-xml = "^0.26"
 infer = {version = "^0.11", optional = true}
 thiserror = "^1"
 anyhow = "^1"
-futures = {version = "^0.3", optional = true}
+futures = {version = "^0.3"}
 urlencoding = "^2"
 async-trait = "^0.1"
 http="^0.2"
+async-stream = "^0.3"
+futures-core = "^0.3"
+futures-util = "^0.3"
 
 [dev-dependencies]
 dotenv = "0.15.0"
@@ -73,4 +76,3 @@ mockall = "0.11.2"
 mockall_double= "0.3.0"
 #faux = "^0.1"
 reqwest = {version ="^0.11", features = ["blocking"]}
-futures = "^0.3"
