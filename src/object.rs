@@ -177,11 +177,11 @@ impl ObjectList {
     }
 
     /// # 将 object_list 转化为 stream, 返回第二页，第三页... 的内容
-    /// 
+    ///
     /// *不够完善，最后一次迭代返回的是 `Some(Err(OssError::WithoutMore))`，而不是 `None`*
-    /// 
+    ///
     /// ## 用法
-    /// 
+    ///
     /// 1. 添加依赖
     /// ```toml
     /// [dependencies]
@@ -201,7 +201,7 @@ impl ObjectList {
     ///     # let object_list = client.get_object_list(query).await.unwrap();
     ///     let stream = object_list.into_stream();
     ///     pin_mut!(stream);
-    /// 
+    ///
     ///     let second_list = stream.next().await;
     ///     let third_list = stream.next().await;
     ///     println!("second_list: {:?}", second_list);
@@ -773,26 +773,29 @@ mod tests {
     #[test]
     fn test_object_iter_in_list() {
         let bucket = Arc::new(BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap());
-        let object_list = init_object_list(None, vec![
-            Object::new(
-                bucket.clone(),
-                "key1",
-                DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
-                "foo3".into(),
-                "foo4".into(),
-                100,
-                "foo5".into(),
-            ),
-            Object::new(
-                bucket.clone(),
-                "key2",
-                DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
-                "foo3".into(),
-                "foo4".into(),
-                100,
-                "foo5".into(),
-            ),
-        ]);
+        let object_list = init_object_list(
+            None,
+            vec![
+                Object::new(
+                    bucket.clone(),
+                    "key1",
+                    DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+                    "foo3".into(),
+                    "foo4".into(),
+                    100,
+                    "foo5".into(),
+                ),
+                Object::new(
+                    bucket.clone(),
+                    "key2",
+                    DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+                    "foo3".into(),
+                    "foo4".into(),
+                    100,
+                    "foo5".into(),
+                ),
+            ],
+        );
 
         let mut iter = object_list.object_iter();
         let first = iter.next();
