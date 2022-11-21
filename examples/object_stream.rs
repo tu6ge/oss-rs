@@ -9,7 +9,7 @@ async fn main() {
     let client = Client::from_env().unwrap();
 
     let mut query = Query::new();
-    query.insert("max-keys", "100");
+    query.insert("max-keys", 100);
 
     let object_list = client.get_object_list(query).await.unwrap();
 

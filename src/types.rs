@@ -821,6 +821,19 @@ impl From<&'static str> for QueryValue {
     }
 }
 
+impl From<u8> for QueryValue {
+    /// 数字转 Query 值
+    ///
+    /// ```
+    /// use aliyun_oss_client::Query;
+    /// let mut query = Query::new();
+    /// query.insert("max_keys", 100);
+    /// ```
+    fn from(num: u8) -> Self {
+        Self(Cow::Owned(num.to_string()))
+    }
+}
+
 impl QueryValue {
     /// Creates a new `QueryValue` from the given string.
     pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
