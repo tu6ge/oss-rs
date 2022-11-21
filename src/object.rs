@@ -19,6 +19,7 @@ use std::fmt;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::sync::Arc;
+use std::vec::IntoIter;
 
 /// # 存放对象列表的结构体
 #[derive(Clone)]
@@ -134,6 +135,11 @@ impl<T: PointerFamily> ObjectList<T> {
             }
             None => None,
         }
+    }
+
+    /// 将 object 列表转化为迭代器
+    pub fn object_iter(self) -> IntoIter<Object<T>> {
+        self.object_list.into_iter()
     }
 }
 
@@ -692,7 +698,7 @@ mod tests {
 
     use super::ObjectList;
 
-    fn init_object_list(token: Option<String>) -> ObjectList {
+    fn init_object_list(token: Option<String>, list: Vec<Object>) -> ObjectList {
         let client = Client::new(
             "foo1".into(),
             "foo2".into(),
@@ -708,7 +714,7 @@ mod tests {
             String::from("foo2"),
             100,
             200,
-            Vec::new(),
+            list,
             token,
             Arc::new(client),
             query,
@@ -719,7 +725,7 @@ mod tests {
 
     #[test]
     fn test_get_bucket() {
-        let object_list = init_object_list(Some(String::from("foo3")));
+        let object_list = init_object_list(Some(String::from("foo3")), vec![]);
 
         let bucket = object_list.bucket();
 
@@ -744,7 +750,7 @@ mod tests {
 
     #[test]
     fn test_next_query() {
-        let object_list = init_object_list(Some(String::from("foo3")));
+        let object_list = init_object_list(Some(String::from("foo3")), vec![]);
 
         let query = object_list.next_query();
 
@@ -759,9 +765,46 @@ mod tests {
             Some(&QueryValue::from_static("foo3"))
         );
 
-        let object_list = init_object_list(None);
+        let object_list = init_object_list(None, vec![]);
         let query = object_list.next_query();
         assert!(query.is_none());
+    }
+
+    #[test]
+    fn test_object_iter_in_list() {
+        let bucket = Arc::new(BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap());
+        let object_list = init_object_list(None, vec![
+            Object::new(
+                bucket.clone(),
+                "key1",
+                DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+                "foo3".into(),
+                "foo4".into(),
+                100,
+                "foo5".into(),
+            ),
+            Object::new(
+                bucket.clone(),
+                "key2",
+                DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+                "foo3".into(),
+                "foo4".into(),
+                100,
+                "foo5".into(),
+            ),
+        ]);
+
+        let mut iter = object_list.object_iter();
+        let first = iter.next();
+        assert!(first.is_some());
+        assert_eq!(first.unwrap().base.path().to_str(), "key1");
+
+        let second = iter.next();
+        assert!(second.is_some());
+        assert_eq!(second.unwrap().base.path().to_str(), "key2");
+
+        let third = iter.next();
+        assert!(third.is_none());
     }
 
     #[test]
