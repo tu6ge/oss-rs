@@ -827,9 +827,22 @@ impl From<u8> for QueryValue {
     /// ```
     /// use aliyun_oss_client::Query;
     /// let mut query = Query::new();
-    /// query.insert("max_keys", 100);
+    /// query.insert("max_keys", 100u8);
     /// ```
     fn from(num: u8) -> Self {
+        Self(Cow::Owned(num.to_string()))
+    }
+}
+
+impl From<u16> for QueryValue {
+    /// 数字转 Query 值
+    ///
+    /// ```
+    /// use aliyun_oss_client::Query;
+    /// let mut query = Query::new();
+    /// query.insert("max_keys", 100u16);
+    /// ```
+    fn from(num: u16) -> Self {
         Self(Cow::Owned(num.to_string()))
     }
 }
