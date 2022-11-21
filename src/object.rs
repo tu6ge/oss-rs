@@ -1,5 +1,3 @@
-use chrono::prelude::*;
-
 use crate::auth::VERB;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
@@ -14,6 +12,9 @@ use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::traits::{InvalidObjectListValue, InvalidObjectValue, OssIntoObject, OssIntoObjectList};
 use crate::types::{CanonicalizedResource, Query, UrlQuery};
+use async_stream::try_stream;
+use chrono::prelude::*;
+use futures_core::stream::Stream;
 use std::fmt;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
@@ -146,9 +147,9 @@ impl ObjectList {
         Arc::clone(&self.client)
     }
 
-    pub async fn get_next_list(self) -> OssResult<Self> {
+    pub async fn get_next_list(&self) -> OssResult<Self> {
         match self.next_query() {
-            None => Err(OssError::Input("没有更多数据了".to_owned())),
+            None => Err(OssError::WithoutMore),
             Some(query) => {
                 let mut url = self.bucket.to_url();
                 url.set_search_query(&query);
@@ -166,6 +167,45 @@ impl ObjectList {
                     .from_xml(content.text().await?, Arc::new(self.bucket.clone()))?
                     .set_search_query(query))
             }
+        }
+    }
+
+    /// # 将 object_list 转化为 stream, 返回第二页，第三页... 的内容
+    /// 
+    /// *不够完善，最后一次迭代返回的是 `Some(Err(OssError::WithoutMore))`，而不是 `None`*
+    /// 
+    /// ## 用法
+    /// 
+    /// 1. 添加依赖
+    /// ```toml
+    /// [dependencies]
+    /// futures="0.3"
+    /// ```
+    /// 2. 将返回结果 pin 住
+    /// ```ignore
+    /// # use dotenv::dotenv;
+    /// # use aliyun_oss_client::{Client, Query};
+    /// # #[tokio::main]
+    /// # async fn main() {
+    ///     # dotenv().ok();
+    ///     use futures::{pin_mut, StreamExt};
+    ///     # let client = Client::from_env().unwrap();
+    ///     # let mut query = Query::new();
+    ///     # query.insert("max-keys", "100");
+    ///     # let object_list = client.get_object_list(query).await.unwrap();
+    ///     let stream = object_list.into_stream();
+    ///     pin_mut!(stream);
+    /// 
+    ///     let second_list = stream.next().await;
+    ///     let third_list = stream.next().await;
+    ///     println!("second_list: {:?}", second_list);
+    ///     println!("third_list: {:?}", third_list);
+    /// # }
+    /// ```
+    pub fn into_stream(self) -> impl Stream<Item = OssResult<Self>> {
+        try_stream! {
+            let result = self.get_next_list().await?;
+            yield result;
         }
     }
 }
@@ -475,12 +515,6 @@ impl<T: PointerFamily> OssIntoObjectList<Object<T>, T> for ObjectList<T> {
     }
 }
 
-use async_stream::try_stream;
-
-use futures_core::stream::Stream;
-use futures_util::pin_mut;
-use futures_util::stream::StreamExt;
-
 impl Client {
     pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList> {
         let mut url = self.get_bucket_url();
@@ -501,26 +535,6 @@ impl Client {
         Ok(list
             .from_xml(content.text().await?, Arc::new(bucket))?
             .set_search_query(query))
-    }
-}
-
-pub fn get_next_list(object_list: ObjectList) -> impl Stream<Item = OssResult<ObjectList>> {
-    try_stream! {
-        let result = object_list.get_next_list().await?;
-        yield result;
-    }
-}
-
-pub async fn loop_get_next_list(object_list: ObjectList) {
-    let list = get_next_list(object_list);
-
-    pin_mut!(list);
-
-    loop {
-        let result = list.next().await;
-        if let None = result {
-            break;
-        }
     }
 }
 

@@ -78,6 +78,10 @@ pub enum OssError {
     #[error("{0}")]
     InvalidConfig(#[from] InvalidConfig),
 
+    /// 用于 Stream
+    #[error("Without More Content")]
+    WithoutMore,
+
     #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
