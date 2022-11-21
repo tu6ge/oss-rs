@@ -1,12 +1,12 @@
 [package]
 name = "aliyun-oss-client"
-version = "0.9.3"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 resolver = "2"
-license = "MIT"
+license.workspace = true
 description = "an aliyun oss client"
 keywords = ["aliyun", "oss", "sdk"]
-repository = "https://github.com/tu6ge/oss-rs"
+repository.workspace = true
 rust-version = "1.62"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -15,6 +15,13 @@ rust-version = "1.62"
 all-features = true
 
 [workspace]
+members = ["oss_derive"]
+
+[workspace.package]
+version = "0.9.3"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/tu6ge/oss-rs"
 
 [[example]]
 name = "bucket"
