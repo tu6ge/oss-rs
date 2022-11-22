@@ -269,5 +269,5 @@ where
     S: Into<KeySecret>,
 {
     let config = Config::new(access_key_id, access_key_secret, endpoint, bucket);
-    client::Client::<ClientWithMiddleware>::from_config(&config)
+    client::Client::<ClientWithMiddleware>::from_config(config)
 }

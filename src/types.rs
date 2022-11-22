@@ -262,7 +262,7 @@ impl EndPoint {
     /// use reqwest::Url;
     /// let endpoint = EndPoint::new("shanghai").unwrap();
     /// assert_eq!(endpoint.to_url(), Url::parse("https://oss-cn-shanghai.aliyuncs.com").unwrap());
-    /// 
+    ///
     /// use std::env::set_var;
     /// set_var("ALIYUN_OSS_INTERNAL", "true");
     /// let endpoint = EndPoint::new("shanghai").unwrap();
@@ -276,7 +276,7 @@ impl EndPoint {
         if let Ok(_) = env::var("ALIYUN_OSS_INTERNAL") {
             url.push_str("-internal");
         }
-        
+
         url.push_str(".aliyuncs.com");
         Url::parse(&url).unwrap()
     }

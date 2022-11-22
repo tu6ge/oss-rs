@@ -41,25 +41,15 @@ impl<M: Default> Client<M> {
             .key(access_key_id)
             .secret(access_key_secret);
 
-        Self {
-            auth_builder,
-            client_middleware: M::default(),
-            endpoint,
-            bucket,
-        }
+        Self::from_builder(auth_builder, endpoint, bucket)
     }
 
-    pub fn from_config(config: &Config) -> Self {
-        let auth_builder = AuthBuilder::default()
-            .key(config.key())
-            .secret(config.secret());
+    pub fn from_config(config: Config) -> Self {
+        let (key, secret, bucket, endpoint) = config.get_all();
 
-        Self {
-            auth_builder,
-            client_middleware: M::default(),
-            endpoint: config.endpoint(),
-            bucket: config.bucket(),
-        }
+        let auth_builder = AuthBuilder::default().key(key).secret(secret);
+
+        Self::from_builder(auth_builder, endpoint, bucket)
     }
 
     /// # 通过环境变量初始化 Client
@@ -87,12 +77,11 @@ impl<M: Default> Client<M> {
             .key(key_id.into())
             .secret(key_secret.into());
 
-        Ok(Self {
+        Ok(Self::from_builder(
             auth_builder,
-            client_middleware: M::default(),
-            endpoint: endpoint.try_into().map_err(InvalidConfig::from)?,
-            bucket: bucket.try_into().map_err(InvalidConfig::from)?,
-        })
+            endpoint.try_into().map_err(InvalidConfig::from)?,
+            bucket.try_into().map_err(InvalidConfig::from)?,
+        ))
     }
 
     pub fn from_builder(auth_builder: AuthBuilder, endpoint: EndPoint, bucket: BucketName) -> Self {
@@ -104,6 +93,7 @@ impl<M: Default> Client<M> {
         }
     }
 
+    #[deprecated]
     pub fn set_bucket_name(&mut self, bucket: BucketName) {
         self.bucket = bucket
     }

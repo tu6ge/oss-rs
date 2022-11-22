@@ -37,20 +37,8 @@ impl Config {
         }
     }
 
-    pub fn key(&self) -> KeyId {
-        self.key.clone()
-    }
-
-    pub fn secret(&self) -> KeySecret {
-        self.secret.clone()
-    }
-
-    pub fn bucket(&self) -> BucketName {
-        self.bucket.clone()
-    }
-
-    pub fn endpoint(&self) -> EndPoint {
-        self.endpoint.clone()
+    pub(crate) fn get_all(self) -> (KeyId, KeySecret, BucketName, EndPoint) {
+        (self.key, self.secret, self.bucket, self.endpoint)
     }
 }
 
@@ -170,7 +158,7 @@ impl BucketBase {
     /// bucket.set_endpoint("shanghai");
     /// let url = bucket.to_url();
     /// assert_eq!(url.as_str(), "https://abc.oss-cn-shanghai.aliyuncs.com/");
-    /// 
+    ///
     /// use std::env::set_var;
     /// set_var("ALIYUN_OSS_INTERNAL", "true");
     /// let mut bucket = BucketBase::default();

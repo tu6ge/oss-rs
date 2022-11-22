@@ -161,5 +161,5 @@ where
     B: Into<BucketName>,
 {
     let config = Config::new(access_key_id, access_key_secret, endpoint, bucket);
-    crate::client::Client::<ClientWithMiddleware>::from_config(&config)
+    crate::client::Client::<ClientWithMiddleware>::from_config(config)
 }
