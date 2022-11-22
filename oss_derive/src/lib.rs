@@ -11,7 +11,7 @@ mod impl_object;
 
 /// # 转换 File trait 的各种方法到 Object 结构体中
 /// 例如 `Client` 结构体中有 `put_file` 方法，通过这个 macro ，可以让 Object 结构体支持 `put_file` 方法
-/// 
+///
 /// 注意，之前的方法签名是这样的 `put_file(filename, path)`，由于 Object 本身有 path 属性，转换后的方法是这样的
 /// `put_file(filename, &filer)`，其中 filer 可以传入实现 `File` trait 的结构体，在 oss-rs 项目中，有 `Client`, `Bucket`, `ObjectList`
 /// 等结构体已实现了该trait，可以直接传入使用，其他的也可以

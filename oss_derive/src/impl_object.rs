@@ -9,7 +9,7 @@ pub fn impl_object(file: &mut FileTrait, is_send: bool) {
 
     for inner in items {
         if let TraitItem::Method(method) = inner {
-            methods.push(method.sig.clone());
+            methods.push(method.clone());
         }
     }
 

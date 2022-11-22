@@ -305,6 +305,7 @@ mod tests_macro {
         Client::from_env().unwrap()
     }
 
+    #[cfg(feature = "put_file")]
     #[tokio::test]
     async fn test_object_put_file() {
         let object = init_object();
@@ -654,6 +655,7 @@ pub mod blocking {
         }
 
         #[test]
+        #[cfg(feature = "put_file")]
         fn test_object_put_file() {
             let object = init_object();
 

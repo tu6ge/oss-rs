@@ -1,25 +1,17 @@
-use proc_macro2::Ident;
-use proc_macro2::TokenStream;
-use quote::quote;
-use quote::ToTokens;
-use syn::punctuated::Punctuated;
-use syn::token::Comma;
-use syn::visit::{self, Visit};
-use syn::FnArg;
-use syn::GenericParam;
-use syn::Generics;
-use syn::Pat;
-use syn::Token;
-use syn::WhereClause;
+use proc_macro2::{Ident, TokenStream};
+use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream, Result},
-    ItemTrait, Signature,
+    punctuated::Punctuated,
+    token::Comma,
+    visit::{self, Visit},
+    FnArg, GenericParam, Generics, ItemTrait, Pat, Token, TraitItemMethod, WhereClause,
 };
 
 pub struct FileTrait {
     pub(crate) input: ItemTrait,
-    pub(crate) methods: Vec<Signature>,
-    pub(crate) async_methods: Vec<Signature>,
+    pub(crate) methods: Vec<TraitItemMethod>,
+    pub(crate) async_methods: Vec<TraitItemMethod>,
 }
 
 impl FileTrait {
@@ -112,13 +104,30 @@ impl FileTrait {
         }
     }
 
+    fn get_attrs(attrs: &Vec<syn::Attribute>) -> TokenStream {
+        let attrs_token: Vec<TokenStream> = attrs
+            .into_iter()
+            .filter(|&attr| {
+                if attr.path.to_token_stream().to_string() == "doc" {
+                    false
+                } else {
+                    true
+                }
+            })
+            .map(|res| res.to_token_stream())
+            .collect();
+
+        quote! { #(#attrs_token)* }
+    }
+
     fn methods_to_tokens(&self, tokens: &mut TokenStream) {
         if self.methods.len() == 0 {
             return;
         }
 
         let mut list = Vec::with_capacity(self.methods.len());
-        for method in &self.methods {
+        for TraitItemMethod { sig, attrs, .. } in &self.methods {
+            let method = sig;
             let ref output = method.output;
             let ref method_name = method.ident;
             if method_name.to_string() == "get_url".to_string() {
@@ -133,8 +142,11 @@ impl FileTrait {
             let method_args_str = quote! { #(#method_arg,)* };
             let filer = quote! { filer: &Ft };
 
+            let attrs_final = FileTrait::get_attrs(&attrs);
+
             list.push(quote! {
                 #[inline]
+                #attrs_final
                 pub fn #method_name < #final_params >(#inputs_str #filer ) #output #where_clause  {
                     let path = self.path();
                     filer. #method_name ( #method_args_str )
@@ -156,7 +168,8 @@ impl FileTrait {
         }
 
         let mut list = Vec::with_capacity(self.async_methods.len());
-        for method in &self.async_methods {
+        for TraitItemMethod { sig, attrs, .. } in &self.async_methods {
+            let method = sig;
             let ref output = method.output;
             let ref method_name = method.ident;
             if method_name.to_string() == "get_url".to_string() {
@@ -171,8 +184,11 @@ impl FileTrait {
             let method_args_str = quote! { #(#method_arg,)* };
             let filer = quote! { filer: &Ft , };
 
+            let attrs_final = FileTrait::get_attrs(&attrs);
+
             list.push(quote! {
                 #[inline]
+                #attrs_final
                 pub async fn #method_name < #final_params >(#inputs_str #filer ) #output #where_clause  {
                     let path = self.path();
                     filer. #method_name ( #method_args_str ).await
