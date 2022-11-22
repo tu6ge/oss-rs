@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::env;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
@@ -261,10 +262,21 @@ impl EndPoint {
     /// use reqwest::Url;
     /// let endpoint = EndPoint::new("shanghai").unwrap();
     /// assert_eq!(endpoint.to_url(), Url::parse("https://oss-cn-shanghai.aliyuncs.com").unwrap());
+    /// 
+    /// use std::env::set_var;
+    /// set_var("ALIYUN_OSS_INTERNAL", "true");
+    /// let endpoint = EndPoint::new("shanghai").unwrap();
+    /// assert_eq!(endpoint.to_url(), Url::parse("https://oss-cn-shanghai-internal.aliyuncs.com").unwrap());
     /// ```
     pub fn to_url(&self) -> Url {
         let mut url = String::from("https://oss-");
         url.push_str(self.as_ref());
+
+        // internal
+        if let Ok(_) = env::var("ALIYUN_OSS_INTERNAL") {
+            url.push_str("-internal");
+        }
+        
         url.push_str(".aliyuncs.com");
         Url::parse(&url).unwrap()
     }
@@ -322,6 +334,12 @@ impl TryFrom<&'static str> for BucketName {
     type Error = InvalidBucketName;
     fn try_from(bucket: &'static str) -> Result<Self, Self::Error> {
         Self::from_static(bucket)
+    }
+}
+
+impl Into<String> for BucketName {
+    fn into(self) -> String {
+        self.0.into_owned()
     }
 }
 

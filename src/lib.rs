@@ -54,6 +54,10 @@ let client = aliyun_oss_client::Client::new(
 );
 ```
 
+## 支持内网访问 Version +0.9
+
+在阿里云的 ECS 上请求 OSS 接口，使用内网 API 有更高的效率，只需要在 ECS 上设置 `ALIYUN_OSS_INTERNAL` 环境变量为 `true` 即可
+
 ### 查询所有的 bucket 信息
 
 ```rust

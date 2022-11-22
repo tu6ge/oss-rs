@@ -11,7 +11,7 @@ aliyun OSS 的一个客户端
 
 ```toml
 [dependencies]
-aliyun-oss-client = "^0.8"
+aliyun-oss-client = "^0.9"
 ```
 
 2. 打开你需要使用 oss 的文件，在里面添加如下内容，即可使用：
@@ -32,6 +32,10 @@ use aliyun_oss_client::BucketName;
 let bucket = BucketName::new("bbb").unwrap();
 let client = aliyun_oss_client::Client::new("key1".into(),"secret1".into(),"qingdao".try_into().unwrap(), bucket);
 ```
+
+## 支持内网访问 Version +0.9
+
+在阿里云的 ECS 上请求 OSS 接口，使用内网 API 有更高的效率，只需要在 ECS 上设置 `ALIYUN_OSS_INTERNAL` 环境变量为 `true` 即可
 
 ## 异步
 

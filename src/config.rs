@@ -170,15 +170,27 @@ impl BucketBase {
     /// bucket.set_endpoint("shanghai");
     /// let url = bucket.to_url();
     /// assert_eq!(url.as_str(), "https://abc.oss-cn-shanghai.aliyuncs.com/");
+    /// 
+    /// use std::env::set_var;
+    /// set_var("ALIYUN_OSS_INTERNAL", "true");
+    /// let mut bucket = BucketBase::default();
+    /// bucket.set_name("abc");
+    /// bucket.set_endpoint("shanghai");
+    /// let url = bucket.to_url();
+    /// assert_eq!(url.as_str(), "https://abc.oss-cn-shanghai-internal.aliyuncs.com/");
     /// ```
     ///
     /// > 因为 BucketName,EndPoint 声明时已做限制,所以 BucketBase 可以安全的转换成 url
     pub fn to_url(&self) -> Url {
-        let mut url = String::from("https://");
-        url.push_str(self.name.as_ref());
-        url.push_str(".oss-");
-        url.push_str(self.endpoint.as_ref());
-        url.push_str(".aliyuncs.com");
+        let endpoint = self.endpoint.to_url();
+        let url = endpoint.to_string();
+        let name_str = self.name.to_string();
+
+        let mut name = String::from("https://");
+        name.push_str(&name_str);
+        name.push('.');
+
+        let url = url.replace("https://", &name);
         Url::parse(&url).unwrap()
     }
 }
