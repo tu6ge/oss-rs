@@ -5,6 +5,7 @@ use crate::builder::ClientWithMiddleware;
 use crate::file::AlignBuilder;
 use crate::{client::Client, types::CanonicalizedResource, EndPoint};
 
+#[allow(deprecated)]
 #[test]
 fn set_bucket_name() {
     use crate::client;

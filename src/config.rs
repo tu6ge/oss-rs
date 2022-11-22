@@ -4,7 +4,7 @@ use std::{
 };
 
 use reqwest::Url;
-use std::error::Error;
+use thiserror::Error;
 use std::fmt;
 
 #[cfg(feature = "blocking")]
@@ -41,8 +41,6 @@ impl Config {
         (self.key, self.secret, self.bucket, self.endpoint)
     }
 }
-
-use thiserror::Error;
 
 #[derive(Error, Debug)]
 #[non_exhaustive]
@@ -98,12 +96,12 @@ impl BucketBase {
             }
         }
         if !domain.chars().all(valid_character) {
-            return Err(InvalidBucketBase);
+            return Err(InvalidBucketBase::Tacitly);
         }
 
         let (bucket, endpoint) = match domain.split_once('.') {
             Some(v) => v,
-            None => return Err(InvalidBucketBase),
+            None => return Err(InvalidBucketBase::Tacitly),
         };
 
         Ok(Self {
@@ -183,28 +181,17 @@ impl BucketBase {
     }
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 #[non_exhaustive]
-pub struct InvalidBucketBase;
+pub enum InvalidBucketBase {
+    #[error("bucket url must like with https://yyy.xxx.aliyuncs.com")]
+    Tacitly,
 
-impl Error for InvalidBucketBase {}
+    #[error("{0}")]
+    EndPoint(#[from] InvalidEndPoint),
 
-impl fmt::Display for InvalidBucketBase {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "bucket url must like with https://yyy.xxx.aliyuncs.com")
-    }
-}
-
-// TODO 转换细节需要优化
-impl From<InvalidBucketName> for InvalidBucketBase {
-    fn from(_value: InvalidBucketName) -> Self {
-        Self
-    }
-}
-impl From<InvalidEndPoint> for InvalidBucketBase {
-    fn from(_value: InvalidEndPoint) -> Self {
-        Self
-    }
+    #[error("{0}")]
+    BucketName(#[from] InvalidBucketName),
 }
 
 #[derive(Debug, Clone)]
