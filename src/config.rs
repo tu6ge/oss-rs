@@ -4,8 +4,8 @@ use std::{
 };
 
 use reqwest::Url;
-use thiserror::Error;
 use std::fmt;
+use thiserror::Error;
 
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;

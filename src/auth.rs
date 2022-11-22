@@ -142,7 +142,7 @@ impl From<VERB> for String {
             Method::CONNECT => "CONNECT".into(),
             Method::PATCH => "PATCH".into(),
             Method::TRACE => "TRACE".into(),
-            _ => "".into(),
+            _ => panic!("undefined verb type"),
         }
     }
 }
@@ -159,7 +159,7 @@ impl From<&str> for VERB {
             "CONNECT" => VERB(Method::CONNECT),
             "PATCH" => VERB(Method::PATCH),
             "TRACE" => VERB(Method::TRACE),
-            _ => VERB(Method::GET),
+            _ => panic!("undefined verb type"),
         }
     }
 }
@@ -243,7 +243,7 @@ impl AuthToOssHeader for Auth {
         header.sort_by(|(k1, _), (k2, _)| k1.to_string().cmp(&k2.to_string()));
 
         let header_vec: Vec<String> = header
-            .into_iter()
+            .iter()
             .filter_map(|(k, v)| match v.to_str() {
                 Ok(val) => Some(k.as_str().to_owned() + ":" + val),
                 _ => None,
@@ -278,13 +278,13 @@ impl AuthSignString for Auth {
     fn content_md5(&self) -> Cow<'_, ContentMd5> {
         match self.content_md5.clone() {
             Some(md5) => Cow::Owned(md5),
-            None => Cow::Owned(ContentMd5::new("")),
+            None => Cow::Owned(ContentMd5::default()),
         }
     }
     fn content_type(&self) -> Cow<'_, ContentType> {
         match self.headers.get("Content-Type") {
             Some(ct) => Cow::Owned(ct.to_owned().try_into().unwrap()),
-            None => Cow::Owned(ContentType::new("")),
+            None => Cow::Owned(ContentType::default()),
         }
     }
     fn date(&self) -> Cow<'_, Date> {
