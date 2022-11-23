@@ -586,33 +586,73 @@ impl Iterator for ObjectList<RcPointer> {
     }
 }
 
-// use futures::Stream;
-// use std::iter::Iterator;
-// use std::pin::{Pin};
-// use std::task::Poll;
-// impl <'a>Stream for ObjectList<'a> {
-//   type Item = Vec<Object>;
+// use futures::future::Pending;
+// use futures::FutureExt;
+// use reqwest::Response;
+// use std::task::Poll::{self, Ready};
 
-//   /// 未测试的
-//   fn poll_next(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> core::task::Poll<Option<Vec<Object>>> {
+// impl Stream for ObjectList<ArcPointer> {
+//     type Item = ObjectList<ArcPointer>;
 
-//     if let None = self.next_continuation_token {
-//       return Poll::Ready(None);
-//     }
+//     fn poll_next(
+//         self: std::pin::Pin<&mut Self>,
+//         cx: &mut std::task::Context<'_>,
+//     ) -> Poll<Option<Self::Item>> {
+//         match self.next_query() {
+//             Some(query) => {
+//                 let mut url = self.bucket.to_url();
+//                 url.set_search_query(&query);
 
-//     let mut pinned = pin!(self.next_continuation_token);
-//     match pinned.as_mut().poll(cx) {
-//       Poll::Ready(token) => {
-//         let mut query = self.search_query.clone();
-//         query.insert("continuation-token".to_string(), token);
-//         match self.client.get_object_list(query) {
-//           Ok(list) => core::task::Poll::Ready(Some(list)),
-//           Err(_) => core::task::Poll::Ready(None),
+//                 let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
+
+//                 let builder = self.builder(VERB::GET, url, canonicalized);
+//                 match builder {
+//                     Err(err) => return Ready(None),
+//                     Ok(builder) => {
+//                         let content = match builder.send().poll_unpin(cx) {
+//                             Ready(res) => res,
+//                             Poll::Pending => return Poll::Pending,
+//                         };
+
+//                         let response = match content {
+//                             Ok(res) => res,
+//                             Err(_) => return Ready(None),
+//                         };
+
+//                         let text = match response.text().poll_unpin(cx) {
+//                             Ready(res) => res,
+//                             Poll::Pending => return Poll::Pending,
+//                         };
+
+//                         let text = match text {
+//                             Ok(res) => res,
+//                             Err(_) => return Ready(None),
+//                         };
+
+//                         let list = ObjectList::<ArcPointer>::default()
+//                             .set_client(self.client().clone())
+//                             .set_bucket(self.bucket.clone());
+
+//                         let result = list.from_xml(text, Arc::new(self.bucket.clone()));
+
+//                         let mut result = match result {
+//                             Ok(data) => data,
+//                             Err(_) => return Ready(None),
+//                         };
+
+//                         result.set_search_query(query);
+
+//                         if result.len() == 0 {
+//                             Ready(None)
+//                         } else {
+//                             Ready(Some(result))
+//                         }
+//                     }
+//                 }
+//             }
+//             None => Ready(None),
 //         }
-//       },
-//       Poll::Pending => Poll::Pending
 //     }
-//   }
 // }
 
 /// 未来计划支持的功能
