@@ -56,13 +56,14 @@ pub trait File: AlignBuilder {
     /// # Examples
     ///
     /// 上传 tauri 升级用的签名文件
-    /// ```ignore
+    /// ```no_run
     /// # #[tokio::main]
     /// # async fn main(){
     /// use infer::Infer;
     /// # use dotenv::dotenv;
     /// # dotenv().ok();
     /// # let client = aliyun_oss_client::Client::from_env().unwrap();
+    /// use aliyun_oss_client::file::File;
     ///
     /// fn sig_match(buf: &[u8]) -> bool {
     ///     return buf.len() >= 3 && buf[0] == 0x64 && buf[1] == 0x57 && buf[2] == 0x35;
@@ -224,17 +225,19 @@ impl Object<ArcPointer> {
     /// 将本地 Object 对象上传到 OSS 上去
     ///
     /// # Examples
-    /// ```ignore
+    /// ```no_run
     /// #[tokio::main]
     /// async fn main() {
-    ///     use aliyun_oss_client::config::BucketBase;
-    ///     use aliyun_oss_client::object::ObjectBuilder;
-    ///     use dotenv::dotenv;
-    ///     use std::sync::Arc;
-    ///     dotenv().ok();
+    ///     # use aliyun_oss_client::config::BucketBase;
+    ///     # use aliyun_oss_client::object::ObjectBuilder;
+    ///     # use aliyun_oss_client::builder::ArcPointer;
+    ///     # use dotenv::dotenv;
+    ///     # use std::sync::Arc;
+    ///     # dotenv().ok();
+    ///     use aliyun_oss_client::file::File;
     ///     let client = aliyun_oss_client::Client::from_env().unwrap();
     ///     let bucket = Arc::new(BucketBase::from_env().unwrap());
-    ///     let object = ObjectBuilder::new(bucket, "examples/bg2015071010.png").build();
+    ///     let object = ObjectBuilder::<ArcPointer>::new(bucket, "examples/bg2015071010.png").build();
     ///     let res = object.put_file("examples/bg2015071010.png", &client).await;
     ///     assert!(res.is_ok());
     /// }
@@ -426,7 +429,7 @@ pub mod blocking {
         /// # Examples
         ///
         /// 上传 tauri 升级用的签名文件
-        /// ```ignore
+        /// ```no_run
         /// # fn main(){
         /// use infer::Infer;
         /// # use dotenv::dotenv;
@@ -580,7 +583,7 @@ pub mod blocking {
         /// 将本地 Object 对象上传到 OSS 上去
         ///
         /// # Examples
-        /// ```ignore
+        /// ```no_run
         /// fn main() {
         ///     use aliyun_oss_client::config::BucketBase;
         ///     use aliyun_oss_client::object::ObjectBuilder;

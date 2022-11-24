@@ -159,24 +159,21 @@ let client = aliyun_oss_client::Client::new("key1".into(),"secret1".into(),"qing
 > 如需使用，需要启用 `blocking` 特征
 
 ### 获取 client
-```ignore
+```no_run
 // dotenv 是用于获取配置信息的，可以不使用
 extern crate dotenv;
 use dotenv::dotenv;
 use std::env;
 
 // 需要提供四个配置信息
-let key_id      = env::var("ALIYUN_KEY_ID").unwrap();
-let key_secret  = env::var("ALIYUN_KEY_SECRET").unwrap();
-let endpoint    = aliyun_oss_client::EndPoint::default();
-let bucket      = env::var("ALIYUN_BUCKET").unwrap();
-
+use aliyun_oss_client::BucketName;
+let bucket = BucketName::new("bbb").unwrap();
 // 获取客户端实例
-let client = aliyun_oss_client::ClientRc::new(key_id,key_secret, endpoint, bucket);
+let client = aliyun_oss_client::ClientRc::new("key1".into(),"secret1".into(),"qingdao".try_into().unwrap(), bucket);
 ```
 
 ### 查询所有的 bucket 信息
-```ignore
+```no_run
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -188,7 +185,7 @@ println!("buckets list: {:?}", response);
 ```
 
 ### 获取 bucket 信息
-```ignore
+```no_run
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -200,7 +197,7 @@ println!("bucket info: {:?}", response);
 ```
 
 ### 查询当前 bucket 中的 object 列表
-```ignore
+```no_run
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -215,7 +212,7 @@ println!("objects list: {:?}", response);
 
 ### 也可以使用 bucket struct 查询 object 列表
 
-```ignore
+```no_run
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -227,7 +224,7 @@ let mut query = Query::new();
 query.insert("max-keys", "5");
 query.insert("prefix", "babel");
 
-let result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
+let mut result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
 
 println!("object list : {:?}", result);
 
@@ -236,7 +233,7 @@ println!("next object list: {:?}", result.next());
 ```
 
 ### 上传文件
-```ignore
+```no_run
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -261,7 +258,7 @@ client
 ```
 
 ### 删除文件
-```ignore
+```no_run
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");

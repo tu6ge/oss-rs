@@ -188,7 +188,7 @@ impl ObjectList {
     /// futures="0.3"
     /// ```
     /// 2. 将返回结果 pin 住
-    /// ```ignore
+    /// ```no_run
     /// # use dotenv::dotenv;
     /// # use aliyun_oss_client::{Client, Query};
     /// # #[tokio::main]

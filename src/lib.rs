@@ -5,7 +5,7 @@
 
 1. 在自己的项目里添加如下依赖项
 
-```ignore
+```toml
 [dependencies]
 aliyun-oss-client = "^0.8"
 ```
@@ -106,7 +106,7 @@ let client = aliyun_oss_client::Client::new(
 ```
 
 ### 也可以使用 bucket struct 查询 object 列表
-```ignore
+```no_run
 # #[tokio::main]
 # async fn main(){
     # use std::env::set_var;
