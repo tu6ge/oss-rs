@@ -703,9 +703,9 @@ impl PartialEq<ObjectBase> for Object<ArcPointer> {
 }
 
 #[cfg(feature = "blocking")]
-impl PartialEq<ObjectBase> for Object<RcPointer> {
+impl PartialEq<ObjectBase<RcPointer>> for Object<RcPointer> {
     #[inline]
-    fn eq(&self, other: &ObjectBase) -> bool {
+    fn eq(&self, other: &ObjectBase<RcPointer>) -> bool {
         &self.base == other
     }
 }
