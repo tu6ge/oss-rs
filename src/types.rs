@@ -294,6 +294,46 @@ impl fmt::Display for InvalidEndPoint {
     }
 }
 
+impl PartialEq<&str> for EndPoint {
+    /// # 相等比较
+    /// ```
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// let e: EndPoint = String::from("qingdao").try_into().unwrap();
+    /// assert!(e == "cn-qingdao");
+    /// ```
+    #[inline]
+    fn eq(&self, other: &&str) -> bool {
+        &self.as_ref() == other
+    }
+}
+
+impl PartialEq<EndPoint> for &str {
+    /// # 相等比较
+    /// ```
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// let e: EndPoint = String::from("qingdao").try_into().unwrap();
+    /// assert!("cn-qingdao" == e);
+    /// ```
+    #[inline]
+    fn eq(&self, other: &EndPoint) -> bool {
+        self == &other.as_ref()
+    }
+}
+
+impl PartialEq<Url> for EndPoint {
+    /// # 相等比较
+    /// ```
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// use reqwest::Url;
+    /// let endpoint = EndPoint::new("shanghai").unwrap();
+    /// assert!(endpoint == Url::parse("https://oss-cn-shanghai.aliyuncs.com").unwrap());
+    /// ```
+    #[inline]
+    fn eq(&self, other: &Url) -> bool {
+        &self.to_url() == other
+    }
+}
+
 //===================================================================================================
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -406,6 +446,32 @@ impl BucketName {
         }
 
         Ok(Self(Cow::Borrowed(bucket)))
+    }
+}
+
+impl PartialEq<&str> for BucketName {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::types::BucketName;
+    /// let path = BucketName::new("abc").unwrap();
+    /// assert!(path == "abc");
+    /// ```
+    #[inline]
+    fn eq(&self, other: &&str) -> bool {
+        &self.0 == other
+    }
+}
+
+impl PartialEq<BucketName> for &str {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::types::BucketName;
+    /// let path = BucketName::new("abc").unwrap();
+    /// assert!("abc" == path);
+    /// ```
+    #[inline]
+    fn eq(&self, other: &BucketName) -> bool {
+        self == &other.0
     }
 }
 
@@ -656,6 +722,32 @@ impl CanonicalizedResource {
     }
 }
 
+impl PartialEq<&str> for CanonicalizedResource {
+    /// # 相等比较
+    /// ```
+    /// # use aliyun_oss_client::types::CanonicalizedResource;
+    /// let res = CanonicalizedResource::new("abc");
+    /// assert!(res == "abc");
+    /// ```
+    #[inline]
+    fn eq(&self, other: &&str) -> bool {
+        &self.0 == other
+    }
+}
+
+impl PartialEq<CanonicalizedResource> for &str {
+    /// # 相等比较
+    /// ```
+    /// # use aliyun_oss_client::types::CanonicalizedResource;
+    /// let res = CanonicalizedResource::new("abc");
+    /// assert!("abc" == res);
+    /// ```
+    #[inline]
+    fn eq(&self, other: &CanonicalizedResource) -> bool {
+        self == &other.0
+    }
+}
+
 //===================================================================================================
 /// 查询条件
 ///
@@ -839,6 +931,13 @@ impl From<&'static str> for QueryValue {
     }
 }
 
+impl PartialEq<&str> for QueryValue {
+    #[inline]
+    fn eq(&self, other: &&str) -> bool {
+        &self.0 == other
+    }
+}
+
 impl From<u8> for QueryValue {
     /// 数字转 Query 值
     ///
@@ -852,6 +951,13 @@ impl From<u8> for QueryValue {
     }
 }
 
+impl PartialEq<u8> for QueryValue {
+    #[inline]
+    fn eq(&self, other: &u8) -> bool {
+        self.to_string() == other.to_string()
+    }
+}
+
 impl From<u16> for QueryValue {
     /// 数字转 Query 值
     ///
@@ -862,6 +968,13 @@ impl From<u16> for QueryValue {
     /// ```
     fn from(num: u16) -> Self {
         Self(Cow::Owned(num.to_string()))
+    }
+}
+
+impl PartialEq<u16> for QueryValue {
+    #[inline]
+    fn eq(&self, other: &u16) -> bool {
+        self.to_string() == other.to_string()
     }
 }
 

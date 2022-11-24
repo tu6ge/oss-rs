@@ -14,6 +14,7 @@ use crate::{
     types::{BucketName, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId, KeySecret},
 };
 
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct Config {
     key: KeyId,
     secret: KeySecret,
@@ -63,7 +64,7 @@ pub enum InvalidConfig {
 //     }
 // }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct BucketBase {
     endpoint: EndPoint,
     name: BucketName,
@@ -194,6 +195,22 @@ pub enum InvalidBucketBase {
     BucketName(#[from] InvalidBucketName),
 }
 
+impl PartialEq<Url> for BucketBase {
+    /// # 相等比较
+    /// ```
+    /// # use aliyun_oss_client::config::BucketBase;
+    /// use reqwest::Url;
+    /// let mut bucket = BucketBase::default();
+    /// bucket.set_name("abc");
+    /// bucket.set_endpoint("shanghai");
+    /// assert!(bucket == Url::parse("https://abc.oss-cn-shanghai.aliyuncs.com/").unwrap());
+    /// ```
+    #[inline]
+    fn eq(&self, other: &Url) -> bool {
+        &self.to_url() == other
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ObjectBase<PointerSel: PointerFamily = ArcPointer> {
     bucket: PointerSel::Bucket,
@@ -256,10 +273,47 @@ impl GetObjectInfo for ObjectBase<RcPointer> {
     }
 }
 
+impl PartialEq<ObjectBase<ArcPointer>> for ObjectBase<ArcPointer> {
+    #[inline]
+    fn eq(&self, other: &ObjectBase<ArcPointer>) -> bool {
+        *self.bucket == *other.bucket && self.path == other.path
+    }
+}
+
+#[cfg(feature = "blocking")]
+impl PartialEq<ObjectBase<RcPointer>> for ObjectBase<RcPointer> {
+    #[inline]
+    fn eq(&self, other: &ObjectBase<RcPointer>) -> bool {
+        *self.bucket == *other.bucket && self.path == other.path
+    }
+}
+
+impl<T: PointerFamily> PartialEq<&str> for ObjectBase<T> {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectBase;
+    /// # use aliyun_oss_client::config::BucketBase;
+    /// # use aliyun_oss_client::builder::ArcPointer;
+    /// # use std::sync::Arc;
+    /// let mut path = ObjectBase::<ArcPointer>::default();
+    /// path.set_path("abc");
+    /// assert!(path == "abc");
+    ///
+    /// let mut bucket = BucketBase::default();
+    /// bucket.set_name("def");
+    /// bucket.set_endpoint("shanghai");
+    /// path.set_bucket(Arc::new(bucket));
+    /// assert!(path == "abc");
+    /// ```
+    #[inline]
+    fn eq(&self, other: &&str) -> bool {
+        &self.path == other
+    }
+}
+
 /// OSS Object 存储对象的路径
-/// 不带前缀 `/`  
-/// TODO PartialEq
-#[derive(Debug, Clone)]
+/// 不带前缀 `/`
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectPath(Cow<'static, str>);
 
 impl AsRef<str> for ObjectPath {
@@ -277,6 +331,58 @@ impl fmt::Display for ObjectPath {
 impl Default for ObjectPath {
     fn default() -> Self {
         Self(Cow::Borrowed(""))
+    }
+}
+
+impl PartialEq<&str> for ObjectPath {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectPath;
+    /// let path = ObjectPath::new("abc");
+    /// assert!(path == "abc");
+    /// ```
+    #[inline]
+    fn eq(&self, other: &&str) -> bool {
+        &self.0 == other
+    }
+}
+
+impl PartialEq<ObjectPath> for &str {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectPath;
+    /// let path = ObjectPath::new("abc");
+    /// assert!("abc" == path);
+    /// ```
+    #[inline]
+    fn eq(&self, other: &ObjectPath) -> bool {
+        self == &other.0
+    }
+}
+
+impl PartialEq<String> for ObjectPath {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectPath;
+    /// let path = ObjectPath::new("abc");
+    /// assert!(path == "abc".to_string());
+    /// ```
+    #[inline]
+    fn eq(&self, other: &String) -> bool {
+        &self.0.to_owned() == other
+    }
+}
+
+impl PartialEq<ObjectPath> for String {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectPath;
+    /// let path = ObjectPath::new("abc");
+    /// assert!("abc".to_string() == path);
+    /// ```
+    #[inline]
+    fn eq(&self, other: &ObjectPath) -> bool {
+        self == &other.0.to_owned()
     }
 }
 

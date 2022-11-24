@@ -417,6 +417,30 @@ impl ClientRc {
     }
 }
 
+impl<T: PointerFamily> PartialEq<Bucket<T>> for Bucket<T> {
+    #[inline]
+    fn eq(&self, other: &Bucket<T>) -> bool {
+        self.base == other.base
+            && self.creation_date == other.creation_date
+            && self.location == other.location
+            && self.storage_class == other.storage_class
+    }
+}
+
+impl<T: PointerFamily> PartialEq<DateTime<Utc>> for Bucket<T> {
+    #[inline]
+    fn eq(&self, other: &DateTime<Utc>) -> bool {
+        &self.creation_date == other
+    }
+}
+
+impl<T: PointerFamily> PartialEq<BucketBase> for Bucket<T> {
+    #[inline]
+    fn eq(&self, other: &BucketBase) -> bool {
+        &self.base == other
+    }
+}
+
 #[derive(Default)]
 pub enum Grant {
     #[default]

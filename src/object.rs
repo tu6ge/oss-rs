@@ -22,6 +22,7 @@ use std::sync::Arc;
 use std::vec::IntoIter;
 
 /// # 存放对象列表的结构体
+/// TODO impl core::ops::Index
 #[derive(Clone)]
 #[non_exhaustive]
 pub struct ObjectList<PointerSel: PointerFamily = ArcPointer> {
@@ -654,6 +655,60 @@ impl Iterator for ObjectList<RcPointer> {
 //         }
 //     }
 // }
+
+impl PartialEq<Object<ArcPointer>> for Object<ArcPointer> {
+    #[inline]
+    fn eq(&self, other: &Object<ArcPointer>) -> bool {
+        self.base == other.base
+            && self.last_modified == other.last_modified
+            && self.etag == other.etag
+            && self._type == other._type
+            && self.size == other.size
+            && self.storage_class == other.storage_class
+    }
+}
+
+#[cfg(feature = "blocking")]
+impl PartialEq<Object<RcPointer>> for Object<RcPointer> {
+    #[inline]
+    fn eq(&self, other: &Object<RcPointer>) -> bool {
+        self.base == other.base
+            && self.last_modified == other.last_modified
+            && self.etag == other.etag
+            && self._type == other._type
+            && self.size == other.size
+            && self.storage_class == other.storage_class
+    }
+}
+
+impl<T: PointerFamily> PartialEq<DateTime<Utc>> for Object<T> {
+    #[inline]
+    fn eq(&self, other: &DateTime<Utc>) -> bool {
+        &self.last_modified == other
+    }
+}
+
+impl<T: PointerFamily> PartialEq<u64> for Object<T> {
+    #[inline]
+    fn eq(&self, other: &u64) -> bool {
+        &self.size == other
+    }
+}
+
+impl PartialEq<ObjectBase> for Object<ArcPointer> {
+    #[inline]
+    fn eq(&self, other: &ObjectBase) -> bool {
+        &self.base == other
+    }
+}
+
+#[cfg(feature = "blocking")]
+impl PartialEq<ObjectBase> for Object<RcPointer> {
+    #[inline]
+    fn eq(&self, other: &ObjectBase) -> bool {
+        &self.base == other
+    }
+}
 
 /// 未来计划支持的功能
 #[derive(Default)]
