@@ -258,6 +258,7 @@ impl GetObjectInfo for ObjectBase<RcPointer> {
 
 /// OSS Object 存储对象的路径
 /// 不带前缀 `/`  
+/// TODO PartialEq
 #[derive(Debug, Clone)]
 pub struct ObjectPath(Cow<'static, str>);
 
