@@ -7,7 +7,9 @@ use quote::quote;
 use syn::parse_macro_input;
 mod attr;
 mod file;
+mod gen_rc;
 mod impl_object;
+use crate::gen_rc::GenImpl;
 
 /// # 转换 File trait 的各种方法到 Object 结构体中
 /// 例如 `Client` 结构体中有 `put_file` 方法，通过这个 macro ，可以让 Object 结构体支持 `put_file` 方法
@@ -23,11 +25,27 @@ pub fn oss_file(attr: TokenStream, input: TokenStream) -> TokenStream {
     TokenStream::from(quote!(#item))
 }
 
+#[proc_macro_attribute]
+pub fn oss_gen_rc(_attr: TokenStream, input: TokenStream) -> TokenStream {
+    let item = parse_macro_input!(input as GenImpl);
+    TokenStream::from(quote!(#item))
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
     fn ui() {
         let t = trybuild::TestCases::new();
         t.pass("tests/file.rs");
+        t.pass("tests/gen_rc.rs");
+        t.compile_fail("tests/gen_rc_fail.rs");
     }
+
+    // #[cfg(feature = "blocking")]
+    // #[test]
+    // fn test_gen_rc() {
+    //     let t = trybuild::TestCases::new();
+    //     t.pass("tests/gen_rc.rs");
+    //     t.compile_fail("tests/gen_rc_fail.rs");
+    // }
 }

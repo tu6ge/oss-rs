@@ -15,6 +15,7 @@ use crate::types::{CanonicalizedResource, Query, UrlQuery};
 use async_stream::try_stream;
 use chrono::prelude::*;
 use futures_core::stream::Stream;
+use oss_derive::oss_gen_rc;
 use std::fmt;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
@@ -695,17 +696,10 @@ impl<T: PointerFamily> PartialEq<u64> for Object<T> {
     }
 }
 
-impl PartialEq<ObjectBase> for Object<ArcPointer> {
+#[oss_gen_rc]
+impl PartialEq<ObjectBase<ArcPointer>> for Object<ArcPointer> {
     #[inline]
-    fn eq(&self, other: &ObjectBase) -> bool {
-        &self.base == other
-    }
-}
-
-#[cfg(feature = "blocking")]
-impl PartialEq<ObjectBase<RcPointer>> for Object<RcPointer> {
-    #[inline]
-    fn eq(&self, other: &ObjectBase<RcPointer>) -> bool {
+    fn eq(&self, other: &ObjectBase<ArcPointer>) -> bool {
         &self.base == other
     }
 }
