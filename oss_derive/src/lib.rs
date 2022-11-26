@@ -25,6 +25,19 @@ pub fn oss_file(attr: TokenStream, input: TokenStream) -> TokenStream {
     TokenStream::from(quote!(#item))
 }
 
+/// # 根据 Arc 自动生成 Rc 代码
+/// 目前支持的转换为：
+///
+/// ArcPointer => RcPointer
+///
+/// Arc => Rc
+///
+/// Arc::clone() => Rc::clone()
+///
+/// ClientArc => ClientRc
+///
+/// 还会在新生成的 `impl {}` 语句块之前添加 `#[cfg(feature = "blocking")]` 标记
+///
 #[proc_macro_attribute]
 pub fn oss_gen_rc(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let item = parse_macro_input!(input as GenImpl);
