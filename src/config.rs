@@ -3,6 +3,7 @@ use std::{
     env::{self, VarError},
 };
 
+use oss_derive::oss_gen_rc;
 use reqwest::Url;
 use std::fmt;
 use thiserror::Error;
@@ -252,7 +253,8 @@ pub trait GetObjectInfo {
     fn path(&self) -> &str;
 }
 
-impl GetObjectInfo for ObjectBase {
+#[oss_gen_rc]
+impl GetObjectInfo for ObjectBase<ArcPointer> {
     fn bucket_name(&self) -> &str {
         self.bucket.name()
     }
@@ -262,28 +264,10 @@ impl GetObjectInfo for ObjectBase {
     }
 }
 
-#[cfg(feature = "blocking")]
-impl GetObjectInfo for ObjectBase<RcPointer> {
-    fn bucket_name(&self) -> &str {
-        self.bucket.name()
-    }
-
-    fn path(&self) -> &str {
-        self.path.as_ref()
-    }
-}
-
+#[oss_gen_rc]
 impl PartialEq<ObjectBase<ArcPointer>> for ObjectBase<ArcPointer> {
     #[inline]
     fn eq(&self, other: &ObjectBase<ArcPointer>) -> bool {
-        *self.bucket == *other.bucket && self.path == other.path
-    }
-}
-
-#[cfg(feature = "blocking")]
-impl PartialEq<ObjectBase<RcPointer>> for ObjectBase<RcPointer> {
-    #[inline]
-    fn eq(&self, other: &ObjectBase<RcPointer>) -> bool {
         *self.bucket == *other.bucket && self.path == other.path
     }
 }
@@ -429,5 +413,45 @@ impl UrlObjectPath for Url {
     fn set_object_path(&mut self, path: &ObjectPath) {
         let inner_path: String = path.clone().into();
         self.set_path(&inner_path);
+    }
+}
+
+#[cfg(feature = "blocking")]
+#[cfg(test)]
+mod blocking_tests {
+    use crate::builder::RcPointer;
+
+    use super::ObjectBase;
+
+    fn crate_object_base(bucket: &'static str, path: &'static str) -> ObjectBase<RcPointer> {
+        use std::rc::Rc;
+
+        use crate::config::BucketBase;
+
+        let bucket = BucketBase::from_str(bucket).unwrap();
+
+        let object = ObjectBase::<RcPointer>::new(Rc::new(bucket), path);
+        object
+    }
+
+    #[test]
+    fn test_get_object_info() {
+        use crate::config::GetObjectInfo;
+
+        let object = crate_object_base("abc.oss-cn-shanghai.aliyuncs.com", "bar");
+
+        assert_eq!(object.bucket_name(), "abc");
+        assert_eq!(object.path(), "bar");
+    }
+
+    #[test]
+    fn test_object_base_eq() {
+        let object1 = crate_object_base("abc.oss-cn-shanghai.aliyuncs.com", "bar");
+        let object2 = crate_object_base("abc.oss-cn-shanghai.aliyuncs.com", "bar");
+        let object3 = crate_object_base("abc.oss-cn-qingdao.aliyuncs.com", "bar");
+        let object4 = crate_object_base("abc.oss-cn-shanghai.aliyuncs.com", "ba2");
+        assert!(object1 == object2);
+        assert!(object1 != object3);
+        assert!(object1 != object4);
     }
 }

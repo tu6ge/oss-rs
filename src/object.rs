@@ -2,7 +2,7 @@ use crate::auth::VERB;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 use crate::builder::{ArcPointer, PointerFamily};
-use crate::client::Client;
+use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::{BucketBase, ObjectBase, ObjectPath};
@@ -12,6 +12,7 @@ use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::traits::{InvalidObjectListValue, InvalidObjectValue, OssIntoObject, OssIntoObjectList};
 use crate::types::{CanonicalizedResource, Query, UrlQuery};
+use crate::Client;
 use async_stream::try_stream;
 use chrono::prelude::*;
 use futures_core::stream::Stream;
@@ -50,7 +51,8 @@ impl<T: PointerFamily> fmt::Debug for ObjectList<T> {
     }
 }
 
-impl Default for ObjectList {
+#[oss_gen_rc]
+impl Default for ObjectList<ArcPointer> {
     fn default() -> Self {
         Self {
             bucket: BucketBase::default(),
@@ -59,23 +61,7 @@ impl Default for ObjectList {
             key_count: u64::default(),
             object_list: Vec::new(),
             next_continuation_token: None,
-            client: Arc::new(Client::default()),
-            search_query: Query::default(),
-        }
-    }
-}
-
-#[cfg(feature = "blocking")]
-impl Default for ObjectList<RcPointer> {
-    fn default() -> Self {
-        Self {
-            bucket: BucketBase::default(),
-            prefix: String::default(),
-            max_keys: u32::default(),
-            key_count: u64::default(),
-            object_list: Vec::new(),
-            next_continuation_token: None,
-            client: Rc::new(ClientRc::default()),
+            client: Arc::new(ClientArc::default()),
             search_query: Query::default(),
         }
     }
@@ -145,16 +131,19 @@ impl<T: PointerFamily> ObjectList<T> {
     }
 }
 
-impl ObjectList {
-    pub fn set_client(mut self, client: Arc<Client>) -> Self {
+#[oss_gen_rc]
+impl ObjectList<ArcPointer> {
+    pub fn set_client(mut self, client: Arc<ClientArc>) -> Self {
         self.client = client;
         self
     }
 
-    pub fn client(&self) -> Arc<Client> {
+    pub fn client(&self) -> Arc<ClientArc> {
         Arc::clone(&self.client)
     }
+}
 
+impl ObjectList {
     pub async fn get_next_list(&self) -> OssResult<Self> {
         match self.next_query() {
             None => Err(OssError::WithoutMore),
@@ -220,15 +209,6 @@ impl ObjectList {
 
 #[cfg(feature = "blocking")]
 impl ObjectList<RcPointer> {
-    pub fn set_client(mut self, client: Rc<ClientRc>) -> Self {
-        self.client = client;
-        self
-    }
-
-    pub fn client(&self) -> Rc<ClientRc> {
-        Rc::clone(&self.client)
-    }
-
     pub fn get_object_list(&mut self) -> OssResult<Self> {
         let mut url = self.bucket.to_url();
 
@@ -299,14 +279,14 @@ impl<T: PointerFamily> Object<T> {
     /// 初始化 Object 结构体
     pub fn new<P: Into<ObjectPath>>(
         bucket: T::Bucket,
-        key: P,
+        path: P,
         last_modified: DateTime<Utc>,
         etag: String,
         _type: String,
         size: u64,
         storage_class: String,
     ) -> Self {
-        let base = ObjectBase::<T>::new(bucket, key);
+        let base = ObjectBase::<T>::new(bucket, path);
         Self {
             base,
             last_modified,
@@ -657,22 +637,10 @@ impl Iterator for ObjectList<RcPointer> {
 //     }
 // }
 
+#[oss_gen_rc]
 impl PartialEq<Object<ArcPointer>> for Object<ArcPointer> {
     #[inline]
     fn eq(&self, other: &Object<ArcPointer>) -> bool {
-        self.base == other.base
-            && self.last_modified == other.last_modified
-            && self.etag == other.etag
-            && self._type == other._type
-            && self.size == other.size
-            && self.storage_class == other.storage_class
-    }
-}
-
-#[cfg(feature = "blocking")]
-impl PartialEq<Object<RcPointer>> for Object<RcPointer> {
-    #[inline]
-    fn eq(&self, other: &Object<RcPointer>) -> bool {
         self.base == other.base
             && self.last_modified == other.last_modified
             && self.etag == other.etag
@@ -940,5 +908,141 @@ mod tests {
         assert_eq!(object._type, "foo2");
         assert_eq!(object.size, 123);
         assert_eq!(object.storage_class, "foo3");
+    }
+}
+
+#[cfg(feature = "blocking")]
+#[cfg(test)]
+mod blocking_tests {
+    use std::rc::Rc;
+
+    use chrono::{DateTime, NaiveDateTime, Utc};
+
+    use crate::{builder::RcPointer, config::BucketBase};
+
+    use super::Object;
+
+    fn init_object(
+        bucket: &'static str,
+        path: &'static str,
+        last_modified: i64,
+        etag: &'static str,
+        _type: &'static str,
+        size: u64,
+        storage_class: &'static str,
+    ) -> Object<RcPointer> {
+        let bucket = Rc::new(BucketBase::from_str(bucket).unwrap());
+        Object::<RcPointer>::new(
+            bucket,
+            path,
+            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(last_modified, 0), Utc),
+            etag.into(),
+            _type.into(),
+            size,
+            storage_class.into(),
+        )
+    }
+
+    #[test]
+    fn test_object_eq() {
+        let object1 = init_object(
+            "abc.oss-cn-shanghai.aliyuncs.com",
+            "foo1",
+            123000,
+            "efoo1",
+            "tyfoo1",
+            12,
+            "sc_foo",
+        );
+
+        let object2 = init_object(
+            "abc.oss-cn-shanghai.aliyuncs.com",
+            "foo1",
+            123000,
+            "efoo1",
+            "tyfoo1",
+            12,
+            "sc_foo",
+        );
+
+        assert!(object1 == object2);
+
+        let object3 = init_object(
+            "abc2.oss-cn-shanghai.aliyuncs.com",
+            "foo1",
+            123000,
+            "efoo1",
+            "tyfoo1",
+            12,
+            "sc_foo",
+        );
+
+        assert!(object1 != object3);
+
+        let object3 = init_object(
+            "abc.oss-cn-shanghai.aliyuncs.com",
+            "foo2",
+            123000,
+            "efoo1",
+            "tyfoo1",
+            12,
+            "sc_foo",
+        );
+        assert!(object1 != object3);
+
+        let object3 = init_object(
+            "abc.oss-cn-shanghai.aliyuncs.com",
+            "foo1",
+            123009,
+            "efoo1",
+            "tyfoo1",
+            12,
+            "sc_foo",
+        );
+        assert!(object1 != object3);
+
+        let object3 = init_object(
+            "abc.oss-cn-shanghai.aliyuncs.com",
+            "foo1",
+            123000,
+            "efoo2",
+            "tyfoo1",
+            12,
+            "sc_foo",
+        );
+        assert!(object1 != object3);
+
+        let object3 = init_object(
+            "abc.oss-cn-shanghai.aliyuncs.com",
+            "foo1",
+            123000,
+            "efoo1",
+            "tyfoo3",
+            12,
+            "sc_foo",
+        );
+        assert!(object1 != object3);
+
+        let object3 = init_object(
+            "abc.oss-cn-shanghai.aliyuncs.com",
+            "foo1",
+            123000,
+            "efoo1",
+            "tyfoo1",
+            256,
+            "sc_foo",
+        );
+        assert!(object1 != object3);
+
+        let object3 = init_object(
+            "abc.oss-cn-shanghai.aliyuncs.com",
+            "foo1",
+            123000,
+            "efoo1",
+            "tyfoo1",
+            12,
+            "sc_fo2323",
+        );
+        assert!(object1 != object3);
     }
 }

@@ -3,7 +3,7 @@ use syn::{
     parse::{Parse, ParseStream, Result},
     parse_quote,
     visit_mut::{self, VisitMut},
-    Ident, ItemImpl,
+    Ident, ItemImpl, PathSegment,
 };
 
 pub struct GenImpl {
@@ -46,7 +46,15 @@ impl VisitMut for ReplaceArc {
     fn visit_ident_mut(&mut self, i: &mut Ident) {
         if i.to_owned() == "ArcPointer" {
             *i = parse_quote! {RcPointer};
+        } else if i.to_owned() == "Arc" {
+            *i = parse_quote! {Rc};
+        } else if i.to_owned() == "ClientArc" {
+            *i = parse_quote! {ClientRc}
         }
         visit_mut::visit_ident_mut(self, i);
+    }
+
+    fn visit_path_segment_mut(&mut self, node: &mut PathSegment) {
+        visit_mut::visit_path_segment_mut(self, node);
     }
 }

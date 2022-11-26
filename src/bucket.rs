@@ -2,7 +2,7 @@ use crate::auth::VERB;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 use crate::builder::{ArcPointer, PointerFamily};
-use crate::client::Client;
+use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::BucketBase;
@@ -16,6 +16,7 @@ use crate::traits::{
 };
 use crate::types::{CanonicalizedResource, Query, UrlQuery};
 use chrono::prelude::*;
+use oss_derive::oss_gen_rc;
 use std::fmt;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
@@ -50,8 +51,9 @@ impl<T: PointerFamily> fmt::Debug for ListBuckets<T> {
     }
 }
 
-impl ListBuckets {
-    pub fn set_client(&mut self, client: Arc<Client>) {
+#[oss_gen_rc]
+impl ListBuckets<ArcPointer> {
+    pub fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = Arc::clone(&client);
         for i in self.buckets.iter_mut() {
             i.set_client(Arc::clone(&client));
@@ -59,17 +61,8 @@ impl ListBuckets {
     }
 }
 
-#[cfg(feature = "blocking")]
-impl ListBuckets<RcPointer> {
-    pub fn set_client(&mut self, client: Rc<ClientRc>) {
-        self.client = Rc::clone(&client);
-        for i in self.buckets.iter_mut() {
-            i.set_client(Rc::clone(&client));
-        }
-    }
-}
-
-impl Default for ListBuckets {
+#[oss_gen_rc]
+impl Default for ListBuckets<ArcPointer> {
     fn default() -> Self {
         Self {
             prefix: None,
@@ -81,23 +74,6 @@ impl Default for ListBuckets {
             display_name: None,
             buckets: Vec::default(),
             client: Arc::default(),
-        }
-    }
-}
-
-#[cfg(feature = "blocking")]
-impl Default for ListBuckets<RcPointer> {
-    fn default() -> Self {
-        Self {
-            prefix: None,
-            marker: None,
-            max_keys: None,
-            is_truncated: false,
-            next_marker: None,
-            id: None,
-            display_name: None,
-            buckets: Vec::default(),
-            client: Rc::default(),
         }
     }
 }
@@ -140,7 +116,8 @@ impl<T: PointerFamily> fmt::Debug for Bucket<T> {
     }
 }
 
-impl Default for Bucket {
+#[oss_gen_rc]
+impl Default for Bucket<ArcPointer> {
     fn default() -> Self {
         Self {
             base: BucketBase::default(),
@@ -150,21 +127,6 @@ impl Default for Bucket {
             location: String::default(),
             storage_class: String::default(),
             client: Arc::default(),
-        }
-    }
-}
-
-#[cfg(feature = "blocking")]
-impl Default for Bucket<RcPointer> {
-    fn default() -> Self {
-        Self {
-            base: BucketBase::default(),
-            creation_date: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
-            //extranet_endpoint: String::default(),
-            intranet_endpoint: String::default(),
-            location: String::default(),
-            storage_class: String::default(),
-            client: Rc::default(),
         }
     }
 }
@@ -231,15 +193,18 @@ impl<T: PointerFamily> Bucket<T> {
     }
 }
 
-impl Bucket {
-    pub fn set_client(&mut self, client: Arc<Client>) {
+#[oss_gen_rc]
+impl Bucket<ArcPointer> {
+    pub fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
     }
 
-    pub fn client(&self) -> Arc<Client> {
+    pub fn client(&self) -> Arc<ClientArc> {
         Arc::clone(&self.client)
     }
+}
 
+impl Bucket {
     pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList> {
         let mut url = self.base.to_url();
 
@@ -264,14 +229,6 @@ impl Bucket {
 
 #[cfg(feature = "blocking")]
 impl Bucket<RcPointer> {
-    pub fn set_client(&mut self, client: Rc<ClientRc>) {
-        self.client = client;
-    }
-
-    pub fn client(&self) -> Rc<ClientRc> {
-        Rc::clone(&self.client)
-    }
-
     pub fn get_object_list(&self, query: Query) -> OssResult<ObjectList<RcPointer>> {
         let mut url = self.base.to_url();
 
@@ -351,7 +308,7 @@ where
     }
 }
 
-impl Client {
+impl ClientArc {
     pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
         let url = self.get_endpoint_url();
 
@@ -525,4 +482,20 @@ pub struct BucketStat {
     pub cold_archive_storage: u64,
     pub cold_archive_real_storage: u64,
     pub cold_archive_object_count: u64,
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[cfg(feature = "blocking")]
+    #[test]
+    fn test_default_list_bucket() {
+        use crate::builder::RcPointer;
+
+        use super::ListBuckets;
+
+        let list = ListBuckets::<RcPointer>::default();
+
+        assert!(list.buckets.len() == 0);
+    }
 }
