@@ -30,22 +30,3 @@ pub fn oss_gen_rc(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let item = parse_macro_input!(input as GenImpl);
     TokenStream::from(quote!(#item))
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn ui() {
-        let t = trybuild::TestCases::new();
-        t.pass("tests/file.rs");
-        t.pass("tests/gen_rc.rs");
-        t.compile_fail("tests/gen_rc_fail.rs");
-    }
-
-    // #[cfg(feature = "blocking")]
-    // #[test]
-    // fn test_gen_rc() {
-    //     let t = trybuild::TestCases::new();
-    //     t.pass("tests/gen_rc.rs");
-    //     t.compile_fail("tests/gen_rc_fail.rs");
-    // }
-}

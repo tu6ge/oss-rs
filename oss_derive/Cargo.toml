@@ -11,6 +11,10 @@ proc-macro = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[test]]
+name = "run"
+path = "tests/run.rs"
+
 [features]
 default = ["blocking"]
 blocking=[]
