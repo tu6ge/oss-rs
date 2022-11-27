@@ -93,7 +93,10 @@ impl<M: Default> Client<M> {
         }
     }
 
-    #[deprecated]
+    #[deprecated(
+        since = "0.10",
+        note = "this bucket is default value, is not need change"
+    )]
     pub fn set_bucket_name(&mut self, bucket: BucketName) {
         self.bucket = bucket
     }

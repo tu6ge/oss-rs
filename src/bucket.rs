@@ -86,6 +86,7 @@ pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
     // bucket: Option<Bucket<'c>>,
     creation_date: DateTime<Utc>,
     //pub extranet_endpoint: String,
+    #[deprecated(since = "0.10", note = "base field has intranet endpoint info")]
     intranet_endpoint: String,
     location: String,
     // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
