@@ -39,6 +39,9 @@ jobs:
           cargo test --lib --features sts --no-default-features tests
           cargo test --lib --features put_file --no-default-features tests
           cargo test --doc --all-features
+          cd oss_derive
+          cargo test
+          cargo test --features blocking
       
       - name: Run publish-action
         id: publish-action
