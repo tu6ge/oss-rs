@@ -49,7 +49,7 @@ required-features = ["sts"]
 
 [features]
 default = [
-  "blocking",
+  #"blocking",
   "sts",
   "put_file"
 ]
