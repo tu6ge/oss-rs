@@ -16,7 +16,9 @@ name = "run"
 path = "tests/run.rs"
 
 [features]
-default = ["blocking"]
+default = [
+    #"blocking"
+]
 blocking=[]
 
 [dependencies]
