@@ -1,6 +1,6 @@
 use crate::builder::ClientWithMiddleware;
 use crate::file::File;
-use crate::{builder::Middleware, client::Client, errors::OssResult, types::Query};
+use crate::{builder::Middleware, client::Client, errors::OssResult};
 use async_trait::async_trait;
 use http::HeaderValue;
 use reqwest::{Request, Response, Url};
@@ -68,9 +68,6 @@ fn object_list_get_object_list() {
     )
     .middleware(Rc::new(MyMiddleware {}));
 
-    let mut query = Query::new();
-    query.insert("max-keys", "5");
-
     let mut object_list = ObjectList::<RcPointer>::new(
         BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
         String::from("foo2"),
@@ -79,7 +76,7 @@ fn object_list_get_object_list() {
         Vec::new(),
         None,
         Rc::new(client),
-        query,
+        vec![("max-keys", "5")],
     );
 
     let res = object_list.get_object_list();
@@ -146,9 +143,7 @@ async fn test_get_object_list() {
     )
     .middleware(Arc::new(MyMiddleware {}));
 
-    let mut query = Query::new();
-    query.insert("max-keys", "5");
-    let res = client.get_object_list(query).await;
+    let res = client.get_object_list(vec![("max-keys", "5")]).await;
 
     //println!("{:?}", res);
     assert_eq!(
@@ -217,9 +212,7 @@ fn test_get_blocking_object_list() {
     )
     .middleware(Rc::new(MyMiddleware {}));
 
-    let mut query = Query::new();
-    query.insert("max-keys", "5");
-    let res = client.get_object_list(query);
+    let res = client.get_object_list(vec![("max-keys", "5")]);
 
     //println!("{:?}", res);
     assert_eq!(

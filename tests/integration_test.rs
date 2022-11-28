@@ -2,7 +2,6 @@ mod test_async {
     use aliyun_oss_client::builder::ClientWithMiddleware;
     use aliyun_oss_client::client::Client;
     use aliyun_oss_client::file::File;
-    use aliyun_oss_client::types::Query;
     use assert_matches::assert_matches;
     use dotenv::dotenv;
     use std::path::PathBuf;
@@ -50,9 +49,8 @@ mod test_async {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
-        let query = Query::new();
 
-        let object_list = client.get_object_list(vec![("k","v");0]).await;
+        let object_list = client.get_object_list(vec![()]).await;
 
         assert_matches!(object_list, Ok(_));
     }
@@ -118,11 +116,10 @@ mod test_blocking {
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list().unwrap();
-        let query = vec![("max-keys", "5"), ("prefix", "babel")];
 
         let buckets = bucket_list.buckets;
         let the_bucket = &buckets[0];
-        let object_list = the_bucket.get_object_list(query);
+        let object_list = the_bucket.get_object_list(vec![("max-keys", "2")]);
         assert_matches!(object_list, Ok(_));
         let mut object_list = object_list.unwrap();
         assert_matches!(object_list.next(), Some(_));
@@ -133,9 +130,8 @@ mod test_blocking {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
-        let query = Query::new();
 
-        let object_list = client.get_object_list(query);
+        let object_list = client.get_object_list(vec![()]);
 
         assert_matches!(object_list, Ok(_));
     }

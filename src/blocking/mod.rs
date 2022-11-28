@@ -80,32 +80,27 @@ println!("bucket info: {:?}", response);
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
-use aliyun_oss_client::Query;
-let query = Query::new();
-let response = client.get_object_list(query);
+let response = client.get_object_list(vec![()]);
 println!("objects list: {:?}", response);
 ```
 
 ### 也可以使用 bucket struct 查询 object 列表
 
-```rust
+```no_run
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
-use aliyun_oss_client::Query;
-let mut query = Query::new();
-query.insert("max-keys", "5");
-query.insert("prefix", "babel");
+let query = vec![("max-keys", "5"), ("prefix", "babel")];
 
-// let result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
+let result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
 
-// println!("object list : {:?}", result);
+println!("object list : {:?}", result);
 
 // 翻页功能 获取下一页数据
-// println!("next object list: {:?}", result.next());
+println!("next object list: {:?}", result.next());
 ```
 
 ### 上传文件

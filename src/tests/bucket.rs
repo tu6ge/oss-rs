@@ -9,7 +9,6 @@ use reqwest::{Request, Response, Url};
 
 use crate::client::ClientArc;
 use crate::config::BucketBase;
-use crate::types::Query;
 use crate::{builder::Middleware, client::Client, errors::OssResult};
 
 #[tokio::test]
@@ -336,9 +335,7 @@ async fn test_get_object_list() {
         Arc::new(client),
     );
 
-    let mut query = Query::new();
-    query.insert("max-keys", "5");
-    let res = bucket.get_object_list(query).await;
+    let res = bucket.get_object_list(vec![("max-keys", "5")]).await;
 
     assert_eq!(
         format!("{:?}", res),
@@ -419,9 +416,7 @@ fn test_get_blocking_object_list() {
         Rc::new(client),
     );
 
-    let mut query = Query::new();
-    query.insert("max-keys", "5");
-    let res = bucket.get_object_list(query);
+    let res = bucket.get_object_list(vec![("max-keys", "5")]);
 
     assert_eq!(
         format!("{:?}", res),

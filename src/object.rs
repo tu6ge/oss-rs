@@ -181,15 +181,14 @@ impl ObjectList {
     /// 2. 将返回结果 pin 住
     /// ```no_run
     /// # use dotenv::dotenv;
-    /// # use aliyun_oss_client::{Client, Query};
+    /// # use aliyun_oss_client::Client;
     /// # #[tokio::main]
     /// # async fn main() {
-    ///     # dotenv().ok();
+    /// # dotenv().ok();
     /// use futures::{pin_mut, StreamExt};
-    ///     # let client = Client::from_env().unwrap();
-    ///     # let mut query = Query::new();
-    ///     # query.insert("max-keys", "100");
-    ///     # let object_list = client.get_object_list(query).await.unwrap();
+    /// # let client = Client::from_env().unwrap();
+    /// # let query = vec![("max-keys", "100")];
+    /// # let object_list = client.get_object_list(query).await.unwrap();
     /// let stream = object_list.into_stream();
     /// pin_mut!(stream);
     ///

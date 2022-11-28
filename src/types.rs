@@ -717,6 +717,7 @@ impl CanonicalizedResource {
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
+    /// TODO remove Option
     pub fn from_object<Obj: GetObjectInfo>(object: Obj, query: Option<&Query>) -> Self {
         let bucket = object.bucket_name();
         let path = object.path();
@@ -763,8 +764,7 @@ impl PartialEq<CanonicalizedResource> for &str {
 /// ```
 /// use aliyun_oss_client::types::Query;
 ///
-/// let mut query = Query::new();
-/// query.insert("abc", "def");
+/// let query: Query = vec![("abc", "def")].into();
 /// assert_eq!(query.len(), 1);
 ///
 /// let value = query.get("abc");
@@ -866,17 +866,11 @@ where
     }
 }
 
-// impl<T> From<Vec<T>> for Query {
-//     fn from(vec: Vec<T>) -> Self {
-//         let len = vec.len();
-
-//         if len > 0 {
-//             unreachable!("Vec Item type is undefined, convert to Query faild");
-//         }
-
-//         Self::with_capacity(0)
-//     }
-// }
+impl From<Vec<()>> for Query {
+    fn from(_: Vec<()>) -> Self {
+        Self::with_capacity(0)
+    }
+}
 
 pub trait UrlQuery {
     fn set_search_query(&mut self, query: &Query);
@@ -891,8 +885,7 @@ impl UrlQuery for Url {
     /// use aliyun_oss_client::types::UrlQuery;
     /// use reqwest::Url;
     ///
-    /// let mut query = Query::new();
-    /// query.insert("abc", "def");
+    /// let query = vec![("abc", "def")].into();
     /// let mut url = Url::parse("https://exapmle.com").unwrap();
     /// url.set_search_query(&query);
     /// assert_eq!(url.as_str(), "https://exapmle.com/?list-type=2&abc=def");
@@ -994,8 +987,7 @@ impl From<u8> for QueryValue {
     ///
     /// ```
     /// use aliyun_oss_client::Query;
-    /// let mut query = Query::new();
-    /// query.insert("max_keys", 100u8);
+    /// let query: Query = vec![("max_keys", 100u8)].into();
     /// ```
     fn from(num: u8) -> Self {
         Self(Cow::Owned(num.to_string()))
@@ -1014,8 +1006,7 @@ impl From<u16> for QueryValue {
     ///
     /// ```
     /// use aliyun_oss_client::Query;
-    /// let mut query = Query::new();
-    /// query.insert("max_keys", 100u16);
+    /// let query: Query = vec![("max_keys", 100u16)].into();
     /// ```
     fn from(num: u16) -> Self {
         Self(Cow::Owned(num.to_string()))
