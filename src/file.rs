@@ -186,7 +186,7 @@ impl File for Client {
 
         let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), path);
 
-        let canonicalized = CanonicalizedResource::from_object(object_base, None);
+        let canonicalized = CanonicalizedResource::from_object(object_base, vec![()]);
 
         (url, canonicalized)
     }
@@ -203,7 +203,7 @@ impl File for Bucket {
 
         let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.base.to_owned()), path);
 
-        let canonicalized = CanonicalizedResource::from_object(object_base, None);
+        let canonicalized = CanonicalizedResource::from_object(object_base, vec![()]);
 
         (url, canonicalized)
     }
@@ -220,7 +220,7 @@ impl File for ObjectList<ArcPointer> {
 
         let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.bucket.to_owned()), path);
 
-        let canonicalized = CanonicalizedResource::from_object(object_base, None);
+        let canonicalized = CanonicalizedResource::from_object(object_base, vec![()]);
 
         (url, canonicalized)
     }
@@ -541,7 +541,7 @@ pub mod blocking {
 
             let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), path);
 
-            let canonicalized = CanonicalizedResource::from_object(object_base, None);
+            let canonicalized = CanonicalizedResource::from_object(object_base, vec![()]);
 
             (url, canonicalized)
         }
@@ -555,7 +555,7 @@ pub mod blocking {
 
             let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.base.clone()), path);
 
-            let canonicalized = CanonicalizedResource::from_object(object_base, None);
+            let canonicalized = CanonicalizedResource::from_object(object_base, vec![()]);
 
             (url, canonicalized)
         }
@@ -569,7 +569,7 @@ pub mod blocking {
 
             let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.bucket.clone()), path);
 
-            let canonicalized = CanonicalizedResource::from_object(object_base, None);
+            let canonicalized = CanonicalizedResource::from_object(object_base, vec![()]);
 
             (url, canonicalized)
         }

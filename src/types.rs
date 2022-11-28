@@ -717,17 +717,16 @@ impl CanonicalizedResource {
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
-    /// TODO remove Option
-    pub fn from_object<Obj: GetObjectInfo>(object: Obj, query: Option<&Query>) -> Self {
+    pub fn from_object<Obj: GetObjectInfo, Q: Into<Query>>(object: Obj, query: Q) -> Self {
         let bucket = object.bucket_name();
         let path = object.path();
 
-        match query {
-            Some(q) => {
-                let query_value = q.to_url_query();
-                Self::from(format!("/{}/{}?{}", bucket, path, query_value))
-            }
-            None => Self::from(format!("/{}/{}", bucket, path)),
+        let query = query.into();
+        if query.len() == 0 {
+            Self::from(format!("/{}/{}", bucket, path))
+        } else {
+            let query_value = query.to_url_query();
+            Self::from(format!("/{}/{}?{}", bucket, path, query_value))
         }
     }
 }
