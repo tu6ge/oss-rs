@@ -206,9 +206,10 @@ impl Bucket<ArcPointer> {
 }
 
 impl Bucket {
-    pub async fn get_object_list(&self, query: Query) -> OssResult<ObjectList> {
+    pub async fn get_object_list<Q: Into<Query>>(&self, query: Q) -> OssResult<ObjectList> {
         let mut url = self.base.to_url();
 
+        let query = query.into();
         url.set_search_query(&query);
 
         let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
@@ -230,9 +231,10 @@ impl Bucket {
 
 #[cfg(feature = "blocking")]
 impl Bucket<RcPointer> {
-    pub fn get_object_list(&self, query: Query) -> OssResult<ObjectList<RcPointer>> {
+    pub fn get_object_list<Q: Into<Query>>(&self, query: Q) -> OssResult<ObjectList<RcPointer>> {
         let mut url = self.base.to_url();
 
+        let query = query.into();
         url.set_search_query(&query);
 
         let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);

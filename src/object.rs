@@ -68,7 +68,7 @@ impl Default for ObjectList<ArcPointer> {
 }
 
 impl<T: PointerFamily> ObjectList<T> {
-    pub fn new(
+    pub fn new<Q: Into<Query>>(
         bucket: BucketBase,
         prefix: String,
         max_keys: u32,
@@ -76,7 +76,7 @@ impl<T: PointerFamily> ObjectList<T> {
         object_list: Vec<Object<T>>,
         next_continuation_token: Option<String>,
         client: T::PointerType,
-        search_query: Query,
+        search_query: Q,
     ) -> Self {
         Self {
             bucket,
@@ -86,7 +86,7 @@ impl<T: PointerFamily> ObjectList<T> {
             object_list,
             next_continuation_token,
             client,
-            search_query,
+            search_query: search_query.into(),
         }
     }
 
@@ -504,9 +504,10 @@ impl<T: PointerFamily> OssIntoObjectList<Object<T>, T> for ObjectList<T> {
 }
 
 impl Client {
-    pub async fn get_object_list(self, query: Query) -> OssResult<ObjectList> {
+    pub async fn get_object_list<Q: Into<Query>>(self, query: Q) -> OssResult<ObjectList> {
         let mut url = self.get_bucket_url();
 
+        let query = query.into();
         url.set_search_query(&query);
 
         let bucket = self.get_bucket_base();
@@ -528,9 +529,10 @@ impl Client {
 
 #[cfg(feature = "blocking")]
 impl ClientRc {
-    pub fn get_object_list(self, query: Query) -> OssResult<ObjectList<RcPointer>> {
+    pub fn get_object_list<Q: Into<Query>>(self, query: Q) -> OssResult<ObjectList<RcPointer>> {
         let mut url = self.get_bucket_url();
 
+        let query = query.into();
         url.set_search_query(&query);
 
         let bucket = self.get_bucket_base();
@@ -747,7 +749,7 @@ mod tests {
         config::BucketBase,
         object::{Object, ObjectBuilder},
         types::QueryValue,
-        Client, Query,
+        Client,
     };
     use chrono::{DateTime, NaiveDateTime, Utc};
     use std::sync::Arc;
@@ -760,9 +762,6 @@ mod tests {
             "foo4".try_into().unwrap(),
         );
 
-        let mut query = Query::new();
-        query.insert("key1", "value1");
-
         let object_list = ObjectList::<ArcPointer>::new(
             BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
             String::from("foo2"),
@@ -771,7 +770,7 @@ mod tests {
             list,
             token,
             Arc::new(client),
-            query,
+            vec![("key1", "value1")],
         );
 
         object_list

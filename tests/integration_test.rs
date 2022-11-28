@@ -36,9 +36,8 @@ mod test_async {
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list().await.unwrap();
-        let mut query = Query::new();
-        query.insert("max-keys", "5");
-        query.insert("prefix".to_string(), "babel".to_string());
+
+        let query = vec![("max-keys", "5"), ("prefix", "babel")];
 
         let buckets = bucket_list.buckets;
         let the_bucket = &buckets[0];
@@ -53,7 +52,7 @@ mod test_async {
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
         let query = Query::new();
 
-        let object_list = client.get_object_list(query).await;
+        let object_list = client.get_object_list(vec![("k","v");0]).await;
 
         assert_matches!(object_list, Ok(_));
     }
@@ -119,9 +118,7 @@ mod test_blocking {
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list().unwrap();
-        let mut query = Query::new();
-        query.insert("max-keys", "2");
-        //query.insert("prefix".to_string(), "babel".to_string());
+        let query = vec![("max-keys", "5"), ("prefix", "babel")];
 
         let buckets = bucket_list.buckets;
         let the_bucket = &buckets[0];
@@ -148,8 +145,7 @@ mod test_blocking {
         dotenv().ok();
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
-        let mut query = Query::new();
-        query.insert("max-keys".to_string(), "2".to_string());
+        let query = vec![("max-keys", "2")];
         let mut object_list = client.get_object_list(query).unwrap();
 
         assert_matches!(object_list.next(), Some(_));

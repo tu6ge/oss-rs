@@ -789,6 +789,12 @@ impl Query {
         }
     }
 
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            inner: HashMap::with_capacity(capacity),
+        }
+    }
+
     pub fn insert(&mut self, key: impl Into<QueryKey>, value: impl Into<QueryValue>) {
         self.inner.insert(key.into(), value.into());
     }
@@ -835,6 +841,42 @@ impl Query {
             .join("&")
     }
 }
+
+impl<K, V> From<Vec<(K, V)>> for Query
+where
+    K: Into<QueryKey>,
+    V: Into<QueryValue>,
+{
+    /// # 使用 Vec 转 Query
+    /// 例子
+    /// ```
+    /// # use aliyun_oss_client::Query;
+    /// let vec = vec![("foo", "bar")];
+    /// let query: Query = vec.into();
+    /// assert_eq!(query.get("foo"), Some(&"bar".into()));
+    /// ```
+    fn from(vec: Vec<(K, V)>) -> Self {
+        let mut query = Query::with_capacity(vec.len());
+
+        for (key, val) in vec {
+            query.insert(key, val);
+        }
+
+        query
+    }
+}
+
+// impl<T> From<Vec<T>> for Query {
+//     fn from(vec: Vec<T>) -> Self {
+//         let len = vec.len();
+
+//         if len > 0 {
+//             unreachable!("Vec Item type is undefined, convert to Query faild");
+//         }
+
+//         Self::with_capacity(0)
+//     }
+// }
 
 pub trait UrlQuery {
     fn set_search_query(&mut self, query: &Query);
