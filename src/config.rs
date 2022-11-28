@@ -165,7 +165,10 @@ impl BucketBase {
     /// bucket.set_name("abc");
     /// bucket.set_endpoint("shanghai");
     /// let url = bucket.to_url();
-    /// assert_eq!(url.as_str(), "https://abc.oss-cn-shanghai-internal.aliyuncs.com/");
+    /// assert_eq!(
+    ///     url.as_str(),
+    ///     "https://abc.oss-cn-shanghai-internal.aliyuncs.com/"
+    /// );
     /// ```
     ///
     /// > 因为 BucketName,EndPoint 声明时已做限制,所以 BucketBase 可以安全的转换成 url

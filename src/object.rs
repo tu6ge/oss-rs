@@ -185,18 +185,18 @@ impl ObjectList {
     /// # #[tokio::main]
     /// # async fn main() {
     ///     # dotenv().ok();
-    ///     use futures::{pin_mut, StreamExt};
+    /// use futures::{pin_mut, StreamExt};
     ///     # let client = Client::from_env().unwrap();
     ///     # let mut query = Query::new();
     ///     # query.insert("max-keys", "100");
     ///     # let object_list = client.get_object_list(query).await.unwrap();
-    ///     let stream = object_list.into_stream();
-    ///     pin_mut!(stream);
+    /// let stream = object_list.into_stream();
+    /// pin_mut!(stream);
     ///
-    ///     let second_list = stream.next().await;
-    ///     let third_list = stream.next().await;
-    ///     println!("second_list: {:?}", second_list);
-    ///     println!("third_list: {:?}", third_list);
+    /// let second_list = stream.next().await;
+    /// let third_list = stream.next().await;
+    /// println!("second_list: {:?}", second_list);
+    /// println!("third_list: {:?}", third_list);
     /// # }
     /// ```
     pub fn into_stream(self) -> impl Stream<Item = OssResult<Self>> {

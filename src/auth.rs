@@ -503,9 +503,7 @@ impl AuthBuilder {
     /// ```
     /// # use aliyun_oss_client::auth::AuthBuilder;
     /// use aliyun_oss_client::auth::AuthGetHeader;
-    /// let headers = AuthBuilder::default()
-    ///     .key("bar".into())
-    ///     .get_headers();
+    /// let headers = AuthBuilder::default().key("bar".into()).get_headers();
     /// ```
     pub fn key(mut self, key: KeyId) -> Self {
         self.auth.set_key(key);
@@ -535,8 +533,7 @@ impl AuthBuilder {
     /// ## Example
     /// ```
     /// use chrono::Utc;
-    /// let builder = aliyun_oss_client::auth::AuthBuilder::default()
-    ///    .date(Utc::now().into());
+    /// let builder = aliyun_oss_client::auth::AuthBuilder::default().date(Utc::now().into());
     /// ```
     pub fn date(mut self, date: Date) -> Self {
         self.auth.set_date(date);

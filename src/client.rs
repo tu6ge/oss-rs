@@ -194,7 +194,6 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
     /// 返回值是一个 reqwest 的请求创建器 `reqwest::blocking::RequestBuilder`
     ///
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
-    ///
     fn builder_with_header<M: Into<VERB>>(
         &self,
         method: M,

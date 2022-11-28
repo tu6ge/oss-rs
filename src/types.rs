@@ -227,7 +227,10 @@ impl EndPoint {
     /// 初始化 endpoint enum
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
-    /// assert!(matches!(EndPoint::new("shanghai"), Ok(EndPoint::CnShanghai)));
+    /// assert!(matches!(
+    ///     EndPoint::new("shanghai"),
+    ///     Ok(EndPoint::CnShanghai)
+    /// ));
     /// assert!(EndPoint::new("weifang").is_err());
     /// ```
     pub fn new(url: &'static str) -> Result<Self, InvalidEndPoint> {
@@ -261,12 +264,18 @@ impl EndPoint {
     /// # use aliyun_oss_client::types::EndPoint;
     /// use reqwest::Url;
     /// let endpoint = EndPoint::new("shanghai").unwrap();
-    /// assert_eq!(endpoint.to_url(), Url::parse("https://oss-cn-shanghai.aliyuncs.com").unwrap());
+    /// assert_eq!(
+    ///     endpoint.to_url(),
+    ///     Url::parse("https://oss-cn-shanghai.aliyuncs.com").unwrap()
+    /// );
     ///
     /// use std::env::set_var;
     /// set_var("ALIYUN_OSS_INTERNAL", "true");
     /// let endpoint = EndPoint::new("shanghai").unwrap();
-    /// assert_eq!(endpoint.to_url(), Url::parse("https://oss-cn-shanghai-internal.aliyuncs.com").unwrap());
+    /// assert_eq!(
+    ///     endpoint.to_url(),
+    ///     Url::parse("https://oss-cn-shanghai-internal.aliyuncs.com").unwrap()
+    /// );
     /// ```
     pub fn to_url(&self) -> Url {
         let mut url = String::from("https://oss-");
@@ -755,7 +764,7 @@ impl PartialEq<CanonicalizedResource> for &str {
 /// use aliyun_oss_client::types::Query;
 ///
 /// let mut query = Query::new();
-/// query.insert("abc","def");
+/// query.insert("abc", "def");
 /// assert_eq!(query.len(), 1);
 ///
 /// let value = query.get("abc");
@@ -841,7 +850,7 @@ impl UrlQuery for Url {
     /// use reqwest::Url;
     ///
     /// let mut query = Query::new();
-    /// query.insert("abc","def");
+    /// query.insert("abc", "def");
     /// let mut url = Url::parse("https://exapmle.com").unwrap();
     /// url.set_search_query(&query);
     /// assert_eq!(url.as_str(), "https://exapmle.com/?list-type=2&abc=def");

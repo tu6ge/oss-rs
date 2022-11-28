@@ -9,18 +9,17 @@
 //! # async fn run() {
 //! use aliyun_oss_client::{sts::STS, BucketName, Client, EndPoint};
 //! let client = Client::new_with_sts(
-//!     "STS.xxxxxxxx".into(),                             // KeyId
-//!     "EVd6dXew6xxxxxxxxxxxxxxxxxxxxxxxxxxx".into(),     // KeySecret
+//!     "STS.xxxxxxxx".into(),                         // KeyId
+//!     "EVd6dXew6xxxxxxxxxxxxxxxxxxxxxxxxxxx".into(), // KeySecret
 //!     EndPoint::CnShanghai,
 //!     BucketName::new("yyyyyy").unwrap(),
-//!     "CAIS4gF1q6Ft5Bxxxxxxxxxxx".to_string(),           // STS Token
+//!     "CAIS4gF1q6Ft5Bxxxxxxxxxxx".to_string(), // STS Token
 //! );
 //!
 //! let builder = client.get_bucket_list().await;
 //! println!("{:?}", builder);
 //! # }
 //! ```
-//!
 
 use crate::{auth::AuthBuilder, client::Client, BucketName, EndPoint, KeyId, KeySecret};
 
