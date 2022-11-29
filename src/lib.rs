@@ -89,6 +89,8 @@ let client = aliyun_oss_client::Client::new(
 ```
 
 ### 查询当前 bucket 中的 object 列表
+
+查询条件参数有多种方式，具体参考 [`get_object_list`](./bucket/struct.Bucket.html#method.get_object_list) 文档
 ```rust
 # #[tokio::main]
 # async fn main(){
@@ -98,7 +100,7 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    let response = client.get_object_list(vec![(); 0]).await;
+    let response = client.get_object_list([]).await;
     println!("objects list: {:?}", response);
 # }
 ```

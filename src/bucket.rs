@@ -206,6 +206,15 @@ impl Bucket<ArcPointer> {
 }
 
 impl Bucket {
+    /// # 查询 Object 列表
+    ///
+    /// 参数 query 有多种写法：
+    /// - `[]` 查所有
+    /// - `[("max-keys", "5")]` 数组（不可变长度），最大可支持 size 为 8 的数组
+    /// - `[("max-keys", "5"), ("prefix", "babel")]` 数组（不可变长度）
+    /// - `vec![("max-keys", "5")]` Vec(可变长度)
+    /// - `vec![("max-keys", 5u8)]` 数字类型
+    /// - `vec![("max-keys", 1000u16)]` u16 数字类型
     pub async fn get_object_list<Q: Into<Query>>(&self, query: Q) -> OssResult<ObjectList> {
         let mut url = self.base.to_url();
 

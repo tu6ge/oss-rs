@@ -1,3 +1,4 @@
+use array2query::{update_count, FormQuery, GetCount};
 use attr::Attribute;
 use file::FileTrait;
 use impl_object::impl_object;
@@ -5,6 +6,7 @@ use proc_macro::TokenStream;
 
 use quote::quote;
 use syn::parse_macro_input;
+mod array2query;
 mod attr;
 mod file;
 mod gen_rc;
@@ -40,5 +42,20 @@ pub fn oss_file(attr: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn oss_gen_rc(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let item = parse_macro_input!(input as GenImpl);
+    TokenStream::from(quote!(#item))
+}
+
+/// # 根据长度1的数组，自动生成多个长度的数组的 impl
+///
+/// 例如:如果 `[(&str, &str)]` 可以转化成 Query
+///
+/// 则 `#[array2query(2)]` 可以让 `[(&str, &str), (&str, &str)]` 也可以转化成 Query
+///
+/// 以此类推
+#[proc_macro_attribute]
+pub fn array2query(attr: TokenStream, input: TokenStream) -> TokenStream {
+    let attr = parse_macro_input!(attr as GetCount);
+    let mut item = parse_macro_input!(input as FormQuery);
+    update_count(&mut item, attr.count);
     TokenStream::from(quote!(#item))
 }

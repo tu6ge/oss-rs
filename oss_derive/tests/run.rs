@@ -4,6 +4,7 @@ fn run() {
     t.pass("tests/file.rs");
     t.pass("tests/gen_rc_eq.rs");
     t.pass("tests/gen_rc_client.rs");
+    t.pass("tests/array2query.rs");
     //t.compile_fail("tests/gen_rc_fail.rs");
 }
 

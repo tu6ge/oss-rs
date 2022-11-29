@@ -36,7 +36,7 @@ mod test_async {
 
         let bucket_list = client.get_bucket_list().await.unwrap();
 
-        let query = vec![("max-keys", "5"), ("prefix", "babel")];
+        let query = [("max-keys", "5"), ("prefix", "babel")];
 
         let buckets = bucket_list.buckets;
         let the_bucket = &buckets[0];
@@ -50,7 +50,7 @@ mod test_async {
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
-        let object_list = client.get_object_list(vec![()]).await;
+        let object_list = client.get_object_list([]).await;
 
         assert_matches!(object_list, Ok(_));
     }
@@ -131,7 +131,7 @@ mod test_blocking {
 
         let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
-        let object_list = client.get_object_list(vec![()]);
+        let object_list = client.get_object_list([]);
 
         assert_matches!(object_list, Ok(_));
     }

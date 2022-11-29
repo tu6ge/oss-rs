@@ -5,6 +5,7 @@ use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
 use chrono::{DateTime, Utc};
+use oss_derive::array2query;
 use reqwest::header::{HeaderValue, InvalidHeaderValue};
 use reqwest::Url;
 
@@ -865,9 +866,28 @@ where
     }
 }
 
-impl From<Vec<()>> for Query {
-    fn from(_: Vec<()>) -> Self {
+impl From<[(); 0]> for Query {
+    /// 空数组转换成 Query
+    fn from(_: [(); 0]) -> Self {
         Self::with_capacity(0)
+    }
+}
+
+#[array2query(8)]
+impl<K, V> From<[(K, V); 1]> for Query
+where
+    K: Into<QueryKey>,
+    V: Into<QueryValue>,
+{
+    /// 将 1-8 等不同长度的查询条件数组，转化成 Query
+    fn from(arr: [(K, V); 1]) -> Self {
+        let mut query = Query::with_capacity(arr.len());
+
+        for (key, val) in arr {
+            query.insert(key, val);
+        }
+
+        query
     }
 }
 
@@ -1016,6 +1036,22 @@ impl PartialEq<u16> for QueryValue {
     #[inline]
     fn eq(&self, other: &u16) -> bool {
         self.to_string() == other.to_string()
+    }
+}
+
+impl From<bool> for QueryValue {
+    /// bool 转 Query 值
+    ///
+    /// ```
+    /// use aliyun_oss_client::Query;
+    /// let query: Query = [("fetch-owner", false)].into();
+    /// ```
+    fn from(b: bool) -> Self {
+        if b {
+            Self::from_static("true")
+        } else {
+            Self::from_static("false")
+        }
     }
 }
 

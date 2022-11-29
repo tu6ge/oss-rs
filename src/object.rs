@@ -187,7 +187,7 @@ impl ObjectList {
     /// # dotenv().ok();
     /// use futures::{pin_mut, StreamExt};
     /// # let client = Client::from_env().unwrap();
-    /// # let query = vec![("max-keys", "100")];
+    /// # let query = [("max-keys", 100u8)];
     /// # let object_list = client.get_object_list(query).await.unwrap();
     /// let stream = object_list.into_stream();
     /// pin_mut!(stream);
