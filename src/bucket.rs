@@ -133,43 +133,37 @@ impl Default for Bucket<ArcPointer> {
 }
 
 impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
-    fn set_name(mut self, name: String) -> Result<Self, InvalidBucketValue> {
-        self.base.set_name(name).map_err(|_| InvalidBucketValue)?;
+    fn set_name(mut self, name: &str) -> Result<Self, InvalidBucketValue> {
+        self.base
+            .set_name(name.to_owned())
+            .map_err(|_| InvalidBucketValue)?;
         Ok(self)
     }
 
-    fn set_creation_date(mut self, creation_date: String) -> Result<Self, InvalidBucketValue> {
+    fn set_creation_date(mut self, creation_date: &str) -> Result<Self, InvalidBucketValue> {
         self.creation_date = creation_date
             .parse::<DateTime<Utc>>()
             .map_err(|_| InvalidBucketValue {})?;
         Ok(self)
     }
 
-    fn set_location(mut self, location: String) -> Result<Self, InvalidBucketValue> {
-        self.location = location;
+    fn set_location(mut self, location: &str) -> Result<Self, InvalidBucketValue> {
+        self.location = location.to_string();
         Ok(self)
     }
 
     fn set_extranet_endpoint(
         mut self,
-        extranet_endpoint: String,
+        extranet_endpoint: &str,
     ) -> Result<Self, InvalidBucketValue> {
-        if let Err(e) = self.base.set_endpoint(extranet_endpoint) {
+        if let Err(e) = self.base.set_endpoint(extranet_endpoint.to_owned()) {
             return Err(InvalidBucketValue::from(e));
         }
         Ok(self)
     }
 
-    fn set_intranet_endpoint(
-        mut self,
-        intranet_endpoint: String,
-    ) -> Result<Self, InvalidBucketValue> {
-        self.intranet_endpoint = intranet_endpoint;
-        Ok(self)
-    }
-
-    fn set_storage_class(mut self, storage_class: String) -> Result<Self, InvalidBucketValue> {
-        self.storage_class = storage_class;
+    fn set_storage_class(mut self, storage_class: &str) -> Result<Self, InvalidBucketValue> {
+        self.storage_class = storage_class.to_string();
         Ok(self)
     }
 }
@@ -231,7 +225,7 @@ impl Bucket {
         let base = self.base.clone();
 
         Ok(ObjectList::<ArcPointer>::default()
-            .from_xml(content.text().await?, Arc::new(self.base.clone()))?
+            .from_xml(&content.text().await?, Arc::new(self.base.clone()))?
             .set_bucket(base)
             .set_client(client)
             .set_search_query(query))
@@ -270,19 +264,27 @@ impl<T: PointerFamily> OssIntoBucketList<Bucket<T>> for ListBuckets<T>
 where
     Bucket<T>: std::default::Default,
 {
-    fn set_prefix(mut self, prefix: String) -> Result<Self, InvalidBucketListValue> {
-        self.prefix = if prefix.len() > 0 { Some(prefix) } else { None };
+    fn set_prefix(mut self, prefix: &str) -> Result<Self, InvalidBucketListValue> {
+        self.prefix = if prefix.len() > 0 {
+            Some(prefix.to_owned())
+        } else {
+            None
+        };
         Ok(self)
     }
 
-    fn set_marker(mut self, marker: String) -> Result<Self, InvalidBucketListValue> {
-        self.marker = if marker.len() > 0 { Some(marker) } else { None };
+    fn set_marker(mut self, marker: &str) -> Result<Self, InvalidBucketListValue> {
+        self.marker = if marker.len() > 0 {
+            Some(marker.to_owned())
+        } else {
+            None
+        };
         Ok(self)
     }
 
-    fn set_max_keys(mut self, max_keys: String) -> Result<Self, InvalidBucketListValue> {
+    fn set_max_keys(mut self, max_keys: &str) -> Result<Self, InvalidBucketListValue> {
         self.max_keys = if max_keys.len() > 0 {
-            Some(max_keys)
+            Some(max_keys.to_owned())
         } else {
             None
         };
@@ -294,25 +296,29 @@ where
         Ok(self)
     }
 
-    fn set_next_marker(mut self, marker: String) -> Result<Self, InvalidBucketListValue> {
+    fn set_next_marker(mut self, marker: &str) -> Result<Self, InvalidBucketListValue> {
         self.next_marker = if marker.is_empty() {
             None
         } else {
-            Some(marker)
+            Some(marker.to_owned())
         };
         Ok(self)
     }
 
-    fn set_id(mut self, id: String) -> Result<Self, InvalidBucketListValue> {
-        self.id = if id.is_empty() { None } else { Some(id) };
+    fn set_id(mut self, id: &str) -> Result<Self, InvalidBucketListValue> {
+        self.id = if id.is_empty() {
+            None
+        } else {
+            Some(id.to_owned())
+        };
         Ok(self)
     }
 
-    fn set_display_name(mut self, display_name: String) -> Result<Self, InvalidBucketListValue> {
+    fn set_display_name(mut self, display_name: &str) -> Result<Self, InvalidBucketListValue> {
         self.display_name = if display_name.is_empty() {
             None
         } else {
-            Some(display_name)
+            Some(display_name.to_owned())
         };
         Ok(self)
     }
@@ -333,7 +339,7 @@ impl ClientArc {
         let content = response.send().await?;
 
         let mut bucket_list =
-            ListBuckets::<ArcPointer>::default().from_xml(content.text().await?)?;
+            ListBuckets::<ArcPointer>::default().from_xml(&content.text().await?)?;
         bucket_list.set_client(Arc::new(self));
 
         Ok(bucket_list)
@@ -349,7 +355,7 @@ impl ClientArc {
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
         let content = response.send().await?;
 
-        let mut bucket = Bucket::<ArcPointer>::default().from_xml(content.text().await?)?;
+        let mut bucket = Bucket::<ArcPointer>::default().from_xml(&content.text().await?)?;
         bucket.set_client(Arc::new(self));
 
         Ok(bucket)

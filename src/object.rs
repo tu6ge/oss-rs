@@ -161,7 +161,7 @@ impl ObjectList {
                     .set_bucket(self.bucket.clone());
 
                 Ok(list
-                    .from_xml(content.text().await?, Arc::new(self.bucket.clone()))?
+                    .from_xml(&content.text().await?, Arc::new(self.bucket.clone()))?
                     .set_search_query(query))
             }
         }
@@ -434,12 +434,12 @@ impl<T: PointerFamily + Sized> OssIntoObject<T> for Object<T> {
         self
     }
 
-    fn set_key(mut self, key: String) -> Result<Self, InvalidObjectValue> {
-        self.base.set_path(key);
+    fn set_key(mut self, key: &str) -> Result<Self, InvalidObjectValue> {
+        self.base.set_path(key.to_string());
         Ok(self)
     }
 
-    fn set_last_modified(mut self, value: String) -> Result<Self, InvalidObjectValue> {
+    fn set_last_modified(mut self, value: &str) -> Result<Self, InvalidObjectValue> {
         let last_modified = value
             .parse::<DateTime<Utc>>()
             .map_err(|_| InvalidObjectValue {})?;
@@ -447,41 +447,41 @@ impl<T: PointerFamily + Sized> OssIntoObject<T> for Object<T> {
         Ok(self)
     }
 
-    fn set_etag(mut self, value: String) -> Result<Self, InvalidObjectValue> {
-        self.etag = value;
+    fn set_etag(mut self, value: &str) -> Result<Self, InvalidObjectValue> {
+        self.etag = value.to_string();
         Ok(self)
     }
 
-    fn set_type(mut self, value: String) -> Result<Self, InvalidObjectValue> {
-        self._type = value;
+    fn set_type(mut self, value: &str) -> Result<Self, InvalidObjectValue> {
+        self._type = value.to_string();
         Ok(self)
     }
 
-    fn set_size(mut self, size: String) -> Result<Self, InvalidObjectValue> {
+    fn set_size(mut self, size: &str) -> Result<Self, InvalidObjectValue> {
         self.size = size.parse::<u64>().map_err(|_| InvalidObjectValue {})?;
         Ok(self)
     }
 
-    fn set_storage_class(mut self, value: String) -> Result<Self, InvalidObjectValue> {
-        self.storage_class = value;
+    fn set_storage_class(mut self, value: &str) -> Result<Self, InvalidObjectValue> {
+        self.storage_class = value.to_string();
         Ok(self)
     }
 }
 
 impl<T: PointerFamily> OssIntoObjectList<Object<T>, T> for ObjectList<T> {
-    fn set_key_count(mut self, key_count: String) -> Result<Self, InvalidObjectListValue> {
+    fn set_key_count(mut self, key_count: &str) -> Result<Self, InvalidObjectListValue> {
         self.key_count = key_count
             .parse::<u64>()
             .map_err(|_| InvalidObjectListValue {})?;
         Ok(self)
     }
 
-    fn set_prefix(mut self, prefix: String) -> Result<Self, InvalidObjectListValue> {
-        self.prefix = prefix;
+    fn set_prefix(mut self, prefix: &str) -> Result<Self, InvalidObjectListValue> {
+        self.prefix = prefix.to_owned();
         Ok(self)
     }
 
-    fn set_max_keys(mut self, max_keys: String) -> Result<Self, InvalidObjectListValue> {
+    fn set_max_keys(mut self, max_keys: &str) -> Result<Self, InvalidObjectListValue> {
         self.max_keys = max_keys
             .parse::<u32>()
             .map_err(|_| InvalidObjectListValue {})?;
@@ -490,9 +490,9 @@ impl<T: PointerFamily> OssIntoObjectList<Object<T>, T> for ObjectList<T> {
 
     fn set_next_continuation_token(
         mut self,
-        token: Option<String>,
+        token: Option<&str>,
     ) -> Result<Self, InvalidObjectListValue> {
-        self.next_continuation_token = token;
+        self.next_continuation_token = token.map(|t| t.to_owned());
         Ok(self)
     }
 
@@ -524,7 +524,7 @@ impl Client {
             .set_bucket(bucket.clone());
 
         Ok(list
-            .from_xml(content.text().await?, Arc::new(bucket))?
+            .from_xml(&content.text().await?, Arc::new(bucket))?
             .set_search_query(query))
     }
 }

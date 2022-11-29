@@ -20,68 +20,74 @@ mod object_list_xml {
         struct ObjectA {}
 
         impl OssIntoObject<ArcPointer> for ObjectA {
-            fn set_key(self, key: String) -> Result<Self, InvalidObjectValue> {
+            fn set_key(self, key: &str) -> Result<Self, InvalidObjectValue> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
-                        assert_eq!(key, "9AB932LY.jpeg".to_string());
+                        assert_eq!(key, "9AB932LY.jpeg");
                     } else if OBEJCT_ITEM_ID == 1 {
-                        assert_eq!(key, "CHANGELOG.md".to_string());
+                        assert_eq!(key, "CHANGELOG.md");
                     } else if OBEJCT_ITEM_ID == 2 {
-                        assert_eq!(key, "LICENSE".to_string());
+                        assert_eq!(key, "LICENSE");
                     }
                 }
                 Ok(self)
             }
-            fn set_last_modified(self, last_modified: String) -> Result<Self, InvalidObjectValue> {
+            fn set_last_modified(
+                self,
+                last_modified: &str,
+            ) -> Result<Self, InvalidObjectValue> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
-                        assert_eq!(last_modified, "2022-06-26T09:53:21.000Z".to_string());
+                        assert_eq!(last_modified, "2022-06-26T09:53:21.000Z");
                     } else if OBEJCT_ITEM_ID == 1 {
-                        assert_eq!(last_modified, "2022-06-12T06:11:06.000Z".to_string());
+                        assert_eq!(last_modified, "2022-06-12T06:11:06.000Z");
                     } else if OBEJCT_ITEM_ID == 2 {
-                        assert_eq!(last_modified, "2022-06-12T06:11:06.000Z".to_string());
+                        assert_eq!(last_modified, "2022-06-12T06:11:06.000Z");
                     }
                 }
                 Ok(self)
             }
-            fn set_etag(self, etag: String) -> Result<Self, InvalidObjectValue> {
+            fn set_etag(self, etag: &str) -> Result<Self, InvalidObjectValue> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
-                        assert_eq!(etag, "F75A15996D0857B16FA31A3B16624C26".to_string());
+                        assert_eq!(etag, "F75A15996D0857B16FA31A3B16624C26");
                     } else if OBEJCT_ITEM_ID == 1 {
-                        assert_eq!(etag, "09C37AC5B145D368D52D0AAB58B25213".to_string());
+                        assert_eq!(etag, "09C37AC5B145D368D52D0AAB58B25213");
                     } else if OBEJCT_ITEM_ID == 2 {
-                        assert_eq!(etag, "2CBAB10A50CC6905EA2D7CCCEF31A6C9".to_string());
+                        assert_eq!(etag, "2CBAB10A50CC6905EA2D7CCCEF31A6C9");
                     }
                 }
                 Ok(self)
             }
-            fn set_type(self, _type: String) -> Result<Self, InvalidObjectValue> {
+            fn set_type(self, _type: &str) -> Result<Self, InvalidObjectValue> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
-                        assert_eq!(_type, "Normal".to_string());
+                        assert_eq!(_type, "Normal");
                     } else if OBEJCT_ITEM_ID == 1 {
-                        assert_eq!(_type, "Normal".to_string());
+                        assert_eq!(_type, "Normal");
                     } else if OBEJCT_ITEM_ID == 2 {
-                        assert_eq!(_type, "Normal".to_string());
+                        assert_eq!(_type, "Normal");
                     }
                 }
                 Ok(self)
             }
-            fn set_size(self, size: String) -> Result<Self, InvalidObjectValue> {
+            fn set_size(self, size: &str) -> Result<Self, InvalidObjectValue> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
-                        assert_eq!(size, "18027".to_string());
+                        assert_eq!(size, "18027");
                     } else if OBEJCT_ITEM_ID == 1 {
-                        assert_eq!(size, "40845".to_string());
+                        assert_eq!(size, "40845");
                     } else if OBEJCT_ITEM_ID == 2 {
-                        assert_eq!(size, "1065".to_string());
+                        assert_eq!(size, "1065");
                     }
                 }
                 Ok(self)
             }
-            fn set_storage_class(self, storage_class: String) -> Result<Self, InvalidObjectValue> {
-                assert_eq!(storage_class, "Standard".to_string());
+            fn set_storage_class(
+                self,
+                storage_class: &str,
+            ) -> Result<Self, InvalidObjectValue> {
+                assert_eq!(storage_class, "Standard");
                 unsafe {
                     OBEJCT_ITEM_ID += 1;
                 }
@@ -94,25 +100,25 @@ mod object_list_xml {
         }
         struct ListB {}
         impl OssIntoObjectList<ObjectA, ArcPointer> for ListB {
-            fn set_name(self, name: String) -> Result<Self, InvalidObjectListValue> {
-                assert_eq!(name, "foo_bucket".to_string());
+            fn set_name(self, name: &str) -> Result<Self, InvalidObjectListValue> {
+                assert_eq!(name, "foo_bucket");
                 Ok(self)
             }
-            fn set_prefix(self, prefix: String) -> Result<Self, InvalidObjectListValue> {
-                assert_eq!(prefix, "".to_string());
+            fn set_prefix(self, prefix: &str) -> Result<Self, InvalidObjectListValue> {
+                assert_eq!(prefix, "");
                 Ok(self)
             }
-            fn set_max_keys(self, max_keys: String) -> Result<Self, InvalidObjectListValue> {
-                assert_eq!(max_keys, "100".to_string());
+            fn set_max_keys(self, max_keys: &str) -> Result<Self, InvalidObjectListValue> {
+                assert_eq!(max_keys, "100");
                 Ok(self)
             }
-            fn set_key_count(self, key_count: String) -> Result<Self, InvalidObjectListValue> {
-                assert_eq!(key_count, "3".to_string());
+            fn set_key_count(self, key_count: &str) -> Result<Self, InvalidObjectListValue> {
+                assert_eq!(key_count, "3");
                 Ok(self)
             }
             fn set_next_continuation_token(
                 self,
-                token: Option<String>,
+                token: Option<&str>,
             ) -> Result<Self, InvalidObjectListValue> {
                 assert!(matches!(token, None));
                 Ok(self)
@@ -160,7 +166,7 @@ mod object_list_xml {
 
         let list = ListB {};
 
-        let list1 = list.from_xml(xml.to_string(), Arc::new(base));
+        let list1 = list.from_xml(xml, Arc::new(base));
 
         assert!(list1.is_ok());
     }
@@ -284,10 +290,10 @@ mod object_list_xml {
         impl OssIntoObjectList<ObjectA, ArcPointer> for ListB {
             fn set_next_continuation_token(
                 self,
-                token: Option<String>,
+                token: Option<&str>,
             ) -> Result<Self, InvalidObjectListValue> {
                 assert!(
-                    matches!(token, Some(v) if v=="CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--".to_string())
+                    matches!(token, Some(v) if v=="CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--")
                 );
                 Ok(self)
             }
@@ -332,7 +338,7 @@ mod object_list_xml {
 
         let list = ListB {};
 
-        let list1 = list.from_xml(xml.to_string(), Arc::new(base));
+        let list1 = list.from_xml(xml, Arc::new(base));
 
         assert!(list1.is_ok());
     }
@@ -348,40 +354,34 @@ mod bucket_xml {
         struct BucketA {}
 
         impl OssIntoBucket for BucketA {
-            fn set_name(self, name: String) -> Result<Self, InvalidBucketValue> {
-                assert_eq!(name, "foo".to_string());
+            fn set_name(self, name: &str) -> Result<Self, InvalidBucketValue> {
+                assert_eq!(name, "foo");
                 Ok(self)
             }
-            fn set_creation_date(self, creation_date: String) -> Result<Self, InvalidBucketValue> {
-                assert_eq!(creation_date, "2016-11-05T13:10:10.000Z".to_string());
+            fn set_creation_date(self, creation_date: &str) -> Result<Self, InvalidBucketValue> {
+                assert_eq!(creation_date, "2016-11-05T13:10:10.000Z");
                 Ok(self)
             }
-            fn set_location(self, location: String) -> Result<Self, InvalidBucketValue> {
-                assert_eq!(location, "oss-cn-shanghai".to_string());
+            fn set_location(self, location: &str) -> Result<Self, InvalidBucketValue> {
+                assert_eq!(location, "oss-cn-shanghai");
                 Ok(self)
             }
             fn set_extranet_endpoint(
                 self,
-                extranet_endpoint: String,
+                extranet_endpoint: &str,
             ) -> Result<Self, InvalidBucketValue> {
-                assert_eq!(
-                    extranet_endpoint,
-                    "oss-cn-shanghai.aliyuncs.com".to_string()
-                );
+                assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com");
                 Ok(self)
             }
             fn set_intranet_endpoint(
                 self,
-                intranet_endpoint: String,
+                intranet_endpoint: &str,
             ) -> Result<Self, InvalidBucketValue> {
-                assert_eq!(
-                    intranet_endpoint,
-                    "oss-cn-shanghai-internal.aliyuncs.com".to_string()
-                );
+                assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com");
                 Ok(self)
             }
-            fn set_storage_class(self, storage_class: String) -> Result<Self, InvalidBucketValue> {
-                assert_eq!(storage_class, "Standard".to_string());
+            fn set_storage_class(self, storage_class: &str) -> Result<Self, InvalidBucketValue> {
+                assert_eq!(storage_class, "Standard");
                 Ok(self)
             }
         }
@@ -418,7 +418,7 @@ mod bucket_xml {
           </Bucket>
         </BucketInfo>"#;
 
-        let info = BucketA {}.from_xml(xml.to_string());
+        let info = BucketA {}.from_xml(xml);
 
         assert!(info.is_ok());
     }
@@ -437,59 +437,53 @@ mod bucket_list_xml {
         struct BucketA {}
 
         impl OssIntoBucket for BucketA {
-            fn set_name(self, name: String) -> Result<Self, InvalidBucketValue> {
+            fn set_name(self, name: &str) -> Result<Self, InvalidBucketValue> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
-                        assert_eq!(name, "foo124442".to_string());
+                        assert_eq!(name, "foo124442");
                     } else if BUCKETS_ITEM_ID == 1 {
-                        assert_eq!(name, "foo342390bar".to_string());
+                        assert_eq!(name, "foo342390bar");
                     }
                 }
 
                 Ok(self)
             }
-            fn set_creation_date(self, creation_date: String) -> Result<Self, InvalidBucketValue> {
+            fn set_creation_date(self, creation_date: &str) -> Result<Self, InvalidBucketValue> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
-                        assert_eq!(creation_date, "2020-09-13T03:14:54.000Z".to_string());
+                        assert_eq!(creation_date, "2020-09-13T03:14:54.000Z");
                     } else if BUCKETS_ITEM_ID == 1 {
-                        assert_eq!(creation_date, "2016-11-05T13:10:10.000Z".to_string());
+                        assert_eq!(creation_date, "2016-11-05T13:10:10.000Z");
                     }
                 }
                 Ok(self)
             }
-            fn set_location(self, location: String) -> Result<Self, InvalidBucketValue> {
+            fn set_location(self, location: &str) -> Result<Self, InvalidBucketValue> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
-                        assert_eq!(location, "oss-cn-shanghai".to_string());
+                        assert_eq!(location, "oss-cn-shanghai");
                     } else if BUCKETS_ITEM_ID == 1 {
-                        assert_eq!(location, "oss-cn-shanghai".to_string());
+                        assert_eq!(location, "oss-cn-shanghai");
                     }
                 }
                 Ok(self)
             }
             fn set_extranet_endpoint(
                 self,
-                extranet_endpoint: String,
+                extranet_endpoint: &str,
             ) -> Result<Self, InvalidBucketValue> {
-                assert_eq!(
-                    extranet_endpoint,
-                    "oss-cn-shanghai.aliyuncs.com".to_string()
-                );
+                assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com");
                 Ok(self)
             }
             fn set_intranet_endpoint(
                 self,
-                intranet_endpoint: String,
+                intranet_endpoint: &str,
             ) -> Result<Self, InvalidBucketValue> {
-                assert_eq!(
-                    intranet_endpoint,
-                    "oss-cn-shanghai-internal.aliyuncs.com".to_string()
-                );
+                assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com");
                 Ok(self)
             }
-            fn set_storage_class(self, storage_class: String) -> Result<Self, InvalidBucketValue> {
-                assert_eq!(storage_class, "Standard".to_string());
+            fn set_storage_class(self, storage_class: &str) -> Result<Self, InvalidBucketValue> {
+                assert_eq!(storage_class, "Standard");
                 unsafe {
                     BUCKETS_ITEM_ID += 1;
                 }
@@ -500,35 +494,32 @@ mod bucket_list_xml {
         struct ListA {}
 
         impl OssIntoBucketList<BucketA> for ListA {
-            fn set_prefix(self, prefix: String) -> Result<Self, InvalidBucketListValue> {
-                assert_eq!(prefix, "".to_string());
+            fn set_prefix(self, prefix: &str) -> Result<Self, InvalidBucketListValue> {
+                assert_eq!(prefix, "");
                 Ok(self)
             }
-            fn set_marker(self, marker: String) -> Result<Self, InvalidBucketListValue> {
-                assert_eq!(marker, "".to_string());
+            fn set_marker(self, marker: &str) -> Result<Self, InvalidBucketListValue> {
+                assert_eq!(marker, "");
                 Ok(self)
             }
-            fn set_max_keys(self, max_keys: String) -> Result<Self, InvalidBucketListValue> {
-                assert_eq!(max_keys, "".to_string());
+            fn set_max_keys(self, max_keys: &str) -> Result<Self, InvalidBucketListValue> {
+                assert_eq!(max_keys, "");
                 Ok(self)
             }
             fn set_is_truncated(self, is_truncated: bool) -> Result<Self, InvalidBucketListValue> {
                 assert_eq!(is_truncated, false);
                 Ok(self)
             }
-            fn set_next_marker(self, next_marker: String) -> Result<Self, InvalidBucketListValue> {
-                assert_eq!(next_marker, "".to_string());
+            fn set_next_marker(self, next_marker: &str) -> Result<Self, InvalidBucketListValue> {
+                assert_eq!(next_marker, "");
                 Ok(self)
             }
-            fn set_id(self, id: String) -> Result<Self, InvalidBucketListValue> {
-                assert_eq!(id, "100861222333".to_string());
+            fn set_id(self, id: &str) -> Result<Self, InvalidBucketListValue> {
+                assert_eq!(id, "100861222333");
                 Ok(self)
             }
-            fn set_display_name(
-                self,
-                display_name: String,
-            ) -> Result<Self, InvalidBucketListValue> {
-                assert_eq!(display_name, "100861222".to_string());
+            fn set_display_name(self, display_name: &str) -> Result<Self, InvalidBucketListValue> {
+                assert_eq!(display_name, "100861222");
                 Ok(self)
             }
         }
@@ -563,7 +554,7 @@ mod bucket_list_xml {
           </Buckets>
         </ListAllMyBucketsResult>"#;
 
-        let list = ListA {}.from_xml(xml.to_string());
+        let list = ListA {}.from_xml(xml);
 
         assert!(list.is_ok());
     }
