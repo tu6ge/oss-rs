@@ -95,7 +95,7 @@ println!("objects list: {:?}", response);
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
 let query = vec![("max-keys", "5"), ("prefix", "babel")];
 
-let result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
+let mut result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
 
 println!("object list : {:?}", result);
 
