@@ -172,6 +172,7 @@ mod object_list_xml {
     }
 
     // bench result 5,210 ns/iter (+/- 151)
+    // update to &str 4,262 ns/iter (+/- 96)
     // #[cfg(test)]
     // #[bench]
     // fn from_xml_bench(b: &mut test::Bencher) {
@@ -182,26 +183,26 @@ mod object_list_xml {
     //     struct ObjectA {}
 
     //     impl OssIntoObject<ArcPointer> for ObjectA {
-    //         fn set_key(self, key: String) -> Result<Self, InvalidObjectValue> {
+    //         fn set_key(self, key: &str) -> Result<Self, InvalidObjectValue> {
 
     //             Ok(self)
     //         }
-    //         fn set_last_modified(self, last_modified: String) -> Result<Self, InvalidObjectValue> {
+    //         fn set_last_modified(self, last_modified: &str) -> Result<Self, InvalidObjectValue> {
 
     //             Ok(self)
     //         }
-    //         fn set_etag(self, etag: String) -> Result<Self, InvalidObjectValue> {
+    //         fn set_etag(self, etag: &str) -> Result<Self, InvalidObjectValue> {
 
     //             Ok(self)
     //         }
-    //         fn set_type(self, _type: String) -> Result<Self, InvalidObjectValue> {
+    //         fn set_type(self, _type: &str) -> Result<Self, InvalidObjectValue> {
 
     //             Ok(self)
     //         }
-    //         fn set_size(self, size: String) -> Result<Self, InvalidObjectValue> {
+    //         fn set_size(self, size: &str) -> Result<Self, InvalidObjectValue> {
     //             Ok(self)
     //         }
-    //         fn set_storage_class(self, storage_class: String) -> Result<Self, InvalidObjectValue> {
+    //         fn set_storage_class(self, storage_class: &str) -> Result<Self, InvalidObjectValue> {
 
     //             Ok(self)
     //         }
@@ -212,21 +213,21 @@ mod object_list_xml {
     //     }
     //     struct ListB {}
     //     impl OssIntoObjectList<ObjectA, ArcPointer> for ListB {
-    //         fn set_name(self, name: String) -> Result<Self, InvalidObjectListValue> {
+    //         fn set_name(self, name: &str) -> Result<Self, InvalidObjectListValue> {
     //             Ok(self)
     //         }
-    //         fn set_prefix(self, prefix: String) -> Result<Self, InvalidObjectListValue> {
+    //         fn set_prefix(self, prefix: &str) -> Result<Self, InvalidObjectListValue> {
     //             Ok(self)
     //         }
-    //         fn set_max_keys(self, max_keys: String) -> Result<Self, InvalidObjectListValue> {
+    //         fn set_max_keys(self, max_keys: &str) -> Result<Self, InvalidObjectListValue> {
     //             Ok(self)
     //         }
-    //         fn set_key_count(self, key_count: String) -> Result<Self, InvalidObjectListValue> {
+    //         fn set_key_count(self, key_count: &str) -> Result<Self, InvalidObjectListValue> {
     //             Ok(self)
     //         }
     //         fn set_next_continuation_token(
     //             self,
-    //             token: Option<String>,
+    //             token: Option<&str>,
     //         ) -> Result<Self, InvalidObjectListValue> {
     //             Ok(self)
     //         }
@@ -272,7 +273,7 @@ mod object_list_xml {
     //     b.iter(||{
     //         let list = ListB {};
     //         let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
-    //         list.from_xml(xml.to_string(), Arc::new(base));
+    //         list.from_xml(xml, Arc::new(base));
     //     })
     // }
 
