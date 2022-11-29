@@ -240,6 +240,9 @@ impl Bucket {
 
 #[cfg(feature = "blocking")]
 impl Bucket<RcPointer> {
+    /// 查询默认 bucket 的文件列表
+    ///
+    /// 查询条件参数有多种方式，具体参考 [`get_object_list`](#method.get_object_list) 文档
     pub fn get_object_list<Q: Into<Query>>(&self, query: Q) -> OssResult<ObjectList<RcPointer>> {
         let mut url = self.base.to_url();
 
