@@ -397,13 +397,13 @@ impl From<String> for ObjectPath {
 
 impl Into<String> for ObjectPath {
     fn into(self) -> String {
-        self.0.to_owned().to_string()
+        self.0.to_string()
     }
 }
 
-impl From<&'static str> for ObjectPath {
-    fn from(url: &'static str) -> Self {
-        Self::from_static(url)
+impl<'a> From<&'a str> for ObjectPath {
+    fn from(string: &'a str) -> Self {
+        Self(Cow::Owned(string.to_owned()))
     }
 }
 

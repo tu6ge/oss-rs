@@ -224,7 +224,7 @@ impl ObjectList<RcPointer> {
             .set_client(Rc::clone(&client))
             .set_bucket(self.bucket.clone());
         Ok(list
-            .from_xml(content.text()?, Rc::new(self.bucket.clone()))?
+            .from_xml(&content.text()?, Rc::new(self.bucket.clone()))?
             .set_search_query(self.search_query.clone()))
     }
 }
@@ -435,7 +435,7 @@ impl<T: PointerFamily + Sized> OssIntoObject<T> for Object<T> {
     }
 
     fn set_key(mut self, key: &str) -> Result<Self, InvalidObjectValue> {
-        self.base.set_path(key.to_string());
+        self.base.set_path(key);
         Ok(self)
     }
 
@@ -552,7 +552,7 @@ impl ClientRc {
             .set_bucket(bucket.clone());
 
         Ok(list
-            .from_xml(content.text()?, Rc::new(bucket))?
+            .from_xml(&content.text()?, Rc::new(bucket))?
             .set_search_query(query))
     }
 }

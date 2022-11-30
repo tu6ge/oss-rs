@@ -253,7 +253,7 @@ impl Bucket<RcPointer> {
         let base = self.base.clone();
 
         Ok(ObjectList::<RcPointer>::default()
-            .from_xml(content.text()?, Rc::new(self.base.clone()))?
+            .from_xml(&content.text()?, Rc::new(self.base.clone()))?
             .set_bucket(base)
             .set_client(client)
             .set_search_query(query))
@@ -372,7 +372,7 @@ impl ClientRc {
         let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
-        let mut bucket_list = ListBuckets::<RcPointer>::default().from_xml(content.text()?)?;
+        let mut bucket_list = ListBuckets::<RcPointer>::default().from_xml(&content.text()?)?;
         bucket_list.set_client(Rc::new(self));
 
         Ok(bucket_list)
@@ -388,7 +388,7 @@ impl ClientRc {
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
         let content = response.send()?;
 
-        let mut bucket = Bucket::<RcPointer>::default().from_xml(content.text()?)?;
+        let mut bucket = Bucket::<RcPointer>::default().from_xml(&content.text()?)?;
         bucket.set_client(Rc::new(self));
 
         Ok(bucket)

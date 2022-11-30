@@ -4,6 +4,8 @@ mod object_list_xml {
     use std::sync::Arc;
 
     use crate::builder::ArcPointer;
+    use crate::client::Client;
+    use crate::object::{Object, ObjectList};
     use crate::tests::traits::OBEJCT_ITEM_ID;
     use crate::{
         config::BucketBase,
@@ -32,10 +34,7 @@ mod object_list_xml {
                 }
                 Ok(self)
             }
-            fn set_last_modified(
-                self,
-                last_modified: &str,
-            ) -> Result<Self, InvalidObjectValue> {
+            fn set_last_modified(self, last_modified: &str) -> Result<Self, InvalidObjectValue> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(last_modified, "2022-06-26T09:53:21.000Z");
@@ -83,10 +82,7 @@ mod object_list_xml {
                 }
                 Ok(self)
             }
-            fn set_storage_class(
-                self,
-                storage_class: &str,
-            ) -> Result<Self, InvalidObjectValue> {
+            fn set_storage_class(self, storage_class: &str) -> Result<Self, InvalidObjectValue> {
                 assert_eq!(storage_class, "Standard");
                 unsafe {
                     OBEJCT_ITEM_ID += 1;
@@ -185,30 +181,24 @@ mod object_list_xml {
 
         impl OssIntoObject<ArcPointer> for ObjectA {
             fn set_key(self, key: &str) -> Result<Self, InvalidObjectValue> {
-
                 Ok(self)
             }
             fn set_last_modified(self, last_modified: &str) -> Result<Self, InvalidObjectValue> {
-
                 Ok(self)
             }
             fn set_etag(self, etag: &str) -> Result<Self, InvalidObjectValue> {
-
                 Ok(self)
             }
             fn set_type(self, _type: &str) -> Result<Self, InvalidObjectValue> {
-
                 Ok(self)
             }
             fn set_size(self, size: &str) -> Result<Self, InvalidObjectValue> {
                 Ok(self)
             }
             fn set_storage_class(self, storage_class: &str) -> Result<Self, InvalidObjectValue> {
-
                 Ok(self)
             }
             fn set_bucket(self, bucket: Arc<BucketBase>) -> Self {
-
                 self
             }
         }
@@ -271,8 +261,101 @@ mod object_list_xml {
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        b.iter(||{
+        b.iter(|| {
             let list = ListB {};
+            let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
+            list.from_xml(xml, Arc::new(base));
+        })
+    }
+
+    // fn init_object_list(token: Option<String>, list: Vec<Object<RcPointer>>) -> ObjectList<RcPointer> {
+    //     let client = ClientRc::new(
+    //         "foo1".into(),
+    //         "foo2".into(),
+    //         "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+    //         "foo4".try_into().unwrap(),
+    //     );
+
+    //     let object_list = ObjectList::<RcPointer>::new(
+    //         BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
+    //         String::from("foo2"),
+    //         100,
+    //         200,
+    //         list,
+    //         token,
+    //         Rc::new(client),
+    //         [],
+    //     );
+
+    //     object_list
+    // }
+
+    #[allow(dead_code)]
+    fn init_object_list(token: Option<String>, list: Vec<Object>) -> ObjectList {
+        let client = Client::new(
+            "foo1".into(),
+            "foo2".into(),
+            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
+            "foo4".try_into().unwrap(),
+        );
+
+        let object_list = ObjectList::<ArcPointer>::new(
+            BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
+            String::from("foo2"),
+            100,
+            200,
+            list,
+            token,
+            Arc::new(client),
+            [],
+        );
+
+        object_list
+    }
+
+    #[cfg(test)]
+    #[cfg(feature = "bench")]
+    #[bench]
+    fn from_xml_bench_real_object(b: &mut test::Bencher) {
+        use crate::traits::OssIntoObject;
+        use crate::traits::OssIntoObjectList;
+
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+        <ListBucketResult>
+          <Name>foo_bucket</Name>
+          <Prefix></Prefix>
+          <MaxKeys>100</MaxKeys>
+          <Delimiter></Delimiter>
+          <IsTruncated>false</IsTruncated>
+          <Contents>
+            <Key>9AB932LY.jpeg</Key>
+            <LastModified>2022-06-26T09:53:21.000Z</LastModified>
+            <ETag>"F75A15996D0857B16FA31A3B16624C26"</ETag>
+            <Type>Normal</Type>
+            <Size>18027</Size>
+            <StorageClass>Standard</StorageClass>
+          </Contents>
+          <Contents>
+            <Key>CHANGELOG.md</Key>
+            <LastModified>2022-06-12T06:11:06.000Z</LastModified>
+            <ETag>"09C37AC5B145D368D52D0AAB58B25213"</ETag>
+            <Type>Normal</Type>
+            <Size>40845</Size>
+            <StorageClass>Standard</StorageClass>
+          </Contents>
+          <Contents>
+            <Key>LICENSE</Key>
+            <LastModified>2022-06-12T06:11:06.000Z</LastModified>
+            <ETag>"2CBAB10A50CC6905EA2D7CCCEF31A6C9"</ETag>
+            <Type>Normal</Type>
+            <Size>1065</Size>
+            <StorageClass>Standard</StorageClass>
+          </Contents>
+          <KeyCount>3</KeyCount>
+        </ListBucketResult>"#;
+
+        b.iter(|| {
+            let list = init_object_list(None, vec![]);
             let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
             list.from_xml(xml, Arc::new(base));
         })
