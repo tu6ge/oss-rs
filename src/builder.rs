@@ -137,6 +137,8 @@ pub trait RequestHandler {
     async fn handle_error(self) -> OssResult<Response>;
 }
 
+pub const SUCCESS_STATUS: [u16; 3] = [200, 204, 206];
+
 #[async_trait]
 impl RequestHandler for Response {
     /// # 收集并处理 OSS 接口返回的错误
@@ -145,7 +147,8 @@ impl RequestHandler for Response {
 
         let status = self.status();
 
-        if status != 200 && status != 204 && status != 206 {
+        if status != SUCCESS_STATUS[0] && status != SUCCESS_STATUS[1] && status != SUCCESS_STATUS[2]
+        {
             return Err(OssService::new(self.text().await?).into());
         }
 

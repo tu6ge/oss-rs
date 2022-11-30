@@ -264,7 +264,7 @@ fn test_get_blocking_bucket_info() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, intranet_endpoint: "oss-cn-shanghai-internal.aliyuncs.com", location: "oss-cn-shanghai", storage_class: "Standard" })"#
+        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, intranet_endpoint: "", location: "oss-cn-shanghai", storage_class: "Standard" })"#
     );
 }
 

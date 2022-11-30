@@ -71,6 +71,8 @@ pub struct BucketBase {
     name: BucketName,
 }
 
+const HTTPS: &str = "https://";
+
 impl BucketBase {
     pub fn new(name: BucketName, endpoint: EndPoint) -> Self {
         Self { name, endpoint }
@@ -177,11 +179,11 @@ impl BucketBase {
         let url = endpoint.to_string();
         let name_str = self.name.to_string();
 
-        let mut name = String::from("https://");
+        let mut name = String::from(HTTPS);
         name.push_str(&name_str);
         name.push('.');
 
-        let url = url.replace("https://", &name);
+        let url = url.replace(HTTPS, &name);
         Url::parse(&url).unwrap()
     }
 }

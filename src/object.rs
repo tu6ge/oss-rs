@@ -11,7 +11,7 @@ use crate::errors::{OssError, OssResult};
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::traits::{InvalidObjectListValue, InvalidObjectValue, OssIntoObject, OssIntoObjectList};
-use crate::types::{CanonicalizedResource, Query, UrlQuery};
+use crate::types::{CanonicalizedResource, Query, UrlQuery, CONTINUATION_TOKEN};
 use crate::Client;
 use async_stream::try_stream;
 use chrono::prelude::*;
@@ -118,7 +118,7 @@ impl<T: PointerFamily> ObjectList<T> {
         match &self.next_continuation_token {
             Some(token) => {
                 let mut search_query = self.search_query.clone();
-                search_query.insert("continuation-token", token.to_owned());
+                search_query.insert(CONTINUATION_TOKEN, token.to_owned());
                 Some(search_query)
             }
             None => None,
@@ -563,7 +563,7 @@ impl Iterator for ObjectList<RcPointer> {
     fn next(&mut self) -> Option<Self> {
         match self.next_continuation_token.clone() {
             Some(token) => {
-                self.search_query.insert("continuation-token", token);
+                self.search_query.insert(CONTINUATION_TOKEN, token);
 
                 match self.get_object_list() {
                     Ok(v) => Some(v),

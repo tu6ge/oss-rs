@@ -129,19 +129,30 @@ pub enum EndPoint {
     ApSouthEast1,
 }
 
+pub const HANGZHOU: &str = "cn-hangzhou";
+pub const SHANGHAI: &str = "cn-shanghai";
+pub const QINGDAO: &str = "cn-qingdao";
+pub const BEIJING: &str = "cn-beijing";
+pub const ZHANGJIAKOU: &str = "cn-zhangjiakou";
+pub const HONGKONG: &str = "cn-hongkong";
+pub const SHENZHEN: &str = "cn-shenzhen";
+pub const US_WEST1: &str = "us-west1";
+pub const US_EAST1: &str = "us-east1";
+pub const AP_SOUTH_EAST1: &str = "ap-south-east1";
+
 impl AsRef<str> for EndPoint {
     fn as_ref(&self) -> &str {
         match *self {
-            Self::CnHangzhou => "cn-hangzhou",
-            Self::CnShanghai => "cn-shanghai",
-            Self::CnQingdao => "cn-qingdao",
-            Self::CnBeijing => "cn-beijing",
-            Self::CnZhangjiakou => "cn-zhangjiakou",
-            Self::CnHongkong => "cn-hongkong",
-            Self::CnShenzhen => "cn-shenzhen",
-            Self::UsWest1 => "us-west1",
-            Self::UsEast1 => "us-east1",
-            Self::ApSouthEast1 => "ap-south-east1",
+            Self::CnHangzhou => HANGZHOU,
+            Self::CnShanghai => SHANGHAI,
+            Self::CnQingdao => QINGDAO,
+            Self::CnBeijing => BEIJING,
+            Self::CnZhangjiakou => ZHANGJIAKOU,
+            Self::CnHongkong => HONGKONG,
+            Self::CnShenzhen => SHENZHEN,
+            Self::UsWest1 => US_WEST1,
+            Self::UsEast1 => US_EAST1,
+            Self::ApSouthEast1 => AP_SOUTH_EAST1,
             //_ => "custom",
         }
     }
@@ -161,6 +172,14 @@ impl Display for EndPoint {
 //     }
 // }
 
+pub const HANGZHOU_L: &str = "hangzhou";
+pub const SHANGHAI_L: &str = "shanghai";
+pub const QINGDAO_L: &str = "qingdao";
+pub const BEIJING_L: &str = "beijing";
+pub const ZHANGJIAKOU_L: &str = "zhangjiakou";
+pub const HONGKONG_L: &str = "hongkong";
+pub const SHENZHEN_L: &str = "shenzhen";
+
 impl TryFrom<String> for EndPoint {
     type Error = InvalidEndPoint;
     /// 字符串转 endpoint
@@ -175,25 +194,25 @@ impl TryFrom<String> for EndPoint {
     /// let e: EndPoint = String::from("qingdao").try_into().unwrap();
     /// ```
     fn try_from(url: String) -> Result<Self, Self::Error> {
-        if url.contains("shanghai") {
+        if url.contains(SHANGHAI_L) {
             Ok(Self::CnShanghai)
-        } else if url.contains("hangzhou") {
+        } else if url.contains(HANGZHOU_L) {
             Ok(Self::CnHangzhou)
-        } else if url.contains("qingdao") {
+        } else if url.contains(QINGDAO_L) {
             Ok(Self::CnQingdao)
-        } else if url.contains("beijing") {
+        } else if url.contains(BEIJING_L) {
             Ok(Self::CnBeijing)
-        } else if url.contains("zhangjiakou") {
+        } else if url.contains(ZHANGJIAKOU_L) {
             Ok(Self::CnZhangjiakou)
-        } else if url.contains("hongkong") {
+        } else if url.contains(HONGKONG_L) {
             Ok(Self::CnHongkong)
-        } else if url.contains("shenzhen") {
+        } else if url.contains(SHENZHEN_L) {
             Ok(Self::CnShenzhen)
-        } else if url.contains("us-west1") {
+        } else if url.contains(US_WEST1) {
             Ok(Self::UsWest1)
-        } else if url.contains("us-east1") {
+        } else if url.contains(US_EAST1) {
             Ok(Self::UsEast1)
-        } else if url.contains("ap-south-east1") {
+        } else if url.contains(AP_SOUTH_EAST1) {
             Ok(Self::ApSouthEast1)
         } else {
             Err(InvalidEndPoint)
@@ -207,6 +226,10 @@ impl TryFrom<&'static str> for EndPoint {
         Self::new(url)
     }
 }
+
+pub const OSS_DOMAIN_PREFIX: &str = "https://oss-";
+pub const OSS_INTERNAL: &str = "-internal";
+pub const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
 
 impl EndPoint {
     /// 通过字符串字面值初始化 endpoint
@@ -235,25 +258,25 @@ impl EndPoint {
     /// assert!(EndPoint::new("weifang").is_err());
     /// ```
     pub fn new(url: &'static str) -> Result<Self, InvalidEndPoint> {
-        if url.contains("shanghai") {
+        if url.contains(SHANGHAI_L) {
             Ok(Self::CnShanghai)
-        } else if url.contains("hangzhou") {
+        } else if url.contains(HANGZHOU_L) {
             Ok(Self::CnHangzhou)
-        } else if url.contains("qingdao") {
+        } else if url.contains(QINGDAO_L) {
             Ok(Self::CnQingdao)
-        } else if url.contains("beijing") {
+        } else if url.contains(BEIJING_L) {
             Ok(Self::CnBeijing)
-        } else if url.contains("zhangjiakou") {
+        } else if url.contains(ZHANGJIAKOU_L) {
             Ok(Self::CnZhangjiakou)
-        } else if url.contains("hongkong") {
+        } else if url.contains(HONGKONG_L) {
             Ok(Self::CnHongkong)
-        } else if url.contains("shenzhen") {
+        } else if url.contains(SHENZHEN_L) {
             Ok(Self::CnShenzhen)
-        } else if url.contains("us-west1") {
+        } else if url.contains(US_WEST1) {
             Ok(Self::UsWest1)
-        } else if url.contains("us-east1") {
+        } else if url.contains(US_EAST1) {
             Ok(Self::UsEast1)
-        } else if url.contains("ap-south-east1") {
+        } else if url.contains(AP_SOUTH_EAST1) {
             Ok(Self::ApSouthEast1)
         } else {
             Err(InvalidEndPoint)
@@ -279,15 +302,15 @@ impl EndPoint {
     /// );
     /// ```
     pub fn to_url(&self) -> Url {
-        let mut url = String::from("https://oss-");
+        let mut url = String::from(OSS_DOMAIN_PREFIX);
         url.push_str(self.as_ref());
 
         // internal
         if let Ok(_) = env::var("ALIYUN_OSS_INTERNAL") {
-            url.push_str("-internal");
+            url.push_str(OSS_INTERNAL);
         }
 
-        url.push_str(".aliyuncs.com");
+        url.push_str(OSS_DOMAIN_MAIN);
         Url::parse(&url).unwrap()
     }
 }
@@ -426,7 +449,7 @@ impl BucketName {
             return Err(InvalidBucketName);
         }
 
-        if bucket.starts_with("-") || bucket.ends_with("-") {
+        if bucket.starts_with('-') || bucket.ends_with('-') {
             return Err(InvalidBucketName);
         }
 
@@ -451,7 +474,7 @@ impl BucketName {
             return Err(InvalidBucketName);
         }
 
-        if bucket.starts_with("-") || bucket.ends_with("-") {
+        if bucket.starts_with('-') || bucket.ends_with('-') {
             return Err(InvalidBucketName);
         }
 
@@ -626,7 +649,7 @@ impl From<&'static str> for Date {
 
 impl From<DateTime<Utc>> for Date {
     fn from(d: DateTime<Utc>) -> Self {
-        Self::from(d.format("%a, %d %b %Y %T GMT").to_string())
+        Self(Cow::Owned(d.format("%a, %d %b %Y %T GMT").to_string()))
     }
 }
 
@@ -677,6 +700,9 @@ impl Default for CanonicalizedResource {
     }
 }
 
+pub const CONTINUATION_TOKEN: &str = "continuation-token";
+const QUERY_KEYWORD: [&str; 2] = ["acl", "bucketInfo"];
+
 impl CanonicalizedResource {
     /// Creates a new `CanonicalizedResource` from the given string.
     pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
@@ -692,8 +718,10 @@ impl CanonicalizedResource {
     pub fn from_bucket(bucket: &BucketBase, query: Option<&str>) -> Self {
         match query {
             Some(q) => {
-                if q == "acl" || q == "bucketInfo" {
-                    return Self::from(format!("/{}/?{}", bucket.name(), q));
+                for k in QUERY_KEYWORD.iter() {
+                    if *k == q {
+                        return Self::from(format!("/{}/?{}", bucket.name(), q));
+                    }
                 }
 
                 Self::from(format!("/{}/", bucket.name()))
@@ -707,7 +735,7 @@ impl CanonicalizedResource {
     ///
     /// 如果查询条件中有翻页的话，则忽略掉其他字段
     pub fn from_bucket_query(bucket: &BucketBase, query: &Query) -> Self {
-        match query.get("continuation-token") {
+        match query.get(CONTINUATION_TOKEN) {
             Some(v) => Self::from(format!(
                 "/{}/?continuation-token={}",
                 bucket.name(),
@@ -813,14 +841,13 @@ impl Query {
 
     /// 将查询参数拼成 aliyun 接口需要的格式
     pub fn to_oss_string(&self) -> String {
-        let mut query_str = String::new();
+        let mut query_str = String::from("list-type=2");
         for (key, value) in self.inner.iter() {
             query_str += "&";
             query_str += key.as_ref();
             query_str += "=";
             query_str += value.as_ref();
         }
-        let query_str = "list-type=2".to_owned() + &query_str;
         query_str
     }
 
@@ -830,14 +857,14 @@ impl Query {
     pub fn to_url_query(&self) -> String {
         self.inner
             .iter()
-            .map(|(k, v)| -> String {
-                let mut res = String::new();
+            .map(|(k, v)| {
+                let mut res = String::with_capacity(k.as_ref().len() + v.as_ref().len() + 1);
                 res.push_str(k.as_ref());
                 res.push_str("=");
                 res.push_str(v.as_ref());
                 res
             })
-            .collect::<Vec<String>>()
+            .collect::<Vec<_>>()
             .join("&")
     }
 }
@@ -911,8 +938,7 @@ impl UrlQuery for Url {
     /// assert_eq!(url.query(), Some("list-type=2&abc=def"));
     /// ```
     fn set_search_query(&mut self, query: &Query) {
-        let str = query.to_oss_string();
-        self.set_query(Some(&str));
+        self.set_query(Some(&query.to_oss_string()));
     }
 }
 
@@ -1127,15 +1153,18 @@ impl Into<HeaderValue> for ContentRange {
     /// assert_eq!(abc(..20), HeaderValue::from_str("bytes=0-20").unwrap());
     /// ```
     fn into(self) -> HeaderValue {
-        match self.start {
-            Some(start) => match self.end {
-                Some(end) => HeaderValue::from_str(&format!("bytes={}-{}", start, end)).unwrap(),
-                None => HeaderValue::from_str(&format!("bytes={}-", start)).unwrap(),
+        let string = match self.start {
+            Some(ref start) => match self.end {
+                Some(ref end) => format!("bytes={}-{}", start, end),
+                None => format!("bytes={}-", start),
             },
             None => match self.end {
-                Some(end) => HeaderValue::from_str(&format!("bytes=0-{}", end)).unwrap(),
-                None => HeaderValue::from_str(&format!("bytes=0-")).unwrap(),
+                Some(ref end) => format!("bytes=0-{}", end),
+                None => format!("bytes=0-"),
             },
-        }
+        };
+
+        // unwrap 是安全的，因为输入的字符都是合法的
+        HeaderValue::from_str(&string).unwrap()
     }
 }

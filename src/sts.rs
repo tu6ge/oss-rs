@@ -33,6 +33,8 @@ pub trait STS {
     ) -> Self;
 }
 
+const SECURITY_TOKEN: &str = "x-oss-security-token";
+
 impl<M: Default> STS for Client<M> {
     fn new_with_sts(
         access_key_id: KeyId,
@@ -44,7 +46,7 @@ impl<M: Default> STS for Client<M> {
         let auth_builder = AuthBuilder::default()
             .key(access_key_id)
             .secret(access_key_secret)
-            .header_insert("x-oss-security-token", security_token.try_into().unwrap());
+            .header_insert(SECURITY_TOKEN, security_token.try_into().unwrap());
 
         Self::from_builder(auth_builder, endpoint, bucket)
     }

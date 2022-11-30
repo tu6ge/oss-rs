@@ -250,7 +250,7 @@ impl AuthToOssHeader for Auth {
             })
             .collect();
 
-        Ok(OssHeader(Some(header_vec.join("\n"))))
+        Ok(OssHeader(Some(header_vec.join(LINE_BREAK))))
     }
 }
 
@@ -322,19 +322,27 @@ pub(crate) trait AuthHeader {
     ) -> OssResult<Option<HeaderValue>>;
 }
 
+const ACCESS_KEY_ID: &str = "AccessKeyId";
+const SECRET_ACCESS_KEY: &str = "SecretAccessKey";
+const VERB_IDENT: &str = "VERB";
+const CONTENT_MD5: &str = "Content-MD5";
+const DATE: &str = "Date";
+const CANONICALIZED_RESOURCE: &str = "CanonicalizedResource";
+const AUTHORIZATION: &str = "Authorization";
+
 impl AuthHeader for HeaderMap {
     fn from_auth(auth: &impl AuthToHeaderMap) -> OssResult<Self> {
         let mut map = auth.get_original_header();
 
-        map.insert("AccessKeyId", auth.get_header_key()?);
-        map.insert("SecretAccessKey", auth.get_header_secret()?);
-        map.insert("VERB", auth.get_header_verb()?);
+        map.insert(ACCESS_KEY_ID, auth.get_header_key()?);
+        map.insert(SECRET_ACCESS_KEY, auth.get_header_secret()?);
+        map.insert(VERB_IDENT, auth.get_header_verb()?);
 
         if let Some(a) = auth.get_header_md5()? {
-            map.insert("Content-MD5", a);
+            map.insert(CONTENT_MD5, a);
         }
-        map.insert("Date", auth.get_header_date()?);
-        map.insert("CanonicalizedResource", auth.get_header_resource()?);
+        map.insert(DATE, auth.get_header_date()?);
+        map.insert(CANONICALIZED_RESOURCE, auth.get_header_resource()?);
 
         //println!("header list: {:?}",map);
         Ok(map)
@@ -343,7 +351,7 @@ impl AuthHeader for HeaderMap {
         &mut self,
         sign: S,
     ) -> OssResult<Option<HeaderValue>> {
-        let res = self.insert("Authorization", sign.try_into()?);
+        let res = self.insert(AUTHORIZATION, sign.try_into()?);
         Ok(res)
     }
 }
@@ -374,7 +382,7 @@ impl HeaderToSign for OssHeader {
         match self.0.clone() {
             Some(str) => {
                 content.push_str(&str);
-                content.push_str("\n");
+                content.push_str(LINE_BREAK);
             }
             None => (),
         }
@@ -395,6 +403,8 @@ pub struct SignString {
     secret: KeySecret,
 }
 
+const LINE_BREAK: &str = "\n";
+
 impl SignString {
     pub fn new(data: String, key: KeyId, secret: KeySecret) -> SignString {
         SignString { data, key, secret }
@@ -407,13 +417,13 @@ impl SignString {
         let method = auth.verb();
 
         let str: String = method
-            + "\n"
+            + LINE_BREAK
             + auth.content_md5().as_ref().as_ref()
-            + "\n"
+            + LINE_BREAK
             + auth.content_type().as_ref().as_ref()
-            + "\n"
+            + LINE_BREAK
             + auth.date().as_ref().as_ref()
-            + "\n"
+            + LINE_BREAK
             + header.to_sign_string().as_ref()
             + auth.canonicalized_resource().as_ref().as_ref();
 

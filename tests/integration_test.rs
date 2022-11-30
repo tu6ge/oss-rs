@@ -82,7 +82,6 @@ mod test_blocking {
     use aliyun_oss_client::blocking::builder::ClientWithMiddleware;
     use aliyun_oss_client::client::Client;
     use aliyun_oss_client::file::BlockingFile;
-    use aliyun_oss_client::types::Query;
     use assert_matches::assert_matches;
     use dotenv::dotenv;
     use std::path::PathBuf;

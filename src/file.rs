@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use http::{HeaderMap, HeaderValue};
+use http::{
+    header::{CONTENT_LENGTH, CONTENT_TYPE},
+    HeaderMap, HeaderValue,
+};
 use reqwest::{Response, Url};
 
 use crate::{
@@ -97,8 +100,8 @@ pub trait File: AlignBuilder {
     where
         F: Fn(&Vec<u8>) -> Option<&'static str> + Send + Sync,
     {
-        let content_type =
-            get_content_type(&content).ok_or(OssError::Input("Failed to get file type".to_string()))?;
+        let content_type = get_content_type(&content)
+            .ok_or(OssError::Input("Failed to get file type".to_string()))?;
 
         let content = self.put_content_base(content, content_type, path).await?;
 
@@ -124,14 +127,11 @@ pub trait File: AlignBuilder {
         let mut headers = HeaderMap::new();
         let content_length = content.len().to_string();
         headers.insert(
-            "Content-Length",
+            CONTENT_LENGTH,
             HeaderValue::from_str(&content_length).map_err(OssError::from)?,
         );
 
-        headers.insert(
-            "Content-Type",
-            content_type.parse().map_err(OssError::from)?,
-        );
+        headers.insert(CONTENT_TYPE, content_type.parse().map_err(OssError::from)?);
 
         self.builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
             .body(content)
@@ -386,7 +386,10 @@ pub mod blocking {
         types::{CanonicalizedResource, ContentRange},
         ClientRc,
     };
-    use http::{HeaderMap, HeaderValue};
+    use http::{
+        header::{CONTENT_LENGTH, CONTENT_TYPE},
+        HeaderMap, HeaderValue,
+    };
     #[cfg(feature = "put_file")]
     use infer::Infer;
     use oss_derive::oss_file;
@@ -460,7 +463,7 @@ pub mod blocking {
             F: Fn(&Vec<u8>) -> Option<&'static str>,
         {
             let content_type = get_content_type(&content)
-                .ok_or(OssError::Input("file type is known".to_string()))?;
+                .ok_or(OssError::Input("Failed to get file type".to_string()))?;
 
             let content = self.put_content_base(content, content_type, path)?;
 
@@ -486,14 +489,11 @@ pub mod blocking {
             let mut headers = HeaderMap::new();
             let content_length = content.len().to_string();
             headers.insert(
-                "Content-Length",
+                CONTENT_LENGTH,
                 HeaderValue::from_str(&content_length).map_err(OssError::from)?,
             );
 
-            headers.insert(
-                "Content-Type",
-                content_type.parse().map_err(OssError::from)?,
-            );
+            headers.insert(CONTENT_TYPE, content_type.parse().map_err(OssError::from)?);
 
             let response = self
                 .builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
