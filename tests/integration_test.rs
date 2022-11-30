@@ -1,16 +1,14 @@
 mod test_async {
-    use aliyun_oss_client::builder::ClientWithMiddleware;
-    use aliyun_oss_client::client::Client;
     use aliyun_oss_client::file::File;
+    use aliyun_oss_client::Client;
     use assert_matches::assert_matches;
     use dotenv::dotenv;
-    use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_get_bucket_list() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = Client::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list().await;
 
@@ -21,7 +19,7 @@ mod test_async {
     async fn test_get_bucket_info() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = Client::from_env().unwrap();
 
         let bucket_list = client.get_bucket_info().await;
 
@@ -32,7 +30,7 @@ mod test_async {
     async fn get_object_by_bucket_struct() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = Client::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list().await.unwrap();
 
@@ -48,7 +46,7 @@ mod test_async {
     async fn test_get_object() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = Client::from_env().unwrap();
 
         let object_list = client.get_object_list([]).await;
 
@@ -59,13 +57,10 @@ mod test_async {
     async fn test_put_and_delete_file() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = Client::from_env().unwrap();
 
         let object_list = client
-            .put_file(
-                PathBuf::from("examples/bg2015071010.png"),
-                "examples/bg2015071010.png",
-            )
+            .put_file("examples/bg2015071010.png", "examples/bg2015071010.png")
             .await;
 
         assert_matches!(object_list, Ok(_));
@@ -74,23 +69,33 @@ mod test_async {
 
         assert_matches!(result, Ok(_));
     }
+
+    // #[tokio::test]
+    // #[cfg(feature = "bench")]
+    // #[bench]
+    // async fn bench_get_object(b: &mut Bencher) {
+    //     dotenv().ok();
+
+    //     let client = Client::from_env().unwrap();
+    //     b.iter(|| {
+    //         client.get_object_list().await;
+    //     });
+    // }
 }
 
 #[cfg(feature = "blocking")]
 mod test_blocking {
 
-    use aliyun_oss_client::blocking::builder::ClientWithMiddleware;
-    use aliyun_oss_client::client::Client;
     use aliyun_oss_client::file::BlockingFile;
+    use aliyun_oss_client::ClientRc;
     use assert_matches::assert_matches;
     use dotenv::dotenv;
-    use std::path::PathBuf;
 
     #[test]
     fn test_get_bucket_list() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = ClientRc::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list();
 
@@ -101,7 +106,7 @@ mod test_blocking {
     fn test_get_bucket_info() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = ClientRc::from_env().unwrap();
 
         let bucket_list = client.get_bucket_info();
 
@@ -112,7 +117,7 @@ mod test_blocking {
     fn get_object_by_bucket_struct() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = ClientRc::from_env().unwrap();
 
         let bucket_list = client.get_bucket_list().unwrap();
 
@@ -128,7 +133,7 @@ mod test_blocking {
     fn test_get_object() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = ClientRc::from_env().unwrap();
 
         let object_list = client.get_object_list([]);
 
@@ -139,7 +144,7 @@ mod test_blocking {
     fn test_get_object_next() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = ClientRc::from_env().unwrap();
         let query = vec![("max-keys", "2")];
         let mut object_list = client.get_object_list(query).unwrap();
 
@@ -151,13 +156,10 @@ mod test_blocking {
     fn test_put_and_delete_file() {
         dotenv().ok();
 
-        let client = Client::<ClientWithMiddleware>::from_env().unwrap();
+        let client = ClientRc::from_env().unwrap();
 
         // 第一种读取文件路径的方式
-        let object_list = client.put_file(
-            PathBuf::from("examples/bg2015071010.png"),
-            "examples/bg2015071010.png",
-        );
+        let object_list = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
         assert_matches!(object_list, Ok(_));
 
