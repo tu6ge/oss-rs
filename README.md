@@ -279,3 +279,8 @@ client.delete_object("examples/bg2015071010.png");
 - 支持内置的 object bucket 等结构体
 - 支持导出数据到自定义的 object bucket 结构体
 
+## 运行 Bench
+
+```bash
+rustup run nightly cargo bench
+```

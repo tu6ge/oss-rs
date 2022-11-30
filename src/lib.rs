@@ -189,9 +189,10 @@ let client = aliyun_oss_client::Client::new(
 ```
 */
 
-// #![feature(test)]
+#![cfg_attr(all(feature = "bench", test), feature(test))]
 
-// extern crate test;
+#[cfg(all(feature = "bench", test))]
+extern crate test;
 
 /// 库内置类型的定义模块
 pub mod types;
