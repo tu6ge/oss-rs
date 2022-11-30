@@ -5,7 +5,7 @@ use syn::{
     punctuated::Punctuated,
     token::Comma,
     visit::{self, Visit},
-    FnArg, GenericParam, Generics, ItemTrait, Pat, Token, TraitItemMethod, WhereClause,
+    FnArg, GenericParam, Generics, ItemTrait, Pat, Token, TraitItem, TraitItemMethod, WhereClause,
 };
 
 pub struct FileTrait {
@@ -240,5 +240,51 @@ impl ToTokens for FileTrait {
 
         self.methods_to_tokens(tokens);
         self.async_methods_to_tokens(tokens);
+    }
+}
+
+pub fn impl_object(file: &mut FileTrait, is_send: bool) {
+    let items = &file.input.items;
+
+    let mut methods = Vec::new();
+
+    for inner in items {
+        if let TraitItem::Method(method) = inner {
+            methods.push(method.clone());
+        }
+    }
+
+    if is_send {
+        file.async_methods = methods;
+    } else {
+        file.methods = methods;
+    }
+}
+
+pub mod attr {
+    use syn::parse::{Parse, ParseStream, Result};
+
+    mod kw {
+        syn::custom_keyword!(ASYNC);
+    }
+
+    pub struct Attribute {
+        pub send: bool,
+    }
+
+    impl Parse for Attribute {
+        fn parse(input: ParseStream) -> Result<Self> {
+            if input.is_empty() {
+                return Ok(Self { send: false });
+            }
+
+            let lookahead = input.lookahead1();
+            if lookahead.peek(kw::ASYNC) {
+                input.parse::<kw::ASYNC>()?;
+                Ok(Self { send: true })
+            } else {
+                Ok(Self { send: false })
+            }
+        }
     }
 }

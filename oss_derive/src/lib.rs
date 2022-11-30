@@ -1,16 +1,14 @@
 use array2query::{update_count, FormQuery, GetCount};
-use attr::Attribute;
+use file::attr::Attribute;
+use file::impl_object;
 use file::FileTrait;
-use impl_object::impl_object;
 use proc_macro::TokenStream;
 
 use quote::quote;
 use syn::parse_macro_input;
 mod array2query;
-mod attr;
 mod file;
 mod gen_rc;
-mod impl_object;
 use crate::gen_rc::GenImpl;
 
 /// # 转换 File trait 的各种方法到 Object 结构体中
