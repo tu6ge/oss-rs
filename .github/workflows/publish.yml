@@ -35,13 +35,15 @@ jobs:
       - name: Run Test
         run: |
           cargo test --lib --no-default-features -- tests
-          cargo test --lib --all-features -- tests
+          # --all-features, exclude bench features
+          cargo test --lib --features="blocking,sts,put_file" -- tests
           cargo test --lib -- tests
           cargo test --lib --features blocking --no-default-features tests
           cargo test --lib --features blocking tests
           cargo test --lib --features sts --no-default-features tests
           cargo test --lib --features put_file --no-default-features tests
-          cargo test --doc --all-features
+          # --all-features, exclude bench features
+          cargo test --doc --features="blocking,sts,put_file"
           cd oss_derive
           cargo test
           cargo test --features blocking
@@ -90,7 +92,8 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: tarpaulin
-          args: --output-dir coverage --out Lcov --all-features -- tests
+          # --all-features, exclude bench features
+          args: --output-dir coverage --out Lcov --features blocking --features sts --features put_file -- tests
       
       # - name: Publish to Coveralls
       #   uses: coverallsapp/github-action@master
