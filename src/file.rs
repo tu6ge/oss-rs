@@ -98,7 +98,7 @@ pub trait File: AlignBuilder {
         F: Fn(&Vec<u8>) -> Option<&'static str> + Send + Sync,
     {
         let content_type =
-            get_content_type(&content).ok_or(OssError::Input("file type is known".to_string()))?;
+            get_content_type(&content).ok_or(OssError::Input("Failed to get file type".to_string()))?;
 
         let content = self.put_content_base(content, content_type, path).await?;
 
