@@ -147,11 +147,12 @@ impl RequestHandler for Response {
 
         let status = self.status();
 
-        if status != SUCCESS_STATUS[0] && status != SUCCESS_STATUS[1] && status != SUCCESS_STATUS[2]
-        {
-            return Err(OssService::new(self.text().await?).into());
+        for item in SUCCESS_STATUS.iter() {
+            if *item == status {
+                return Ok(self);
+            }
         }
 
-        Ok(self)
+        Err(OssService::new(self.text().await?).into())
     }
 }
