@@ -3,9 +3,6 @@ use http::header::ToStrError;
 use std::fmt;
 use thiserror::Error;
 
-#[cfg(test)]
-use mockall::{automock, predicate::*};
-
 use crate::{
     config::InvalidConfig,
     traits::{
@@ -113,10 +110,9 @@ impl fmt::Display for OssService {
     }
 }
 
-#[cfg_attr(test, automock)]
-impl OssService {
+impl<'a> OssService {
     /// 解析 oss 的错误信息
-    pub fn new(source: String) -> Self {
+    pub fn new(source: &'a str) -> Self {
         let code0 = source.find("<Code>").unwrap();
         let code1 = source.find("</Code>").unwrap();
         let message0 = source.find("<Message>").unwrap();
@@ -125,9 +121,9 @@ impl OssService {
         let request_id1 = source.find("</RequestId>").unwrap();
 
         Self {
-            code: (&source[code0 + 6..code1]).to_string(),
-            message: (&source[message0 + 9..message1]).to_string(),
-            request_id: (&source[request_id0 + 11..request_id1]).to_string(),
+            code: (&source[code0 + 6..code1]).to_owned(),
+            message: (&source[message0 + 9..message1]).to_owned(),
+            request_id: (&source[request_id0 + 11..request_id1]).to_owned(),
         }
     }
 }

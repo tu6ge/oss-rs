@@ -109,6 +109,6 @@ impl BlockingReqeustHandler for Response {
             }
         }
 
-        Err(OssService::new(self.text()?).into())
+        Err(OssService::new(&self.text()?).into())
     }
 }

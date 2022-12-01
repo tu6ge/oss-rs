@@ -43,7 +43,7 @@ fn test_oss_service_new() {
         <ServerTime>2022-09-04T08:11:37.000Z</ServerTime>
     </Error>
     "#;
-    let service = OssService::new(content.to_string());
+    let service = OssService::new(content);
     assert_eq!(service.code, format!("RequestTimeTooSkewed"));
     assert_eq!(service.message, format!("bar"));
     assert_eq!(service.request_id, format!("63145DB90BFD85303279D56B"))

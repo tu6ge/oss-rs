@@ -153,6 +153,6 @@ impl RequestHandler for Response {
             }
         }
 
-        Err(OssService::new(self.text().await?).into())
+        Err(OssService::new(&self.text().await?).into())
     }
 }
