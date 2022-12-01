@@ -2,11 +2,11 @@ use crate::errors::{OssError, OssResult};
 use crate::types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret};
 #[cfg(test)]
 use http::header::AsHeaderName;
+use http::header::CONTENT_TYPE;
 #[cfg(test)]
 use mockall::automock;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName};
 use reqwest::Method;
-use std::borrow::Cow;
 use std::convert::TryInto;
 
 #[derive(Clone, PartialEq, Eq)]
@@ -242,7 +242,7 @@ impl AuthToOssHeader for Auth {
 
         header.sort_by(|(k1, _), (k2, _)| k1.to_string().cmp(&k2.to_string()));
 
-        let header_vec: Vec<String> = header
+        let header_vec: Vec<_> = header
             .iter()
             .filter_map(|(k, v)| match v.to_str() {
                 Ok(val) => Some(k.as_str().to_owned() + ":" + val),
@@ -256,42 +256,44 @@ impl AuthToOssHeader for Auth {
 
 /// 从 auth 中提取各个字段，用于计算签名的原始字符串
 pub(crate) trait AuthSignString {
-    fn key(&self) -> Cow<'_, KeyId>;
-    fn secret(&self) -> Cow<'_, KeySecret>;
-    fn verb(&self) -> String;
-    fn content_md5(&self) -> Cow<'_, ContentMd5>;
-    fn content_type(&self) -> Cow<'_, ContentType>;
-    fn date(&self) -> Cow<'_, Date>;
-    fn canonicalized_resource(&self) -> Cow<'_, CanonicalizedResource>;
+    fn get_sign_info(
+        &self,
+    ) -> (
+        &KeyId,
+        &KeySecret,
+        &VERB,
+        ContentMd5,
+        ContentType,
+        &Date,
+        &CanonicalizedResource,
+    );
 }
 
 impl AuthSignString for Auth {
-    fn key(&self) -> Cow<'_, KeyId> {
-        Cow::Borrowed(&self.access_key_id)
-    }
-    fn secret(&self) -> Cow<'_, KeySecret> {
-        Cow::Borrowed(&self.access_key_secret)
-    }
-    fn verb(&self) -> String {
-        self.verb.to_string()
-    }
-    fn content_md5(&self) -> Cow<'_, ContentMd5> {
-        match self.content_md5.clone() {
-            Some(md5) => Cow::Owned(md5),
-            None => Cow::Owned(ContentMd5::default()),
-        }
-    }
-    fn content_type(&self) -> Cow<'_, ContentType> {
-        match self.headers.get("Content-Type") {
-            Some(ct) => Cow::Owned(ct.to_owned().try_into().unwrap()),
-            None => Cow::Owned(ContentType::default()),
-        }
-    }
-    fn date(&self) -> Cow<'_, Date> {
-        Cow::Borrowed(&self.date)
-    }
-    fn canonicalized_resource(&self) -> Cow<'_, CanonicalizedResource> {
-        Cow::Borrowed(&self.canonicalized_resource)
+    #[inline]
+    fn get_sign_info(
+        &self,
+    ) -> (
+        &KeyId,
+        &KeySecret,
+        &VERB,
+        ContentMd5,
+        ContentType,
+        &Date,
+        &CanonicalizedResource,
+    ) {
+        (
+            &self.access_key_id,
+            &self.access_key_secret,
+            &self.verb,
+            self.content_md5.clone().unwrap_or(ContentMd5::default()),
+            match self.headers.get(CONTENT_TYPE) {
+                Some(ct) => ct.to_owned().try_into().unwrap(),
+                None => ContentType::default(),
+            },
+            &self.date,
+            &self.canonicalized_resource,
+        )
     }
 }
 
@@ -369,6 +371,14 @@ impl OssHeader {
     pub fn is_none(&self) -> bool {
         self.0.is_none()
     }
+
+    #[inline]
+    fn len(&self) -> usize {
+        match &self.0 {
+            Some(str) => str.len(),
+            None => 0,
+        }
+    }
 }
 
 #[cfg_attr(test, automock)]
@@ -378,8 +388,8 @@ pub trait HeaderToSign {
 
 impl HeaderToSign for OssHeader {
     fn to_sign_string(self) -> String {
-        let mut content = String::new();
-        match self.0.clone() {
+        let mut content = String::with_capacity(self.len() + 2);
+        match self.0 {
             Some(str) => {
                 content.push_str(&str);
                 content.push_str(LINE_BREAK);
@@ -397,40 +407,48 @@ impl Into<String> for OssHeader {
 }
 
 /// 待签名的数据
-pub struct SignString {
+pub struct SignString<'a> {
     data: String,
-    key: KeyId,
-    secret: KeySecret,
+    key: &'a KeyId,
+    secret: &'a KeySecret,
 }
 
 const LINE_BREAK: &str = "\n";
 
-impl SignString {
-    pub fn new(data: String, key: KeyId, secret: KeySecret) -> SignString {
-        SignString { data, key, secret }
+impl<'a, 'b> SignString<'_> {
+    pub fn new(data: &'b str, key: &'a KeyId, secret: &'a KeySecret) -> SignString<'a> {
+        SignString {
+            data: data.to_owned(),
+            key,
+            secret,
+        }
     }
+}
 
+impl<'a> SignString<'a> {
     pub(crate) fn from_auth(
         auth: &impl AuthSignString,
         header: impl HeaderToSign,
     ) -> OssResult<SignString> {
-        let method = auth.verb();
+        let (key, secret, verb, content_md5, content_type, date, canonicalized_resource) =
+            auth.get_sign_info();
+        let method = verb.to_string();
 
         let str: String = method
             + LINE_BREAK
-            + auth.content_md5().as_ref().as_ref()
+            + content_md5.as_ref()
             + LINE_BREAK
-            + auth.content_type().as_ref().as_ref()
+            + content_type.as_ref()
             + LINE_BREAK
-            + auth.date().as_ref().as_ref()
+            + date.as_ref()
             + LINE_BREAK
             + header.to_sign_string().as_ref()
-            + auth.canonicalized_resource().as_ref().as_ref();
+            + canonicalized_resource.as_ref();
 
         Ok(SignString {
             data: str,
-            key: auth.key().into_owned(),
-            secret: auth.secret().into_owned(),
+            key,
+            secret,
         })
     }
 
@@ -449,7 +467,8 @@ impl SignString {
     }
 
     // 转化成签名
-    pub fn to_sign(self) -> OssResult<Sign> {
+    #[inline]
+    pub fn to_sign(self) -> OssResult<Sign<'a>> {
         use base64::encode;
         use hmac::{Hmac, Mac};
         use sha1::Sha1;
@@ -466,24 +485,27 @@ impl SignString {
 
         Ok(Sign {
             data: encode(sha1),
-            key: self.key.clone(),
+            key: &self.key,
         })
     }
 }
 
 /// header 中的签名
-pub struct Sign {
+pub struct Sign<'a> {
     data: String,
-    key: KeyId,
+    key: &'a KeyId,
 }
 
-impl Sign {
-    pub fn new(data: String, key: KeyId) -> Sign {
-        Sign { data, key }
+impl<'a, 'b> Sign<'_> {
+    pub fn new(data: &'b str, key: &'a KeyId) -> Sign<'a> {
+        Sign {
+            data: data.to_owned(),
+            key,
+        }
     }
 
-    pub fn data(&self) -> String {
-        self.data.clone()
+    pub fn data(&self) -> &str {
+        &self.data
     }
 
     pub fn key_string(&self) -> String {
@@ -491,7 +513,7 @@ impl Sign {
     }
 }
 
-impl TryInto<HeaderValue> for Sign {
+impl TryInto<HeaderValue> for Sign<'_> {
     type Error = OssError;
 
     /// 转化成 header 中需要的格式

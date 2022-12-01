@@ -159,29 +159,22 @@ mod auth_sign_string {
 
         let auth = builder.build();
 
-        let key = auth.key();
-        assert_eq!(key.into_owned().as_ref(), "foo1");
+        let (key, secret, verb, content_md5, content_type, date, canonicalized_resource) =
+            auth.get_sign_info();
 
-        let secret = auth.secret();
-        assert_eq!(secret.into_owned().as_ref(), "foo2");
+        assert_eq!(key.as_ref(), "foo1");
 
-        let verb = auth.verb();
+        assert_eq!(secret.as_ref(), "foo2");
+
         assert_eq!(verb.to_string(), "POST".to_owned());
 
-        let md5 = auth.content_md5();
-        assert_eq!(md5.into_owned().as_ref(), "foo4");
+        assert_eq!(content_md5.as_ref(), "foo4");
 
-        let content_type = auth.content_type();
-        assert_eq!(content_type.into_owned().as_ref(), "foo6");
+        assert_eq!(content_type.as_ref(), "foo6");
 
-        let inner_date = auth.date();
-        assert_eq!(
-            inner_date.into_owned().as_ref(),
-            "Sat, 01 Jan 2022 18:01:01 GMT"
-        );
+        assert_eq!(date.as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
 
-        let canonicalized_resource = auth.canonicalized_resource();
-        assert_eq!(canonicalized_resource.into_owned().as_ref(), "foo5");
+        assert_eq!(canonicalized_resource.as_ref(), "foo5");
     }
 
     #[test]
@@ -199,29 +192,22 @@ mod auth_sign_string {
 
         let auth = builder.build();
 
-        let key = auth.key();
-        assert_eq!(key.into_owned().as_ref(), "foo1");
+        let (key, secret, verb, content_md5, content_type, date, canonicalized_resource) =
+            auth.get_sign_info();
 
-        let secret = auth.secret();
-        assert_eq!(secret.into_owned().as_ref(), "foo2");
+        assert_eq!(key.as_ref(), "foo1");
 
-        let verb = auth.verb();
+        assert_eq!(secret.as_ref(), "foo2");
+
         assert_eq!(verb.to_string(), "POST".to_owned());
 
-        let md5 = auth.content_md5();
-        assert_eq!(md5.into_owned().as_ref(), "");
+        assert_eq!(content_md5.as_ref(), "");
 
-        let content_type = auth.content_type();
-        assert_eq!(content_type.into_owned().as_ref(), "foo6");
+        assert_eq!(content_type.as_ref(), "foo6");
 
-        let inner_date = auth.date();
-        assert_eq!(
-            inner_date.into_owned().as_ref(),
-            "Sat, 01 Jan 2022 18:01:01 GMT"
-        );
+        assert_eq!(date.as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
 
-        let canonicalized_resource = auth.canonicalized_resource();
-        assert_eq!(canonicalized_resource.into_owned().as_ref(), "foo5");
+        assert_eq!(canonicalized_resource.as_ref(), "foo5");
     }
 }
 
@@ -237,32 +223,44 @@ mod auth_builder {
     fn test_key() {
         let mut builder = AuthBuilder::default();
         builder = builder.key("foo1".to_owned().into());
+        let auth = builder.build();
 
-        assert_eq!(builder.build().key().to_string(), "foo1");
+        let (key, ..) = auth.get_sign_info();
+
+        assert_eq!(key.as_ref(), "foo1");
     }
 
     #[test]
     fn test_secret() {
         let mut builder = AuthBuilder::default();
         builder = builder.secret("foo2".to_owned().into());
+        let auth = builder.build();
 
-        assert_eq!(builder.build().secret().to_string(), "foo2");
+        let (_, secret, ..) = auth.get_sign_info();
+
+        assert_eq!(secret.as_ref(), "foo2");
     }
 
     #[test]
     fn test_verb() {
         let mut builder = AuthBuilder::default();
         builder = builder.verb(&VERB::POST);
+        let auth = builder.build();
 
-        assert_eq!(builder.build().verb(), VERB::POST.to_string());
+        let (_, _, verb, ..) = auth.get_sign_info();
+
+        assert_eq!(verb, &VERB::POST);
     }
 
     #[test]
     fn test_content_md5() {
         let mut builder = AuthBuilder::default();
         builder = builder.content_md5("abc3".to_owned().into());
+        let auth = builder.build();
 
-        assert_eq!(builder.build().content_md5().to_string(), "abc3");
+        let (_, _, _, content_md5, ..) = auth.get_sign_info();
+
+        assert_eq!(content_md5.as_ref(), "abc3");
     }
 
     #[test]
@@ -270,22 +268,22 @@ mod auth_builder {
         let mut builder = AuthBuilder::default();
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
         builder = builder.date(date.into());
+        let auth = builder.build();
 
-        assert_eq!(
-            builder.build().date().to_string(),
-            "Sat, 01 Jan 2022 18:01:01 GMT"
-        );
+        let (.., date, _) = auth.get_sign_info();
+
+        assert_eq!(date.as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
     }
 
     #[test]
     fn test_canonicalized_resource() {
         let mut builder = AuthBuilder::default();
         builder = builder.canonicalized_resource("foo323".to_string().into());
+        let auth = builder.build();
 
-        assert_eq!(
-            builder.build().canonicalized_resource().to_string(),
-            "foo323"
-        );
+        let (.., canonicalized_resource) = auth.get_sign_info();
+
+        assert_eq!(canonicalized_resource.as_ref(), "foo323");
     }
 
     #[test]
@@ -508,7 +506,7 @@ mod sign_string_struct {
     use crate::{
         auth::{
             AuthSignString, AuthToHeaderMap, AuthToOssHeader, MockHeaderToSign, OssHeader,
-            SignString,
+            SignString, VERB,
         },
         errors::OssResult,
         types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret},
@@ -516,60 +514,49 @@ mod sign_string_struct {
 
     #[test]
     fn test_from_auth() {
-        mock! {
-            Bar{}
+        struct Bar {
+            key: KeyId,
+            secret: KeySecret,
+            verb: VERB,
+            date: Date,
+            content_md5: ContentMd5,
+            content_type: ContentType,
+            canonicalized_resource: CanonicalizedResource,
+        };
 
-            impl AuthSignString for Bar{
-                fn key(&self) -> Cow<'_, KeyId>;
-                fn secret(&self) -> Cow<'_, KeySecret>;
-                fn verb(&self) -> String;
-                fn content_md5(&self) -> Cow<'_, ContentMd5>;
-                fn content_type(&self) -> Cow<'_, ContentType>;
-                fn date(&self) -> Cow<'_, Date>;
-                fn canonicalized_resource(&self) -> Cow<'_, CanonicalizedResource>;
-            }
-
-            impl AuthToOssHeader for Bar{
-                fn to_oss_header(&self) -> OssResult<OssHeader>;
-            }
-
-            impl AuthToHeaderMap for Bar{
-                fn get_original_header(&self) -> HeaderMap;
-                fn get_header_key(&self) -> OssResult<HeaderValue>;
-                fn get_header_secret(&self) -> OssResult<HeaderValue>;
-                fn get_header_verb(&self) -> OssResult<HeaderValue>;
-                fn get_header_md5(&self) -> OssResult<Option<HeaderValue>>;
-                fn get_header_date(&self) -> OssResult<HeaderValue>;
-                fn get_header_resource(&self) -> OssResult<HeaderValue>;
+        impl AuthSignString for Bar {
+            fn get_sign_info(
+                &self,
+            ) -> (
+                &KeyId,
+                &KeySecret,
+                &VERB,
+                ContentMd5,
+                ContentType,
+                &Date,
+                &CanonicalizedResource,
+            ) {
+                (
+                    &self.key,
+                    &self.secret,
+                    &self.verb,
+                    self.content_md5.clone(),
+                    self.content_type.clone(),
+                    &self.date,
+                    &self.canonicalized_resource,
+                )
             }
         }
 
-        let mut auth = MockBar::new();
-
-        auth.expect_key()
-            .times(1)
-            .returning(|| Cow::Owned(KeyId::new("foo1")));
-        auth.expect_secret()
-            .times(1)
-            .returning(|| Cow::Owned(KeySecret::new("foo2")));
-
-        auth.expect_verb().times(1).returning(|| "GET".to_string());
-
-        auth.expect_content_md5()
-            .times(1)
-            .returning(|| Cow::Owned(ContentMd5::new("foo3")));
-
-        auth.expect_content_type()
-            .times(1)
-            .returning(|| Cow::Owned(ContentType::new("foo4")));
-
-        auth.expect_date()
-            .times(1)
-            .returning(|| Cow::Owned(Date::new("foo5")));
-
-        auth.expect_canonicalized_resource()
-            .times(1)
-            .returning(|| Cow::Owned(CanonicalizedResource::new("foo6")));
+        let bar = Bar {
+            key: KeyId::new("foo1"),
+            secret: KeySecret::new("foo2"),
+            verb: VERB::GET,
+            content_md5: ContentMd5::new("foo3"),
+            content_type: ContentType::new("foo4"),
+            date: Date::new("foo5"),
+            canonicalized_resource: CanonicalizedResource::new("foo6"),
+        };
 
         let mut header = MockHeaderToSign::new();
 
@@ -578,34 +565,33 @@ mod sign_string_struct {
             .times(1)
             .returning(|| "foo7".to_string());
 
-        let res = SignString::from_auth(&auth, header);
+        let res = SignString::from_auth(&bar, header);
 
         assert!(res.is_ok());
         let val = res.unwrap();
-        assert_eq!(val.data(), "GET\nfoo3\nfoo4\nfoo5\nfoo7foo6".to_string());
+        assert_eq!(val.data(), "GET\nfoo3\nfoo4\nfoo5\nfoo7foo6");
         assert_eq!(val.key_string(), "foo1".to_string());
         assert_eq!(val.secret_string(), "foo2".to_string());
     }
 
     #[test]
     fn test_to_sign() {
-        let sign_string = SignString::new(
-            "bar".to_string(),
-            KeyId::from("foo1"),
-            KeySecret::from("foo2"),
-        );
+        let key = KeyId::from("foo1");
+        let secret = KeySecret::from("foo2");
+        let sign_string = SignString::new("bar", &key, &secret);
 
         let res = sign_string.to_sign();
         assert!(res.is_ok());
         let sign = res.unwrap();
-        assert_eq!(sign.data(), "gTzwiN1fRQV90YcecTvo1pH+kI8=".to_string());
+        assert_eq!(sign.data(), "gTzwiN1fRQV90YcecTvo1pH+kI8=");
         assert_eq!(sign.key_string(), "foo1".to_string());
     }
 }
 
 #[test]
 fn test_sign_to_headervalue() {
-    let sign = Sign::new("foo".to_string(), KeyId::from("bar"));
+    let key = KeyId::from("bar");
+    let sign = Sign::new("foo", &key);
 
     let val: HeaderValue = sign.try_into().unwrap();
     assert_eq!(val.to_str().unwrap(), "OSS bar:foo");
