@@ -25,9 +25,13 @@ use oss_derive::oss_file;
 /// # 文件相关功能
 ///
 /// 包括 上传，下载，删除等功能
-/// 在 [`Client`](../client/struct.Client.html)，[`Bucket`](../bucket/struct.Bucket.html)
-/// , [`ObjectList`](../object/struct.ObjectList.html) 等结构体中均已实现，其中 Client 是在默认的 bucket 上操作文件，
+/// 在 [`Client`]，[`Bucket`], [`ObjectList`] 等结构体中均已实现，其中 Client 是在默认的 bucket 上操作文件，
 /// 而 Bucket, ObjectList 则是在当前的 bucket 上操作文件
+///
+/// [`Client`]: crate::client::Client
+/// [`Bucket`]: crate::bucket::Bucket
+/// [`ObjectList`]: crate::object::ObjectList
+///
 #[oss_file(ASYNC)]
 #[async_trait]
 pub trait File: AlignBuilder {
@@ -226,9 +230,14 @@ impl File for ObjectList<ArcPointer> {
     }
 }
 
-/// # 对齐 Client, Bucket, ObjectList 等结构体的 trait
+/// # 对齐 [`Client`]，[`Bucket`], [`ObjectList`] 等结构体的 trait
 ///
-/// 用于他们方便的实现 [`File`](./trait.File.html) trait
+/// 用于他们方便的实现 [`File`] trait
+///
+/// [`File`]: self::File
+/// [`Client`]: crate::client::Client
+/// [`Bucket`]: crate::bucket::Bucket
+/// [`ObjectList`]: crate::object::ObjectList
 pub trait AlignBuilder: Send + Sync {
     #[inline]
     fn builder<M: Into<VERB>>(

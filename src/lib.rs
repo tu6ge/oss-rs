@@ -214,8 +214,11 @@ pub mod bucket;
 pub mod object;
 
 /// # 文件上传及下载等操作
-/// 用于将这些功能复用到 [`Client`](../client/struct.Client.html)，[`Bucket`](../bucket/struct.Bucket.html),
-/// [`ObjectList`](../object/struct.ObjectList.html) 等结构体的 trait
+/// 用于将这些功能复用到 [`Client`]，[`Bucket`],[`ObjectList`] 等结构体的 trait
+///
+/// [`Client`]: crate::client::Client
+/// [`Bucket`]: crate::bucket::Bucket
+/// [`ObjectList`]: crate::object::ObjectList
 pub mod file;
 
 pub mod config;
