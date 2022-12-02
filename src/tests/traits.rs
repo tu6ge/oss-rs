@@ -21,7 +21,7 @@ mod object_list_xml {
         impl OssIntoObject for ObjectA {
             type Bucket = Arc<BucketBase>;
             type Error = OssError;
-            fn set_key(self, key: &str) -> Result<Self, OssError> {
+            fn set_key(&mut self, key: &str) -> Result<(), OssError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(key, "9AB932LY.jpeg");
@@ -31,9 +31,9 @@ mod object_list_xml {
                         assert_eq!(key, "LICENSE");
                     }
                 }
-                Ok(self)
+                Ok(())
             }
-            fn set_last_modified(self, last_modified: &str) -> Result<Self, OssError> {
+            fn set_last_modified(&mut self, last_modified: &str) -> Result<(), OssError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(last_modified, "2022-06-26T09:53:21.000Z");
@@ -43,9 +43,9 @@ mod object_list_xml {
                         assert_eq!(last_modified, "2022-06-12T06:11:06.000Z");
                     }
                 }
-                Ok(self)
+                Ok(())
             }
-            fn set_etag(self, etag: &str) -> Result<Self, OssError> {
+            fn set_etag(&mut self, etag: &str) -> Result<(), OssError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(etag, "F75A15996D0857B16FA31A3B16624C26");
@@ -55,9 +55,9 @@ mod object_list_xml {
                         assert_eq!(etag, "2CBAB10A50CC6905EA2D7CCCEF31A6C9");
                     }
                 }
-                Ok(self)
+                Ok(())
             }
-            fn set_type(self, _type: &str) -> Result<Self, OssError> {
+            fn set_type(&mut self, _type: &str) -> Result<(), OssError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(_type, "Normal");
@@ -67,9 +67,9 @@ mod object_list_xml {
                         assert_eq!(_type, "Normal");
                     }
                 }
-                Ok(self)
+                Ok(())
             }
-            fn set_size(self, size: &str) -> Result<Self, OssError> {
+            fn set_size(&mut self, size: &str) -> Result<(), OssError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(size, "18027");
@@ -79,42 +79,42 @@ mod object_list_xml {
                         assert_eq!(size, "1065");
                     }
                 }
-                Ok(self)
+                Ok(())
             }
-            fn set_storage_class(self, storage_class: &str) -> Result<Self, OssError> {
+            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), OssError> {
                 assert_eq!(storage_class, "Standard");
                 unsafe {
                     OBEJCT_ITEM_ID += 1;
                 }
-                Ok(self)
+                Ok(())
             }
-            fn set_bucket(self, bucket: Arc<BucketBase>) -> Self {
+            fn set_bucket(&mut self, bucket: Arc<BucketBase>) -> Result<(), OssError> {
                 assert_eq!(bucket.name(), "abc");
-                self
+                Ok(())
             }
         }
         struct ListB {}
         impl OssIntoObjectList<ObjectA> for ListB {
             type Error = OssError;
-            fn set_name(self, name: &str) -> Result<Self, OssError> {
+            fn set_name(&mut self, name: &str) -> Result<(), OssError> {
                 assert_eq!(name, "foo_bucket");
-                Ok(self)
+                Ok(())
             }
-            fn set_prefix(self, prefix: &str) -> Result<Self, OssError> {
+            fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
                 assert_eq!(prefix, "");
-                Ok(self)
+                Ok(())
             }
-            fn set_max_keys(self, max_keys: &str) -> Result<Self, OssError> {
+            fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
                 assert_eq!(max_keys, "100");
-                Ok(self)
+                Ok(())
             }
-            fn set_key_count(self, key_count: &str) -> Result<Self, OssError> {
+            fn set_key_count(&mut self, key_count: &str) -> Result<(), OssError> {
                 assert_eq!(key_count, "3");
-                Ok(self)
+                Ok(())
             }
-            fn set_next_continuation_token(self, token: Option<&str>) -> Result<Self, OssError> {
+            fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), OssError> {
                 assert!(matches!(token, None));
-                Ok(self)
+                Ok(())
             }
             // fn set_list(self, list: Vec<T>) -> Result<Self, InvalidObjectListValue>{
             //     Ok(self)
@@ -157,15 +157,16 @@ mod object_list_xml {
 
         let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
 
-        let list = ListB {};
+        let mut list = ListB {};
 
-        let list1 = list.from_xml(xml, Arc::new(base));
+        let res = list.from_xml(xml, Arc::new(base));
 
-        assert!(list1.is_ok());
+        assert!(res.is_ok());
     }
 
-    // bench result 5,210 ns/iter (+/- 151)
-    // update to &str 4,262 ns/iter (+/- 96)
+    // bench result        5,210 ns/iter (+/- 151)
+    // update to &str      4,262 ns/iter (+/- 96)
+    // update to &mut self 3,718 ns/iter (+/- 281)
     #[cfg(test)]
     #[cfg(feature = "bench")]
     #[bench]
@@ -176,48 +177,48 @@ mod object_list_xml {
         #[derive(Default)]
         struct ObjectA {}
 
-        impl OssIntoObject<ArcPointer> for ObjectA {
-            fn set_key(self, key: &str) -> Result<Self, InvalidObjectValue> {
-                Ok(self)
+        impl OssIntoObject for ObjectA {
+            type Bucket = Arc<BucketBase>;
+            type Error = OssError;
+            fn set_key(&mut self, key: &str) -> Result<(), OssError> {
+                Ok(())
             }
-            fn set_last_modified(self, last_modified: &str) -> Result<Self, InvalidObjectValue> {
-                Ok(self)
+            fn set_last_modified(&mut self, last_modified: &str) -> Result<(), OssError> {
+                Ok(())
             }
-            fn set_etag(self, etag: &str) -> Result<Self, InvalidObjectValue> {
-                Ok(self)
+            fn set_etag(&mut self, etag: &str) -> Result<(), OssError> {
+                Ok(())
             }
-            fn set_type(self, _type: &str) -> Result<Self, InvalidObjectValue> {
-                Ok(self)
+            fn set_type(&mut self, _type: &str) -> Result<(), OssError> {
+                Ok(())
             }
-            fn set_size(self, size: &str) -> Result<Self, InvalidObjectValue> {
-                Ok(self)
+            fn set_size(&mut self, size: &str) -> Result<(), OssError> {
+                Ok(())
             }
-            fn set_storage_class(self, storage_class: &str) -> Result<Self, InvalidObjectValue> {
-                Ok(self)
+            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), OssError> {
+                Ok(())
             }
             fn set_bucket(self, bucket: Arc<BucketBase>) -> Self {
                 self
             }
         }
         struct ListB {}
-        impl OssIntoObjectList<ObjectA, ArcPointer> for ListB {
-            fn set_name(self, name: &str) -> Result<Self, InvalidObjectListValue> {
-                Ok(self)
+        impl OssIntoObjectList<ObjectA> for ListB {
+            type Error = OssError;
+            fn set_name(&mut self, name: &str) -> Result<(), OssError> {
+                Ok(())
             }
-            fn set_prefix(self, prefix: &str) -> Result<Self, InvalidObjectListValue> {
-                Ok(self)
+            fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
+                Ok(())
             }
-            fn set_max_keys(self, max_keys: &str) -> Result<Self, InvalidObjectListValue> {
-                Ok(self)
+            fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
+                Ok(())
             }
-            fn set_key_count(self, key_count: &str) -> Result<Self, InvalidObjectListValue> {
-                Ok(self)
+            fn set_key_count(&mut self, key_count: &str) -> Result<(), OssError> {
+                Ok(())
             }
-            fn set_next_continuation_token(
-                self,
-                token: Option<&str>,
-            ) -> Result<Self, InvalidObjectListValue> {
-                Ok(self)
+            fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), OssError> {
+                Ok(())
             }
             // fn set_list(self, list: Vec<T>) -> Result<Self, InvalidObjectListValue>{
             //     Ok(self)
@@ -258,8 +259,9 @@ mod object_list_xml {
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
+        let mut list = ListB {};
+
         b.iter(|| {
-            let list = ListB {};
             let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
             list.from_xml(xml, Arc::new(base));
         })
@@ -310,6 +312,7 @@ mod object_list_xml {
         object_list
     }
 
+    // update to &mut self 5,015 ns/iter (+/- 212)
     #[cfg(test)]
     #[cfg(feature = "bench")]
     #[bench]
@@ -351,8 +354,8 @@ mod object_list_xml {
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
+        let mut list = init_object_list(None, vec![]);
         b.iter(|| {
-            let list = init_object_list(None, vec![]);
             let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
             list.from_xml(xml, Arc::new(base));
         })
@@ -374,11 +377,11 @@ mod object_list_xml {
         struct ListB {}
         impl OssIntoObjectList<ObjectA> for ListB {
             type Error = OssError;
-            fn set_next_continuation_token(self, token: Option<&str>) -> Result<Self, OssError> {
+            fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), OssError> {
                 assert!(
                     matches!(token, Some(v) if v=="CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--")
                 );
-                Ok(self)
+                Ok(())
             }
         }
 
@@ -419,11 +422,11 @@ mod object_list_xml {
 
         let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
 
-        let list = ListB {};
+        let mut list = ListB {};
 
-        let list1 = list.from_xml(xml, Arc::new(base));
+        let res = list.from_xml(xml, Arc::new(base));
 
-        assert!(list1.is_ok());
+        assert!(res.is_ok());
     }
 }
 
@@ -438,29 +441,29 @@ mod bucket_xml {
 
         impl OssIntoBucket for BucketA {
             type Error = OssError;
-            fn set_name(self, name: &str) -> Result<Self, OssError> {
+            fn set_name(&mut self, name: &str) -> Result<(), OssError> {
                 assert_eq!(name, "foo");
-                Ok(self)
+                Ok(())
             }
-            fn set_creation_date(self, creation_date: &str) -> Result<Self, OssError> {
+            fn set_creation_date(&mut self, creation_date: &str) -> Result<(), OssError> {
                 assert_eq!(creation_date, "2016-11-05T13:10:10.000Z");
-                Ok(self)
+                Ok(())
             }
-            fn set_location(self, location: &str) -> Result<Self, OssError> {
+            fn set_location(&mut self, location: &str) -> Result<(), OssError> {
                 assert_eq!(location, "oss-cn-shanghai");
-                Ok(self)
+                Ok(())
             }
-            fn set_extranet_endpoint(self, extranet_endpoint: &str) -> Result<Self, OssError> {
+            fn set_extranet_endpoint(&mut self, extranet_endpoint: &str) -> Result<(), OssError> {
                 assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com");
-                Ok(self)
+                Ok(())
             }
-            fn set_intranet_endpoint(self, intranet_endpoint: &str) -> Result<Self, OssError> {
+            fn set_intranet_endpoint(&mut self, intranet_endpoint: &str) -> Result<(), OssError> {
                 assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com");
-                Ok(self)
+                Ok(())
             }
-            fn set_storage_class(self, storage_class: &str) -> Result<Self, OssError> {
+            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), OssError> {
                 assert_eq!(storage_class, "Standard");
-                Ok(self)
+                Ok(())
             }
         }
 
@@ -516,7 +519,7 @@ mod bucket_list_xml {
 
         impl OssIntoBucket for BucketA {
             type Error = OssError;
-            fn set_name(self, name: &str) -> Result<Self, OssError> {
+            fn set_name(&mut self, name: &str) -> Result<(), OssError> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
                         assert_eq!(name, "foo124442");
@@ -525,9 +528,9 @@ mod bucket_list_xml {
                     }
                 }
 
-                Ok(self)
+                Ok(())
             }
-            fn set_creation_date(self, creation_date: &str) -> Result<Self, OssError> {
+            fn set_creation_date(&mut self, creation_date: &str) -> Result<(), OssError> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
                         assert_eq!(creation_date, "2020-09-13T03:14:54.000Z");
@@ -535,9 +538,9 @@ mod bucket_list_xml {
                         assert_eq!(creation_date, "2016-11-05T13:10:10.000Z");
                     }
                 }
-                Ok(self)
+                Ok(())
             }
-            fn set_location(self, location: &str) -> Result<Self, OssError> {
+            fn set_location(&mut self, location: &str) -> Result<(), OssError> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
                         assert_eq!(location, "oss-cn-shanghai");
@@ -545,22 +548,22 @@ mod bucket_list_xml {
                         assert_eq!(location, "oss-cn-shanghai");
                     }
                 }
-                Ok(self)
+                Ok(())
             }
-            fn set_extranet_endpoint(self, extranet_endpoint: &str) -> Result<Self, OssError> {
+            fn set_extranet_endpoint(&mut self, extranet_endpoint: &str) -> Result<(), OssError> {
                 assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com");
-                Ok(self)
+                Ok(())
             }
-            fn set_intranet_endpoint(self, intranet_endpoint: &str) -> Result<Self, OssError> {
+            fn set_intranet_endpoint(&mut self, intranet_endpoint: &str) -> Result<(), OssError> {
                 assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com");
-                Ok(self)
+                Ok(())
             }
-            fn set_storage_class(self, storage_class: &str) -> Result<Self, OssError> {
+            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), OssError> {
                 assert_eq!(storage_class, "Standard");
                 unsafe {
                     BUCKETS_ITEM_ID += 1;
                 }
-                Ok(self)
+                Ok(())
             }
         }
 
@@ -568,33 +571,33 @@ mod bucket_list_xml {
 
         impl OssIntoBucketList<BucketA> for ListA {
             type Error = OssError;
-            fn set_prefix(self, prefix: &str) -> Result<Self, OssError> {
+            fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
                 assert_eq!(prefix, "");
-                Ok(self)
+                Ok(())
             }
-            fn set_marker(self, marker: &str) -> Result<Self, OssError> {
+            fn set_marker(&mut self, marker: &str) -> Result<(), OssError> {
                 assert_eq!(marker, "");
-                Ok(self)
+                Ok(())
             }
-            fn set_max_keys(self, max_keys: &str) -> Result<Self, OssError> {
+            fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
                 assert_eq!(max_keys, "");
-                Ok(self)
+                Ok(())
             }
-            fn set_is_truncated(self, is_truncated: bool) -> Result<Self, OssError> {
+            fn set_is_truncated(&mut self, is_truncated: bool) -> Result<(), OssError> {
                 assert_eq!(is_truncated, false);
-                Ok(self)
+                Ok(())
             }
-            fn set_next_marker(self, next_marker: &str) -> Result<Self, OssError> {
+            fn set_next_marker(&mut self, next_marker: &str) -> Result<(), OssError> {
                 assert_eq!(next_marker, "");
-                Ok(self)
+                Ok(())
             }
-            fn set_id(self, id: &str) -> Result<Self, OssError> {
+            fn set_id(&mut self, id: &str) -> Result<(), OssError> {
                 assert_eq!(id, "100861222333");
-                Ok(self)
+                Ok(())
             }
-            fn set_display_name(self, display_name: &str) -> Result<Self, OssError> {
+            fn set_display_name(&mut self, display_name: &str) -> Result<(), OssError> {
                 assert_eq!(display_name, "100861222");
-                Ok(self)
+                Ok(())
             }
         }
 

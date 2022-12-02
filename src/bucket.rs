@@ -133,35 +133,35 @@ impl Default for Bucket<ArcPointer> {
 
 impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
     type Error = OssError;
-    fn set_name(mut self, name: &str) -> Result<Self, Self::Error> {
+    fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
         self.base
             .set_name(name.to_owned())
             .map_err(|_| InvalidBucketValue)?;
-        Ok(self)
+        Ok(())
     }
 
-    fn set_creation_date(mut self, creation_date: &str) -> Result<Self, Self::Error> {
+    fn set_creation_date(&mut self, creation_date: &str) -> Result<(), Self::Error> {
         self.creation_date = creation_date
             .parse::<DateTime<Utc>>()
             .map_err(|_| InvalidBucketValue)?;
-        Ok(self)
+        Ok(())
     }
 
-    fn set_location(mut self, location: &str) -> Result<Self, Self::Error> {
+    fn set_location(&mut self, location: &str) -> Result<(), Self::Error> {
         self.location = location.to_string();
-        Ok(self)
+        Ok(())
     }
 
-    fn set_extranet_endpoint(mut self, extranet_endpoint: &str) -> Result<Self, Self::Error> {
+    fn set_extranet_endpoint(&mut self, extranet_endpoint: &str) -> Result<(), Self::Error> {
         if let Err(e) = self.base.set_endpoint(extranet_endpoint.to_owned()) {
             return Err(Self::Error::from(e));
         }
-        Ok(self)
+        Ok(())
     }
 
-    fn set_storage_class(mut self, storage_class: &str) -> Result<Self, Self::Error> {
+    fn set_storage_class(&mut self, storage_class: &str) -> Result<(), Self::Error> {
         self.storage_class = storage_class.to_string();
-        Ok(self)
+        Ok(())
     }
 }
 
@@ -239,11 +239,13 @@ impl Bucket {
 
         let base = self.base.clone();
 
-        Ok(ObjectList::<ArcPointer>::default()
-            .from_xml(&content.text().await?, Arc::new(self.base.clone()))?
-            .set_bucket(base)
-            .set_client(client)
-            .set_search_query(query))
+        let mut list = ObjectList::<ArcPointer>::default();
+        list.from_xml(&content.text().await?, Arc::new(self.base.clone()))?;
+        list.set_bucket(base);
+        list.set_client(client);
+        list.set_search_query(query);
+
+        Ok(list)
     }
 }
 
@@ -267,11 +269,13 @@ impl Bucket<RcPointer> {
 
         let base = self.base.clone();
 
-        Ok(ObjectList::<RcPointer>::default()
-            .from_xml(&content.text()?, Rc::new(self.base.clone()))?
-            .set_bucket(base)
-            .set_client(client)
-            .set_search_query(query))
+        let mut list = ObjectList::<RcPointer>::default();
+        list.from_xml(&content.text()?, Rc::new(self.base.clone()))?;
+        list.set_bucket(base);
+        list.set_client(client);
+        list.set_search_query(query);
+
+        Ok(list)
     }
 }
 
@@ -280,68 +284,68 @@ where
     Bucket<T>: std::default::Default,
 {
     type Error = OssError;
-    fn set_prefix(mut self, prefix: &str) -> Result<Self, Self::Error> {
+    fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
         self.prefix = if prefix.len() > 0 {
             Some(prefix.to_owned())
         } else {
             None
         };
-        Ok(self)
+        Ok(())
     }
 
-    fn set_marker(mut self, marker: &str) -> Result<Self, Self::Error> {
+    fn set_marker(&mut self, marker: &str) -> Result<(), Self::Error> {
         self.marker = if marker.len() > 0 {
             Some(marker.to_owned())
         } else {
             None
         };
-        Ok(self)
+        Ok(())
     }
 
-    fn set_max_keys(mut self, max_keys: &str) -> Result<Self, Self::Error> {
+    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), Self::Error> {
         self.max_keys = if max_keys.len() > 0 {
             Some(max_keys.to_owned())
         } else {
             None
         };
-        Ok(self)
+        Ok(())
     }
 
-    fn set_is_truncated(mut self, is_truncated: bool) -> Result<Self, Self::Error> {
+    fn set_is_truncated(&mut self, is_truncated: bool) -> Result<(), Self::Error> {
         self.is_truncated = is_truncated;
-        Ok(self)
+        Ok(())
     }
 
-    fn set_next_marker(mut self, marker: &str) -> Result<Self, Self::Error> {
+    fn set_next_marker(&mut self, marker: &str) -> Result<(), Self::Error> {
         self.next_marker = if marker.is_empty() {
             None
         } else {
             Some(marker.to_owned())
         };
-        Ok(self)
+        Ok(())
     }
 
-    fn set_id(mut self, id: &str) -> Result<Self, Self::Error> {
+    fn set_id(&mut self, id: &str) -> Result<(), Self::Error> {
         self.id = if id.is_empty() {
             None
         } else {
             Some(id.to_owned())
         };
-        Ok(self)
+        Ok(())
     }
 
-    fn set_display_name(mut self, display_name: &str) -> Result<Self, Self::Error> {
+    fn set_display_name(&mut self, display_name: &str) -> Result<(), Self::Error> {
         self.display_name = if display_name.is_empty() {
             None
         } else {
             Some(display_name.to_owned())
         };
-        Ok(self)
+        Ok(())
     }
 
-    fn set_list(mut self, list: Vec<Bucket<T>>) -> Result<Self, Self::Error> {
+    fn set_list(&mut self, list: Vec<Bucket<T>>) -> Result<(), Self::Error> {
         self.buckets = list;
-        Ok(self)
+        Ok(())
     }
 }
 
@@ -354,8 +358,8 @@ impl ClientArc {
         let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send().await?;
 
-        let mut bucket_list =
-            ListBuckets::<ArcPointer>::default().from_xml(&content.text().await?)?;
+        let mut bucket_list = ListBuckets::<ArcPointer>::default();
+        bucket_list.from_xml(&content.text().await?)?;
         bucket_list.set_client(Arc::new(self));
 
         Ok(bucket_list)
@@ -371,7 +375,8 @@ impl ClientArc {
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
         let content = response.send().await?;
 
-        let mut bucket = Bucket::<ArcPointer>::default().from_xml(&content.text().await?)?;
+        let mut bucket = Bucket::<ArcPointer>::default();
+        bucket.from_xml(&content.text().await?)?;
         bucket.set_client(Arc::new(self));
 
         Ok(bucket)
@@ -388,7 +393,8 @@ impl ClientRc {
         let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
-        let mut bucket_list = ListBuckets::<RcPointer>::default().from_xml(&content.text()?)?;
+        let mut bucket_list = ListBuckets::<RcPointer>::default();
+        bucket_list.from_xml(&content.text()?)?;
         bucket_list.set_client(Rc::new(self));
 
         Ok(bucket_list)
@@ -404,7 +410,8 @@ impl ClientRc {
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
         let content = response.send()?;
 
-        let mut bucket = Bucket::<RcPointer>::default().from_xml(&content.text()?)?;
+        let mut bucket = Bucket::<RcPointer>::default();
+        bucket.from_xml(&content.text()?)?;
         bucket.set_client(Rc::new(self));
 
         Ok(bucket)

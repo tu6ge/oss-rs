@@ -13,26 +13,26 @@ where
     type Bucket;
     type Error;
 
-    fn set_key(self, _key: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_key(&mut self, _key: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_last_modified(self, _last_modified: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_last_modified(&mut self, _last_modified: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_etag(self, _etag: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_etag(&mut self, _etag: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_type(self, _type: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_type(&mut self, _type: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_size(self, _size: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_size(&mut self, _size: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_storage_class(self, _storage_class: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_bucket(self, _bucket: Self::Bucket) -> Self {
-        self
+    fn set_bucket(&mut self, _bucket: Self::Bucket) -> Result<(), Self::Error> {
+        Ok(())
     }
 }
 
@@ -67,26 +67,26 @@ where
     Self::Error: Error + From<quick_xml::Error> + From<T::Error>,
 {
     type Error;
-    fn set_name(self, _name: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_name(&mut self, _name: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_prefix(self, _prefix: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_prefix(&mut self, _prefix: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_max_keys(self, _max_keys: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_key_count(self, _key_count: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_key_count(&mut self, _key_count: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_next_continuation_token(self, _token: Option<&str>) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_next_continuation_token(&mut self, _token: Option<&str>) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_list(self, _list: Vec<T>) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_list(&mut self, _list: Vec<T>) -> Result<(), Self::Error> {
+        Ok(())
     }
 
-    fn from_xml(self, xml: &str, bucket: T::Bucket) -> Result<Self, Self::Error> {
+    fn from_xml(&mut self, xml: &str, bucket: T::Bucket) -> Result<(), Self::Error> {
         //println!("from_xml: {:#}", xml);
         let mut result = Vec::new();
         let mut reader = Reader::from_str(xml);
@@ -106,8 +106,6 @@ where
         let mut max_keys = Cow::from("");
         let mut key_count = Cow::from("");
         let mut next_continuation_token = Cow::from("");
-
-        let list_object;
 
         loop {
             match reader.read_event_into(&mut buf) {
@@ -154,28 +152,27 @@ where
                     }
                 }
                 Ok(Event::End(ref e)) if e.name().as_ref() == b"Contents" => {
-                    let object = T::default()
-                        .set_bucket(bucket.clone())
-                        .set_key(&key)?
-                        .set_last_modified(&last_modified)?
-                        .set_etag(&etag)?
-                        .set_type(&_type)?
-                        .set_size(&size)?
-                        .set_storage_class(&storage_class)?;
+                    let mut object = T::default();
+                    object.set_bucket(bucket.clone())?;
+                    object.set_key(&key)?;
+                    object.set_last_modified(&last_modified)?;
+                    object.set_etag(&etag)?;
+                    object.set_type(&_type)?;
+                    object.set_size(&size)?;
+                    object.set_storage_class(&storage_class)?;
                     result.push(object);
                 }
                 Ok(Event::Eof) => {
-                    list_object = self
-                        .set_name(&name)?
-                        .set_prefix(&prefix)?
-                        .set_max_keys(&max_keys)?
-                        .set_key_count(&key_count)?
-                        .set_list(result)?
-                        .set_next_continuation_token(if next_continuation_token.len() > 0 {
-                            Some(&next_continuation_token)
-                        } else {
-                            None
-                        })?;
+                    self.set_name(&name)?;
+                    self.set_prefix(&prefix)?;
+                    self.set_max_keys(&max_keys)?;
+                    self.set_key_count(&key_count)?;
+                    self.set_list(result)?;
+                    self.set_next_continuation_token(if next_continuation_token.len() > 0 {
+                        Some(&next_continuation_token)
+                    } else {
+                        None
+                    })?;
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
@@ -186,7 +183,7 @@ where
             buf.clear();
         }
 
-        Ok(list_object)
+        Ok(())
     }
 }
 
@@ -196,26 +193,26 @@ where
     Self::Error: Error + From<quick_xml::Error>,
 {
     type Error;
-    fn set_name(self, _name: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_name(&mut self, _name: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_creation_date(self, _creation_date: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_creation_date(&mut self, _creation_date: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_location(self, _location: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_location(&mut self, _location: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_extranet_endpoint(self, _extranet_endpoint: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_extranet_endpoint(&mut self, _extranet_endpoint: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_intranet_endpoint(self, _intranet_endpoint: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_intranet_endpoint(&mut self, _intranet_endpoint: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_storage_class(self, _storage_class: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
 
-    fn from_xml(self, xml: &str) -> Result<Self, Self::Error> {
+    fn from_xml(&mut self, xml: &str) -> Result<(), Self::Error> {
         //println!("from_xml: {:#}", xml);
         let mut reader = Reader::from_str(xml);
         reader.trim_text(true);
@@ -232,8 +229,6 @@ where
                                                    // 最长的值 ColdArchive 11
         let mut storage_class = Cow::from(""); // String::with_capacity(11);
 
-        let bucket;
-
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => match e.name().as_ref() {
@@ -246,13 +241,12 @@ where
                     _ => (),
                 },
                 Ok(Event::Eof) => {
-                    bucket = self
-                        .set_name(&name)?
-                        .set_creation_date(&creation_date)?
-                        .set_location(&location)?
-                        .set_extranet_endpoint(&extranet_endpoint)?
-                        .set_intranet_endpoint(&intranet_endpoint)?
-                        .set_storage_class(&storage_class)?;
+                    self.set_name(&name)?;
+                    self.set_creation_date(&creation_date)?;
+                    self.set_location(&location)?;
+                    self.set_extranet_endpoint(&extranet_endpoint)?;
+                    self.set_intranet_endpoint(&intranet_endpoint)?;
+                    self.set_storage_class(&storage_class)?;
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
@@ -262,7 +256,7 @@ where
             }
             buf.clear();
         }
-        Ok(bucket)
+        Ok(())
     }
 }
 
@@ -272,32 +266,32 @@ where
     Self::Error: Error + From<quick_xml::Error> + From<T::Error>,
 {
     type Error;
-    fn set_prefix(self, _prefix: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_prefix(&mut self, _prefix: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_marker(self, _marker: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_marker(&mut self, _marker: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_max_keys(self, _max_keys: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_is_truncated(self, _is_truncated: bool) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_is_truncated(&mut self, _is_truncated: bool) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_next_marker(self, _next_marker: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_next_marker(&mut self, _next_marker: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_id(self, _id: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_id(&mut self, _id: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_display_name(self, _display_name: &str) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_display_name(&mut self, _display_name: &str) -> Result<(), Self::Error> {
+        Ok(())
     }
-    fn set_list(self, _list: Vec<T>) -> Result<Self, Self::Error> {
-        Ok(self)
+    fn set_list(&mut self, _list: Vec<T>) -> Result<(), Self::Error> {
+        Ok(())
     }
 
-    fn from_xml(self, xml: &str) -> Result<Self, Self::Error> {
+    fn from_xml(&mut self, xml: &str) -> Result<(), Self::Error> {
         let mut result = Vec::new();
         let mut reader = Reader::from_str(xml);
         reader.trim_text(true);
@@ -321,8 +315,6 @@ where
         let mut intranet_endpoint = Cow::from(""); //String::with_capacity(42);
                                                    // 最长的值 ColdArchive 11
         let mut storage_class = Cow::from(""); //String::with_capacity(11);
-
-        let bucket_list;
 
         loop {
             match reader.read_event_into(&mut buf) {
@@ -355,25 +347,24 @@ where
                 },
                 Ok(Event::End(ref e)) if e.name().as_ref() == BUCKET => {
                     //let in_creation_date = &creation_date.parse::<DateTime<Utc>>()?;
-                    let bucket = T::default()
-                        .set_name(&name)?
-                        .set_creation_date(&creation_date)?
-                        .set_location(&location)?
-                        .set_extranet_endpoint(&extranet_endpoint)?
-                        .set_intranet_endpoint(&intranet_endpoint)?
-                        .set_storage_class(&storage_class)?;
+                    let mut bucket = T::default();
+                    bucket.set_name(&name)?;
+                    bucket.set_creation_date(&creation_date)?;
+                    bucket.set_location(&location)?;
+                    bucket.set_extranet_endpoint(&extranet_endpoint)?;
+                    bucket.set_intranet_endpoint(&intranet_endpoint)?;
+                    bucket.set_storage_class(&storage_class)?;
                     result.push(bucket);
                 }
                 Ok(Event::Eof) => {
-                    bucket_list = self
-                        .set_prefix(&prefix)?
-                        .set_marker(&marker)?
-                        .set_max_keys(&max_keys)?
-                        .set_is_truncated(is_truncated)?
-                        .set_next_marker(&next_marker)?
-                        .set_id(&id)?
-                        .set_display_name(&display_name)?
-                        .set_list(result)?;
+                    self.set_prefix(&prefix)?;
+                    self.set_marker(&marker)?;
+                    self.set_max_keys(&max_keys)?;
+                    self.set_is_truncated(is_truncated)?;
+                    self.set_next_marker(&next_marker)?;
+                    self.set_id(&id)?;
+                    self.set_display_name(&display_name)?;
+                    self.set_list(result)?;
 
                     break;
                 } // exits the loop when reaching end of file
@@ -384,6 +375,6 @@ where
             }
             buf.clear();
         }
-        Ok(bucket_list)
+        Ok(())
     }
 }

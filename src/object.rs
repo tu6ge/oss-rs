@@ -133,9 +133,8 @@ impl<T: PointerFamily> ObjectList<T> {
 
 #[oss_gen_rc]
 impl ObjectList<ArcPointer> {
-    pub fn set_client(mut self, client: Arc<ClientArc>) -> Self {
+    pub fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
-        self
     }
 
     pub fn client(&self) -> Arc<ClientArc> {
@@ -156,13 +155,14 @@ impl ObjectList {
                 let response = self.builder(VERB::GET, url, canonicalized)?;
                 let content = response.send().await?;
 
-                let list = ObjectList::<ArcPointer>::default()
-                    .set_client(self.client().clone())
-                    .set_bucket(self.bucket.clone());
+                let mut list = ObjectList::<ArcPointer>::default();
+                list.set_client(self.client().clone());
+                list.set_bucket(self.bucket.clone());
 
-                Ok(list
-                    .from_xml(&content.text().await?, Arc::new(self.bucket.clone()))?
-                    .set_search_query(query))
+                list.from_xml(&content.text().await?, Arc::new(self.bucket.clone()))?;
+
+                list.set_search_query(query);
+                Ok(list)
             }
         }
     }
@@ -220,24 +220,23 @@ impl ObjectList<RcPointer> {
         let response = client.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
-        let list = Self::default()
-            .set_client(Rc::clone(&client))
-            .set_bucket(self.bucket.clone());
-        Ok(list
-            .from_xml(&content.text()?, Rc::new(self.bucket.clone()))?
-            .set_search_query(self.search_query.clone()))
+        let mut list = Self::default();
+        list.set_client(Rc::clone(&client));
+        list.set_bucket(self.bucket.clone());
+        list.from_xml(&content.text()?, Rc::new(self.bucket.clone()))?;
+        list.set_search_query(self.search_query.clone());
+        Ok(list)
     }
 }
 
 impl<T: PointerFamily> ObjectList<T> {
-    pub fn set_search_query(mut self, search_query: Query) -> Self {
+    #[inline]
+    pub fn set_search_query(&mut self, search_query: Query) {
         self.search_query = search_query;
-        self
     }
 
-    pub fn set_bucket(mut self, bucket: BucketBase) -> Self {
+    pub fn set_bucket(&mut self, bucket: BucketBase) {
         self.bucket = bucket;
-        self
     }
 
     pub fn bucket_name(&self) -> &str {
@@ -432,69 +431,80 @@ impl<T: PointerFamily + Sized> OssIntoObject for Object<T> {
     type Bucket = T::Bucket;
     type Error = OssError;
 
-    fn set_bucket(mut self, bucket: T::Bucket) -> Self {
+    #[inline]
+    fn set_bucket(&mut self, bucket: T::Bucket) -> Result<(), Self::Error> {
         self.base.set_bucket(bucket);
-        self
+        Ok(())
     }
 
-    fn set_key(mut self, key: &str) -> Result<Self, Self::Error> {
+    #[inline]
+    fn set_key(&mut self, key: &str) -> Result<(), Self::Error> {
         self.base.set_path(key);
-        Ok(self)
+        Ok(())
     }
 
-    fn set_last_modified(mut self, value: &str) -> Result<Self, Self::Error> {
-        let last_modified = value.parse::<DateTime<Utc>>().map_err(OssError::from)?;
-        self.last_modified = last_modified;
-        Ok(self)
+    #[inline]
+    fn set_last_modified(&mut self, value: &str) -> Result<(), Self::Error> {
+        self.last_modified = value.parse::<DateTime<Utc>>().map_err(OssError::from)?;
+        Ok(())
     }
 
-    fn set_etag(mut self, value: &str) -> Result<Self, Self::Error> {
+    #[inline]
+    fn set_etag(&mut self, value: &str) -> Result<(), Self::Error> {
         self.etag = value.to_string();
-        Ok(self)
+        Ok(())
     }
 
-    fn set_type(mut self, value: &str) -> Result<Self, Self::Error> {
+    #[inline]
+    fn set_type(&mut self, value: &str) -> Result<(), Self::Error> {
         self._type = value.to_string();
-        Ok(self)
+        Ok(())
     }
 
-    fn set_size(mut self, size: &str) -> Result<Self, Self::Error> {
+    #[inline]
+    fn set_size(&mut self, size: &str) -> Result<(), Self::Error> {
         self.size = size.parse::<u64>().map_err(OssError::from)?;
-        Ok(self)
+        Ok(())
     }
 
-    fn set_storage_class(mut self, value: &str) -> Result<Self, Self::Error> {
+    #[inline]
+    fn set_storage_class(&mut self, value: &str) -> Result<(), Self::Error> {
         self.storage_class = value.to_string();
-        Ok(self)
+        Ok(())
     }
 }
 
 impl<T: PointerFamily> OssIntoObjectList<Object<T>> for ObjectList<T> {
     type Error = OssError;
 
-    fn set_key_count(mut self, key_count: &str) -> Result<Self, Self::Error> {
+    #[inline]
+    fn set_key_count(&mut self, key_count: &str) -> Result<(), Self::Error> {
         self.key_count = key_count.parse::<u64>().map_err(OssError::from)?;
-        Ok(self)
+        Ok(())
     }
 
-    fn set_prefix(mut self, prefix: &str) -> Result<Self, Self::Error> {
+    #[inline]
+    fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
         self.prefix = prefix.to_owned();
-        Ok(self)
+        Ok(())
     }
 
-    fn set_max_keys(mut self, max_keys: &str) -> Result<Self, Self::Error> {
+    #[inline]
+    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), Self::Error> {
         self.max_keys = max_keys.parse::<u32>().map_err(OssError::from)?;
-        Ok(self)
+        Ok(())
     }
 
-    fn set_next_continuation_token(mut self, token: Option<&str>) -> Result<Self, Self::Error> {
+    #[inline]
+    fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), Self::Error> {
         self.next_continuation_token = token.map(|t| t.to_owned());
-        Ok(self)
+        Ok(())
     }
 
-    fn set_list(mut self, list: Vec<Object<T>>) -> Result<Self, Self::Error> {
+    #[inline]
+    fn set_list(&mut self, list: Vec<Object<T>>) -> Result<(), Self::Error> {
         self.object_list = list;
-        Ok(self)
+        Ok(())
     }
 }
 
@@ -515,13 +525,14 @@ impl Client {
         let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send().await?;
 
-        let list = ObjectList::<ArcPointer>::default()
-            .set_client(Arc::new(self))
-            .set_bucket(bucket.clone());
+        let mut list = ObjectList::<ArcPointer>::default();
+        list.set_client(Arc::new(self));
+        list.set_bucket(bucket.clone());
 
-        Ok(list
-            .from_xml(&content.text().await?, Arc::new(bucket))?
-            .set_search_query(query))
+        list.from_xml(&content.text().await?, Arc::new(bucket))?;
+        list.set_search_query(query);
+
+        Ok(list)
     }
 }
 
@@ -543,13 +554,13 @@ impl ClientRc {
         let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
-        let list = ObjectList::<RcPointer>::default()
-            .set_client(Rc::new(self))
-            .set_bucket(bucket.clone());
+        let mut list = ObjectList::<RcPointer>::default();
+        list.set_client(Rc::new(self));
+        list.set_bucket(bucket.clone());
+        list.from_xml(&content.text()?, Rc::new(bucket))?;
+        list.set_search_query(query);
 
-        Ok(list
-            .from_xml(&content.text()?, Rc::new(bucket))?
-            .set_search_query(query))
+        Ok(list)
     }
 }
 
