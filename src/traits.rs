@@ -114,20 +114,20 @@ where
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => {
                     match e.name().as_ref() {
-                        PREFIX => prefix = reader.read_text(e.to_end().into_owned().name())?,
-                        NAME => name = reader.read_text(e.to_end().into_owned().name())?,
+                        PREFIX => prefix = reader.read_text(e.to_end().name())?,
+                        NAME => name = reader.read_text(e.to_end().name())?,
                         MAX_KEYS => {
-                            max_keys = reader.read_text(e.to_end().into_owned().name())?;
+                            max_keys = reader.read_text(e.to_end().name())?;
                         }
                         KEY_COUNT => {
-                            key_count = reader.read_text(e.to_end().into_owned().name())?;
+                            key_count = reader.read_text(e.to_end().name())?;
                         }
                         IS_TRUNCATED => {
-                            //is_truncated = reader.read_text(e.to_end().into_owned().name())?.to_string() == "true"
+                            //is_truncated = reader.read_text(e.to_end().name())?.to_string() == "true"
                         }
                         NEXT_CONTINUATION_TOKEN => {
                             next_continuation_token =
-                                reader.read_text(e.to_end().into_owned().name())?;
+                                reader.read_text(e.to_end().name())?;
                         }
                         // b"Contents" => {
                         //     // key.clear();
@@ -136,23 +136,23 @@ where
                         //     // //_type.clear();
                         //     // storage_class.clear();
                         // }
-                        KEY => key = reader.read_text(e.to_end().into_owned().name())?,
+                        KEY => key = reader.read_text(e.to_end().name())?,
                         LAST_MODIFIED => {
-                            last_modified = reader.read_text(e.to_end().into_owned().name())?
+                            last_modified = reader.read_text(e.to_end().name())?
                         }
                         E_TAG => {
-                            let tag = reader.read_text(e.to_end().into_owned().name())?;
+                            let tag = reader.read_text(e.to_end().name())?;
 
                             let new_tag = tag.into_owned();
                             let new_tag = &new_tag.trim_matches('"');
                             etag = Cow::Owned((*new_tag).to_owned());
                         }
-                        TYPE => _type = reader.read_text(e.to_end().into_owned().name())?,
+                        TYPE => _type = reader.read_text(e.to_end().name())?,
                         SIZE => {
-                            size = reader.read_text(e.to_end().into_owned().name())?;
+                            size = reader.read_text(e.to_end().name())?;
                         }
                         STORAGE_CLASS => {
-                            storage_class = reader.read_text(e.to_end().into_owned().name())?;
+                            storage_class = reader.read_text(e.to_end().name())?;
                         }
                         _ => (),
                     }
@@ -241,19 +241,19 @@ where
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => match e.name().as_ref() {
-                    NAME => name = reader.read_text(e.to_end().into_owned().name())?,
+                    NAME => name = reader.read_text(e.to_end().name())?,
                     CREATION_DATE => {
-                        creation_date = reader.read_text(e.to_end().into_owned().name())?
+                        creation_date = reader.read_text(e.to_end().name())?
                     }
                     EXTRANET_ENDPOINT => {
-                        extranet_endpoint = reader.read_text(e.to_end().into_owned().name())?
+                        extranet_endpoint = reader.read_text(e.to_end().name())?
                     }
                     INTRANET_ENDPOINT => {
-                        intranet_endpoint = reader.read_text(e.to_end().into_owned().name())?
+                        intranet_endpoint = reader.read_text(e.to_end().name())?
                     }
-                    LOCATION => location = reader.read_text(e.to_end().into_owned().name())?,
+                    LOCATION => location = reader.read_text(e.to_end().name())?,
                     STORAGE_CLASS => {
-                        storage_class = reader.read_text(e.to_end().into_owned().name())?
+                        storage_class = reader.read_text(e.to_end().name())?
                     }
                     _ => (),
                 },
@@ -339,21 +339,21 @@ where
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => match e.name().as_ref() {
-                    PREFIX => prefix = reader.read_text(e.to_end().into_owned().name())?,
-                    MARKER => marker = reader.read_text(e.to_end().into_owned().name())?,
-                    MAX_KEYS => max_keys = reader.read_text(e.to_end().into_owned().name())?,
+                    PREFIX => prefix = reader.read_text(e.to_end().name())?,
+                    MARKER => marker = reader.read_text(e.to_end().name())?,
+                    MAX_KEYS => max_keys = reader.read_text(e.to_end().name())?,
                     IS_TRUNCATED => {
                         is_truncated = reader
-                            .read_text(e.to_end().into_owned().name())?
+                            .read_text(e.to_end().name())?
                             .to_string()
                             == "true"
                     }
                     NEXT_MARKER => {
-                        next_marker = reader.read_text(e.to_end().into_owned().name())?
+                        next_marker = reader.read_text(e.to_end().name())?
                     }
-                    ID => id = reader.read_text(e.to_end().into_owned().name())?,
+                    ID => id = reader.read_text(e.to_end().name())?,
                     DISPLAY_NAME => {
-                        display_name = reader.read_text(e.to_end().into_owned().name())?
+                        display_name = reader.read_text(e.to_end().name())?
                     }
 
                     // b"Bucket" => {
@@ -364,19 +364,19 @@ where
                     //     // intranet_endpoint.clear();
                     //     // storage_class.clear();
                     // }
-                    NAME => name = reader.read_text(e.to_end().into_owned().name())?,
+                    NAME => name = reader.read_text(e.to_end().name())?,
                     CREATION_DATE => {
-                        creation_date = reader.read_text(e.to_end().into_owned().name())?
+                        creation_date = reader.read_text(e.to_end().name())?
                     }
                     EXTRANET_ENDPOINT => {
-                        extranet_endpoint = reader.read_text(e.to_end().into_owned().name())?
+                        extranet_endpoint = reader.read_text(e.to_end().name())?
                     }
                     INTRANET_ENDPOINT => {
-                        intranet_endpoint = reader.read_text(e.to_end().into_owned().name())?
+                        intranet_endpoint = reader.read_text(e.to_end().name())?
                     }
-                    LOCATION => location = reader.read_text(e.to_end().into_owned().name())?,
+                    LOCATION => location = reader.read_text(e.to_end().name())?,
                     STORAGE_CLASS => {
-                        storage_class = reader.read_text(e.to_end().into_owned().name())?
+                        storage_class = reader.read_text(e.to_end().name())?
                     }
                     _ => (),
                 },
