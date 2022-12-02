@@ -6,17 +6,16 @@ use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::BucketBase;
-use crate::errors::OssResult;
+use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::object::ObjectList;
-use crate::traits::{
-    InvalidBucketListValue, InvalidBucketValue, OssIntoBucket, OssIntoBucketList, OssIntoObjectList,
-};
-use crate::types::{CanonicalizedResource, Query, UrlQuery};
+use crate::traits::{OssIntoBucket, OssIntoBucketList, OssIntoObjectList};
+use crate::types::{CanonicalizedResource, InvalidEndPoint, Query, UrlQuery};
 use chrono::prelude::*;
 use oss_derive::oss_gen_rc;
+use std::error::Error;
 use std::fmt;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
@@ -133,38 +132,54 @@ impl Default for Bucket<ArcPointer> {
 }
 
 impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
-    fn set_name(mut self, name: &str) -> Result<Self, InvalidBucketValue> {
+    type Error = OssError;
+    fn set_name(mut self, name: &str) -> Result<Self, Self::Error> {
         self.base
             .set_name(name.to_owned())
             .map_err(|_| InvalidBucketValue)?;
         Ok(self)
     }
 
-    fn set_creation_date(mut self, creation_date: &str) -> Result<Self, InvalidBucketValue> {
+    fn set_creation_date(mut self, creation_date: &str) -> Result<Self, Self::Error> {
         self.creation_date = creation_date
             .parse::<DateTime<Utc>>()
-            .map_err(|_| InvalidBucketValue {})?;
+            .map_err(|_| InvalidBucketValue)?;
         Ok(self)
     }
 
-    fn set_location(mut self, location: &str) -> Result<Self, InvalidBucketValue> {
+    fn set_location(mut self, location: &str) -> Result<Self, Self::Error> {
         self.location = location.to_string();
         Ok(self)
     }
 
-    fn set_extranet_endpoint(
-        mut self,
-        extranet_endpoint: &str,
-    ) -> Result<Self, InvalidBucketValue> {
+    fn set_extranet_endpoint(mut self, extranet_endpoint: &str) -> Result<Self, Self::Error> {
         if let Err(e) = self.base.set_endpoint(extranet_endpoint.to_owned()) {
-            return Err(InvalidBucketValue::from(e));
+            return Err(Self::Error::from(e));
         }
         Ok(self)
     }
 
-    fn set_storage_class(mut self, storage_class: &str) -> Result<Self, InvalidBucketValue> {
+    fn set_storage_class(mut self, storage_class: &str) -> Result<Self, Self::Error> {
         self.storage_class = storage_class.to_string();
         Ok(self)
+    }
+}
+
+#[derive(Debug)]
+pub struct InvalidBucketValue;
+
+impl fmt::Display for InvalidBucketValue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "faild parse to bucket value")
+    }
+}
+
+impl Error for InvalidBucketValue {}
+
+impl From<InvalidEndPoint> for InvalidBucketValue {
+    //TODO 待完善
+    fn from(_end: InvalidEndPoint) -> InvalidBucketValue {
+        InvalidBucketValue {}
     }
 }
 
@@ -264,7 +279,8 @@ impl<T: PointerFamily> OssIntoBucketList<Bucket<T>> for ListBuckets<T>
 where
     Bucket<T>: std::default::Default,
 {
-    fn set_prefix(mut self, prefix: &str) -> Result<Self, InvalidBucketListValue> {
+    type Error = OssError;
+    fn set_prefix(mut self, prefix: &str) -> Result<Self, Self::Error> {
         self.prefix = if prefix.len() > 0 {
             Some(prefix.to_owned())
         } else {
@@ -273,7 +289,7 @@ where
         Ok(self)
     }
 
-    fn set_marker(mut self, marker: &str) -> Result<Self, InvalidBucketListValue> {
+    fn set_marker(mut self, marker: &str) -> Result<Self, Self::Error> {
         self.marker = if marker.len() > 0 {
             Some(marker.to_owned())
         } else {
@@ -282,7 +298,7 @@ where
         Ok(self)
     }
 
-    fn set_max_keys(mut self, max_keys: &str) -> Result<Self, InvalidBucketListValue> {
+    fn set_max_keys(mut self, max_keys: &str) -> Result<Self, Self::Error> {
         self.max_keys = if max_keys.len() > 0 {
             Some(max_keys.to_owned())
         } else {
@@ -291,12 +307,12 @@ where
         Ok(self)
     }
 
-    fn set_is_truncated(mut self, is_truncated: bool) -> Result<Self, InvalidBucketListValue> {
+    fn set_is_truncated(mut self, is_truncated: bool) -> Result<Self, Self::Error> {
         self.is_truncated = is_truncated;
         Ok(self)
     }
 
-    fn set_next_marker(mut self, marker: &str) -> Result<Self, InvalidBucketListValue> {
+    fn set_next_marker(mut self, marker: &str) -> Result<Self, Self::Error> {
         self.next_marker = if marker.is_empty() {
             None
         } else {
@@ -305,7 +321,7 @@ where
         Ok(self)
     }
 
-    fn set_id(mut self, id: &str) -> Result<Self, InvalidBucketListValue> {
+    fn set_id(mut self, id: &str) -> Result<Self, Self::Error> {
         self.id = if id.is_empty() {
             None
         } else {
@@ -314,7 +330,7 @@ where
         Ok(self)
     }
 
-    fn set_display_name(mut self, display_name: &str) -> Result<Self, InvalidBucketListValue> {
+    fn set_display_name(mut self, display_name: &str) -> Result<Self, Self::Error> {
         self.display_name = if display_name.is_empty() {
             None
         } else {
@@ -323,7 +339,7 @@ where
         Ok(self)
     }
 
-    fn set_list(mut self, list: Vec<Bucket<T>>) -> Result<Self, InvalidBucketListValue> {
+    fn set_list(mut self, list: Vec<Bucket<T>>) -> Result<Self, Self::Error> {
         self.buckets = list;
         Ok(self)
     }

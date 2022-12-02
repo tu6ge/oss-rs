@@ -10,7 +10,7 @@ use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
-use crate::traits::{InvalidObjectListValue, InvalidObjectValue, OssIntoObject, OssIntoObjectList};
+use crate::traits::{OssIntoObject, OssIntoObjectList};
 use crate::types::{CanonicalizedResource, Query, UrlQuery, CONTINUATION_TOKEN};
 use crate::Client;
 use async_stream::try_stream;
@@ -428,75 +428,71 @@ impl<T: PointerFamily> ObjectBuilder<T> {
     }
 }
 
-impl<T: PointerFamily + Sized> OssIntoObject<T> for Object<T> {
+impl<T: PointerFamily + Sized> OssIntoObject for Object<T> {
+    type Bucket = T::Bucket;
+    type Error = OssError;
+
     fn set_bucket(mut self, bucket: T::Bucket) -> Self {
         self.base.set_bucket(bucket);
         self
     }
 
-    fn set_key(mut self, key: &str) -> Result<Self, InvalidObjectValue> {
+    fn set_key(mut self, key: &str) -> Result<Self, Self::Error> {
         self.base.set_path(key);
         Ok(self)
     }
 
-    fn set_last_modified(mut self, value: &str) -> Result<Self, InvalidObjectValue> {
-        let last_modified = value
-            .parse::<DateTime<Utc>>()
-            .map_err(|_| InvalidObjectValue {})?;
+    fn set_last_modified(mut self, value: &str) -> Result<Self, Self::Error> {
+        let last_modified = value.parse::<DateTime<Utc>>().map_err(OssError::from)?;
         self.last_modified = last_modified;
         Ok(self)
     }
 
-    fn set_etag(mut self, value: &str) -> Result<Self, InvalidObjectValue> {
+    fn set_etag(mut self, value: &str) -> Result<Self, Self::Error> {
         self.etag = value.to_string();
         Ok(self)
     }
 
-    fn set_type(mut self, value: &str) -> Result<Self, InvalidObjectValue> {
+    fn set_type(mut self, value: &str) -> Result<Self, Self::Error> {
         self._type = value.to_string();
         Ok(self)
     }
 
-    fn set_size(mut self, size: &str) -> Result<Self, InvalidObjectValue> {
-        self.size = size.parse::<u64>().map_err(|_| InvalidObjectValue {})?;
+    fn set_size(mut self, size: &str) -> Result<Self, Self::Error> {
+        self.size = size.parse::<u64>().map_err(OssError::from)?;
         Ok(self)
     }
 
-    fn set_storage_class(mut self, value: &str) -> Result<Self, InvalidObjectValue> {
+    fn set_storage_class(mut self, value: &str) -> Result<Self, Self::Error> {
         self.storage_class = value.to_string();
         Ok(self)
     }
 }
 
-impl<T: PointerFamily> OssIntoObjectList<Object<T>, T> for ObjectList<T> {
-    fn set_key_count(mut self, key_count: &str) -> Result<Self, InvalidObjectListValue> {
-        self.key_count = key_count
-            .parse::<u64>()
-            .map_err(|_| InvalidObjectListValue {})?;
+impl<T: PointerFamily> OssIntoObjectList<Object<T>> for ObjectList<T> {
+    type Error = OssError;
+
+    fn set_key_count(mut self, key_count: &str) -> Result<Self, Self::Error> {
+        self.key_count = key_count.parse::<u64>().map_err(OssError::from)?;
         Ok(self)
     }
 
-    fn set_prefix(mut self, prefix: &str) -> Result<Self, InvalidObjectListValue> {
+    fn set_prefix(mut self, prefix: &str) -> Result<Self, Self::Error> {
         self.prefix = prefix.to_owned();
         Ok(self)
     }
 
-    fn set_max_keys(mut self, max_keys: &str) -> Result<Self, InvalidObjectListValue> {
-        self.max_keys = max_keys
-            .parse::<u32>()
-            .map_err(|_| InvalidObjectListValue {})?;
+    fn set_max_keys(mut self, max_keys: &str) -> Result<Self, Self::Error> {
+        self.max_keys = max_keys.parse::<u32>().map_err(OssError::from)?;
         Ok(self)
     }
 
-    fn set_next_continuation_token(
-        mut self,
-        token: Option<&str>,
-    ) -> Result<Self, InvalidObjectListValue> {
+    fn set_next_continuation_token(mut self, token: Option<&str>) -> Result<Self, Self::Error> {
         self.next_continuation_token = token.map(|t| t.to_owned());
         Ok(self)
     }
 
-    fn set_list(mut self, list: Vec<Object<T>>) -> Result<Self, InvalidObjectListValue> {
+    fn set_list(mut self, list: Vec<Object<T>>) -> Result<Self, Self::Error> {
         self.object_list = list;
         Ok(self)
     }

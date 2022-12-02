@@ -499,16 +499,9 @@ fn header_into_string() {
 }
 
 mod sign_string_struct {
-    use http::header::{HeaderMap, HeaderValue};
-    use mockall::mock;
-    use std::borrow::Cow;
 
     use crate::{
-        auth::{
-            AuthSignString, AuthToHeaderMap, AuthToOssHeader, MockHeaderToSign, OssHeader,
-            SignString, VERB,
-        },
-        errors::OssResult,
+        auth::{AuthSignString, MockHeaderToSign, SignString, VERB},
         types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret},
     };
 
@@ -522,7 +515,7 @@ mod sign_string_struct {
             content_md5: ContentMd5,
             content_type: ContentType,
             canonicalized_resource: CanonicalizedResource,
-        };
+        }
 
         impl AuthSignString for Bar {
             fn get_sign_info(

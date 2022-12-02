@@ -3,13 +3,7 @@ use http::header::ToStrError;
 use std::fmt;
 use thiserror::Error;
 
-use crate::{
-    config::InvalidConfig,
-    traits::{
-        InvalidBucketListValue, InvalidBucketValue, InvalidObjectListValue, InvalidObjectValue,
-    },
-    types::InvalidEndPoint,
-};
+use crate::{bucket::InvalidBucketValue, config::InvalidConfig, types::InvalidEndPoint};
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
@@ -61,16 +55,7 @@ pub enum OssError {
     InvalidEndPoint(#[from] InvalidEndPoint),
 
     #[error("{0}")]
-    InvalidObjectValue(#[from] InvalidObjectValue),
-
-    #[error("{0}")]
-    InvalidObjectListValue(#[from] InvalidObjectListValue),
-
-    #[error("{0}")]
     InvalidBucketValue(#[from] InvalidBucketValue),
-
-    #[error("{0}")]
-    InvalidBucketListValue(#[from] InvalidBucketListValue),
 
     #[error("{0}")]
     InvalidConfig(#[from] InvalidConfig),

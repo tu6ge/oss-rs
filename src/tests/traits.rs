@@ -5,13 +5,10 @@ mod object_list_xml {
 
     use crate::builder::ArcPointer;
     use crate::client::Client;
+    use crate::errors::OssError;
     use crate::object::{Object, ObjectList};
     use crate::tests::traits::OBEJCT_ITEM_ID;
-    use crate::{
-        config::BucketBase,
-        traits::{InvalidObjectListValue, InvalidObjectValue},
-        EndPoint,
-    };
+    use crate::{config::BucketBase, EndPoint};
 
     #[test]
     fn from_xml() {
@@ -21,8 +18,10 @@ mod object_list_xml {
         #[derive(Default)]
         struct ObjectA {}
 
-        impl OssIntoObject<ArcPointer> for ObjectA {
-            fn set_key(self, key: &str) -> Result<Self, InvalidObjectValue> {
+        impl OssIntoObject for ObjectA {
+            type Bucket = Arc<BucketBase>;
+            type Error = OssError;
+            fn set_key(self, key: &str) -> Result<Self, OssError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(key, "9AB932LY.jpeg");
@@ -34,7 +33,7 @@ mod object_list_xml {
                 }
                 Ok(self)
             }
-            fn set_last_modified(self, last_modified: &str) -> Result<Self, InvalidObjectValue> {
+            fn set_last_modified(self, last_modified: &str) -> Result<Self, OssError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(last_modified, "2022-06-26T09:53:21.000Z");
@@ -46,7 +45,7 @@ mod object_list_xml {
                 }
                 Ok(self)
             }
-            fn set_etag(self, etag: &str) -> Result<Self, InvalidObjectValue> {
+            fn set_etag(self, etag: &str) -> Result<Self, OssError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(etag, "F75A15996D0857B16FA31A3B16624C26");
@@ -58,7 +57,7 @@ mod object_list_xml {
                 }
                 Ok(self)
             }
-            fn set_type(self, _type: &str) -> Result<Self, InvalidObjectValue> {
+            fn set_type(self, _type: &str) -> Result<Self, OssError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(_type, "Normal");
@@ -70,7 +69,7 @@ mod object_list_xml {
                 }
                 Ok(self)
             }
-            fn set_size(self, size: &str) -> Result<Self, InvalidObjectValue> {
+            fn set_size(self, size: &str) -> Result<Self, OssError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(size, "18027");
@@ -82,7 +81,7 @@ mod object_list_xml {
                 }
                 Ok(self)
             }
-            fn set_storage_class(self, storage_class: &str) -> Result<Self, InvalidObjectValue> {
+            fn set_storage_class(self, storage_class: &str) -> Result<Self, OssError> {
                 assert_eq!(storage_class, "Standard");
                 unsafe {
                     OBEJCT_ITEM_ID += 1;
@@ -95,27 +94,25 @@ mod object_list_xml {
             }
         }
         struct ListB {}
-        impl OssIntoObjectList<ObjectA, ArcPointer> for ListB {
-            fn set_name(self, name: &str) -> Result<Self, InvalidObjectListValue> {
+        impl OssIntoObjectList<ObjectA> for ListB {
+            type Error = OssError;
+            fn set_name(self, name: &str) -> Result<Self, OssError> {
                 assert_eq!(name, "foo_bucket");
                 Ok(self)
             }
-            fn set_prefix(self, prefix: &str) -> Result<Self, InvalidObjectListValue> {
+            fn set_prefix(self, prefix: &str) -> Result<Self, OssError> {
                 assert_eq!(prefix, "");
                 Ok(self)
             }
-            fn set_max_keys(self, max_keys: &str) -> Result<Self, InvalidObjectListValue> {
+            fn set_max_keys(self, max_keys: &str) -> Result<Self, OssError> {
                 assert_eq!(max_keys, "100");
                 Ok(self)
             }
-            fn set_key_count(self, key_count: &str) -> Result<Self, InvalidObjectListValue> {
+            fn set_key_count(self, key_count: &str) -> Result<Self, OssError> {
                 assert_eq!(key_count, "3");
                 Ok(self)
             }
-            fn set_next_continuation_token(
-                self,
-                token: Option<&str>,
-            ) -> Result<Self, InvalidObjectListValue> {
+            fn set_next_continuation_token(self, token: Option<&str>) -> Result<Self, OssError> {
                 assert!(matches!(token, None));
                 Ok(self)
             }
@@ -369,14 +366,15 @@ mod object_list_xml {
         #[derive(Default)]
         struct ObjectA {}
 
-        impl OssIntoObject<ArcPointer> for ObjectA {}
+        impl OssIntoObject for ObjectA {
+            type Bucket = Arc<BucketBase>;
+            type Error = OssError;
+        }
 
         struct ListB {}
-        impl OssIntoObjectList<ObjectA, ArcPointer> for ListB {
-            fn set_next_continuation_token(
-                self,
-                token: Option<&str>,
-            ) -> Result<Self, InvalidObjectListValue> {
+        impl OssIntoObjectList<ObjectA> for ListB {
+            type Error = OssError;
+            fn set_next_continuation_token(self, token: Option<&str>) -> Result<Self, OssError> {
                 assert!(
                     matches!(token, Some(v) if v=="CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--")
                 );
@@ -430,7 +428,7 @@ mod object_list_xml {
 }
 
 mod bucket_xml {
-    use crate::traits::InvalidBucketValue;
+    use crate::errors::OssError;
 
     #[test]
     fn from_xml() {
@@ -439,33 +437,28 @@ mod bucket_xml {
         struct BucketA {}
 
         impl OssIntoBucket for BucketA {
-            fn set_name(self, name: &str) -> Result<Self, InvalidBucketValue> {
+            type Error = OssError;
+            fn set_name(self, name: &str) -> Result<Self, OssError> {
                 assert_eq!(name, "foo");
                 Ok(self)
             }
-            fn set_creation_date(self, creation_date: &str) -> Result<Self, InvalidBucketValue> {
+            fn set_creation_date(self, creation_date: &str) -> Result<Self, OssError> {
                 assert_eq!(creation_date, "2016-11-05T13:10:10.000Z");
                 Ok(self)
             }
-            fn set_location(self, location: &str) -> Result<Self, InvalidBucketValue> {
+            fn set_location(self, location: &str) -> Result<Self, OssError> {
                 assert_eq!(location, "oss-cn-shanghai");
                 Ok(self)
             }
-            fn set_extranet_endpoint(
-                self,
-                extranet_endpoint: &str,
-            ) -> Result<Self, InvalidBucketValue> {
+            fn set_extranet_endpoint(self, extranet_endpoint: &str) -> Result<Self, OssError> {
                 assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com");
                 Ok(self)
             }
-            fn set_intranet_endpoint(
-                self,
-                intranet_endpoint: &str,
-            ) -> Result<Self, InvalidBucketValue> {
+            fn set_intranet_endpoint(self, intranet_endpoint: &str) -> Result<Self, OssError> {
                 assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com");
                 Ok(self)
             }
-            fn set_storage_class(self, storage_class: &str) -> Result<Self, InvalidBucketValue> {
+            fn set_storage_class(self, storage_class: &str) -> Result<Self, OssError> {
                 assert_eq!(storage_class, "Standard");
                 Ok(self)
             }
@@ -510,7 +503,7 @@ mod bucket_xml {
 }
 static mut BUCKETS_ITEM_ID: i8 = 0;
 mod bucket_list_xml {
-    use crate::traits::{InvalidBucketListValue, InvalidBucketValue};
+    use crate::errors::OssError;
 
     use super::BUCKETS_ITEM_ID;
 
@@ -522,7 +515,8 @@ mod bucket_list_xml {
         struct BucketA {}
 
         impl OssIntoBucket for BucketA {
-            fn set_name(self, name: &str) -> Result<Self, InvalidBucketValue> {
+            type Error = OssError;
+            fn set_name(self, name: &str) -> Result<Self, OssError> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
                         assert_eq!(name, "foo124442");
@@ -533,7 +527,7 @@ mod bucket_list_xml {
 
                 Ok(self)
             }
-            fn set_creation_date(self, creation_date: &str) -> Result<Self, InvalidBucketValue> {
+            fn set_creation_date(self, creation_date: &str) -> Result<Self, OssError> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
                         assert_eq!(creation_date, "2020-09-13T03:14:54.000Z");
@@ -543,7 +537,7 @@ mod bucket_list_xml {
                 }
                 Ok(self)
             }
-            fn set_location(self, location: &str) -> Result<Self, InvalidBucketValue> {
+            fn set_location(self, location: &str) -> Result<Self, OssError> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
                         assert_eq!(location, "oss-cn-shanghai");
@@ -553,21 +547,15 @@ mod bucket_list_xml {
                 }
                 Ok(self)
             }
-            fn set_extranet_endpoint(
-                self,
-                extranet_endpoint: &str,
-            ) -> Result<Self, InvalidBucketValue> {
+            fn set_extranet_endpoint(self, extranet_endpoint: &str) -> Result<Self, OssError> {
                 assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com");
                 Ok(self)
             }
-            fn set_intranet_endpoint(
-                self,
-                intranet_endpoint: &str,
-            ) -> Result<Self, InvalidBucketValue> {
+            fn set_intranet_endpoint(self, intranet_endpoint: &str) -> Result<Self, OssError> {
                 assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com");
                 Ok(self)
             }
-            fn set_storage_class(self, storage_class: &str) -> Result<Self, InvalidBucketValue> {
+            fn set_storage_class(self, storage_class: &str) -> Result<Self, OssError> {
                 assert_eq!(storage_class, "Standard");
                 unsafe {
                     BUCKETS_ITEM_ID += 1;
@@ -579,31 +567,32 @@ mod bucket_list_xml {
         struct ListA {}
 
         impl OssIntoBucketList<BucketA> for ListA {
-            fn set_prefix(self, prefix: &str) -> Result<Self, InvalidBucketListValue> {
+            type Error = OssError;
+            fn set_prefix(self, prefix: &str) -> Result<Self, OssError> {
                 assert_eq!(prefix, "");
                 Ok(self)
             }
-            fn set_marker(self, marker: &str) -> Result<Self, InvalidBucketListValue> {
+            fn set_marker(self, marker: &str) -> Result<Self, OssError> {
                 assert_eq!(marker, "");
                 Ok(self)
             }
-            fn set_max_keys(self, max_keys: &str) -> Result<Self, InvalidBucketListValue> {
+            fn set_max_keys(self, max_keys: &str) -> Result<Self, OssError> {
                 assert_eq!(max_keys, "");
                 Ok(self)
             }
-            fn set_is_truncated(self, is_truncated: bool) -> Result<Self, InvalidBucketListValue> {
+            fn set_is_truncated(self, is_truncated: bool) -> Result<Self, OssError> {
                 assert_eq!(is_truncated, false);
                 Ok(self)
             }
-            fn set_next_marker(self, next_marker: &str) -> Result<Self, InvalidBucketListValue> {
+            fn set_next_marker(self, next_marker: &str) -> Result<Self, OssError> {
                 assert_eq!(next_marker, "");
                 Ok(self)
             }
-            fn set_id(self, id: &str) -> Result<Self, InvalidBucketListValue> {
+            fn set_id(self, id: &str) -> Result<Self, OssError> {
                 assert_eq!(id, "100861222333");
                 Ok(self)
             }
-            fn set_display_name(self, display_name: &str) -> Result<Self, InvalidBucketListValue> {
+            fn set_display_name(self, display_name: &str) -> Result<Self, OssError> {
                 assert_eq!(display_name, "100861222");
                 Ok(self)
             }

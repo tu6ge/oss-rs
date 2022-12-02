@@ -1,62 +1,41 @@
 use std::borrow::Cow;
 use std::error::Error;
-use std::fmt::{self, Debug};
+use std::fmt::Debug;
 
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
-use crate::builder::PointerFamily;
-use crate::errors::{OssError, OssResult};
-use crate::types::InvalidEndPoint;
-
-pub trait OssIntoObject<P: PointerFamily>
+pub trait OssIntoObject
 where
     Self: Sized,
+    Self::Bucket: Debug + Clone + Default,
+    Self::Error: Error,
 {
-    fn set_key(self, _key: &str) -> Result<Self, InvalidObjectValue> {
+    type Bucket;
+    type Error;
+
+    fn set_key(self, _key: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_last_modified(self, _last_modified: &str) -> Result<Self, InvalidObjectValue> {
+    fn set_last_modified(self, _last_modified: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_etag(self, _etag: &str) -> Result<Self, InvalidObjectValue> {
+    fn set_etag(self, _etag: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_type(self, _type: &str) -> Result<Self, InvalidObjectValue> {
+    fn set_type(self, _type: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_size(self, _size: &str) -> Result<Self, InvalidObjectValue> {
+    fn set_size(self, _size: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_storage_class(self, _storage_class: &str) -> Result<Self, InvalidObjectValue> {
+    fn set_storage_class(self, _storage_class: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_bucket(self, _bucket: P::Bucket) -> Self {
+    fn set_bucket(self, _bucket: Self::Bucket) -> Self {
         self
     }
 }
-
-#[derive(Debug)]
-pub struct InvalidObjectValue;
-
-impl fmt::Display for InvalidObjectValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "faild parse to object value")
-    }
-}
-
-impl Error for InvalidObjectValue {}
-
-#[derive(Debug)]
-pub struct InvalidObjectListValue;
-
-impl fmt::Display for InvalidObjectListValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "faild parse to object list value")
-    }
-}
-
-impl Error for InvalidObjectListValue {}
 
 const PREFIX: &[u8] = b"Prefix";
 const NAME: &[u8] = b"Name";
@@ -82,34 +61,33 @@ const NEXT_MARKER: &[u8] = b"NextMarker";
 const ID: &[u8] = b"ID";
 const DISPLAY_NAME: &[u8] = b"DisplayName";
 
-pub trait OssIntoObjectList<T, P: PointerFamily>
+pub trait OssIntoObjectList<T>
 where
     Self: Sized,
-    T: OssIntoObject<P> + Default,
+    T: OssIntoObject + Default,
+    Self::Error: Error + From<quick_xml::Error> + From<T::Error>,
 {
-    fn set_name(self, _name: &str) -> Result<Self, InvalidObjectListValue> {
+    type Error;
+    fn set_name(self, _name: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_prefix(self, _prefix: &str) -> Result<Self, InvalidObjectListValue> {
+    fn set_prefix(self, _prefix: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_max_keys(self, _max_keys: &str) -> Result<Self, InvalidObjectListValue> {
+    fn set_max_keys(self, _max_keys: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_key_count(self, _key_count: &str) -> Result<Self, InvalidObjectListValue> {
+    fn set_key_count(self, _key_count: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_next_continuation_token(
-        self,
-        _token: Option<&str>,
-    ) -> Result<Self, InvalidObjectListValue> {
+    fn set_next_continuation_token(self, _token: Option<&str>) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_list(self, _list: Vec<T>) -> Result<Self, InvalidObjectListValue> {
+    fn set_list(self, _list: Vec<T>) -> Result<Self, Self::Error> {
         Ok(self)
     }
 
-    fn from_xml(self, xml: &str, bucket: P::Bucket) -> OssResult<Self> {
+    fn from_xml(self, xml: &str, bucket: T::Bucket) -> Result<Self, Self::Error> {
         //println!("from_xml: {:#}", xml);
         let mut result = Vec::new();
         let mut reader = Reader::from_str(xml);
@@ -182,46 +160,30 @@ where
                 Ok(Event::End(ref e)) if e.name().as_ref() == b"Contents" => {
                     let object = T::default()
                         .set_bucket(bucket.clone())
-                        .set_key(&key)
-                        .map_err(|e| OssError::InvalidObjectValue(e))?
-                        .set_last_modified(&last_modified)
-                        .map_err(|e| OssError::InvalidObjectValue(e))?
-                        .set_etag(&etag)
-                        .map_err(|e| OssError::InvalidObjectValue(e))?
-                        .set_type(&_type)
-                        .map_err(|e| OssError::InvalidObjectValue(e))?
-                        .set_size(&size)
-                        .map_err(|e| OssError::InvalidObjectValue(e))?
-                        .set_storage_class(&storage_class)
-                        .map_err(|e| OssError::InvalidObjectValue(e))?;
+                        .set_key(&key)?
+                        .set_last_modified(&last_modified)?
+                        .set_etag(&etag)?
+                        .set_type(&_type)?
+                        .set_size(&size)?
+                        .set_storage_class(&storage_class)?;
                     result.push(object);
                 }
                 Ok(Event::Eof) => {
                     list_object = self
-                        .set_name(&name)
-                        .map_err(|e| OssError::InvalidObjectListValue(e))?
-                        .set_prefix(&prefix)
-                        .map_err(|e| OssError::InvalidObjectListValue(e))?
-                        .set_max_keys(&max_keys)
-                        .map_err(|e| OssError::InvalidObjectListValue(e))?
-                        .set_key_count(&key_count)
-                        .map_err(|e| OssError::InvalidObjectListValue(e))?
-                        .set_list(result)
-                        .map_err(|e| OssError::InvalidObjectListValue(e))?
+                        .set_name(&name)?
+                        .set_prefix(&prefix)?
+                        .set_max_keys(&max_keys)?
+                        .set_key_count(&key_count)?
+                        .set_list(result)?
                         .set_next_continuation_token(if next_continuation_token.len() > 0 {
                             Some(&next_continuation_token)
                         } else {
                             None
-                        })
-                        .map_err(|e| OssError::InvalidObjectListValue(e))?;
+                        })?;
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(OssError::Input(format!(
-                        "Error at position {}: {:?}",
-                        reader.buffer_position(),
-                        e
-                    )));
+                    return Err(Self::Error::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -235,27 +197,29 @@ where
 pub trait OssIntoBucket
 where
     Self: Sized,
+    Self::Error: Error + From<quick_xml::Error>,
 {
-    fn set_name(self, _name: &str) -> Result<Self, InvalidBucketValue> {
+    type Error;
+    fn set_name(self, _name: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_creation_date(self, _creation_date: &str) -> Result<Self, InvalidBucketValue> {
+    fn set_creation_date(self, _creation_date: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_location(self, _location: &str) -> Result<Self, InvalidBucketValue> {
+    fn set_location(self, _location: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_extranet_endpoint(self, _extranet_endpoint: &str) -> Result<Self, InvalidBucketValue> {
+    fn set_extranet_endpoint(self, _extranet_endpoint: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_intranet_endpoint(self, _intranet_endpoint: &str) -> Result<Self, InvalidBucketValue> {
+    fn set_intranet_endpoint(self, _intranet_endpoint: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_storage_class(self, _storage_class: &str) -> Result<Self, InvalidBucketValue> {
+    fn set_storage_class(self, _storage_class: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
 
-    fn from_xml(self, xml: &str) -> OssResult<Self> {
+    fn from_xml(self, xml: &str) -> Result<Self, Self::Error> {
         //println!("from_xml: {:#}", xml);
         let mut reader = Reader::from_str(xml);
         reader.trim_text(true);
@@ -295,26 +259,16 @@ where
                 },
                 Ok(Event::Eof) => {
                     bucket = self
-                        .set_name(&name)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?
-                        .set_creation_date(&creation_date)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?
-                        .set_location(&location)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?
-                        .set_extranet_endpoint(&extranet_endpoint)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?
-                        .set_intranet_endpoint(&intranet_endpoint)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?
-                        .set_storage_class(&storage_class)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?;
+                        .set_name(&name)?
+                        .set_creation_date(&creation_date)?
+                        .set_location(&location)?
+                        .set_extranet_endpoint(&extranet_endpoint)?
+                        .set_intranet_endpoint(&intranet_endpoint)?
+                        .set_storage_class(&storage_class)?;
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(OssError::Input(format!(
-                        "Error at position {}: {:?}",
-                        reader.buffer_position(),
-                        e
-                    )));
+                    return Err(Self::Error::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -324,54 +278,38 @@ where
     }
 }
 
-#[derive(Debug)]
-pub struct InvalidBucketValue;
-
-impl fmt::Display for InvalidBucketValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "faild parse to bucket value")
-    }
-}
-
-impl Error for InvalidBucketValue {}
-
-impl From<InvalidEndPoint> for InvalidBucketValue {
-    //TODO 待完善
-    fn from(_end: InvalidEndPoint) -> InvalidBucketValue {
-        InvalidBucketValue {}
-    }
-}
-
 pub trait OssIntoBucketList<T: OssIntoBucket + Default>
 where
     Self: Sized,
+    Self::Error: Error + From<quick_xml::Error> + From<T::Error>,
 {
-    fn set_prefix(self, _prefix: &str) -> Result<Self, InvalidBucketListValue> {
+    type Error;
+    fn set_prefix(self, _prefix: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_marker(self, _marker: &str) -> Result<Self, InvalidBucketListValue> {
+    fn set_marker(self, _marker: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_max_keys(self, _max_keys: &str) -> Result<Self, InvalidBucketListValue> {
+    fn set_max_keys(self, _max_keys: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_is_truncated(self, _is_truncated: bool) -> Result<Self, InvalidBucketListValue> {
+    fn set_is_truncated(self, _is_truncated: bool) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_next_marker(self, _next_marker: &str) -> Result<Self, InvalidBucketListValue> {
+    fn set_next_marker(self, _next_marker: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_id(self, _id: &str) -> Result<Self, InvalidBucketListValue> {
+    fn set_id(self, _id: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_display_name(self, _display_name: &str) -> Result<Self, InvalidBucketListValue> {
+    fn set_display_name(self, _display_name: &str) -> Result<Self, Self::Error> {
         Ok(self)
     }
-    fn set_list(self, _list: Vec<T>) -> Result<Self, InvalidBucketListValue> {
+    fn set_list(self, _list: Vec<T>) -> Result<Self, Self::Error> {
         Ok(self)
     }
 
-    fn from_xml(self, xml: &str) -> OssResult<Self> {
+    fn from_xml(self, xml: &str) -> Result<Self, Self::Error> {
         let mut result = Vec::new();
         let mut reader = Reader::from_str(xml);
         reader.trim_text(true);
@@ -445,46 +383,29 @@ where
                 Ok(Event::End(ref e)) if e.name().as_ref() == BUCKET => {
                     //let in_creation_date = &creation_date.parse::<DateTime<Utc>>()?;
                     let bucket = T::default()
-                        .set_name(&name)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?
-                        .set_creation_date(&creation_date)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?
-                        .set_location(&location)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?
-                        .set_extranet_endpoint(&extranet_endpoint)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?
-                        .set_intranet_endpoint(&intranet_endpoint)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?
-                        .set_storage_class(&storage_class)
-                        .map_err(|e| OssError::InvalidBucketValue(e))?;
+                        .set_name(&name)?
+                        .set_creation_date(&creation_date)?
+                        .set_location(&location)?
+                        .set_extranet_endpoint(&extranet_endpoint)?
+                        .set_intranet_endpoint(&intranet_endpoint)?
+                        .set_storage_class(&storage_class)?;
                     result.push(bucket);
                 }
                 Ok(Event::Eof) => {
                     bucket_list = self
-                        .set_prefix(&prefix)
-                        .map_err(|e| OssError::InvalidBucketListValue(e))?
-                        .set_marker(&marker)
-                        .map_err(|e| OssError::InvalidBucketListValue(e))?
-                        .set_max_keys(&max_keys)
-                        .map_err(|e| OssError::InvalidBucketListValue(e))?
-                        .set_is_truncated(is_truncated)
-                        .map_err(|e| OssError::InvalidBucketListValue(e))?
-                        .set_next_marker(&next_marker)
-                        .map_err(|e| OssError::InvalidBucketListValue(e))?
-                        .set_id(&id)
-                        .map_err(|e| OssError::InvalidBucketListValue(e))?
-                        .set_display_name(&display_name)
-                        .map_err(|e| OssError::InvalidBucketListValue(e))?
+                        .set_prefix(&prefix)?
+                        .set_marker(&marker)?
+                        .set_max_keys(&max_keys)?
+                        .set_is_truncated(is_truncated)?
+                        .set_next_marker(&next_marker)?
+                        .set_id(&id)?
+                        .set_display_name(&display_name)?
                         .set_list(result)?;
 
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(OssError::Input(format!(
-                        "Error at position {}: {:?}",
-                        reader.buffer_position(),
-                        e
-                    )))
+                    return Err(Self::Error::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -493,14 +414,3 @@ where
         Ok(bucket_list)
     }
 }
-
-#[derive(Debug)]
-pub struct InvalidBucketListValue;
-
-impl fmt::Display for InvalidBucketListValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "faild parse to bucket list value")
-    }
-}
-
-impl Error for InvalidBucketListValue {}
