@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 use std::error::Error;
-use std::fmt::Debug;
 
 use quick_xml::events::Event;
 use quick_xml::Reader;
@@ -8,7 +7,7 @@ use quick_xml::Reader;
 pub trait OssIntoObject
 where
     Self: Sized,
-    Self::Bucket: Debug + Clone + Default,
+    Self::Bucket: Clone,
     Self::Error: Error,
 {
     type Bucket;
@@ -126,8 +125,7 @@ where
                             //is_truncated = reader.read_text(e.to_end().name())?.to_string() == "true"
                         }
                         NEXT_CONTINUATION_TOKEN => {
-                            next_continuation_token =
-                                reader.read_text(e.to_end().name())?;
+                            next_continuation_token = reader.read_text(e.to_end().name())?;
                         }
                         // b"Contents" => {
                         //     // key.clear();
@@ -137,9 +135,7 @@ where
                         //     // storage_class.clear();
                         // }
                         KEY => key = reader.read_text(e.to_end().name())?,
-                        LAST_MODIFIED => {
-                            last_modified = reader.read_text(e.to_end().name())?
-                        }
+                        LAST_MODIFIED => last_modified = reader.read_text(e.to_end().name())?,
                         E_TAG => {
                             let tag = reader.read_text(e.to_end().name())?;
 
@@ -242,19 +238,11 @@ where
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => match e.name().as_ref() {
                     NAME => name = reader.read_text(e.to_end().name())?,
-                    CREATION_DATE => {
-                        creation_date = reader.read_text(e.to_end().name())?
-                    }
-                    EXTRANET_ENDPOINT => {
-                        extranet_endpoint = reader.read_text(e.to_end().name())?
-                    }
-                    INTRANET_ENDPOINT => {
-                        intranet_endpoint = reader.read_text(e.to_end().name())?
-                    }
+                    CREATION_DATE => creation_date = reader.read_text(e.to_end().name())?,
+                    EXTRANET_ENDPOINT => extranet_endpoint = reader.read_text(e.to_end().name())?,
+                    INTRANET_ENDPOINT => intranet_endpoint = reader.read_text(e.to_end().name())?,
                     LOCATION => location = reader.read_text(e.to_end().name())?,
-                    STORAGE_CLASS => {
-                        storage_class = reader.read_text(e.to_end().name())?
-                    }
+                    STORAGE_CLASS => storage_class = reader.read_text(e.to_end().name())?,
                     _ => (),
                 },
                 Ok(Event::Eof) => {
@@ -343,18 +331,11 @@ where
                     MARKER => marker = reader.read_text(e.to_end().name())?,
                     MAX_KEYS => max_keys = reader.read_text(e.to_end().name())?,
                     IS_TRUNCATED => {
-                        is_truncated = reader
-                            .read_text(e.to_end().name())?
-                            .to_string()
-                            == "true"
+                        is_truncated = reader.read_text(e.to_end().name())?.to_string() == "true"
                     }
-                    NEXT_MARKER => {
-                        next_marker = reader.read_text(e.to_end().name())?
-                    }
+                    NEXT_MARKER => next_marker = reader.read_text(e.to_end().name())?,
                     ID => id = reader.read_text(e.to_end().name())?,
-                    DISPLAY_NAME => {
-                        display_name = reader.read_text(e.to_end().name())?
-                    }
+                    DISPLAY_NAME => display_name = reader.read_text(e.to_end().name())?,
 
                     // b"Bucket" => {
                     //     // name.clear();
@@ -365,19 +346,11 @@ where
                     //     // storage_class.clear();
                     // }
                     NAME => name = reader.read_text(e.to_end().name())?,
-                    CREATION_DATE => {
-                        creation_date = reader.read_text(e.to_end().name())?
-                    }
-                    EXTRANET_ENDPOINT => {
-                        extranet_endpoint = reader.read_text(e.to_end().name())?
-                    }
-                    INTRANET_ENDPOINT => {
-                        intranet_endpoint = reader.read_text(e.to_end().name())?
-                    }
+                    CREATION_DATE => creation_date = reader.read_text(e.to_end().name())?,
+                    EXTRANET_ENDPOINT => extranet_endpoint = reader.read_text(e.to_end().name())?,
+                    INTRANET_ENDPOINT => intranet_endpoint = reader.read_text(e.to_end().name())?,
                     LOCATION => location = reader.read_text(e.to_end().name())?,
-                    STORAGE_CLASS => {
-                        storage_class = reader.read_text(e.to_end().name())?
-                    }
+                    STORAGE_CLASS => storage_class = reader.read_text(e.to_end().name())?,
                     _ => (),
                 },
                 Ok(Event::End(ref e)) if e.name().as_ref() == BUCKET => {
