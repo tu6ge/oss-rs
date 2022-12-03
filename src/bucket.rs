@@ -53,7 +53,6 @@ impl<T: PointerFamily> fmt::Debug for ListBuckets<T> {
 
 #[oss_gen_rc]
 impl ListBuckets<ArcPointer> {
-    
     pub(crate) fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = Arc::clone(&client);
     }
@@ -485,10 +484,7 @@ impl ClientRc {
         let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
-        list.from_xml(
-            &content.text().map_err(BuilderError::from)?,
-            init_bucket,
-        )?;
+        list.from_xml(&content.text().map_err(BuilderError::from)?, init_bucket)?;
 
         Ok(())
     }
