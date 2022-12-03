@@ -5,10 +5,10 @@ mod object_list_xml {
 
     use crate::builder::ArcPointer;
     use crate::client::Client;
+    use crate::config::BucketBase;
     use crate::errors::OssError;
     use crate::object::{Object, ObjectList};
     use crate::tests::traits::OBEJCT_ITEM_ID;
-    use crate::{config::BucketBase, EndPoint};
 
     #[test]
     fn from_xml() {
@@ -88,10 +88,6 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_bucket(&mut self, bucket: Arc<BucketBase>) -> Result<(), OssError> {
-                assert_eq!(bucket.name(), "abc");
-                Ok(())
-            }
         }
         struct ListB {}
         impl OssIntoObjectList<ObjectA> for ListB {
@@ -155,11 +151,15 @@ mod object_list_xml {
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
+        // let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
 
         let mut list = ListB {};
 
-        let res = list.from_xml(xml, Arc::new(base));
+        //let base_arc = Arc::new(base);
+
+        let init_object = || ObjectA {};
+
+        let res = list.from_xml(xml, init_object);
 
         assert!(res.is_ok());
     }
@@ -420,11 +420,13 @@ mod object_list_xml {
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
+        //let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
 
         let mut list = ListB {};
 
-        let res = list.from_xml(xml, Arc::new(base));
+        let init_object = || ObjectA {};
+
+        let res = list.from_xml(xml, init_object);
 
         assert!(res.is_ok());
     }

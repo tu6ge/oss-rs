@@ -10,7 +10,7 @@ use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
-use crate::object::ObjectList;
+use crate::object::{Object, ObjectList};
 use crate::traits::{OssIntoBucket, OssIntoBucketList, OssIntoObjectList};
 use crate::types::{CanonicalizedResource, InvalidEndPoint, Query, UrlQuery};
 use chrono::prelude::*;
@@ -239,8 +239,16 @@ impl Bucket {
 
         let base = self.base.clone();
 
+        let bucket_arc = Arc::new(base.clone());
+
+        let init_object = || {
+            let mut object = Object::<ArcPointer>::default();
+            object.base.set_bucket(bucket_arc.clone());
+            object
+        };
+
         let mut list = ObjectList::<ArcPointer>::default();
-        list.from_xml(&content.text().await?, Arc::new(self.base.clone()))?;
+        list.from_xml(&content.text().await?, init_object)?;
         list.set_bucket(base);
         list.set_client(client);
         list.set_search_query(query);
@@ -267,10 +275,17 @@ impl Bucket<RcPointer> {
         let response = client.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
+        let bucket_arc = Rc::new(self.base.clone());
+        let init_object = || {
+            let mut object = Object::<RcPointer>::default();
+            object.base.set_bucket(bucket_arc.clone());
+            object
+        };
+
         let base = self.base.clone();
 
         let mut list = ObjectList::<RcPointer>::default();
-        list.from_xml(&content.text()?, Rc::new(self.base.clone()))?;
+        list.from_xml(&content.text()?, init_object)?;
         list.set_bucket(base);
         list.set_client(client);
         list.set_search_query(query);

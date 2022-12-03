@@ -133,7 +133,7 @@ impl<T: PointerFamily> ObjectList<T> {
     }
 }
 
-//#[oss_gen_rc]
+#[oss_gen_rc]
 impl ObjectList<ArcPointer> {
     pub fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
@@ -161,7 +161,15 @@ impl ObjectList {
                 list.set_client(self.client().clone());
                 list.set_bucket(self.bucket.clone());
 
-                list.from_xml(&content.text().await?, Arc::new(self.bucket.clone()))?;
+                let bucket_arc = Arc::new(self.bucket.clone());
+
+                let init_object = || {
+                    let mut object = Object::<ArcPointer>::default();
+                    object.base.set_bucket(bucket_arc.clone());
+                    object
+                };
+
+                list.from_xml(&content.text().await?, init_object)?;
 
                 list.set_search_query(query);
                 Ok(list)
@@ -225,7 +233,15 @@ impl ObjectList<RcPointer> {
         let mut list = Self::default();
         list.set_client(Rc::clone(&client));
         list.set_bucket(self.bucket.clone());
-        list.from_xml(&content.text()?, Rc::new(self.bucket.clone()))?;
+
+        let bucket_arc = Rc::new(self.bucket.clone());
+        let init_object = || {
+            let mut object = Object::<RcPointer>::default();
+            object.base.set_bucket(bucket_arc.clone());
+            object
+        };
+
+        list.from_xml(&content.text()?, init_object)?;
         list.set_search_query(self.search_query.clone());
         Ok(list)
     }
@@ -434,12 +450,6 @@ impl<T: PointerFamily + Sized> OssIntoObject for Object<T> {
     type Error = OssError;
 
     #[inline]
-    fn set_bucket(&mut self, bucket: T::Bucket) -> Result<(), Self::Error> {
-        self.base.set_bucket(bucket);
-        Ok(())
-    }
-
-    #[inline]
     fn set_key(&mut self, key: &str) -> Result<(), Self::Error> {
         self.base.set_path(key);
         Ok(())
@@ -515,15 +525,22 @@ impl Client {
     ///
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`](../bucket/struct.Bucket.html#method.get_object_list) 文档
     pub async fn get_object_list<Q: Into<Query>>(self, query: Q) -> OssResult<ObjectList> {
-
         let bucket = self.get_bucket_base();
         let query = query.into();
 
         let mut list = ObjectList::<ArcPointer>::default();
         list.set_bucket(bucket.clone());
 
+        let bucket_arc = Arc::new(bucket.clone());
+
+        let init_object = || {
+            let mut object = Object::<ArcPointer>::default();
+            object.base.set_bucket(bucket_arc.clone());
+            object
+        };
+
         let result: Result<_, OssError> = self
-            .base_object_list(query.clone(), &mut list, Arc::new(bucket))
+            .base_object_list(query.clone(), &mut list, init_object)
             .await;
         result?;
 
@@ -535,16 +552,17 @@ impl Client {
 
     /// 可将 object 列表导出到外部 struct
     #[inline]
-    pub async fn base_object_list<Q: Into<Query>, List, Item, E>(
+    pub async fn base_object_list<Q: Into<Query>, List, Item, F, E>(
         &self,
         query: Q,
         list: &mut List,
-        buk: Item::Bucket,
+        init_object: F,
     ) -> Result<(), E>
     where
         List: OssIntoObjectList<Item>,
-        Item: OssIntoObject + Default,
+        Item: OssIntoObject,
         E: Error + From<BuilderError> + From<List::Error>,
+        F: FnMut() -> Item,
     {
         let mut url = self.get_bucket_url();
 
@@ -558,7 +576,10 @@ impl Client {
         let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send().await?;
 
-        list.from_xml(&content.text().await.map_err(BuilderError::from)?, buk)?;
+        list.from_xml(
+            &content.text().await.map_err(BuilderError::from)?,
+            init_object,
+        )?;
 
         Ok(())
     }
@@ -585,7 +606,15 @@ impl ClientRc {
         let mut list = ObjectList::<RcPointer>::default();
         list.set_client(Rc::new(self));
         list.set_bucket(bucket.clone());
-        list.from_xml(&content.text()?, Rc::new(bucket))?;
+
+        let bucket_arc = Rc::new(bucket.clone());
+        let init_object = || {
+            let mut object = Object::<RcPointer>::default();
+            object.base.set_bucket(bucket_arc.clone());
+            object
+        };
+
+        list.from_xml(&content.text()?, init_object)?;
         list.set_search_query(query);
 
         Ok(list)

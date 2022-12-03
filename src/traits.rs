@@ -31,9 +31,6 @@ where
     fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Self::Error> {
         Ok(())
     }
-    fn set_bucket(&mut self, _bucket: Self::Bucket) -> Result<(), Self::Error> {
-        Ok(())
-    }
 }
 
 const PREFIX: &[u8] = b"Prefix";
@@ -63,7 +60,7 @@ const DISPLAY_NAME: &[u8] = b"DisplayName";
 pub trait OssIntoObjectList<T>
 where
     Self: Sized,
-    T: OssIntoObject + Default,
+    T: OssIntoObject,
     Self::Error: Error + From<quick_xml::Error> + From<T::Error>,
 {
     type Error;
@@ -86,7 +83,12 @@ where
         Ok(())
     }
 
-    fn from_xml(&mut self, xml: &str, bucket: T::Bucket) -> Result<(), Self::Error> {
+    /// # 由 xml 转 struct 的底层实现
+    /// - `init_object` 用于初始化 object 结构体的方法
+    fn from_xml<F>(&mut self, xml: &str, mut init_object: F) -> Result<(), Self::Error>
+    where
+        F: FnMut() -> T,
+    {
         //println!("from_xml: {:#}", xml);
         let mut result = Vec::new();
         let mut reader = Reader::from_str(xml);
@@ -152,8 +154,8 @@ where
                     }
                 }
                 Ok(Event::End(ref e)) if e.name().as_ref() == b"Contents" => {
-                    let mut object = T::default();
-                    object.set_bucket(bucket.clone())?;
+                    let mut object = init_object();
+                    //object.set_bucket(bucket.clone())?;
                     object.set_key(&key)?;
                     object.set_last_modified(&last_modified)?;
                     object.set_etag(&etag)?;
