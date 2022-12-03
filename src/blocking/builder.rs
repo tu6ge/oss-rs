@@ -1,4 +1,5 @@
 use crate::auth::VERB;
+use crate::builder::BuilderError;
 use crate::errors::{OssError, OssResult};
 use reqwest::blocking::{self, Body, Request, Response};
 use reqwest::{
@@ -14,7 +15,7 @@ pub struct ClientWithMiddleware {
 }
 
 pub trait Middleware: 'static {
-    fn handle(&self, request: Request) -> OssResult<Response>;
+    fn handle(&self, request: Request) -> Result<Response, BuilderError>;
 }
 
 impl ClientWithMiddleware {
@@ -81,23 +82,27 @@ impl RequestBuilder {
         self.inner.build()
     }
 
-    pub fn send(self) -> OssResult<Response> {
+    pub fn send(self) -> Result<Response, BuilderError> {
         match self.middleware {
             Some(m) => m.handle(self.inner.build().unwrap()),
-            None => self.inner.send().map_err(OssError::from)?.handle_error(),
+            None => self
+                .inner
+                .send()
+                .map_err(BuilderError::from)?
+                .handle_error(),
         }
     }
 }
 
 pub trait BlockingReqeustHandler {
-    fn handle_error(self) -> OssResult<Self>
+    fn handle_error(self) -> Result<Self, BuilderError>
     where
         Self: Sized;
 }
 
 impl BlockingReqeustHandler for Response {
     /// # 收集并处理 OSS 接口返回的错误
-    fn handle_error(self) -> OssResult<Response> {
+    fn handle_error(self) -> Result<Response, BuilderError> {
         use crate::builder::SUCCESS_STATUS;
         use crate::errors::OssService;
 

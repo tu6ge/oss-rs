@@ -6,14 +6,14 @@ use reqwest::{
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::{sync::Arc, time::Duration};
+use thiserror::Error;
 
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
 use crate::{
-    auth::VERB,
+    auth::{AuthError, VERB},
     client::Client as AliClient,
     config::BucketBase,
-    errors::{OssError, OssResult},
 };
 use reqwest::{Client, Request, Response};
 
@@ -50,7 +50,7 @@ pub struct ClientWithMiddleware {
 
 #[async_trait]
 pub trait Middleware: 'static + Send + Sync {
-    async fn handle(&self, request: Request) -> OssResult<Response>;
+    async fn handle(&self, request: Request) -> Result<Response, BuilderError>;
 }
 
 impl ClientWithMiddleware {
@@ -117,34 +117,46 @@ impl RequestBuilder {
         self.inner.build()
     }
 
-    pub async fn send(self) -> OssResult<Response> {
+    pub async fn send(self) -> Result<Response, BuilderError> {
         match self.middleware {
             Some(m) => m.handle(self.inner.build().unwrap()).await,
-            None => {
-                self.inner
-                    .send()
-                    .await
-                    .map_err(OssError::from)?
-                    .handle_error()
-                    .await
-            }
+            None => self
+                .inner
+                .send()
+                .await
+                .map_err(BuilderError::from)?
+                .handle_error()
+                .await
+                .map_err(BuilderError::from),
         }
     }
 }
 
+#[derive(Debug, Error)]
+#[non_exhaustive]
+pub enum BuilderError {
+    #[error("{0}")]
+    Reqwest(#[from] reqwest::Error),
+
+    #[error("OssService {0}")]
+    OssService(#[from] OssService),
+
+    #[error("{0}")]
+    AuthError(#[from] AuthError),
+}
+
 #[async_trait]
 pub trait RequestHandler {
-    async fn handle_error(self) -> OssResult<Response>;
+    async fn handle_error(self) -> Result<Response, BuilderError>;
 }
 
 pub const SUCCESS_STATUS: [u16; 3] = [200, 204, 206];
+use crate::errors::OssService;
 
 #[async_trait]
 impl RequestHandler for Response {
     /// # 收集并处理 OSS 接口返回的错误
-    async fn handle_error(self) -> OssResult<Response> {
-        use crate::errors::OssService;
-
+    async fn handle_error(self) -> Result<Response, BuilderError> {
         let status = self.status();
 
         for item in SUCCESS_STATUS.iter() {

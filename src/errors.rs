@@ -3,7 +3,10 @@ use http::header::ToStrError;
 use std::fmt;
 use thiserror::Error;
 
-use crate::{bucket::InvalidBucketValue, config::InvalidConfig, types::InvalidEndPoint};
+use crate::{
+    bucket::InvalidBucketValue, builder::BuilderError, config::InvalidConfig,
+    types::InvalidEndPoint,
+};
 
 #[derive(Debug, Error)]
 #[non_exhaustive]
@@ -50,6 +53,9 @@ pub enum OssError {
 
     #[error("aliyun response error: {0}")]
     OssService(#[from] OssService),
+
+    #[error("{0}")]
+    BuilderError(#[from] BuilderError),
 
     #[error("{0}")]
     InvalidEndPoint(#[from] InvalidEndPoint),

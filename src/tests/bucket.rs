@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::bucket::Bucket;
-use crate::builder::{ArcPointer, ClientWithMiddleware};
+use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware};
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use http::HeaderValue;
@@ -9,7 +9,7 @@ use reqwest::{Request, Response, Url};
 
 use crate::client::ClientArc;
 use crate::config::BucketBase;
-use crate::{builder::Middleware, client::Client, errors::OssResult};
+use crate::{builder::Middleware, client::Client};
 
 #[tokio::test]
 async fn test_get_bucket_list() {
@@ -17,7 +17,7 @@ async fn test_get_bucket_list() {
 
     #[async_trait]
     impl Middleware for MyMiddleware {
-        async fn handle(&self, request: Request) -> OssResult<Response> {
+        async fn handle(&self, request: Request) -> Result<Response, BuilderError> {
             //println!("request {:?}", request);
             assert_eq!(request.method(), "GET");
             assert_eq!(
@@ -67,7 +67,7 @@ fn test_get_blocking_bucket_list() {
     struct MyMiddleware {}
 
     impl Middleware for MyMiddleware {
-        fn handle(&self, request: Request) -> OssResult<Response> {
+        fn handle(&self, request: Request) -> Result<Response, BuilderError> {
             //println!("request {:?}", request);
             assert_eq!(request.method(), "GET");
             assert_eq!(
@@ -115,7 +115,7 @@ async fn test_get_bucket_info() {
 
     #[async_trait]
     impl Middleware for MyMiddleware {
-        async fn handle(&self, request: Request) -> OssResult<Response> {
+        async fn handle(&self, request: Request) -> Result<Response, BuilderError> {
             //println!("request {:?}", request);
             assert_eq!(request.method(), "GET");
             assert_eq!(
@@ -197,7 +197,7 @@ fn test_get_blocking_bucket_info() {
     struct MyMiddleware {}
 
     impl Middleware for MyMiddleware {
-        fn handle(&self, request: Request) -> OssResult<Response> {
+        fn handle(&self, request: Request) -> Result<Response, BuilderError> {
             //println!("request {:?}", request);
             assert_eq!(request.method(), "GET");
             assert_eq!(
@@ -274,7 +274,7 @@ async fn test_get_object_list() {
 
     #[async_trait]
     impl Middleware for MyMiddleware {
-        async fn handle(&self, request: Request) -> OssResult<Response> {
+        async fn handle(&self, request: Request) -> Result<Response, BuilderError> {
             //println!("request {:?}", request);
             assert_eq!(request.method(), "GET");
             assert_eq!(
@@ -355,7 +355,7 @@ fn test_get_blocking_object_list() {
     struct MyMiddleware {}
 
     impl Middleware for MyMiddleware {
-        fn handle(&self, request: Request) -> OssResult<Response> {
+        fn handle(&self, request: Request) -> Result<Response, BuilderError> {
             //println!("request {:?}", request);
             assert_eq!(request.method(), "GET");
             assert_eq!(

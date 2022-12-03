@@ -10,7 +10,7 @@ use reqwest::{Response, Url};
 use crate::{
     auth::VERB,
     bucket::Bucket,
-    builder::{ArcPointer, RequestBuilder},
+    builder::{ArcPointer, BuilderError, RequestBuilder},
     config::{ObjectBase, ObjectPath, UrlObjectPath},
     errors::{OssError, OssResult},
     object::{Object, ObjectList},
@@ -141,6 +141,7 @@ pub trait File: AlignBuilder {
             .body(content)
             .send()
             .await
+            .map_err(OssError::from)
     }
 
     /// # 获取 OSS 上的文件内容
@@ -245,7 +246,7 @@ pub trait AlignBuilder: Send + Sync {
         method: M,
         url: Url,
         resource: CanonicalizedResource,
-    ) -> OssResult<RequestBuilder> {
+    ) -> Result<RequestBuilder, BuilderError> {
         self.builder_with_header(method, url, resource, None)
     }
 
@@ -255,7 +256,7 @@ pub trait AlignBuilder: Send + Sync {
         url: Url,
         resource: CanonicalizedResource,
         headers: Option<HeaderMap>,
-    ) -> OssResult<RequestBuilder>;
+    ) -> Result<RequestBuilder, BuilderError>;
 }
 
 impl AlignBuilder for Bucket {
@@ -265,7 +266,7 @@ impl AlignBuilder for Bucket {
         url: Url,
         resource: CanonicalizedResource,
         headers: Option<HeaderMap>,
-    ) -> OssResult<RequestBuilder> {
+    ) -> Result<RequestBuilder, BuilderError> {
         self.client()
             .builder_with_header(method, url, resource, headers)
     }
@@ -278,7 +279,7 @@ impl AlignBuilder for ObjectList<ArcPointer> {
         url: Url,
         resource: CanonicalizedResource,
         headers: Option<HeaderMap>,
-    ) -> OssResult<RequestBuilder> {
+    ) -> Result<RequestBuilder, BuilderError> {
         self.client()
             .builder_with_header(method, url, resource, headers)
     }
@@ -388,7 +389,7 @@ pub mod blocking {
         auth::VERB,
         blocking::builder::RequestBuilder,
         bucket::Bucket,
-        builder::RcPointer,
+        builder::{BuilderError, RcPointer},
         config::{ObjectBase, ObjectPath, UrlObjectPath},
         errors::{OssError, OssResult},
         object::{Object, ObjectList},
@@ -591,7 +592,7 @@ pub mod blocking {
             method: M,
             url: Url,
             resource: CanonicalizedResource,
-        ) -> OssResult<RequestBuilder> {
+        ) -> Result<RequestBuilder, BuilderError> {
             self.builder_with_header(method, url, resource, None)
         }
 
@@ -601,7 +602,7 @@ pub mod blocking {
             url: Url,
             resource: CanonicalizedResource,
             headers: Option<HeaderMap>,
-        ) -> OssResult<RequestBuilder>;
+        ) -> Result<RequestBuilder, BuilderError>;
     }
 
     /// # 对齐 Client, Bucket, ObjectList 等结构体的 trait
@@ -614,7 +615,7 @@ pub mod blocking {
             url: Url,
             resource: CanonicalizedResource,
             headers: Option<HeaderMap>,
-        ) -> OssResult<RequestBuilder> {
+        ) -> Result<RequestBuilder, BuilderError> {
             self.client()
                 .builder_with_header(method, url, resource, headers)
         }
@@ -627,7 +628,7 @@ pub mod blocking {
             url: Url,
             resource: CanonicalizedResource,
             headers: Option<HeaderMap>,
-        ) -> OssResult<RequestBuilder> {
+        ) -> Result<RequestBuilder, BuilderError> {
             self.client()
                 .builder_with_header(method, url, resource, headers)
         }

@@ -4,8 +4,7 @@ use mockall::mock;
 use reqwest::header::{HeaderMap, HeaderValue};
 
 use crate::{
-    auth::{AuthHeader, HeaderToSign, MockAuthToHeaderMap, OssHeader, Sign, VERB},
-    errors::{OssError, OssResult},
+    auth::{AuthError, AuthHeader, HeaderToSign, MockAuthToHeaderMap, OssHeader, Sign, VERB},
     types::KeyId,
 };
 
@@ -434,8 +433,8 @@ fn test_append_sign() {
         BarStruct {}
 
         impl TryInto<HeaderValue> for BarStruct {
-            type Error = OssError;
-            fn try_into(self) -> OssResult<HeaderValue>;
+            type Error = AuthError;
+            fn try_into(self) -> Result<HeaderValue, AuthError>;
         }
     }
 

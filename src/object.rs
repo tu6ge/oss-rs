@@ -17,6 +17,7 @@ use async_stream::try_stream;
 use chrono::prelude::*;
 use futures_core::stream::Stream;
 use oss_derive::oss_gen_rc;
+
 use std::fmt;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
@@ -534,6 +535,37 @@ impl Client {
 
         Ok(list)
     }
+
+    // use std::error::Error;
+
+    // /// TODO *因为各模块之间 Result Err 太耦合，放到后面计划中*
+    // pub async fn abstract_object_list<Q: Into<Query>, List, Item, E>(
+    //     self,
+    //     query: Q,
+    //     list: &mut List,
+    //     b: Item::Bucket,
+    // ) -> Result<(), E>
+    // where
+    //     List: OssIntoObjectList<Item>,
+    //     Item: OssIntoObject + Default,
+    //     E: Error,
+    // {
+    //     let mut url = self.get_bucket_url();
+
+    //     let query = query.into();
+    //     url.set_search_query(&query);
+
+    //     let bucket = self.get_bucket_base();
+
+    //     let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
+
+    //     let response = self.builder(VERB::GET, url, canonicalized)?;
+    //     let content = response.send().await?;
+
+    //     list.from_xml(&content.text().await?, b)?;
+
+    //     Ok(())
+    // }
 }
 
 #[cfg(feature = "blocking")]

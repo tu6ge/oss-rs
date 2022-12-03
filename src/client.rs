@@ -3,9 +3,8 @@ use crate::auth::{AuthBuilder, AuthGetHeader, VERB};
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
 #[cfg(test)]
 use crate::builder::Middleware;
-use crate::builder::{ClientWithMiddleware, RequestBuilder};
+use crate::builder::{BuilderError, ClientWithMiddleware, RequestBuilder};
 use crate::config::{BucketBase, Config, InvalidConfig};
-use crate::errors::OssResult;
 use crate::file::AlignBuilder;
 use crate::types::{BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret};
 use chrono::prelude::*;
@@ -147,7 +146,7 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
         url: Url,
         resource: CanonicalizedResource,
         headers: Option<HeaderMap>,
-    ) -> OssResult<RequestBuilder> {
+    ) -> Result<RequestBuilder, BuilderError> {
         let method = method.into();
         let headers = self
             .auth_builder
@@ -200,7 +199,7 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
         url: Url,
         resource: CanonicalizedResource,
         headers: Option<HeaderMap>,
-    ) -> OssResult<BlockingRequestBuilder> {
+    ) -> Result<BlockingRequestBuilder, BuilderError> {
         let method = method.into();
         let headers = self
             .auth_builder

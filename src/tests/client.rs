@@ -134,8 +134,8 @@ fn test_blocking_builder_with_header() {
 }
 
 mod handle_error {
-    use crate::builder::RequestHandler;
-    use crate::errors::{OssError, OssService};
+    use crate::builder::{BuilderError, RequestHandler};
+    use crate::errors::OssService;
     use http::Response as HttpResponse;
     use reqwest::Response;
 
@@ -164,7 +164,7 @@ mod handle_error {
 
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(matches!(err, OssError::OssService(OssService{code,..}) if code=="foo_code"));
+        assert!(matches!(err, BuilderError::OssService(OssService{code,..}) if code=="foo_code"));
 
         //mock.checkpoint();
     }
@@ -227,7 +227,7 @@ mod handle_error {
 
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(matches!(err, OssError::OssService(OssService{code,..}) if code=="foo_code"));
+        assert!(matches!(err, BuilderError::OssService(OssService{code,..}) if code=="foo_code"));
     }
 
     #[cfg(feature = "blocking")]
