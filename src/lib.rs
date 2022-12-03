@@ -258,15 +258,17 @@ pub struct ReadmeDoctests;
 /** # 主要入口
 
 */
-pub fn client<ID, S>(
+pub fn client<ID, S, E, B>(
     access_key_id: ID,
     access_key_secret: S,
-    endpoint: EndPoint,
-    bucket: BucketName,
+    endpoint: E,
+    bucket: B,
 ) -> client::Client<ClientWithMiddleware>
 where
     ID: Into<KeyId>,
     S: Into<KeySecret>,
+    E: Into<EndPoint>,
+    B: Into<BucketName>,
 {
     let config = Config::new(access_key_id, access_key_secret, endpoint, bucket);
     client::Client::<ClientWithMiddleware>::from_config(config)

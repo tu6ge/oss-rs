@@ -9,7 +9,7 @@ use crate::{client::Client, types::CanonicalizedResource, EndPoint};
 #[test]
 fn set_bucket_name() {
     use crate::client;
-    let mut client = client("a", "b", EndPoint::CnQingdao, "d".try_into().unwrap());
+    let mut client = client("a", "b", EndPoint::CnQingdao, "d");
     client.set_bucket_name("abcaaa".try_into().unwrap());
 
     assert_eq!(client.get_bucket_base().name(), "abcaaa");

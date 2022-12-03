@@ -132,8 +132,7 @@ impl Default for Bucket<ArcPointer> {
 impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
     type Error = OssError;
     fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
-        self.base
-            .set_name(name);
+        self.base.set_name(name);
         Ok(())
     }
 

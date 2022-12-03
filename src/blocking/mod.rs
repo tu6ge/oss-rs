@@ -37,13 +37,11 @@ let client = aliyun_oss_client::ClientRc::from_env();
 - 方式三
 
 ```rust
-use aliyun_oss_client::BucketName;
-let bucket = BucketName::new("bbb").unwrap();
 let client = aliyun_oss_client::ClientRc::new(
-    "key1".into(),
-    "secret1".into(),
-    "qingdao".try_into().unwrap(),
-    bucket
+    "key1",
+    "secret1",
+    "qingdao",
+    "my-bucket"
 );
 ```
 
