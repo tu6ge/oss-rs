@@ -1,7 +1,7 @@
 use crate::auth::VERB;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
-use crate::builder::{ArcPointer, PointerFamily};
+use crate::builder::{ArcPointer, BuilderError, PointerFamily};
 use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
@@ -18,6 +18,7 @@ use chrono::prelude::*;
 use futures_core::stream::Stream;
 use oss_derive::oss_gen_rc;
 
+use std::error::Error;
 use std::fmt;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
@@ -132,7 +133,7 @@ impl<T: PointerFamily> ObjectList<T> {
     }
 }
 
-#[oss_gen_rc]
+//#[oss_gen_rc]
 impl ObjectList<ArcPointer> {
     pub fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
@@ -514,6 +515,37 @@ impl Client {
     ///
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`](../bucket/struct.Bucket.html#method.get_object_list) 文档
     pub async fn get_object_list<Q: Into<Query>>(self, query: Q) -> OssResult<ObjectList> {
+
+        let bucket = self.get_bucket_base();
+        let query = query.into();
+
+        let mut list = ObjectList::<ArcPointer>::default();
+        list.set_bucket(bucket.clone());
+
+        let result: Result<_, OssError> = self
+            .base_object_list(query.clone(), &mut list, Arc::new(bucket))
+            .await;
+        result?;
+
+        list.set_client(Arc::new(self));
+        list.set_search_query(query);
+
+        Ok(list)
+    }
+
+    /// 可将 object 列表导出到外部 struct
+    #[inline]
+    pub async fn base_object_list<Q: Into<Query>, List, Item, E>(
+        &self,
+        query: Q,
+        list: &mut List,
+        buk: Item::Bucket,
+    ) -> Result<(), E>
+    where
+        List: OssIntoObjectList<Item>,
+        Item: OssIntoObject + Default,
+        E: Error + From<BuilderError> + From<List::Error>,
+    {
         let mut url = self.get_bucket_url();
 
         let query = query.into();
@@ -526,46 +558,10 @@ impl Client {
         let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send().await?;
 
-        let mut list = ObjectList::<ArcPointer>::default();
-        list.set_client(Arc::new(self));
-        list.set_bucket(bucket.clone());
+        list.from_xml(&content.text().await.map_err(BuilderError::from)?, buk)?;
 
-        list.from_xml(&content.text().await?, Arc::new(bucket))?;
-        list.set_search_query(query);
-
-        Ok(list)
+        Ok(())
     }
-
-    // use std::error::Error;
-
-    // /// TODO *因为各模块之间 Result Err 太耦合，放到后面计划中*
-    // pub async fn abstract_object_list<Q: Into<Query>, List, Item, E>(
-    //     self,
-    //     query: Q,
-    //     list: &mut List,
-    //     b: Item::Bucket,
-    // ) -> Result<(), E>
-    // where
-    //     List: OssIntoObjectList<Item>,
-    //     Item: OssIntoObject + Default,
-    //     E: Error,
-    // {
-    //     let mut url = self.get_bucket_url();
-
-    //     let query = query.into();
-    //     url.set_search_query(&query);
-
-    //     let bucket = self.get_bucket_base();
-
-    //     let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
-
-    //     let response = self.builder(VERB::GET, url, canonicalized)?;
-    //     let content = response.send().await?;
-
-    //     list.from_xml(&content.text().await?, b)?;
-
-    //     Ok(())
-    // }
 }
 
 #[cfg(feature = "blocking")]
