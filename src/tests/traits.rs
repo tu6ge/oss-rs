@@ -633,8 +633,9 @@ mod bucket_list_xml {
           </Buckets>
         </ListAllMyBucketsResult>"#;
 
-        let list = ListA {}.from_xml(xml);
+        let mut list = ListA {};
+        let res = list.from_xml(xml, ||BucketA{});
 
-        assert!(list.is_ok());
+        assert!(res.is_ok());
     }
 }

@@ -53,11 +53,9 @@ impl<T: PointerFamily> fmt::Debug for ListBuckets<T> {
 
 #[oss_gen_rc]
 impl ListBuckets<ArcPointer> {
-    pub fn set_client(&mut self, client: Arc<ClientArc>) {
+    
+    pub(crate) fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = Arc::clone(&client);
-        for i in self.buckets.iter_mut() {
-            i.set_client(Arc::clone(&client));
-        }
     }
 }
 
@@ -367,6 +365,35 @@ where
 
 impl ClientArc {
     pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
+        let client_arc = Arc::new(self.clone());
+
+        let init_bucket = || {
+            let mut bucket = Bucket::<ArcPointer>::default();
+            bucket.set_client(client_arc.clone());
+            bucket
+        };
+
+        let mut bucket_list = ListBuckets::<ArcPointer>::default();
+        let res: Result<_, OssError> = self.base_bucket_list(&mut bucket_list, init_bucket).await;
+        res?;
+
+        bucket_list.set_client(client_arc.clone());
+
+        Ok(bucket_list)
+    }
+
+    #[inline]
+    pub async fn base_bucket_list<List, Item, F, E>(
+        &self,
+        list: &mut List,
+        init_bucket: F,
+    ) -> Result<(), E>
+    where
+        List: OssIntoBucketList<Item>,
+        Item: OssIntoBucket,
+        E: Error + From<BuilderError> + From<List::Error>,
+        F: FnMut() -> Item,
+    {
         let url = self.get_endpoint_url();
 
         let canonicalized = CanonicalizedResource::default();
@@ -374,11 +401,12 @@ impl ClientArc {
         let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send().await?;
 
-        let mut bucket_list = ListBuckets::<ArcPointer>::default();
-        bucket_list.from_xml(&content.text().await?)?;
-        bucket_list.set_client(Arc::new(self));
+        list.from_xml(
+            &content.text().await.map_err(BuilderError::from)?,
+            init_bucket,
+        )?;
 
-        Ok(bucket_list)
+        Ok(())
     }
 
     pub async fn get_bucket_info(self) -> OssResult<Bucket> {
@@ -394,6 +422,7 @@ impl ClientArc {
         Ok(bucket)
     }
 
+    #[inline]
     pub async fn base_bucket_info<Bucket, Name: Into<BucketName>, E>(
         &self,
         name: Name,
@@ -421,6 +450,34 @@ impl ClientArc {
 #[cfg(feature = "blocking")]
 impl ClientRc {
     pub fn get_bucket_list(self) -> OssResult<ListBuckets<RcPointer>> {
+        let client_arc = Rc::new(self.clone());
+
+        let init_bucket = || {
+            let mut bucket = Bucket::<RcPointer>::default();
+            bucket.set_client(client_arc.clone());
+            bucket
+        };
+
+        let mut bucket_list = ListBuckets::<RcPointer>::default();
+        let res: Result<_, OssError> = self.base_bucket_list(&mut bucket_list, init_bucket);
+        res?;
+        bucket_list.set_client(Rc::new(self));
+
+        Ok(bucket_list)
+    }
+
+    #[inline]
+    pub fn base_bucket_list<List, Item, F, E>(
+        &self,
+        list: &mut List,
+        init_bucket: F,
+    ) -> Result<(), E>
+    where
+        List: OssIntoBucketList<Item>,
+        Item: OssIntoBucket,
+        E: Error + From<BuilderError> + From<List::Error>,
+        F: FnMut() -> Item,
+    {
         let url = self.get_endpoint_url();
 
         let canonicalized = CanonicalizedResource::default();
@@ -428,16 +485,39 @@ impl ClientRc {
         let response = self.builder(VERB::GET, url, canonicalized)?;
         let content = response.send()?;
 
-        let mut bucket_list = ListBuckets::<RcPointer>::default();
-        bucket_list.from_xml(&content.text()?)?;
-        bucket_list.set_client(Rc::new(self));
+        list.from_xml(
+            &content.text().map_err(BuilderError::from)?,
+            init_bucket,
+        )?;
 
-        Ok(bucket_list)
+        Ok(())
     }
 
     pub fn get_bucket_info(self) -> OssResult<Bucket<RcPointer>> {
+        let name = self.get_bucket_name();
+
+        let mut bucket = Bucket::<RcPointer>::default();
+
+        let res: Result<_, OssError> = self.base_bucket_info(name.to_owned(), &mut bucket);
+        res?;
+
+        bucket.set_client(Rc::new(self));
+
+        Ok(bucket)
+    }
+
+    #[inline]
+    pub fn base_bucket_info<Bucket, Name: Into<BucketName>, E>(
+        &self,
+        name: Name,
+        bucket: &mut Bucket,
+    ) -> Result<(), E>
+    where
+        Bucket: OssIntoBucket,
+        E: Error + From<BuilderError> + From<Bucket::Error>,
+    {
+        let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some("bucketInfo");
-        let mut bucket_url = self.get_bucket_url();
         bucket_url.set_query(query);
 
         let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
@@ -445,11 +525,9 @@ impl ClientRc {
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
         let content = response.send()?;
 
-        let mut bucket = Bucket::<RcPointer>::default();
-        bucket.from_xml(&content.text()?)?;
-        bucket.set_client(Rc::new(self));
+        bucket.from_xml(&content.text().map_err(BuilderError::from)?)?;
 
-        Ok(bucket)
+        Ok(())
     }
 }
 

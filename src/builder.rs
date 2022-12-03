@@ -42,7 +42,7 @@ impl PointerFamily for RcPointer {
     type Bucket = Rc<BucketBase>;
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ClientWithMiddleware {
     inner: Client,
     middleware: Option<Arc<dyn Middleware>>,

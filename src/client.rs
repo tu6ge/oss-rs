@@ -18,10 +18,10 @@ use std::sync::Arc;
 
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Client<M = ClientWithMiddleware>
 where
-    M: Default,
+    M: Default + Clone,
 {
     auth_builder: AuthBuilder,
     client_middleware: M,
@@ -29,7 +29,7 @@ where
     bucket: BucketName,
 }
 
-impl<M: Default> Client<M> {
+impl<M: Default + Clone> Client<M> {
     pub fn new(
         access_key_id: KeyId,
         access_key_secret: KeySecret,

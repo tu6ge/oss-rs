@@ -262,7 +262,7 @@ where
     }
 }
 
-pub trait OssIntoBucketList<T: OssIntoBucket + Default>
+pub trait OssIntoBucketList<T: OssIntoBucket>
 where
     Self: Sized,
     Self::Error: Error + From<quick_xml::Error> + From<T::Error>,
@@ -293,7 +293,10 @@ where
         Ok(())
     }
 
-    fn from_xml(&mut self, xml: &str) -> Result<(), Self::Error> {
+    fn from_xml<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), Self::Error>
+    where
+        F: FnMut() -> T,
+    {
         let mut result = Vec::new();
         let mut reader = Reader::from_str(xml);
         reader.trim_text(true);
@@ -349,7 +352,7 @@ where
                 },
                 Ok(Event::End(ref e)) if e.name().as_ref() == BUCKET => {
                     //let in_creation_date = &creation_date.parse::<DateTime<Utc>>()?;
-                    let mut bucket = T::default();
+                    let mut bucket = init_bucket();
                     bucket.set_name(&name)?;
                     bucket.set_creation_date(&creation_date)?;
                     bucket.set_location(&location)?;

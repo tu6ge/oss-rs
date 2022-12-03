@@ -8,7 +8,7 @@ use reqwest::{
 };
 use std::{rc::Rc, time::Duration};
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ClientWithMiddleware {
     inner: blocking::Client,
     middleware: Option<Rc<dyn Middleware>>,
