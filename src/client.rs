@@ -78,8 +78,8 @@ impl<M: Default + Clone> Client<M> {
 
         Ok(Self::from_builder(
             auth_builder,
-            endpoint.try_into().map_err(InvalidConfig::from)?,
-            bucket.try_into().map_err(InvalidConfig::from)?,
+            endpoint.into(),
+            bucket.into(),
         ))
     }
 

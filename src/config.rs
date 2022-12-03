@@ -121,7 +121,7 @@ impl BucketBase {
 
         Ok(Self {
             name: BucketName::new(bucket)?,
-            endpoint: endpoint.try_into().map_err(InvalidConfig::from)?,
+            endpoint: endpoint.into(),
         })
     }
 
@@ -138,15 +138,31 @@ impl BucketBase {
     /// ```
     /// # use aliyun_oss_client::config::BucketBase;
     /// let mut bucket = BucketBase::default();
-    /// assert!(bucket.set_name("abc").is_ok());
+    /// bucket.set_name("abc");
     /// assert_eq!(bucket.name(), "abc");
     /// ```
-    pub fn set_name<N: TryInto<BucketName>>(&mut self, name: N) -> Result<(), N::Error> {
+    pub fn set_name<N: Into<BucketName>>(&mut self, name: N) {
+        self.name = name.into();
+    }
+
+    pub fn set_endpoint<E: Into<EndPoint>>(&mut self, endpoint: E) {
+        self.endpoint = endpoint.into();
+    }
+
+    /// 设置 bucket name
+    ///
+    /// ```
+    /// # use aliyun_oss_client::config::BucketBase;
+    /// let mut bucket = BucketBase::default();
+    /// assert!(bucket.try_set_name("abc").is_ok());
+    /// assert_eq!(bucket.name(), "abc");
+    /// ```
+    pub fn try_set_name<N: TryInto<BucketName>>(&mut self, name: N) -> Result<(), N::Error> {
         self.name = name.try_into()?;
         Ok(())
     }
 
-    pub fn set_endpoint<E: TryInto<EndPoint>>(&mut self, endpoint: E) -> Result<(), E::Error> {
+    pub fn try_set_endpoint<E: TryInto<EndPoint>>(&mut self, endpoint: E) -> Result<(), E::Error> {
         self.endpoint = endpoint.try_into()?;
         Ok(())
     }

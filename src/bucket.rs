@@ -133,8 +133,7 @@ impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
     type Error = OssError;
     fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
         self.base
-            .set_name(name.to_owned())
-            .map_err(|_| InvalidBucketValue)?;
+            .set_name(name);
         Ok(())
     }
 
@@ -151,9 +150,7 @@ impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
     }
 
     fn set_extranet_endpoint(&mut self, extranet_endpoint: &str) -> Result<(), Self::Error> {
-        if let Err(e) = self.base.set_endpoint(extranet_endpoint.to_owned()) {
-            return Err(Self::Error::from(e));
-        }
+        self.base.set_endpoint(extranet_endpoint);
         Ok(())
     }
 

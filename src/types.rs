@@ -180,50 +180,26 @@ pub const ZHANGJIAKOU_L: &str = "zhangjiakou";
 pub const HONGKONG_L: &str = "hongkong";
 pub const SHENZHEN_L: &str = "shenzhen";
 
-impl TryFrom<String> for EndPoint {
-    type Error = InvalidEndPoint;
+impl From<String> for EndPoint {
     /// 字符串转 endpoint
     /// 举例1 - 产生恐慌
     /// ```should_panic
     /// # use aliyun_oss_client::types::EndPoint;
-    /// let e: EndPoint = String::from("weifang").try_into().unwrap();
+    /// let e: EndPoint = String::from("weifang").into();
     /// ```
     /// 举例2 - 正常
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
-    /// let e: EndPoint = String::from("qingdao").try_into().unwrap();
+    /// let e: EndPoint = String::from("qingdao").into();
     /// ```
-    fn try_from(url: String) -> Result<Self, Self::Error> {
-        if url.contains(SHANGHAI_L) {
-            Ok(Self::CnShanghai)
-        } else if url.contains(HANGZHOU_L) {
-            Ok(Self::CnHangzhou)
-        } else if url.contains(QINGDAO_L) {
-            Ok(Self::CnQingdao)
-        } else if url.contains(BEIJING_L) {
-            Ok(Self::CnBeijing)
-        } else if url.contains(ZHANGJIAKOU_L) {
-            Ok(Self::CnZhangjiakou)
-        } else if url.contains(HONGKONG_L) {
-            Ok(Self::CnHongkong)
-        } else if url.contains(SHENZHEN_L) {
-            Ok(Self::CnShenzhen)
-        } else if url.contains(US_WEST1) {
-            Ok(Self::UsWest1)
-        } else if url.contains(US_EAST1) {
-            Ok(Self::UsEast1)
-        } else if url.contains(AP_SOUTH_EAST1) {
-            Ok(Self::ApSouthEast1)
-        } else {
-            Err(InvalidEndPoint)
-        }
+    fn from(url: String) -> Self {
+        Self::new(&url).unwrap()
     }
 }
 
-impl TryFrom<&'static str> for EndPoint {
-    type Error = InvalidEndPoint;
-    fn try_from(url: &'static str) -> Result<Self, Self::Error> {
-        Self::new(url)
+impl<'a> From<&'a str> for EndPoint {
+    fn from(url: &'a str) -> Self {
+        Self::new(url).unwrap()
     }
 }
 
@@ -231,7 +207,7 @@ pub const OSS_DOMAIN_PREFIX: &str = "https://oss-";
 pub const OSS_INTERNAL: &str = "-internal";
 pub const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
 
-impl EndPoint {
+impl<'a> EndPoint {
     /// 通过字符串字面值初始化 endpoint
     ///
     /// 举例1 - 产生恐慌
@@ -244,7 +220,7 @@ impl EndPoint {
     /// # use aliyun_oss_client::types::EndPoint;
     /// EndPoint::from_static("qingdao");
     /// ```
-    pub fn from_static(url: &'static str) -> Self {
+    pub fn from_static(url: &'a str) -> Self {
         Self::new(url).expect(format!("Unknown Endpoint :{}", url).as_str())
     }
 
@@ -257,7 +233,7 @@ impl EndPoint {
     /// ));
     /// assert!(EndPoint::new("weifang").is_err());
     /// ```
-    pub fn new(url: &'static str) -> Result<Self, InvalidEndPoint> {
+    pub fn new(url: &'a str) -> Result<Self, InvalidEndPoint> {
         if url.contains(SHANGHAI_L) {
             Ok(Self::CnShanghai)
         } else if url.contains(HANGZHOU_L) {
@@ -396,27 +372,19 @@ impl Default for BucketName {
 //         HeaderValue::from_str(self.as_ref())
 //     }
 // }
-impl TryFrom<String> for BucketName {
-    type Error = InvalidBucketName;
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        Self::new(s)
+impl From<String> for BucketName {
+    fn from(s: String) -> Self {
+        Self::new(s).unwrap()
     }
 }
 
-impl TryFrom<&'static str> for BucketName {
-    type Error = InvalidBucketName;
-    fn try_from(bucket: &'static str) -> Result<Self, Self::Error> {
-        Self::from_static(bucket)
+impl<'a> From<&'a str> for BucketName {
+    fn from(bucket: &'a str) -> Self {
+        Self::from_static(bucket).unwrap()
     }
 }
 
-impl Into<String> for BucketName {
-    fn into(self) -> String {
-        self.0.into_owned()
-    }
-}
-
-impl BucketName {
+impl<'a> BucketName {
     /// Creates a new `BucketName` from the given string.
     /// 只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾
     ///
@@ -457,7 +425,7 @@ impl BucketName {
     }
 
     /// Const function that creates a new `BucketName` from a static str.
-    pub fn from_static(bucket: &'static str) -> Result<Self, InvalidBucketName> {
+    pub fn from_static(bucket: &'a str) -> Result<Self, InvalidBucketName> {
         fn valid_character(c: char) -> bool {
             match c {
                 _ if c.is_ascii_lowercase() => true,
@@ -478,7 +446,7 @@ impl BucketName {
             return Err(InvalidBucketName);
         }
 
-        Ok(Self(Cow::Borrowed(bucket)))
+        Ok(Self(Cow::Owned(bucket.to_owned())))
     }
 }
 

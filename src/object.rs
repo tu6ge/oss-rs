@@ -18,7 +18,6 @@ use chrono::prelude::*;
 use futures_core::stream::Stream;
 use oss_derive::oss_gen_rc;
 
-use std::error::Error;
 use std::fmt;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
