@@ -1,7 +1,7 @@
 use crate::auth::VERB;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
-use crate::builder::{ArcPointer, PointerFamily};
+use crate::builder::{ArcPointer, BuilderError, PointerFamily};
 use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
@@ -13,6 +13,7 @@ use crate::file::AlignBuilder;
 use crate::object::{Object, ObjectList};
 use crate::traits::{OssIntoBucket, OssIntoBucketList, OssIntoObjectList};
 use crate::types::{CanonicalizedResource, InvalidEndPoint, Query, UrlQuery};
+use crate::BucketName;
 use chrono::prelude::*;
 use oss_derive::oss_gen_rc;
 use std::error::Error;
@@ -381,8 +382,29 @@ impl ClientArc {
     }
 
     pub async fn get_bucket_info(self) -> OssResult<Bucket> {
+        let name = self.get_bucket_name();
+
+        let mut bucket = Bucket::<ArcPointer>::default();
+
+        let res: Result<_, OssError> = self.base_bucket_info(name.to_owned(), &mut bucket).await;
+        res?;
+
+        bucket.set_client(Arc::new(self));
+
+        Ok(bucket)
+    }
+
+    pub async fn base_bucket_info<Bucket, Name: Into<BucketName>, E>(
+        &self,
+        name: Name,
+        bucket: &mut Bucket,
+    ) -> Result<(), E>
+    where
+        Bucket: OssIntoBucket,
+        E: Error + From<BuilderError> + From<Bucket::Error>,
+    {
+        let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some("bucketInfo");
-        let mut bucket_url = self.get_bucket_url();
         bucket_url.set_query(query);
 
         let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
@@ -390,11 +412,9 @@ impl ClientArc {
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
         let content = response.send().await?;
 
-        let mut bucket = Bucket::<ArcPointer>::default();
-        bucket.from_xml(&content.text().await?)?;
-        bucket.set_client(Arc::new(self));
+        bucket.from_xml(&content.text().await.map_err(BuilderError::from)?)?;
 
-        Ok(bucket)
+        Ok(())
     }
 }
 

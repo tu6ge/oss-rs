@@ -100,6 +100,10 @@ impl<M: Default> Client<M> {
         self.bucket = bucket
     }
 
+    pub(crate) fn get_bucket_name(&self) -> &BucketName {
+        &self.bucket
+    }
+
     pub fn get_bucket_base(&self) -> BucketBase {
         BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned())
     }
@@ -108,6 +112,9 @@ impl<M: Default> Client<M> {
         self.get_bucket_base().to_url()
     }
 
+    pub(crate) fn get_endpoint(&self) -> &EndPoint {
+        &self.endpoint
+    }
     pub fn get_endpoint_url(&self) -> Url {
         self.endpoint.to_url()
     }
