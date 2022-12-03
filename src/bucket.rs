@@ -390,7 +390,7 @@ impl ClientArc {
     where
         List: OssIntoBucketList<Item>,
         Item: OssIntoBucket,
-        E: Error + From<BuilderError> + From<List::Error>,
+        E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {
         let url = self.get_endpoint_url();
@@ -429,7 +429,7 @@ impl ClientArc {
     ) -> Result<(), E>
     where
         Bucket: OssIntoBucket,
-        E: Error + From<BuilderError> + From<Bucket::Error>,
+        E: From<BuilderError> + From<Bucket::Error>,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some("bucketInfo");
@@ -474,7 +474,7 @@ impl ClientRc {
     where
         List: OssIntoBucketList<Item>,
         Item: OssIntoBucket,
-        E: Error + From<BuilderError> + From<List::Error>,
+        E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {
         let url = self.get_endpoint_url();
@@ -510,7 +510,7 @@ impl ClientRc {
     ) -> Result<(), E>
     where
         Bucket: OssIntoBucket,
-        E: Error + From<BuilderError> + From<Bucket::Error>,
+        E: From<BuilderError> + From<Bucket::Error>,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some("bucketInfo");

@@ -1,14 +1,10 @@
 use std::borrow::Cow;
-use std::error::Error;
 
-use quick_xml::events::Event;
-use quick_xml::Reader;
+use quick_xml::{events::Event, Reader};
 
 pub trait OssIntoObject
 where
     Self: Sized,
-    Self::Bucket: Clone,
-    Self::Error: Error,
 {
     type Bucket;
     type Error;
@@ -61,7 +57,7 @@ pub trait OssIntoObjectList<T>
 where
     Self: Sized,
     T: OssIntoObject,
-    Self::Error: Error + From<quick_xml::Error> + From<T::Error>,
+    Self::Error: From<quick_xml::Error> + From<T::Error>,
 {
     type Error;
     fn set_name(&mut self, _name: &str) -> Result<(), Self::Error> {
@@ -155,7 +151,6 @@ where
                 }
                 Ok(Event::End(ref e)) if e.name().as_ref() == b"Contents" => {
                     let mut object = init_object();
-                    //object.set_bucket(bucket.clone())?;
                     object.set_key(&key)?;
                     object.set_last_modified(&last_modified)?;
                     object.set_etag(&etag)?;
@@ -192,7 +187,7 @@ where
 pub trait OssIntoBucket
 where
     Self: Sized,
-    Self::Error: Error + From<quick_xml::Error>,
+    Self::Error: From<quick_xml::Error>,
 {
     type Error;
     fn set_name(&mut self, _name: &str) -> Result<(), Self::Error> {
@@ -265,7 +260,7 @@ where
 pub trait OssIntoBucketList<T: OssIntoBucket>
 where
     Self: Sized,
-    Self::Error: Error + From<quick_xml::Error> + From<T::Error>,
+    Self::Error: From<quick_xml::Error> + From<T::Error>,
 {
     type Error;
     fn set_prefix(&mut self, _prefix: &str) -> Result<(), Self::Error> {

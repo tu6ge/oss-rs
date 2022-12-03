@@ -561,7 +561,7 @@ impl Client {
     where
         List: OssIntoObjectList<Item>,
         Item: OssIntoObject,
-        E: Error + From<BuilderError> + From<List::Error>,
+        E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {
         let mut url = self.get_bucket_url();
@@ -626,7 +626,7 @@ impl ClientRc {
     where
         List: OssIntoObjectList<Item>,
         Item: OssIntoObject,
-        E: Error + From<BuilderError> + From<List::Error>,
+        E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {
         let mut url = self.get_bucket_url();
