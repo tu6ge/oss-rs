@@ -12,7 +12,7 @@ use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::object::{Object, ObjectList};
 use crate::traits::{RefineBucket, RefineBucketList};
-use crate::types::{CanonicalizedResource, InvalidEndPoint, Query};
+use crate::types::{CanonicalizedResource, InvalidEndPoint, Query, BUCKET_INFO};
 use crate::BucketName;
 use chrono::prelude::*;
 use oss_derive::oss_gen_rc;
@@ -429,7 +429,7 @@ impl ClientArc {
         E: From<BuilderError> + From<Bucket::Error>,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
-        let query = Some("bucketInfo");
+        let query = Some(BUCKET_INFO);
         bucket_url.set_query(query);
 
         let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
@@ -510,7 +510,7 @@ impl ClientRc {
         E: From<BuilderError> + From<Bucket::Error>,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
-        let query = Some("bucketInfo");
+        let query = Some(BUCKET_INFO);
         bucket_url.set_query(query);
 
         let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);

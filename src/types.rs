@@ -669,7 +669,8 @@ impl Default for CanonicalizedResource {
 }
 
 pub const CONTINUATION_TOKEN: &str = "continuation-token";
-const QUERY_KEYWORD: [&str; 2] = ["acl", "bucketInfo"];
+pub const BUCKET_INFO: &str = "bucketInfo";
+const QUERY_KEYWORD: [&str; 2] = ["acl", BUCKET_INFO];
 
 impl CanonicalizedResource {
     /// Creates a new `CanonicalizedResource` from the given string.
