@@ -1,6 +1,5 @@
 use crate::auth::VERB;
 use crate::builder::BuilderError;
-use crate::errors::{OssError, OssResult};
 use reqwest::blocking::{self, Body, Request, Response};
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},

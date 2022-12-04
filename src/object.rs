@@ -12,7 +12,7 @@ use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::traits::{OssIntoObject, OssIntoObjectList};
 use crate::types::{CanonicalizedResource, Query, UrlQuery, CONTINUATION_TOKEN};
-use crate::Client;
+use crate::{BucketName, Client};
 use async_stream::try_stream;
 use chrono::prelude::*;
 use futures_core::stream::Stream;
@@ -218,20 +218,14 @@ impl ObjectList {
 #[cfg(feature = "blocking")]
 impl ObjectList<RcPointer> {
     pub fn get_object_list(&mut self) -> OssResult<Self> {
-        let mut url = self.bucket.to_url();
-
-        url.set_search_query(&self.search_query);
-
-        let canonicalized =
-            CanonicalizedResource::from_bucket_query(&self.bucket, &self.search_query);
+        let name = self.bucket.get_name();
 
         let client = self.client();
-        let response = client.builder(VERB::GET, url, canonicalized)?;
-        let content = response.send()?;
 
         let mut list = Self::default();
         list.set_client(Rc::clone(&client));
         list.set_bucket(self.bucket.clone());
+        list.set_search_query(self.search_query.clone());
 
         let bucket_arc = Rc::new(self.bucket.clone());
         let init_object = || {
@@ -240,8 +234,14 @@ impl ObjectList<RcPointer> {
             object
         };
 
-        list.from_xml(&content.text()?, init_object)?;
-        list.set_search_query(self.search_query.clone());
+        let result: Result<_, OssError> = client.base_object_list(
+            name.to_owned(),
+            self.search_query.clone(),
+            &mut list,
+            init_object,
+        );
+        result?;
+
         Ok(list)
     }
 }
@@ -445,7 +445,6 @@ impl<T: PointerFamily> ObjectBuilder<T> {
 }
 
 impl<T: PointerFamily + Sized> OssIntoObject for Object<T> {
-    type Bucket = T::Bucket;
     type Error = OssError;
 
     #[inline]
@@ -524,22 +523,23 @@ impl Client {
     ///
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`](../bucket/struct.Bucket.html#method.get_object_list) 文档
     pub async fn get_object_list<Q: Into<Query>>(self, query: Q) -> OssResult<ObjectList> {
-        let bucket = self.get_bucket_base();
-        let query = query.into();
+        let name = self.get_bucket_name();
+        let bucket = BucketBase::new(name.clone(), self.get_endpoint().to_owned());
 
         let mut list = ObjectList::<ArcPointer>::default();
         list.set_bucket(bucket.clone());
 
         let bucket_arc = Arc::new(bucket.clone());
-
         let init_object = || {
             let mut object = Object::<ArcPointer>::default();
             object.base.set_bucket(bucket_arc.clone());
             object
         };
 
+        let query = query.into();
+
         let result: Result<_, OssError> = self
-            .base_object_list(query.clone(), &mut list, init_object)
+            .base_object_list(name.to_owned(), query.clone(), &mut list, init_object)
             .await;
         result?;
 
@@ -551,8 +551,9 @@ impl Client {
 
     /// 可将 object 列表导出到外部 struct
     #[inline]
-    pub async fn base_object_list<Q: Into<Query>, List, Item, F, E>(
+    pub async fn base_object_list<Name: Into<BucketName>, Q: Into<Query>, List, Item, F, E>(
         &self,
+        name: Name,
         query: Q,
         list: &mut List,
         init_object: F,
@@ -563,16 +564,15 @@ impl Client {
         E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {
-        let mut url = self.get_bucket_url();
+        let bucket = BucketBase::new(name.into(), self.get_endpoint().to_owned());
 
+        let mut bucket_url = bucket.to_url();
         let query = query.into();
-        url.set_search_query(&query);
-
-        let bucket = self.get_bucket_base();
+        bucket_url.set_search_query(&query);
 
         let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
-        let response = self.builder(VERB::GET, url, canonicalized)?;
+        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
         let content = response.send().await?;
 
         list.from_xml(
@@ -590,8 +590,8 @@ impl ClientRc {
     ///
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`](../bucket/struct.Bucket.html#method.get_object_list) 文档
     pub fn get_object_list<Q: Into<Query>>(self, query: Q) -> OssResult<ObjectList<RcPointer>> {
-        let bucket = self.get_bucket_base();
-        let query = query.into();
+        let name = self.get_bucket_name();
+        let bucket = BucketBase::new(name.clone(), self.get_endpoint().to_owned());
 
         let mut list = ObjectList::<RcPointer>::default();
         list.set_bucket(bucket.clone());
@@ -604,8 +604,10 @@ impl ClientRc {
             object
         };
 
+        let query = query.into();
+
         let result: Result<_, OssError> =
-            self.base_object_list(query.clone(), &mut list, init_object);
+            self.base_object_list(name.to_owned(), query.clone(), &mut list, init_object);
         result?;
 
         list.set_client(Rc::new(self));
@@ -616,8 +618,9 @@ impl ClientRc {
 
     /// 可将 object 列表导出到外部 struct
     #[inline]
-    pub fn base_object_list<Q: Into<Query>, List, Item, F, E>(
+    pub fn base_object_list<Name: Into<BucketName>, Q: Into<Query>, List, Item, F, E>(
         &self,
+        name: Name,
         query: Q,
         list: &mut List,
         init_object: F,
@@ -628,16 +631,15 @@ impl ClientRc {
         E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {
-        let mut url = self.get_bucket_url();
+        let bucket = BucketBase::new(name.into(), self.get_endpoint().to_owned());
 
+        let mut bucket_url = bucket.to_url();
         let query = query.into();
-        url.set_search_query(&query);
-
-        let bucket = self.get_bucket_base();
+        bucket_url.set_search_query(&query);
 
         let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
-        let response = self.builder(VERB::GET, url, canonicalized)?;
+        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
         let content = response.send()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;

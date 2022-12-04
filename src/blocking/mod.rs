@@ -38,10 +38,10 @@ let client = aliyun_oss_client::ClientRc::from_env();
 
 ```rust
 let client = aliyun_oss_client::ClientRc::new(
-    "key1",
-    "secret1",
-    "qingdao",
-    "my-bucket"
+    "key1".into(),
+    "secret1".into(),
+    "qingdao".into(),
+    "my-bucket".into()
 );
 ```
 

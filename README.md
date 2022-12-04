@@ -173,7 +173,7 @@ use std::env;
 use aliyun_oss_client::BucketName;
 let bucket = BucketName::new("bbb").unwrap();
 // 获取客户端实例
-let client = aliyun_oss_client::ClientRc::new("key1".into(),"secret1".into(),"qingdao".try_into().unwrap(), bucket);
+let client = aliyun_oss_client::ClientRc::new("key1".into(),"secret1".into(),"qingdao".into(), bucket);
 ```
 
 ### 查询所有的 bucket 信息

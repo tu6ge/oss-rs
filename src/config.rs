@@ -125,10 +125,17 @@ impl BucketBase {
         })
     }
 
+    #[inline]
     pub fn name(&self) -> &str {
         self.name.as_ref()
     }
 
+    #[inline]
+    pub fn get_name(&self) -> &BucketName {
+        &self.name
+    }
+
+    #[inline]
     pub fn endpoint(self) -> EndPoint {
         self.endpoint
     }

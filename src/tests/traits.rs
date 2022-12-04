@@ -19,7 +19,6 @@ mod object_list_xml {
         struct ObjectA {}
 
         impl OssIntoObject for ObjectA {
-            type Bucket = Arc<BucketBase>;
             type Error = OssError;
             fn set_key(&mut self, key: &str) -> Result<(), OssError> {
                 unsafe {
@@ -370,7 +369,6 @@ mod object_list_xml {
         struct ObjectA {}
 
         impl OssIntoObject for ObjectA {
-            type Bucket = Arc<BucketBase>;
             type Error = OssError;
         }
 

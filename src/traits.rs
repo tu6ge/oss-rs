@@ -6,7 +6,6 @@ pub trait OssIntoObject
 where
     Self: Sized,
 {
-    type Bucket;
     type Error;
 
     fn set_key(&mut self, _key: &str) -> Result<(), Self::Error> {
@@ -190,6 +189,7 @@ where
     Self::Error: From<quick_xml::Error>,
 {
     type Error;
+
     fn set_name(&mut self, _name: &str) -> Result<(), Self::Error> {
         Ok(())
     }
@@ -263,6 +263,7 @@ where
     Self::Error: From<quick_xml::Error> + From<T::Error>,
 {
     type Error;
+
     fn set_prefix(&mut self, _prefix: &str) -> Result<(), Self::Error> {
         Ok(())
     }
