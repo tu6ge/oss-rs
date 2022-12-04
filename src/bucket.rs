@@ -11,7 +11,7 @@ use crate::errors::{OssError, OssResult};
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::object::{Object, ObjectList};
-use crate::traits::{OssIntoBucket, OssIntoBucketList};
+use crate::traits::{RefineBucket, RefineBucketList};
 use crate::types::{CanonicalizedResource, InvalidEndPoint, Query};
 use crate::BucketName;
 use chrono::prelude::*;
@@ -129,7 +129,7 @@ impl Default for Bucket<ArcPointer> {
     }
 }
 
-impl<T: PointerFamily> OssIntoBucket for Bucket<T> {
+impl<T: PointerFamily> RefineBucket for Bucket<T> {
     type Error = OssError;
     fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
         self.base.set_name(name);
@@ -291,8 +291,7 @@ impl Bucket<RcPointer> {
     }
 }
 
-impl<T: PointerFamily> OssIntoBucketList<Bucket<T>> for ListBuckets<T>
-{
+impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
     type Error = OssError;
 
     fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
@@ -386,8 +385,8 @@ impl ClientArc {
         init_bucket: F,
     ) -> Result<(), E>
     where
-        List: OssIntoBucketList<Item>,
-        Item: OssIntoBucket,
+        List: RefineBucketList<Item>,
+        Item: RefineBucket,
         E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {
@@ -426,7 +425,7 @@ impl ClientArc {
         bucket: &mut Bucket,
     ) -> Result<(), E>
     where
-        Bucket: OssIntoBucket,
+        Bucket: RefineBucket,
         E: From<BuilderError> + From<Bucket::Error>,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
@@ -470,8 +469,8 @@ impl ClientRc {
         init_bucket: F,
     ) -> Result<(), E>
     where
-        List: OssIntoBucketList<Item>,
-        Item: OssIntoBucket,
+        List: RefineBucketList<Item>,
+        Item: RefineBucket,
         E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {
@@ -507,7 +506,7 @@ impl ClientRc {
         bucket: &mut Bucket,
     ) -> Result<(), E>
     where
-        Bucket: OssIntoBucket,
+        Bucket: RefineBucket,
         E: From<BuilderError> + From<Bucket::Error>,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();

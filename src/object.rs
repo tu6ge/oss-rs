@@ -10,7 +10,7 @@ use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
-use crate::traits::{OssIntoObject, OssIntoObjectList};
+use crate::traits::{RefineObject, RefineObjectList};
 use crate::types::{CanonicalizedResource, Query, UrlQuery, CONTINUATION_TOKEN};
 use crate::{BucketName, Client};
 use async_stream::try_stream;
@@ -444,7 +444,7 @@ impl<T: PointerFamily> ObjectBuilder<T> {
     }
 }
 
-impl<T: PointerFamily + Sized> OssIntoObject for Object<T> {
+impl<T: PointerFamily + Sized> RefineObject for Object<T> {
     type Error = OssError;
 
     #[inline]
@@ -484,7 +484,7 @@ impl<T: PointerFamily + Sized> OssIntoObject for Object<T> {
     }
 }
 
-impl<T: PointerFamily> OssIntoObjectList<Object<T>> for ObjectList<T> {
+impl<T: PointerFamily> RefineObjectList<Object<T>> for ObjectList<T> {
     type Error = OssError;
 
     #[inline]
@@ -559,8 +559,8 @@ impl Client {
         init_object: F,
     ) -> Result<(), E>
     where
-        List: OssIntoObjectList<Item>,
-        Item: OssIntoObject,
+        List: RefineObjectList<Item>,
+        Item: RefineObject,
         E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {
@@ -626,8 +626,8 @@ impl ClientRc {
         init_object: F,
     ) -> Result<(), E>
     where
-        List: OssIntoObjectList<Item>,
-        Item: OssIntoObject,
+        List: RefineObjectList<Item>,
+        Item: RefineObject,
         E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {

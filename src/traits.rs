@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use quick_xml::{events::Event, Reader};
 
-pub trait OssIntoObject
+pub trait RefineObject
 where
     Self: Sized,
 {
@@ -11,18 +11,23 @@ where
     fn set_key(&mut self, _key: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_last_modified(&mut self, _last_modified: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_etag(&mut self, _etag: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_type(&mut self, _type: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_size(&mut self, _size: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Self::Error> {
         Ok(())
     }
@@ -52,28 +57,33 @@ const NEXT_MARKER: &[u8] = b"NextMarker";
 const ID: &[u8] = b"ID";
 const DISPLAY_NAME: &[u8] = b"DisplayName";
 
-pub trait OssIntoObjectList<T>
+pub trait RefineObjectList<T>
 where
     Self: Sized,
-    T: OssIntoObject,
+    T: RefineObject,
     Self::Error: From<quick_xml::Error> + From<T::Error>,
 {
     type Error;
+
     fn set_name(&mut self, _name: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_prefix(&mut self, _prefix: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_key_count(&mut self, _key_count: &str) -> Result<(), Self::Error> {
         Ok(())
     }
     fn set_next_continuation_token(&mut self, _token: Option<&str>) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_list(&mut self, _list: Vec<T>) -> Result<(), Self::Error> {
         Ok(())
     }
@@ -183,7 +193,7 @@ where
     }
 }
 
-pub trait OssIntoBucket
+pub trait RefineBucket
 where
     Self: Sized,
     Self::Error: From<quick_xml::Error>,
@@ -193,18 +203,23 @@ where
     fn set_name(&mut self, _name: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_creation_date(&mut self, _creation_date: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_location(&mut self, _location: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_extranet_endpoint(&mut self, _extranet_endpoint: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_intranet_endpoint(&mut self, _intranet_endpoint: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Self::Error> {
         Ok(())
     }
@@ -257,7 +272,7 @@ where
     }
 }
 
-pub trait OssIntoBucketList<T: OssIntoBucket>
+pub trait RefineBucketList<T: RefineBucket>
 where
     Self: Sized,
     Self::Error: From<quick_xml::Error> + From<T::Error>,
@@ -267,24 +282,31 @@ where
     fn set_prefix(&mut self, _prefix: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_marker(&mut self, _marker: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_is_truncated(&mut self, _is_truncated: bool) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_next_marker(&mut self, _next_marker: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_id(&mut self, _id: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_display_name(&mut self, _display_name: &str) -> Result<(), Self::Error> {
         Ok(())
     }
+
     fn set_list(&mut self, _list: Vec<T>) -> Result<(), Self::Error> {
         Ok(())
     }

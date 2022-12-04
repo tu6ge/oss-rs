@@ -12,13 +12,13 @@ mod object_list_xml {
 
     #[test]
     fn from_xml() {
-        use crate::traits::OssIntoObject;
-        use crate::traits::OssIntoObjectList;
+        use crate::traits::RefineObject;
+        use crate::traits::RefineObjectList;
 
         #[derive(Default)]
         struct ObjectA {}
 
-        impl OssIntoObject for ObjectA {
+        impl RefineObject for ObjectA {
             type Error = OssError;
             fn set_key(&mut self, key: &str) -> Result<(), OssError> {
                 unsafe {
@@ -89,7 +89,7 @@ mod object_list_xml {
             }
         }
         struct ListB {}
-        impl OssIntoObjectList<ObjectA> for ListB {
+        impl RefineObjectList<ObjectA> for ListB {
             type Error = OssError;
             fn set_name(&mut self, name: &str) -> Result<(), OssError> {
                 assert_eq!(name, "foo_bucket");
@@ -170,13 +170,13 @@ mod object_list_xml {
     #[cfg(feature = "bench")]
     #[bench]
     fn from_xml_bench(b: &mut test::Bencher) {
-        use crate::traits::OssIntoObject;
-        use crate::traits::OssIntoObjectList;
+        use crate::traits::RefineObject;
+        use crate::traits::RefineObjectList;
 
         #[derive(Default)]
         struct ObjectA {}
 
-        impl OssIntoObject for ObjectA {
+        impl RefineObject for ObjectA {
             type Bucket = Arc<BucketBase>;
             type Error = OssError;
             fn set_key(&mut self, key: &str) -> Result<(), OssError> {
@@ -202,7 +202,7 @@ mod object_list_xml {
             }
         }
         struct ListB {}
-        impl OssIntoObjectList<ObjectA> for ListB {
+        impl RefineObjectList<ObjectA> for ListB {
             type Error = OssError;
             fn set_name(&mut self, name: &str) -> Result<(), OssError> {
                 Ok(())
@@ -316,8 +316,8 @@ mod object_list_xml {
     #[cfg(feature = "bench")]
     #[bench]
     fn from_xml_bench_real_object(b: &mut test::Bencher) {
-        use crate::traits::OssIntoObject;
-        use crate::traits::OssIntoObjectList;
+        use crate::traits::RefineObject;
+        use crate::traits::RefineObjectList;
 
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
         <ListBucketResult>
@@ -362,18 +362,18 @@ mod object_list_xml {
 
     #[test]
     fn from_xml_has_next() {
-        use crate::traits::OssIntoObject;
-        use crate::traits::OssIntoObjectList;
+        use crate::traits::RefineObject;
+        use crate::traits::RefineObjectList;
 
         #[derive(Default)]
         struct ObjectA {}
 
-        impl OssIntoObject for ObjectA {
+        impl RefineObject for ObjectA {
             type Error = OssError;
         }
 
         struct ListB {}
-        impl OssIntoObjectList<ObjectA> for ListB {
+        impl RefineObjectList<ObjectA> for ListB {
             type Error = OssError;
             fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), OssError> {
                 assert!(
@@ -435,11 +435,11 @@ mod bucket_xml {
 
     #[test]
     fn from_xml() {
-        use crate::traits::OssIntoBucket;
+        use crate::traits::RefineBucket;
 
         struct BucketA {}
 
-        impl OssIntoBucket for BucketA {
+        impl RefineBucket for BucketA {
             type Error = OssError;
             fn set_name(&mut self, name: &str) -> Result<(), OssError> {
                 assert_eq!(name, "foo");
@@ -512,12 +512,12 @@ mod bucket_list_xml {
 
     #[test]
     fn from_xml() {
-        use crate::traits::{OssIntoBucket, OssIntoBucketList};
+        use crate::traits::{RefineBucket, RefineBucketList};
 
         #[derive(Default)]
         struct BucketA {}
 
-        impl OssIntoBucket for BucketA {
+        impl RefineBucket for BucketA {
             type Error = OssError;
             fn set_name(&mut self, name: &str) -> Result<(), OssError> {
                 unsafe {
@@ -569,7 +569,7 @@ mod bucket_list_xml {
 
         struct ListA {}
 
-        impl OssIntoBucketList<BucketA> for ListA {
+        impl RefineBucketList<BucketA> for ListA {
             type Error = OssError;
             fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
                 assert_eq!(prefix, "");
