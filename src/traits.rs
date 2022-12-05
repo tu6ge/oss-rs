@@ -202,11 +202,11 @@ where
         let mut buf = Vec::with_capacity(xml.len());
 
         let mut key = Cow::from("");
-        let mut last_modified = Cow::from(""); //::with_capacity(20);
+        let mut last_modified = Cow::from(String::with_capacity(20));
         let mut _type = Cow::from("");
-        let mut etag = Cow::from(""); //String::with_capacity(34); // 32 位 加两位 "" 符号
+        let mut etag = Cow::from(String::with_capacity(34));
         let mut size = Cow::from("");
-        let mut storage_class = Cow::from(""); //String::with_capacity(11);
+        let mut storage_class = Cow::from(String::with_capacity(11));
 
         loop {
             match reader.read_event_into(&mut buf) {
@@ -401,14 +401,14 @@ where
 
         let mut name = Cow::from("");
         let mut location = Cow::from("");
-        let mut creation_date = Cow::from(""); //String::with_capacity(20);
+        let mut creation_date = Cow::from(String::with_capacity(20));
 
         // 目前最长的可用区 zhangjiakou 13 ，剩余部分总共 20
-        let mut extranet_endpoint = Cow::from(""); //String::with_capacity(33);
-                                                   // 上一个长度 + 9 （-internal）
-        let mut intranet_endpoint = Cow::from(""); //String::with_capacity(42);
-                                                   // 最长的值 ColdArchive 11
-        let mut storage_class = Cow::from(""); //String::with_capacity(11);
+        let mut extranet_endpoint = Cow::from(String::with_capacity(33));
+        // 上一个长度 + 9 （-internal）
+        let mut intranet_endpoint = Cow::from(String::with_capacity(42));
+        // 最长的值 ColdArchive 11
+        let mut storage_class = Cow::from(String::with_capacity(11));
 
         loop {
             match reader.read_event_into(&mut buf) {
