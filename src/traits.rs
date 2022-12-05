@@ -152,6 +152,7 @@ const MARKER: &[u8] = b"Marker";
 const NEXT_MARKER: &[u8] = b"NextMarker";
 const ID: &[u8] = b"ID";
 const DISPLAY_NAME: &[u8] = b"DisplayName";
+const CONTENTS: &[u8] = b"Contents";
 
 pub trait RefineObjectList<T>
 where
@@ -255,7 +256,7 @@ where
                         _ => (),
                     }
                 }
-                Ok(Event::End(ref e)) if e.name().as_ref() == b"Contents" => {
+                Ok(Event::End(ref e)) if e.name().as_ref() == CONTENTS => {
                     let mut object = init_object();
                     object.set_key(&key)?;
                     object.set_last_modified(&last_modified)?;
@@ -351,6 +352,8 @@ where
     }
 }
 
+const TRUE: &str = "true";
+
 pub trait RefineBucketList<T: RefineBucket>
 where
     Self: Sized,
@@ -417,7 +420,7 @@ where
                     MARKER => self.set_marker(&reader.read_text(e.to_end().name())?)?,
                     MAX_KEYS => self.set_max_keys(&reader.read_text(e.to_end().name())?)?,
                     IS_TRUNCATED => {
-                        self.set_is_truncated(reader.read_text(e.to_end().name())? == "true")?;
+                        self.set_is_truncated(reader.read_text(e.to_end().name())? == TRUE)?;
                     }
                     NEXT_MARKER => self.set_next_marker(&reader.read_text(e.to_end().name())?)?,
                     ID => self.set_id(&reader.read_text(e.to_end().name())?)?,
