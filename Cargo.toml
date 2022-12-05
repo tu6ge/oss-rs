@@ -18,7 +18,7 @@ all-features = true
 members = ["oss_derive"]
 
 [workspace.package]
-version = "0.9.4"
+version = "0.9.5"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/tu6ge/oss-rs"
@@ -77,7 +77,7 @@ futures-core = "^0.3"
 futures-util = "^0.3"
 
 [dependencies.oss_derive]
-version = "0.9.4"
+version = "0.9.5"
 path = "./oss_derive"
 
 [dev-dependencies]
