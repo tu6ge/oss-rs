@@ -207,31 +207,27 @@ where
         let mut etag = Cow::from(""); //String::with_capacity(34); // 32 位 加两位 "" 符号
         let mut size = Cow::from("");
         let mut storage_class = Cow::from(""); //String::with_capacity(11);
-                                               // let mut is_truncated = false;
-
-        let mut name = Cow::from("");
-        let mut prefix = Cow::from("");
-        let mut max_keys = Cow::from("");
-        let mut key_count = Cow::from("");
-        let mut next_continuation_token = Cow::from("");
 
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => {
                     match e.name().as_ref() {
-                        PREFIX => prefix = reader.read_text(e.to_end().name())?,
-                        NAME => name = reader.read_text(e.to_end().name())?,
-                        MAX_KEYS => {
-                            max_keys = reader.read_text(e.to_end().name())?;
-                        }
-                        KEY_COUNT => {
-                            key_count = reader.read_text(e.to_end().name())?;
-                        }
+                        PREFIX => self.set_prefix(&reader.read_text(e.to_end().name())?)?,
+                        NAME => self.set_name(&reader.read_text(e.to_end().name())?)?,
+                        MAX_KEYS => self.set_max_keys(&reader.read_text(e.to_end().name())?)?,
+                        KEY_COUNT => self.set_key_count(&reader.read_text(e.to_end().name())?)?,
                         IS_TRUNCATED => {
                             //is_truncated = reader.read_text(e.to_end().name())?.to_string() == "true"
                         }
                         NEXT_CONTINUATION_TOKEN => {
-                            next_continuation_token = reader.read_text(e.to_end().name())?;
+                            let next_continuation_token = reader.read_text(e.to_end().name())?;
+                            self.set_next_continuation_token(
+                                if next_continuation_token.len() > 0 {
+                                    Some(&next_continuation_token)
+                                } else {
+                                    None
+                                },
+                            )?;
                         }
                         // b"Contents" => {
                         //     // key.clear();
@@ -270,16 +266,7 @@ where
                     result.push(object);
                 }
                 Ok(Event::Eof) => {
-                    self.set_name(&name)?;
-                    self.set_prefix(&prefix)?;
-                    self.set_max_keys(&max_keys)?;
-                    self.set_key_count(&key_count)?;
                     self.set_list(result)?;
-                    self.set_next_continuation_token(if next_continuation_token.len() > 0 {
-                        Some(&next_continuation_token)
-                    } else {
-                        None
-                    })?;
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
@@ -331,35 +318,26 @@ where
         reader.trim_text(true);
         let mut buf = Vec::with_capacity(xml.len());
 
-        let mut name = Cow::from("");
-        let mut location = Cow::from("");
-        let mut creation_date = Cow::from(""); // String::with_capacity(20);
-
-        // 目前最长的可用区 zhangjiakou 13 ，剩余部分总共 20
-        let mut extranet_endpoint = Cow::from(""); // String::with_capacity(33);
-                                                   // 上一个长度 + 9 （-internal）
-        let mut intranet_endpoint = Cow::from(""); // String::with_capacity(42);
-                                                   // 最长的值 ColdArchive 11
-        let mut storage_class = Cow::from(""); // String::with_capacity(11);
-
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => match e.name().as_ref() {
-                    NAME => name = reader.read_text(e.to_end().name())?,
-                    CREATION_DATE => creation_date = reader.read_text(e.to_end().name())?,
-                    EXTRANET_ENDPOINT => extranet_endpoint = reader.read_text(e.to_end().name())?,
-                    INTRANET_ENDPOINT => intranet_endpoint = reader.read_text(e.to_end().name())?,
-                    LOCATION => location = reader.read_text(e.to_end().name())?,
-                    STORAGE_CLASS => storage_class = reader.read_text(e.to_end().name())?,
+                    NAME => self.set_name(&reader.read_text(e.to_end().name())?)?,
+                    CREATION_DATE => {
+                        self.set_creation_date(&reader.read_text(e.to_end().name())?)?
+                    }
+                    EXTRANET_ENDPOINT => {
+                        self.set_extranet_endpoint(&reader.read_text(e.to_end().name())?)?
+                    }
+                    INTRANET_ENDPOINT => {
+                        self.set_intranet_endpoint(&reader.read_text(e.to_end().name())?)?
+                    }
+                    LOCATION => self.set_location(&reader.read_text(e.to_end().name())?)?,
+                    STORAGE_CLASS => {
+                        self.set_storage_class(&reader.read_text(e.to_end().name())?)?
+                    }
                     _ => (),
                 },
                 Ok(Event::Eof) => {
-                    self.set_name(&name)?;
-                    self.set_creation_date(&creation_date)?;
-                    self.set_location(&location)?;
-                    self.set_extranet_endpoint(&extranet_endpoint)?;
-                    self.set_intranet_endpoint(&intranet_endpoint)?;
-                    self.set_storage_class(&storage_class)?;
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
@@ -421,14 +399,6 @@ where
         reader.trim_text(true);
         let mut buf = Vec::with_capacity(xml.len());
 
-        let mut prefix = Cow::from("");
-        let mut marker = Cow::from("");
-        let mut max_keys = Cow::from("");
-        let mut is_truncated = false;
-        let mut next_marker = Cow::from("");
-        let mut id = Cow::from(""); //String::with_capacity(8);
-        let mut display_name = Cow::from(""); //String::with_capacity(8);
-
         let mut name = Cow::from("");
         let mut location = Cow::from("");
         let mut creation_date = Cow::from(""); //String::with_capacity(20);
@@ -443,16 +413,17 @@ where
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => match e.name().as_ref() {
-                    PREFIX => prefix = reader.read_text(e.to_end().name())?,
-                    MARKER => marker = reader.read_text(e.to_end().name())?,
-                    MAX_KEYS => max_keys = reader.read_text(e.to_end().name())?,
+                    PREFIX => self.set_prefix(&reader.read_text(e.to_end().name())?)?,
+                    MARKER => self.set_marker(&reader.read_text(e.to_end().name())?)?,
+                    MAX_KEYS => self.set_max_keys(&reader.read_text(e.to_end().name())?)?,
                     IS_TRUNCATED => {
-                        is_truncated = reader.read_text(e.to_end().name())?.to_string() == "true"
+                        self.set_is_truncated(
+                            reader.read_text(e.to_end().name())? == "true",
+                        )?;
                     }
-                    NEXT_MARKER => next_marker = reader.read_text(e.to_end().name())?,
-                    ID => id = reader.read_text(e.to_end().name())?,
-                    DISPLAY_NAME => display_name = reader.read_text(e.to_end().name())?,
-
+                    NEXT_MARKER => self.set_next_marker(&reader.read_text(e.to_end().name())?)?,
+                    ID => self.set_id(&reader.read_text(e.to_end().name())?)?,
+                    DISPLAY_NAME => self.set_display_name(&reader.read_text(e.to_end().name())?)?,
                     // b"Bucket" => {
                     //     // name.clear();
                     //     // location.clear();
@@ -470,7 +441,6 @@ where
                     _ => (),
                 },
                 Ok(Event::End(ref e)) if e.name().as_ref() == BUCKET => {
-                    //let in_creation_date = &creation_date.parse::<DateTime<Utc>>()?;
                     let mut bucket = init_bucket();
                     bucket.set_name(&name)?;
                     bucket.set_creation_date(&creation_date)?;
@@ -481,15 +451,7 @@ where
                     result.push(bucket);
                 }
                 Ok(Event::Eof) => {
-                    self.set_prefix(&prefix)?;
-                    self.set_marker(&marker)?;
-                    self.set_max_keys(&max_keys)?;
-                    self.set_is_truncated(is_truncated)?;
-                    self.set_next_marker(&next_marker)?;
-                    self.set_id(&id)?;
-                    self.set_display_name(&display_name)?;
                     self.set_list(result)?;
-
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
