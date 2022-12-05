@@ -417,9 +417,7 @@ where
                     MARKER => self.set_marker(&reader.read_text(e.to_end().name())?)?,
                     MAX_KEYS => self.set_max_keys(&reader.read_text(e.to_end().name())?)?,
                     IS_TRUNCATED => {
-                        self.set_is_truncated(
-                            reader.read_text(e.to_end().name())? == "true",
-                        )?;
+                        self.set_is_truncated(reader.read_text(e.to_end().name())? == "true")?;
                     }
                     NEXT_MARKER => self.set_next_marker(&reader.read_text(e.to_end().name())?)?,
                     ID => self.set_id(&reader.read_text(e.to_end().name())?)?,
