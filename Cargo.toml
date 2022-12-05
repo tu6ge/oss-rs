@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 resolver = "2"
 license.workspace = true
+documentation.workspace = true
 description = "an aliyun oss client"
 keywords = ["aliyun", "oss", "sdk"]
 repository.workspace = true
@@ -18,10 +19,11 @@ all-features = true
 members = ["oss_derive"]
 
 [workspace.package]
-version = "0.9.5"
+version = "0.9.6"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/tu6ge/oss-rs"
+documentation = "https://docs.rs/aliyun-oss-client"
 
 [[example]]
 name = "bucket"
@@ -77,7 +79,7 @@ futures-core = "^0.3"
 futures-util = "^0.3"
 
 [dependencies.oss_derive]
-version = "0.9.5"
+version = "0.9.6"
 path = "./oss_derive"
 
 [dev-dependencies]

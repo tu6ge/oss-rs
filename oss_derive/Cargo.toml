@@ -5,6 +5,7 @@ description = "aliyun-oss-client 's macro"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+documentation.workspace = true
 
 [lib]
 proc-macro = true
