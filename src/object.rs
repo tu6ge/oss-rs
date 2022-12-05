@@ -561,6 +561,7 @@ impl Client {
     /// use dotenv::dotenv;
     /// use thiserror::Error;
     ///
+    /// #[derive(Debug)]
     /// struct MyFile {
     ///     key: String,
     ///     #[allow(dead_code)]
@@ -575,7 +576,7 @@ impl Client {
     ///     }
     /// }
     ///
-    /// #[derive(Default)]
+    /// #[derive(Default, Debug)]
     /// struct MyBucket {
     ///     name: String,
     ///     files: Vec<MyFile>,
