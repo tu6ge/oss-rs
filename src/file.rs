@@ -31,7 +31,6 @@ use oss_derive::oss_file;
 /// [`Client`]: crate::client::Client
 /// [`Bucket`]: crate::bucket::Bucket
 /// [`ObjectList`]: crate::object::ObjectList
-///
 #[oss_file(ASYNC)]
 #[async_trait]
 pub trait File: AlignBuilder {

@@ -237,7 +237,7 @@ pub mod blocking;
 /// 封装了 reqwest::RequestBuilder 模块
 pub mod builder;
 
-/// 定义 trait 们
+/// 解析 aliyun OSS 接口返回的 xml 格式的各种 trait
 pub mod traits;
 
 /// 异常处理模块
