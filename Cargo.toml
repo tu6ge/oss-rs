@@ -19,11 +19,15 @@ all-features = true
 members = ["oss_derive"]
 
 [workspace.package]
-version = "0.9.6"
+version = "0.9.7"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/tu6ge/oss-rs"
 documentation = "https://docs.rs/aliyun-oss-client"
+
+[dependencies.oss_derive]
+version = "0.9.6"
+path = "./oss_derive"
 
 [[example]]
 name = "bucket"
@@ -58,7 +62,7 @@ default = [
 blocking = ["reqwest/blocking"]
 sts = []
 put_file = ["infer"]
-bench = []
+# bench = []
 
 [dependencies]
 hmac = "^0.12"
@@ -77,10 +81,6 @@ http="^0.2"
 async-stream = "^0.3"
 futures-core = "^0.3"
 futures-util = "^0.3"
-
-[dependencies.oss_derive]
-version = "0.9.6"
-path = "./oss_derive"
 
 [dev-dependencies]
 dotenv = "0.15.0"
