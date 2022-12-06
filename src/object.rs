@@ -157,7 +157,7 @@ impl ObjectList {
                 let content = response.send().await?;
 
                 let mut list = ObjectList::<ArcPointer>::default();
-                list.set_client(self.client().clone());
+                list.set_client(self.client());
                 list.set_bucket(self.bucket.clone());
 
                 let bucket_arc = Arc::new(self.bucket.clone());
@@ -523,8 +523,10 @@ impl Client {
     ///
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`](../bucket/struct.Bucket.html#method.get_object_list) 文档
     pub async fn get_object_list<Q: Into<Query>>(self, query: Q) -> OssResult<ObjectList> {
-        let name = self.get_bucket_name();
-        let bucket = BucketBase::new(name.clone(), self.get_endpoint().to_owned());
+        let bucket = BucketBase::new(
+            self.get_bucket_name().to_owned(),
+            self.get_endpoint().to_owned(),
+        );
 
         let mut list = ObjectList::<ArcPointer>::default();
         list.set_bucket(bucket.clone());
@@ -536,12 +538,19 @@ impl Client {
             object
         };
 
+        let mut bucket_url = bucket.to_url();
         let query = query.into();
+        bucket_url.set_search_query(&query);
 
-        let result: Result<_, OssError> = self
-            .base_object_list(name.to_owned(), query.clone(), &mut list, init_object)
-            .await;
-        result?;
+        let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
+
+        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let content = response.send().await?;
+
+        list.from_xml(
+            &content.text().await.map_err(BuilderError::from)?,
+            init_object,
+        )?;
 
         list.set_client(Arc::new(self));
         list.set_search_query(query);
@@ -684,11 +693,16 @@ impl ClientRc {
             object
         };
 
+        let mut bucket_url = bucket.to_url();
         let query = query.into();
+        bucket_url.set_search_query(&query);
 
-        let result: Result<_, OssError> =
-            self.base_object_list(name.to_owned(), query.clone(), &mut list, init_object);
-        result?;
+        let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
+
+        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let content = response.send()?;
+
+        list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
 
         list.set_client(Rc::new(self));
         list.set_search_query(query);

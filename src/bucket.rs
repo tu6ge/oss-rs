@@ -11,8 +11,8 @@ use crate::errors::{OssError, OssResult};
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::object::{Object, ObjectList};
-use crate::traits::{RefineBucket, RefineBucketList};
-use crate::types::{CanonicalizedResource, InvalidEndPoint, Query, BUCKET_INFO};
+use crate::traits::{RefineBucket, RefineBucketList, RefineObjectList};
+use crate::types::{CanonicalizedResource, InvalidEndPoint, Query, UrlQuery, BUCKET_INFO};
 use crate::BucketName;
 use chrono::prelude::*;
 use oss_derive::oss_gen_rc;
@@ -221,32 +221,31 @@ impl Bucket {
     pub async fn get_object_list<Q: Into<Query>>(&self, query: Q) -> OssResult<ObjectList> {
         let query = query.into();
 
-        let base = self.base.clone();
-
-        let bucket_arc = Arc::new(base.clone());
+        let bucket_arc = Arc::new(self.base.clone());
 
         let init_object = || {
             let mut object = Object::<ArcPointer>::default();
             object.base.set_bucket(bucket_arc.clone());
             object
         };
-
-        let client = self.client();
-
         let mut list = ObjectList::<ArcPointer>::default();
 
-        let result: Result<_, OssError> = client
-            .base_object_list(
-                self.base.get_name().to_owned(),
-                query.clone(),
-                &mut list,
-                init_object,
-            )
-            .await;
-        result?;
+        let mut bucket_url = self.base.to_url();
+        let query = query.into();
+        bucket_url.set_search_query(&query);
 
-        list.set_bucket(base);
-        list.set_client(Arc::clone(&client));
+        let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
+
+        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let content = response.send().await?;
+
+        list.from_xml(
+            &content.text().await.map_err(BuilderError::from)?,
+            init_object,
+        )?;
+
+        list.set_bucket(self.base.clone());
+        list.set_client(self.client());
         list.set_search_query(query);
 
         Ok(list)
@@ -261,9 +260,7 @@ impl Bucket<RcPointer> {
     pub fn get_object_list<Q: Into<Query>>(&self, query: Q) -> OssResult<ObjectList<RcPointer>> {
         let query = query.into();
 
-        let base = self.base.clone();
-
-        let bucket_arc = Rc::new(base.clone());
+        let bucket_arc = Rc::new(self.base.clone());
 
         let init_object = || {
             let mut object = Object::<RcPointer>::default();
@@ -271,20 +268,19 @@ impl Bucket<RcPointer> {
             object
         };
 
-        let client = self.client();
-
         let mut list = ObjectList::<RcPointer>::default();
 
-        let result: Result<_, OssError> = client.base_object_list(
-            self.base.get_name().to_owned(),
-            query.clone(),
-            &mut list,
-            init_object,
-        );
-        result?;
+        let mut bucket_url = self.base.to_url();
+        bucket_url.set_search_query(&query);
+        let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
 
-        list.set_bucket(base);
-        list.set_client(Rc::clone(&client));
+        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let content = response.send()?;
+
+        list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
+
+        list.set_bucket(self.base.clone());
+        list.set_client(self.client());
         list.set_search_query(query);
 
         Ok(list)
