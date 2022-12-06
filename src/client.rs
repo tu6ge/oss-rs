@@ -84,6 +84,7 @@ impl<M: Default + Clone> Client<M> {
         ))
     }
 
+    #[inline]
     pub fn from_builder(auth_builder: AuthBuilder, endpoint: EndPoint, bucket: BucketName) -> Self {
         Self {
             auth_builder,
@@ -148,6 +149,7 @@ impl Client {
 impl AlignBuilder for Client<ClientWithMiddleware> {
     /// builder 方法的异步实现
     /// 带 header 参数
+    #[inline]
     fn builder_with_header<M: Into<VERB>>(
         &self,
         method: M,
@@ -201,6 +203,7 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
     /// 返回值是一个 reqwest 的请求创建器 `reqwest::blocking::RequestBuilder`
     ///
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
+    #[inline]
     fn builder_with_header<M: Into<VERB>>(
         &self,
         method: M,

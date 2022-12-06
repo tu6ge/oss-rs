@@ -259,6 +259,7 @@ pub trait AlignBuilder: Send + Sync {
 }
 
 impl AlignBuilder for Bucket {
+    #[inline]
     fn builder_with_header<M: Into<VERB>>(
         &self,
         method: M,
@@ -272,6 +273,7 @@ impl AlignBuilder for Bucket {
 }
 
 impl AlignBuilder for ObjectList<ArcPointer> {
+    #[inline]
     fn builder_with_header<M: Into<VERB>>(
         &self,
         method: M,
