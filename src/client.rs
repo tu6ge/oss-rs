@@ -17,6 +17,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 /// # 构造请求的客户端结构体
+/// Clone 特征不是必须的
 #[non_exhaustive]
 #[derive(Default, Clone)]
 pub struct Client<M = ClientWithMiddleware>

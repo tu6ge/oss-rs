@@ -361,7 +361,7 @@ impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
 
 impl ClientArc {
     pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
-        let client_arc = Arc::new(self.clone());
+        let client_arc = Arc::new(self);
 
         let init_bucket = || {
             let mut bucket = Bucket::<ArcPointer>::default();
@@ -370,7 +370,9 @@ impl ClientArc {
         };
 
         let mut bucket_list = ListBuckets::<ArcPointer>::default();
-        let res: Result<_, OssError> = self.base_bucket_list(&mut bucket_list, init_bucket).await;
+        let res: Result<_, OssError> = client_arc
+            .base_bucket_list(&mut bucket_list, init_bucket)
+            .await;
         res?;
 
         bucket_list.set_client(client_arc.clone());
@@ -446,7 +448,7 @@ impl ClientArc {
 #[cfg(feature = "blocking")]
 impl ClientRc {
     pub fn get_bucket_list(self) -> OssResult<ListBuckets<RcPointer>> {
-        let client_arc = Rc::new(self.clone());
+        let client_arc = Rc::new(self);
 
         let init_bucket = || {
             let mut bucket = Bucket::<RcPointer>::default();
@@ -455,9 +457,9 @@ impl ClientRc {
         };
 
         let mut bucket_list = ListBuckets::<RcPointer>::default();
-        let res: Result<_, OssError> = self.base_bucket_list(&mut bucket_list, init_bucket);
+        let res: Result<_, OssError> = client_arc.base_bucket_list(&mut bucket_list, init_bucket);
         res?;
-        bucket_list.set_client(Rc::new(self));
+        bucket_list.set_client(client_arc.clone());
 
         Ok(bucket_list)
     }
