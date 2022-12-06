@@ -241,10 +241,7 @@ where
                         LAST_MODIFIED => last_modified = reader.read_text(e.to_end().name())?,
                         E_TAG => {
                             let tag = reader.read_text(e.to_end().name())?;
-
-                            let new_tag = tag.into_owned();
-                            let new_tag = &new_tag.trim_matches('"');
-                            etag = Cow::Owned((*new_tag).to_owned());
+                            etag = Cow::Owned((*(&*tag.trim_matches('"'))).to_owned());
                         }
                         TYPE => _type = reader.read_text(e.to_end().name())?,
                         SIZE => {
