@@ -154,7 +154,7 @@ impl ObjectList {
                 let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
 
                 let response = self.builder(VERB::GET, url, canonicalized)?;
-                let content = response.send().await?;
+                let content = response.send_adjust_error().await?;
 
                 let mut list = ObjectList::<ArcPointer>::default();
                 list.set_client(self.client());
@@ -545,7 +545,7 @@ impl Client {
         let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
-        let content = response.send().await?;
+        let content = response.send_adjust_error().await?;
 
         list.from_xml(
             &content.text().await.map_err(BuilderError::from)?,
@@ -662,7 +662,7 @@ impl Client {
         let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
-        let content = response.send().await?;
+        let content = response.send_adjust_error().await?;
 
         list.from_xml(
             &content.text().await.map_err(BuilderError::from)?,
@@ -700,7 +700,7 @@ impl ClientRc {
         let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
-        let content = response.send()?;
+        let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
 
@@ -734,7 +734,7 @@ impl ClientRc {
         let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
 
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
-        let content = response.send()?;
+        let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
 
@@ -783,7 +783,7 @@ impl Iterator for ObjectList<RcPointer> {
 //                 match builder {
 //                     Err(err) => return Ready(None),
 //                     Ok(builder) => {
-//                         let content = match builder.send().poll_unpin(cx) {
+//                         let content = match builder.send_adjust_error().poll_unpin(cx) {
 //                             Ready(res) => res,
 //                             Poll::Pending => return Poll::Pending,
 //                         };

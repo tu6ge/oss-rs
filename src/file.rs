@@ -138,7 +138,7 @@ pub trait File: AlignBuilder {
 
         self.builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
             .body(content)
-            .send()
+            .send_adjust_error()
             .await
             .map_err(OssError::from)
     }
@@ -159,7 +159,7 @@ pub trait File: AlignBuilder {
 
         let content = self
             .builder_with_header("GET", url, canonicalized, Some(headers))?
-            .send()
+            .send_adjust_error()
             .await?
             .text()
             .await?;
@@ -172,7 +172,7 @@ pub trait File: AlignBuilder {
         let (url, canonicalized) = self.get_url(path);
 
         self.builder(VERB::DELETE, url, canonicalized)?
-            .send()
+            .send_adjust_error()
             .await?;
 
         Ok(())
@@ -510,7 +510,7 @@ pub mod blocking {
                 .builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
                 .body(content);
 
-            let content = response.send()?;
+            let content = response.send_adjust_error()?;
             Ok(content)
         }
 
@@ -530,7 +530,7 @@ pub mod blocking {
 
             Ok(self
                 .builder_with_header("GET", url, canonicalized, Some(headers))?
-                .send()?
+                .send_adjust_error()?
                 .text()?
                 .into_bytes())
         }
@@ -538,7 +538,8 @@ pub mod blocking {
         fn delete_object<OP: Into<ObjectPath>>(&self, path: OP) -> OssResult<()> {
             let (url, canonicalized) = self.get_url(path);
 
-            self.builder(VERB::DELETE, url, canonicalized)?.send()?;
+            self.builder(VERB::DELETE, url, canonicalized)?
+                .send_adjust_error()?;
 
             Ok(())
         }

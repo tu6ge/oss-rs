@@ -81,7 +81,16 @@ impl RequestBuilder {
         self.inner.build()
     }
 
+    /// 发送请求，获取响应后，直接返回 Response
     pub fn send(self) -> Result<Response, BuilderError> {
+        match self.middleware {
+            Some(m) => m.handle(self.inner.build().unwrap()),
+            None => self.inner.send().map_err(BuilderError::from),
+        }
+    }
+
+    /// 发送请求，获取响应后，解析 xml 文件，如果有错误，返回 Err 否则返回 Response
+    pub fn send_adjust_error(self) -> Result<Response, BuilderError> {
         match self.middleware {
             Some(m) => m.handle(self.inner.build().unwrap()),
             None => self

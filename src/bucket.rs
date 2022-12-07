@@ -237,7 +237,7 @@ impl Bucket {
         let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
 
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
-        let content = response.send().await?;
+        let content = response.send_adjust_error().await?;
 
         list.from_xml(
             &content.text().await.map_err(BuilderError::from)?,
@@ -275,7 +275,7 @@ impl Bucket<RcPointer> {
         let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
 
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
-        let content = response.send()?;
+        let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
 
@@ -393,7 +393,7 @@ impl ClientArc {
         let canonicalized = CanonicalizedResource::default();
 
         let response = self.builder(VERB::GET, url, canonicalized)?;
-        let content = response.send().await?;
+        let content = response.send_adjust_error().await?;
 
         list.from_xml(
             &content.text().await.map_err(BuilderError::from)?,
@@ -433,7 +433,7 @@ impl ClientArc {
         let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
-        let content = response.send().await?;
+        let content = response.send_adjust_error().await?;
 
         bucket.from_xml(&content.text().await.map_err(BuilderError::from)?)?;
 
@@ -477,7 +477,7 @@ impl ClientRc {
         let canonicalized = CanonicalizedResource::default();
 
         let response = self.builder(VERB::GET, url, canonicalized)?;
-        let content = response.send()?;
+        let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_bucket)?;
 
@@ -514,7 +514,7 @@ impl ClientRc {
         let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
         let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
-        let content = response.send()?;
+        let content = response.send_adjust_error()?;
 
         bucket.from_xml(&content.text().map_err(BuilderError::from)?)?;
 
