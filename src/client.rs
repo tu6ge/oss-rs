@@ -106,6 +106,7 @@ impl<M: Default + Clone> Client<M> {
         &self.bucket
     }
 
+    /// 返回默认可用区，默认 bucket 的 BucketBase
     pub fn get_bucket_base(&self) -> BucketBase {
         BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned())
     }

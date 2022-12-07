@@ -9,7 +9,7 @@ use oss_derive::array2query;
 use reqwest::header::{HeaderValue, InvalidHeaderValue};
 use reqwest::Url;
 
-use crate::config::{BucketBase, GetObjectInfo};
+use crate::config::BucketBase;
 use crate::errors::{OssError, OssResult};
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
@@ -715,10 +715,7 @@ impl CanonicalizedResource {
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
-    pub fn from_object<Obj: GetObjectInfo, Q: Into<Query>>(object: Obj, query: Q) -> Self {
-        let bucket = object.bucket_name();
-        let path = object.path();
-
+    pub(crate) fn from_object<Q: Into<Query>>((bucket, path): (&str, &str), query: Q) -> Self {
         let query = query.into();
         if query.len() == 0 {
             Self::from(format!("/{}/{}", bucket, path))

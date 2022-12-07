@@ -1,6 +1,9 @@
+#[cfg(feature = "blocking")]
+use std::rc::Rc;
 use std::{
     borrow::Cow,
     env::{self, VarError},
+    sync::Arc,
 };
 
 use oss_derive::oss_gen_rc;
@@ -12,7 +15,11 @@ use thiserror::Error;
 use crate::builder::RcPointer;
 use crate::{
     builder::{ArcPointer, PointerFamily},
-    types::{BucketName, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId, KeySecret},
+    types::{
+        BucketName, CanonicalizedResource, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId,
+        KeySecret,
+    },
+    Query,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
@@ -276,19 +283,56 @@ impl<T: PointerFamily> ObjectBase<T> {
     }
 }
 
-pub trait GetObjectInfo {
-    fn bucket_name(&self) -> &str;
-    fn path(&self) -> &str;
-}
-
 #[oss_gen_rc]
-impl GetObjectInfo for ObjectBase<ArcPointer> {
-    fn bucket_name(&self) -> &str {
-        self.bucket.name()
+impl ObjectBase<ArcPointer> {
+    #[inline]
+    pub fn from_bucket<B, P>(bucket: B, path: P) -> Self
+    where
+        B: Into<BucketBase>,
+        P: Into<ObjectPath>,
+    {
+        Self {
+            bucket: Arc::new(bucket.into()),
+            path: path.into(),
+        }
     }
 
-    fn path(&self) -> &str {
-        self.path.as_ref()
+    #[inline]
+    pub fn from_ref_bucket<P>(bucket: Arc<BucketBase>, path: P) -> Self
+    where
+        P: Into<ObjectPath>,
+    {
+        Self {
+            bucket: bucket.clone(),
+            path: path.into(),
+        }
+    }
+
+    #[inline]
+    pub fn from_bucket_name<B, E, P>(bucket: B, endpoint: E, path: P) -> Self
+    where
+        B: Into<BucketName>,
+        E: Into<EndPoint>,
+        P: Into<ObjectPath>,
+    {
+        let bucket = BucketBase::new(bucket.into(), endpoint.into());
+        Self::from_bucket(bucket, path)
+    }
+
+    #[inline]
+    pub fn bucket_name(&self) -> &BucketName {
+        self.bucket.get_name()
+    }
+
+    #[inline]
+    pub fn get_url_resource<Q: Into<Query>>(self, query: Q) -> (Url, CanonicalizedResource) {
+        let mut url = self.bucket.to_url();
+        url.set_object_path(&self.path);
+
+        let resource =
+            CanonicalizedResource::from_object((self.bucket.name(), self.path.as_ref()), query);
+
+        (url, resource)
     }
 }
 
@@ -464,11 +508,9 @@ mod blocking_tests {
 
     #[test]
     fn test_get_object_info() {
-        use crate::config::GetObjectInfo;
-
         let object = crate_object_base("abc.oss-cn-shanghai.aliyuncs.com", "bar");
 
-        assert_eq!(object.bucket_name(), "abc");
+        assert_eq!(object.bucket_name(), &"abc");
         assert_eq!(object.path(), "bar");
     }
 

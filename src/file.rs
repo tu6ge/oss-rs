@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use http::{
     header::{CONTENT_LENGTH, CONTENT_TYPE},
@@ -11,7 +9,7 @@ use crate::{
     auth::VERB,
     bucket::Bucket,
     builder::{ArcPointer, BuilderError, RequestBuilder},
-    config::{ObjectBase, ObjectPath, UrlObjectPath},
+    config::{ObjectBase, ObjectPath},
     errors::{OssError, OssResult},
     object::{Object, ObjectList},
     types::{CanonicalizedResource, ContentRange},
@@ -184,15 +182,9 @@ impl File for Client {
         &self,
         path: OP,
     ) -> (Url, CanonicalizedResource) {
-        let path = path.into();
-        let mut url = self.get_bucket_url();
-        url.set_object_path(&path);
+        let object_base = ObjectBase::<ArcPointer>::from_bucket(self.get_bucket_base(), path);
 
-        let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.get_bucket_base()), path);
-
-        let canonicalized = CanonicalizedResource::from_object(object_base, []);
-
-        (url, canonicalized)
+        object_base.get_url_resource([])
     }
 }
 
@@ -201,15 +193,9 @@ impl File for Bucket {
         &self,
         path: OP,
     ) -> (Url, CanonicalizedResource) {
-        let path = path.into();
-        let mut url = self.base.to_url();
-        url.set_object_path(&path);
+        let object_base = ObjectBase::<ArcPointer>::from_bucket(self.base.to_owned(), path);
 
-        let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.base.to_owned()), path);
-
-        let canonicalized = CanonicalizedResource::from_object(object_base, []);
-
-        (url, canonicalized)
+        object_base.get_url_resource([])
     }
 }
 
@@ -218,15 +204,8 @@ impl File for ObjectList<ArcPointer> {
         &self,
         path: OP,
     ) -> (Url, CanonicalizedResource) {
-        let path = path.into();
-        let mut url = self.bucket.to_url();
-        url.set_object_path(&path);
-
-        let object_base = ObjectBase::<ArcPointer>::new(Arc::new(self.bucket.to_owned()), path);
-
-        let canonicalized = CanonicalizedResource::from_object(object_base, []);
-
-        (url, canonicalized)
+        let object_base = ObjectBase::<ArcPointer>::from_bucket(self.bucket.to_owned(), path);
+        object_base.get_url_resource([])
     }
 }
 
@@ -384,14 +363,12 @@ pub use blocking::File as BlockingFile;
 
 #[cfg(feature = "blocking")]
 pub mod blocking {
-    use std::rc::Rc;
-
     use crate::{
         auth::VERB,
         blocking::builder::RequestBuilder,
         bucket::Bucket,
         builder::{BuilderError, RcPointer},
-        config::{ObjectBase, ObjectPath, UrlObjectPath},
+        config::{ObjectBase, ObjectPath},
         errors::{OssError, OssResult},
         object::{Object, ObjectList},
         types::{CanonicalizedResource, ContentRange},
@@ -547,43 +524,25 @@ pub mod blocking {
 
     impl File for ClientRc {
         fn get_url<OP: Into<ObjectPath>>(&self, path: OP) -> (Url, CanonicalizedResource) {
-            let path = path.into();
-            let mut url = self.get_bucket_url();
-            url.set_object_path(&path);
+            let object_base = ObjectBase::<RcPointer>::from_bucket(self.get_bucket_base(), path);
 
-            let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.get_bucket_base()), path);
-
-            let canonicalized = CanonicalizedResource::from_object(object_base, []);
-
-            (url, canonicalized)
+            object_base.get_url_resource([])
         }
     }
 
     impl File for Bucket<RcPointer> {
         fn get_url<OP: Into<ObjectPath>>(&self, path: OP) -> (Url, CanonicalizedResource) {
-            let path = path.into();
-            let mut url = self.base.to_url();
-            url.set_object_path(&path);
+            let object_base = ObjectBase::<RcPointer>::from_bucket(self.base.clone(), path);
 
-            let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.base.clone()), path);
-
-            let canonicalized = CanonicalizedResource::from_object(object_base, []);
-
-            (url, canonicalized)
+            object_base.get_url_resource([])
         }
     }
 
     impl File for ObjectList<RcPointer> {
         fn get_url<OP: Into<ObjectPath>>(&self, path: OP) -> (Url, CanonicalizedResource) {
-            let path = path.into();
-            let mut url = self.bucket.to_url();
-            url.set_object_path(&path);
+            let object_base = ObjectBase::<RcPointer>::from_bucket(self.bucket.clone(), path);
 
-            let object_base = ObjectBase::<RcPointer>::new(Rc::new(self.bucket.clone()), path);
-
-            let canonicalized = CanonicalizedResource::from_object(object_base, []);
-
-            (url, canonicalized)
+            object_base.get_url_resource([])
         }
     }
 
