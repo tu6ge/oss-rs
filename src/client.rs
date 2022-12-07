@@ -156,7 +156,7 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
         method: M,
         url: Url,
         resource: CanonicalizedResource,
-        headers: Option<HeaderMap>,
+        headers: HeaderMap,
     ) -> Result<RequestBuilder, BuilderError> {
         let method = method.into();
         let headers = self
@@ -165,7 +165,7 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
             .verb(&method)
             .date(now().into())
             .canonicalized_resource(resource)
-            .with_headers(headers)
+            .extend_headers(headers)
             .get_headers()?;
 
         Ok(self.client_middleware.request(method, url).headers(headers))
@@ -210,7 +210,7 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
         method: M,
         url: Url,
         resource: CanonicalizedResource,
-        headers: Option<HeaderMap>,
+        headers: HeaderMap,
     ) -> Result<BlockingRequestBuilder, BuilderError> {
         let method = method.into();
         let headers = self
@@ -219,7 +219,7 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
             .verb(&method)
             .date(now().into())
             .canonicalized_resource(resource)
-            .with_headers(headers)
+            .extend_headers(headers)
             .get_headers()?;
 
         Ok(self.client_middleware.request(method, url).headers(headers))

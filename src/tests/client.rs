@@ -37,9 +37,9 @@ fn test_builder_with_header() {
     );
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
-    let mut headers = HeaderMap::new();
+    let mut headers = HeaderMap::with_capacity(1);
     headers.insert("Content-Type", "application/json".parse().unwrap());
-    let builder = client.builder_with_header("POST", url, resource, Some(headers));
+    let builder = client.builder_with_header("POST", url, resource, headers);
 
     assert!(builder.is_ok());
 
@@ -92,9 +92,9 @@ fn test_blocking_builder_with_header() {
     );
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
-    let mut headers = HeaderMap::new();
+    let mut headers = HeaderMap::with_capacity(1);
     headers.insert("Content-Type", "application/json".parse().unwrap());
-    let builder = client.builder_with_header("POST", url, resource, Some(headers));
+    let builder = client.builder_with_header("POST", url, resource, headers);
 
     assert!(builder.is_ok());
 

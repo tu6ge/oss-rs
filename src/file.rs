@@ -125,7 +125,7 @@ pub trait File: AlignBuilder {
     ) -> OssResult<Response> {
         let (url, canonicalized) = self.get_url(path);
 
-        let mut headers = HeaderMap::new();
+        let mut headers = HeaderMap::with_capacity(2);
         let content_length = content.len().to_string();
         headers.insert(
             CONTENT_LENGTH,
@@ -134,7 +134,7 @@ pub trait File: AlignBuilder {
 
         headers.insert(CONTENT_TYPE, content_type.parse().map_err(OssError::from)?);
 
-        self.builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
+        self.builder_with_header(VERB::PUT, url, canonicalized, headers)?
             .body(content)
             .send_adjust_error()
             .await
@@ -150,13 +150,13 @@ pub trait File: AlignBuilder {
         let (url, canonicalized) = self.get_url(path);
 
         let headers = {
-            let mut headers = HeaderMap::new();
+            let mut headers = HeaderMap::with_capacity(1);
             headers.insert("Range", range.into().into());
             headers
         };
 
         let content = self
-            .builder_with_header("GET", url, canonicalized, Some(headers))?
+            .builder_with_header("GET", url, canonicalized, headers)?
             .send_adjust_error()
             .await?
             .text()
@@ -225,7 +225,7 @@ pub trait AlignBuilder: Send + Sync {
         url: Url,
         resource: CanonicalizedResource,
     ) -> Result<RequestBuilder, BuilderError> {
-        self.builder_with_header(method, url, resource, None)
+        self.builder_with_header(method, url, resource, HeaderMap::with_capacity(0))
     }
 
     fn builder_with_header<M: Into<VERB>>(
@@ -233,7 +233,7 @@ pub trait AlignBuilder: Send + Sync {
         method: M,
         url: Url,
         resource: CanonicalizedResource,
-        headers: Option<HeaderMap>,
+        headers: HeaderMap,
     ) -> Result<RequestBuilder, BuilderError>;
 }
 
@@ -244,7 +244,7 @@ impl AlignBuilder for Bucket {
         method: M,
         url: Url,
         resource: CanonicalizedResource,
-        headers: Option<HeaderMap>,
+        headers: HeaderMap,
     ) -> Result<RequestBuilder, BuilderError> {
         self.client()
             .builder_with_header(method, url, resource, headers)
@@ -258,7 +258,7 @@ impl AlignBuilder for ObjectList<ArcPointer> {
         method: M,
         url: Url,
         resource: CanonicalizedResource,
-        headers: Option<HeaderMap>,
+        headers: HeaderMap,
     ) -> Result<RequestBuilder, BuilderError> {
         self.client()
             .builder_with_header(method, url, resource, headers)
@@ -474,7 +474,7 @@ pub mod blocking {
         ) -> OssResult<Response> {
             let (url, canonicalized) = self.get_url(path);
 
-            let mut headers = HeaderMap::new();
+            let mut headers = HeaderMap::with_capacity(2);
             let content_length = content.len().to_string();
             headers.insert(
                 CONTENT_LENGTH,
@@ -484,7 +484,7 @@ pub mod blocking {
             headers.insert(CONTENT_TYPE, content_type.parse().map_err(OssError::from)?);
 
             let response = self
-                .builder_with_header(VERB::PUT, url, canonicalized, Some(headers))?
+                .builder_with_header(VERB::PUT, url, canonicalized, headers)?
                 .body(content);
 
             let content = response.send_adjust_error()?;
@@ -500,13 +500,13 @@ pub mod blocking {
             let (url, canonicalized) = self.get_url(path);
 
             let headers = {
-                let mut headers = HeaderMap::new();
+                let mut headers = HeaderMap::with_capacity(1);
                 headers.insert("Range", range.into().into());
                 headers
             };
 
             Ok(self
-                .builder_with_header("GET", url, canonicalized, Some(headers))?
+                .builder_with_header("GET", url, canonicalized, headers)?
                 .send_adjust_error()?
                 .text()?
                 .into_bytes())
@@ -554,7 +554,7 @@ pub mod blocking {
             url: Url,
             resource: CanonicalizedResource,
         ) -> Result<RequestBuilder, BuilderError> {
-            self.builder_with_header(method, url, resource, None)
+            self.builder_with_header(method, url, resource, HeaderMap::with_capacity(0))
         }
 
         fn builder_with_header<M: Into<VERB>>(
@@ -562,7 +562,7 @@ pub mod blocking {
             method: M,
             url: Url,
             resource: CanonicalizedResource,
-            headers: Option<HeaderMap>,
+            headers: HeaderMap,
         ) -> Result<RequestBuilder, BuilderError>;
     }
 
@@ -575,7 +575,7 @@ pub mod blocking {
             method: M,
             url: Url,
             resource: CanonicalizedResource,
-            headers: Option<HeaderMap>,
+            headers: HeaderMap,
         ) -> Result<RequestBuilder, BuilderError> {
             self.client()
                 .builder_with_header(method, url, resource, headers)
@@ -588,7 +588,7 @@ pub mod blocking {
             method: M,
             url: Url,
             resource: CanonicalizedResource,
-            headers: Option<HeaderMap>,
+            headers: HeaderMap,
         ) -> Result<RequestBuilder, BuilderError> {
             self.client()
                 .builder_with_header(method, url, resource, headers)
