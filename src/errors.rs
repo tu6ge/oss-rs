@@ -84,11 +84,21 @@ impl OssError {
     }
 }
 
-#[derive(Debug, Error, Default, PartialEq)]
+#[derive(Debug, Error, PartialEq)]
 pub struct OssService {
     pub code: String,
     pub message: String,
     pub request_id: String,
+}
+
+impl Default for OssService {
+    fn default() -> Self {
+        Self {
+            code: "Undefined".to_owned(),
+            message: "parse aliyun response xml error message failed".to_owned(),
+            request_id: "XXXXXXXXXXXXXXXXXXXXXXXX".to_owned(),
+        }
+    }
 }
 
 impl fmt::Display for OssService {
@@ -104,12 +114,30 @@ impl fmt::Display for OssService {
 impl<'a> OssService {
     /// 解析 oss 的错误信息
     pub fn new(source: &'a str) -> Self {
-        let code0 = source.find("<Code>").unwrap();
-        let code1 = source.find("</Code>").unwrap();
-        let message0 = source.find("<Message>").unwrap();
-        let message1 = source.find("</Message>").unwrap();
-        let request_id0 = source.find("<RequestId>").unwrap();
-        let request_id1 = source.find("</RequestId>").unwrap();
+        let code0 = match source.find("<Code>") {
+            Some(offset) => offset,
+            None => return Self::default(),
+        };
+        let code1 = match source.find("</Code>") {
+            Some(offset) => offset,
+            None => return Self::default(),
+        };
+        let message0 = match source.find("<Message>") {
+            Some(offset) => offset,
+            None => return Self::default(),
+        };
+        let message1 = match source.find("</Message>") {
+            Some(offset) => offset,
+            None => return Self::default(),
+        };
+        let request_id0 = match source.find("<RequestId>") {
+            Some(offset) => offset,
+            None => return Self::default(),
+        };
+        let request_id1 = match source.find("</RequestId>") {
+            Some(offset) => offset,
+            None => return Self::default(),
+        };
 
         Self {
             code: (&source[code0 + 6..code1]).to_owned(),
