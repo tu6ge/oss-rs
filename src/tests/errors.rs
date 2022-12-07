@@ -1,3 +1,5 @@
+use http::StatusCode;
+
 use crate::errors::{OssError, OssService};
 
 #[test]
@@ -8,6 +10,7 @@ fn test_message() {
 
     let oss_err = OssError::OssService(OssService {
         code: "OSS_TEST_CODE".to_string(),
+        status: StatusCode::default(),
         message: "foo_msg".to_string(),
         request_id: "foo_req_id".to_string(),
     });
@@ -19,13 +22,14 @@ fn test_message() {
 fn test_oss_service_fmt() {
     let oss_err = OssService {
         code: "OSS_TEST_CODE".to_string(),
+        status: StatusCode::default(),
         message: "foo_msg".to_string(),
         request_id: "foo_req_id".to_string(),
     };
 
     assert_eq!(
         format!("{}", oss_err),
-        "OssService { code: \"OSS_TEST_CODE\", message: \"foo_msg\", request_id: \"foo_req_id\" }"
+        "OssService { code: \"OSS_TEST_CODE\", status: 200, message: \"foo_msg\", request_id: \"foo_req_id\" }"
             .to_string()
     );
 }
@@ -43,7 +47,7 @@ fn test_oss_service_new() {
         <ServerTime>2022-09-04T08:11:37.000Z</ServerTime>
     </Error>
     "#;
-    let service = OssService::new(content);
+    let service = OssService::new(content, &StatusCode::default());
     assert_eq!(service.code, format!("RequestTimeTooSkewed"));
     assert_eq!(service.message, format!("bar"));
     assert_eq!(service.request_id, format!("63145DB90BFD85303279D56B"))

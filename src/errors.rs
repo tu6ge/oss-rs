@@ -1,5 +1,4 @@
-use hmac::digest::crypto_common;
-use http::header::ToStrError;
+use http::{header::ToStrError, StatusCode};
 use std::fmt;
 use thiserror::Error;
 
@@ -45,12 +44,11 @@ pub enum OssError {
     #[error("ParseIntError: {0}")]
     ParseIntError(#[from] std::num::ParseIntError),
 
-    #[error("hmac InvalidLength: {0}")]
-    InvalidLength(#[from] crypto_common::InvalidLength),
+    // #[error("hmac InvalidLength: {0}")]
+    // InvalidLength(#[from] crypto_common::InvalidLength),
 
-    #[error("FromUtf8Error: {0}")]
-    FromUtf8Error(#[from] std::string::FromUtf8Error),
-
+    // #[error("FromUtf8Error: {0}")]
+    // FromUtf8Error(#[from] std::string::FromUtf8Error),
     #[error("aliyun response error: {0}")]
     OssService(#[from] OssService),
 
@@ -84,9 +82,14 @@ impl OssError {
     }
 }
 
+/// # 保存并返回 OSS 服务端返回是数据
+/// 当服务器返回的状态码不在 200<=x 且 x<300 范围时，则会返回此错误
+///
+/// 如果解析 xml 格式错误，则会返回默认值，默认值的 status = 200
 #[derive(Debug, Error, PartialEq)]
 pub struct OssService {
     pub code: String,
+    pub status: StatusCode,
     pub message: String,
     pub request_id: String,
 }
@@ -95,7 +98,8 @@ impl Default for OssService {
     fn default() -> Self {
         Self {
             code: "Undefined".to_owned(),
-            message: "parse aliyun response xml error message failed".to_owned(),
+            status: StatusCode::default(),
+            message: "Parse aliyun response xml error message failed.".to_owned(),
             request_id: "XXXXXXXXXXXXXXXXXXXXXXXX".to_owned(),
         }
     }
@@ -105,6 +109,7 @@ impl fmt::Display for OssService {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("OssService")
             .field("code", &self.code)
+            .field("status", &self.status)
             .field("message", &self.message)
             .field("request_id", &self.request_id)
             .finish()
@@ -113,7 +118,7 @@ impl fmt::Display for OssService {
 
 impl<'a> OssService {
     /// 解析 oss 的错误信息
-    pub fn new(source: &'a str) -> Self {
+    pub fn new(source: &'a str, status: &StatusCode) -> Self {
         let code0 = match source.find("<Code>") {
             Some(offset) => offset,
             None => return Self::default(),
@@ -141,6 +146,7 @@ impl<'a> OssService {
 
         Self {
             code: (&source[code0 + 6..code1]).to_owned(),
+            status: status.clone(),
             message: (&source[message0 + 9..message1]).to_owned(),
             request_id: (&source[request_id0 + 11..request_id1]).to_owned(),
         }

@@ -111,17 +111,14 @@ pub trait BlockingReqeustHandler {
 impl BlockingReqeustHandler for Response {
     /// # 收集并处理 OSS 接口返回的错误
     fn handle_error(self) -> Result<Response, BuilderError> {
-        use crate::builder::SUCCESS_STATUS;
         use crate::errors::OssService;
+
+        if self.status().is_success() {
+            return Ok(self);
+        }
 
         let status = self.status();
 
-        for item in SUCCESS_STATUS.iter() {
-            if *item == status {
-                return Ok(self);
-            }
-        }
-
-        Err(OssService::new(&self.text()?).into())
+        Err(OssService::new(&self.text()?, &status).into())
     }
 }

@@ -159,21 +159,18 @@ pub trait RequestHandler {
     async fn handle_error(self) -> Result<Response, BuilderError>;
 }
 
-pub const SUCCESS_STATUS: [u16; 3] = [200, 204, 206];
 use crate::errors::OssService;
 
 #[async_trait]
 impl RequestHandler for Response {
     /// # 收集并处理 OSS 接口返回的错误
     async fn handle_error(self) -> Result<Response, BuilderError> {
-        let status = self.status();
-
-        for item in SUCCESS_STATUS.iter() {
-            if *item == status {
-                return Ok(self);
-            }
+        if self.status().is_success() {
+            return Ok(self);
         }
 
-        Err(OssService::new(&self.text().await?).into())
+        let status = self.status();
+
+        Err(OssService::new(&self.text().await?, &status).into())
     }
 }
