@@ -43,7 +43,7 @@ mod test_async {
     }
 
     #[tokio::test]
-    async fn test_get_object() {
+    async fn test_get_object_list() {
         dotenv().ok();
 
         let client = Client::from_env().unwrap();
@@ -54,7 +54,7 @@ mod test_async {
     }
 
     #[tokio::test]
-    async fn test_put_and_delete_file() {
+    async fn test_put_get_and_delete_file() {
         dotenv().ok();
 
         let client = Client::from_env().unwrap();
@@ -64,6 +64,10 @@ mod test_async {
             .await;
 
         assert_matches!(object_list, Ok(_));
+
+        let object = client.get_object("examples/bg2015071010.png", ..10).await;
+
+        assert_matches!(object, Ok(_));
 
         let result = client.delete_object("examples/bg2015071010.png").await;
 
