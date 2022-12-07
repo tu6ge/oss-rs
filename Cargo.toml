@@ -7,6 +7,7 @@ license.workspace = true
 documentation.workspace = true
 description = "an aliyun oss client"
 keywords = ["aliyun", "oss", "sdk"]
+categories = ["api-bindings"]
 repository.workspace = true
 rust-version = "1.62"
 
