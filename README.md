@@ -288,3 +288,9 @@ client.delete_object("examples/bg2015071010.png");
 ```bash
 rustup run nightly cargo bench
 ```
+
+## 生成 Changelog
+
+```
+conventional-changelog -p angular -i Changelog.md -s
+```
