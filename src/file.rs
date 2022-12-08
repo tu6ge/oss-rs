@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use http::{
-    header::{CONTENT_LENGTH, CONTENT_TYPE},
-    HeaderMap, HeaderValue,
+    header::{HeaderName, CONTENT_LENGTH, CONTENT_TYPE},
+    HeaderValue,
 };
 use reqwest::{Response, Url};
 
@@ -125,14 +125,14 @@ pub trait File: AlignBuilder {
     ) -> OssResult<Response> {
         let (url, canonicalized) = self.get_url(path);
 
-        let mut headers = HeaderMap::with_capacity(2);
         let content_length = content.len().to_string();
-        headers.insert(
-            CONTENT_LENGTH,
-            HeaderValue::from_str(&content_length).map_err(OssError::from)?,
-        );
-
-        headers.insert(CONTENT_TYPE, content_type.parse().map_err(OssError::from)?);
+        let headers = vec![
+            (
+                CONTENT_LENGTH,
+                HeaderValue::from_str(&content_length).map_err(OssError::from)?,
+            ),
+            (CONTENT_TYPE, content_type.parse().map_err(OssError::from)?),
+        ];
 
         self.builder_with_header(VERB::PUT, url, canonicalized, headers)?
             .body(content)
@@ -149,14 +149,10 @@ pub trait File: AlignBuilder {
     ) -> OssResult<Vec<u8>> {
         let (url, canonicalized) = self.get_url(path);
 
-        let headers = {
-            let mut headers = HeaderMap::with_capacity(1);
-            headers.insert("Range", range.into().into());
-            headers
-        };
+        let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
 
         let content = self
-            .builder_with_header("GET", url, canonicalized, headers)?
+            .builder_with_header("GET", url, canonicalized, list)?
             .send_adjust_error()
             .await?
             .text()
@@ -225,26 +221,26 @@ pub trait AlignBuilder: Send + Sync {
         url: Url,
         resource: CanonicalizedResource,
     ) -> Result<RequestBuilder, BuilderError> {
-        self.builder_with_header(method, url, resource, HeaderMap::with_capacity(0))
+        self.builder_with_header(method, url, resource, [])
     }
 
-    fn builder_with_header<M: Into<VERB>>(
+    fn builder_with_header<M: Into<VERB>, H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
         &self,
         method: M,
         url: Url,
         resource: CanonicalizedResource,
-        headers: HeaderMap,
+        headers: H,
     ) -> Result<RequestBuilder, BuilderError>;
 }
 
 impl AlignBuilder for Bucket {
     #[inline]
-    fn builder_with_header<M: Into<VERB>>(
+    fn builder_with_header<M: Into<VERB>, H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
         &self,
         method: M,
         url: Url,
         resource: CanonicalizedResource,
-        headers: HeaderMap,
+        headers: H,
     ) -> Result<RequestBuilder, BuilderError> {
         self.client()
             .builder_with_header(method, url, resource, headers)
@@ -253,12 +249,12 @@ impl AlignBuilder for Bucket {
 
 impl AlignBuilder for ObjectList<ArcPointer> {
     #[inline]
-    fn builder_with_header<M: Into<VERB>>(
+    fn builder_with_header<M: Into<VERB>, H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
         &self,
         method: M,
         url: Url,
         resource: CanonicalizedResource,
-        headers: HeaderMap,
+        headers: H,
     ) -> Result<RequestBuilder, BuilderError> {
         self.client()
             .builder_with_header(method, url, resource, headers)
@@ -375,8 +371,8 @@ pub mod blocking {
         ClientRc,
     };
     use http::{
-        header::{CONTENT_LENGTH, CONTENT_TYPE},
-        HeaderMap, HeaderValue,
+        header::{HeaderName, CONTENT_LENGTH, CONTENT_TYPE},
+        HeaderValue,
     };
     #[cfg(feature = "put_file")]
     use infer::Infer;
@@ -474,14 +470,14 @@ pub mod blocking {
         ) -> OssResult<Response> {
             let (url, canonicalized) = self.get_url(path);
 
-            let mut headers = HeaderMap::with_capacity(2);
             let content_length = content.len().to_string();
-            headers.insert(
-                CONTENT_LENGTH,
-                HeaderValue::from_str(&content_length).map_err(OssError::from)?,
-            );
-
-            headers.insert(CONTENT_TYPE, content_type.parse().map_err(OssError::from)?);
+            let headers = vec![
+                (
+                    CONTENT_LENGTH,
+                    HeaderValue::from_str(&content_length).map_err(OssError::from)?,
+                ),
+                (CONTENT_TYPE, content_type.parse().map_err(OssError::from)?),
+            ];
 
             let response = self
                 .builder_with_header(VERB::PUT, url, canonicalized, headers)?
@@ -499,11 +495,8 @@ pub mod blocking {
         ) -> OssResult<Vec<u8>> {
             let (url, canonicalized) = self.get_url(path);
 
-            let headers = {
-                let mut headers = HeaderMap::with_capacity(1);
-                headers.insert("Range", range.into().into());
-                headers
-            };
+            let headers: Vec<(_, HeaderValue)> =
+                vec![("Range".parse().unwrap(), range.into().into())];
 
             Ok(self
                 .builder_with_header("GET", url, canonicalized, headers)?
@@ -554,15 +547,15 @@ pub mod blocking {
             url: Url,
             resource: CanonicalizedResource,
         ) -> Result<RequestBuilder, BuilderError> {
-            self.builder_with_header(method, url, resource, HeaderMap::with_capacity(0))
+            self.builder_with_header(method, url, resource, [])
         }
 
-        fn builder_with_header<M: Into<VERB>>(
+        fn builder_with_header<M: Into<VERB>, H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
             &self,
             method: M,
             url: Url,
             resource: CanonicalizedResource,
-            headers: HeaderMap,
+            headers: H,
         ) -> Result<RequestBuilder, BuilderError>;
     }
 
@@ -570,12 +563,12 @@ pub mod blocking {
     ///
     /// 用于他们方便的实现 [`File`](./trait.File.html) trait
     impl AlignBuilder for Bucket<RcPointer> {
-        fn builder_with_header<M: Into<VERB>>(
+        fn builder_with_header<M: Into<VERB>, H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
             &self,
             method: M,
             url: Url,
             resource: CanonicalizedResource,
-            headers: HeaderMap,
+            headers: H,
         ) -> Result<RequestBuilder, BuilderError> {
             self.client()
                 .builder_with_header(method, url, resource, headers)
@@ -583,12 +576,12 @@ pub mod blocking {
     }
 
     impl AlignBuilder for ObjectList<RcPointer> {
-        fn builder_with_header<M: Into<VERB>>(
+        fn builder_with_header<M: Into<VERB>, H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
             &self,
             method: M,
             url: Url,
             resource: CanonicalizedResource,
-            headers: HeaderMap,
+            headers: H,
         ) -> Result<RequestBuilder, BuilderError> {
             self.client()
                 .builder_with_header(method, url, resource, headers)

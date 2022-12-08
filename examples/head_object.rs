@@ -2,7 +2,6 @@ use aliyun_oss_client::{
     builder::ArcPointer, config::ObjectBase, errors::OssError, file::AlignBuilder, Client,
 };
 use dotenv::dotenv;
-use http::HeaderMap;
 
 #[tokio::main]
 pub async fn main() -> Result<(), OssError> {
@@ -15,11 +14,10 @@ pub async fn main() -> Result<(), OssError> {
 
     let (url, resource) = object_base.get_url_resource([]);
 
-    let mut headers = HeaderMap::with_capacity(1);
-    headers.insert(
-        "If-Unmodified-Since",
-        "Sat, 01 Jan 2022 18:01:01 GMT".try_into().unwrap(),
-    );
+    let headers = vec![(
+        "If-Unmodified-Since".parse().unwrap(),
+        "Sat, 01 Jan 2022 18:01:01 GMT".parse().unwrap(),
+    )];
 
     let builder = client.builder_with_header("HEAD", url, resource, headers)?;
 
