@@ -3,6 +3,8 @@ use std::rc::Rc;
 use std::{
     borrow::Cow,
     env::{self, VarError},
+    fmt::Display,
+    str::FromStr,
     sync::Arc,
 };
 
@@ -17,9 +19,8 @@ use crate::{
     builder::{ArcPointer, PointerFamily},
     types::{
         BucketName, CanonicalizedResource, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId,
-        KeySecret,
+        KeySecret, QueryKey, QueryValue,
     },
-    Query,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
@@ -325,7 +326,10 @@ impl ObjectBase<ArcPointer> {
     }
 
     #[inline]
-    pub fn get_url_resource<Q: Into<Query>>(self, query: Q) -> (Url, CanonicalizedResource) {
+    pub fn get_url_resource<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+        self,
+        query: Q,
+    ) -> (Url, CanonicalizedResource) {
         let mut url = self.bucket.to_url();
         url.set_object_path(&self.path);
 
@@ -473,6 +477,22 @@ impl Into<String> for ObjectPath {
 impl<'a> From<&'a str> for ObjectPath {
     fn from(string: &'a str) -> Self {
         Self(Cow::Owned(string.to_owned()))
+    }
+}
+
+impl FromStr for ObjectPath {
+    type Err = InvalidObjectPath;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(Cow::Owned(s.to_owned())))
+    }
+}
+
+#[derive(Debug, Error)]
+pub struct InvalidObjectPath;
+
+impl Display for InvalidObjectPath {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid object path")
     }
 }
 

@@ -12,7 +12,9 @@ use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::object::{Object, ObjectList};
 use crate::traits::{RefineBucket, RefineBucketList, RefineObjectList};
-use crate::types::{CanonicalizedResource, InvalidEndPoint, Query, UrlQuery, BUCKET_INFO};
+use crate::types::{
+    CanonicalizedResource, InvalidEndPoint, Query, QueryKey, QueryValue, UrlQuery, BUCKET_INFO,
+};
 use crate::BucketName;
 use chrono::prelude::*;
 use oss_derive::oss_gen_rc;
@@ -218,8 +220,11 @@ impl Bucket {
     /// - `vec![("max-keys", "5")]` Vec(可变长度)
     /// - `vec![("max-keys", 5u8)]` 数字类型
     /// - `vec![("max-keys", 1000u16)]` u16 数字类型
-    pub async fn get_object_list<Q: Into<Query>>(&self, query: Q) -> OssResult<ObjectList> {
-        let query = query.into();
+    pub async fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+        &self,
+        query: Q,
+    ) -> OssResult<ObjectList> {
+        let query = Query::from_iter(query);
 
         let bucket_arc = Arc::new(self.base.clone());
 

@@ -335,7 +335,9 @@ async fn test_get_object_list() {
         Arc::new(client),
     );
 
-    let res = bucket.get_object_list(vec![("max-keys", "5")]).await;
+    let res = bucket
+        .get_object_list(vec![("max-keys".into(), "5".into())])
+        .await;
 
     assert_eq!(
         format!("{:?}", res),

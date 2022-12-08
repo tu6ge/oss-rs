@@ -115,7 +115,7 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    let query = vec![("max-keys", "5"), ("prefix", "babel")];
+    let query = [("max-keys".into(), "5".into()), ("prefix".into(), "babel".into())];
     let result = client.get_bucket_info().await.unwrap().get_object_list(query).await;
 
     println!("object list : {:?}", result);

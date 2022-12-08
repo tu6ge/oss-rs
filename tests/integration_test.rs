@@ -34,7 +34,10 @@ mod test_async {
 
         let bucket_list = client.get_bucket_list().await.unwrap();
 
-        let query = [("max-keys", "5"), ("prefix", "babel")];
+        let query = [
+            ("max-keys".parse().unwrap(), "5".parse().unwrap()),
+            ("prefix".parse().unwrap(), "babel".parse().unwrap()),
+        ];
 
         let buckets = bucket_list.buckets;
         let the_bucket = &buckets[0];

@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use std::env;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
+use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
-use oss_derive::array2query;
 use reqwest::header::{HeaderValue, InvalidHeaderValue};
 use reqwest::Url;
+use thiserror::Error;
 
 use crate::config::BucketBase;
 use crate::errors::{OssError, OssResult};
@@ -715,8 +716,11 @@ impl CanonicalizedResource {
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
-    pub(crate) fn from_object<Q: Into<Query>>((bucket, path): (&str, &str), query: Q) -> Self {
-        let query = query.into();
+    pub(crate) fn from_object<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+        (bucket, path): (&str, &str),
+        query: Q,
+    ) -> Self {
+        let query = Query::from_iter(query);
         if query.len() == 0 {
             Self::from(format!("/{}/{}", bucket, path))
         } else {
@@ -758,7 +762,7 @@ impl PartialEq<CanonicalizedResource> for &str {
 /// ```
 /// use aliyun_oss_client::types::Query;
 ///
-/// let query: Query = vec![("abc", "def")].into();
+/// let query: Query = [("abc".into(), "def".into())].into_iter().collect();
 /// assert_eq!(query.len(), 1);
 ///
 /// let value = query.get("abc");
@@ -835,52 +839,32 @@ impl Query {
     }
 }
 
-impl<K, V> From<Vec<(K, V)>> for Query
-where
-    K: Into<QueryKey>,
-    V: Into<QueryValue>,
-{
+impl IntoIterator for Query {
+    type Item = (QueryKey, QueryValue);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
     /// # 使用 Vec 转 Query
     /// 例子
     /// ```
     /// # use aliyun_oss_client::Query;
-    /// let vec = vec![("foo", "bar")];
-    /// let query: Query = vec.into();
+    /// let query: Query = vec![("foo".into(), "bar".into())].into_iter().collect();
     /// assert_eq!(query.get("foo"), Some(&"bar".into()));
+    ///
+    /// let query: Query = [("foo2".into(), "bar2".into())].into_iter().collect();
+    /// assert_eq!(query.get("foo2"), Some(&"bar2".into()));
     /// ```
-    fn from(vec: Vec<(K, V)>) -> Self {
-        let mut query = Query::with_capacity(vec.len());
-
-        for (key, val) in vec {
-            query.insert(key, val);
-        }
-
-        query
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter().collect::<Vec<_>>().into_iter()
     }
 }
 
-impl From<[(); 0]> for Query {
-    /// 空数组转换成 Query
-    fn from(_: [(); 0]) -> Self {
-        Self::with_capacity(0)
-    }
-}
-
-#[array2query(8)]
-impl<K, V> From<[(K, V); 1]> for Query
-where
-    K: Into<QueryKey>,
-    V: Into<QueryValue>,
-{
-    /// 将 1-8 等不同长度的查询条件数组，转化成 Query
-    fn from(arr: [(K, V); 1]) -> Self {
-        let mut query = Query::with_capacity(arr.len());
-
-        for (key, val) in arr {
-            query.insert(key, val);
-        }
-
-        query
+impl FromIterator<(QueryKey, QueryValue)> for Query {
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (QueryKey, QueryValue)>,
+    {
+        let mut map = Query::default();
+        map.inner.extend(iter);
+        map
     }
 }
 
@@ -897,7 +881,7 @@ impl UrlQuery for Url {
     /// use aliyun_oss_client::types::UrlQuery;
     /// use reqwest::Url;
     ///
-    /// let query = vec![("abc", "def")].into();
+    /// let query = Query::from_iter([("abc".into(), "def".into())]);
     /// let mut url = Url::parse("https://exapmle.com").unwrap();
     /// url.set_search_query(&query);
     /// assert_eq!(url.as_str(), "https://exapmle.com/?list-type=2&abc=def");
@@ -938,6 +922,28 @@ impl From<String> for QueryKey {
 impl From<&'static str> for QueryKey {
     fn from(date: &'static str) -> Self {
         Self::from_static(date)
+    }
+}
+
+impl FromStr for QueryKey {
+    type Err = InvalidQueryKey;
+    /// 示例
+    /// ```
+    /// # use aliyun_oss_client::types::QueryKey;
+    /// let value: QueryKey = "abc".into();
+    /// assert!(value == QueryKey::from_static("abc"));
+    /// ```
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(Cow::Owned(s.to_owned())))
+    }
+}
+
+#[derive(Debug, Error)]
+pub struct InvalidQueryKey;
+
+impl Display for InvalidQueryKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid query key")
     }
 }
 
@@ -998,7 +1004,7 @@ impl From<u8> for QueryValue {
     ///
     /// ```
     /// use aliyun_oss_client::Query;
-    /// let query: Query = vec![("max_keys", 100u8)].into();
+    /// let query = Query::from_iter([("max_keys".into(), 100u8.into())]);
     /// ```
     fn from(num: u8) -> Self {
         Self(Cow::Owned(num.to_string()))
@@ -1017,7 +1023,7 @@ impl From<u16> for QueryValue {
     ///
     /// ```
     /// use aliyun_oss_client::Query;
-    /// let query: Query = vec![("max_keys", 100u16)].into();
+    /// let query = Query::from_iter([("max_keys".into(), 100u16.into())]);
     /// ```
     fn from(num: u16) -> Self {
         Self(Cow::Owned(num.to_string()))
@@ -1036,7 +1042,7 @@ impl From<bool> for QueryValue {
     ///
     /// ```
     /// use aliyun_oss_client::Query;
-    /// let query: Query = [("fetch-owner", false)].into();
+    /// let query = Query::from_iter([("fetch-owner".into(), false.into())]);
     /// ```
     fn from(b: bool) -> Self {
         if b {
@@ -1044,6 +1050,28 @@ impl From<bool> for QueryValue {
         } else {
             Self::from_static("false")
         }
+    }
+}
+
+impl FromStr for QueryValue {
+    type Err = InvalidQueryValue;
+    /// 示例
+    /// ```
+    /// # use aliyun_oss_client::types::QueryValue;
+    /// let value: QueryValue = "abc".parse().unwrap();
+    /// assert!(value == "abc");
+    /// ```
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(Cow::Owned(s.to_owned())))
+    }
+}
+
+#[derive(Debug, Error)]
+pub struct InvalidQueryValue;
+
+impl Display for InvalidQueryValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid query value")
     }
 }
 

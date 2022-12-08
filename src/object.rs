@@ -11,7 +11,9 @@ use crate::errors::{OssError, OssResult};
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::traits::{RefineObject, RefineObjectList};
-use crate::types::{CanonicalizedResource, Query, UrlQuery, CONTINUATION_TOKEN};
+use crate::types::{
+    CanonicalizedResource, Query, QueryKey, QueryValue, UrlQuery, CONTINUATION_TOKEN,
+};
 use crate::{BucketName, Client};
 use async_stream::try_stream;
 use chrono::prelude::*;
@@ -69,7 +71,7 @@ impl Default for ObjectList<ArcPointer> {
 }
 
 impl<T: PointerFamily> ObjectList<T> {
-    pub fn new<Q: Into<Query>>(
+    pub fn new<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         bucket: BucketBase,
         prefix: String,
         max_keys: u32,
@@ -87,7 +89,7 @@ impl<T: PointerFamily> ObjectList<T> {
             object_list,
             next_continuation_token,
             client,
-            search_query: search_query.into(),
+            search_query: Query::from_iter(search_query),
         }
     }
 
@@ -196,7 +198,7 @@ impl ObjectList {
     /// # dotenv().ok();
     /// use futures::{pin_mut, StreamExt};
     /// # let client = Client::from_env().unwrap();
-    /// # let query = [("max-keys", 100u8)];
+    /// # let query = [("max-keys".into(), 100u8.into())];
     /// # let object_list = client.get_object_list(query).await.unwrap();
     /// let stream = object_list.into_stream();
     /// pin_mut!(stream);
@@ -522,7 +524,10 @@ impl Client {
     /// 查询默认 bucket 的文件列表
     ///
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`](../bucket/struct.Bucket.html#method.get_object_list) 文档
-    pub async fn get_object_list<Q: Into<Query>>(self, query: Q) -> OssResult<ObjectList> {
+    pub async fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+        self,
+        query: Q,
+    ) -> OssResult<ObjectList> {
         let bucket = BucketBase::new(
             self.get_bucket_name().to_owned(),
             self.get_endpoint().to_owned(),
@@ -539,7 +544,7 @@ impl Client {
         };
 
         let mut bucket_url = bucket.to_url();
-        let query = query.into();
+        let query = Query::from_iter(query);
         bucket_url.set_search_query(&query);
 
         let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
@@ -640,7 +645,14 @@ impl Client {
     /// }
     /// ```
     #[inline]
-    pub async fn base_object_list<Name: Into<BucketName>, Q: Into<Query>, List, Item, F, E>(
+    pub async fn base_object_list<
+        Name: Into<BucketName>,
+        Q: IntoIterator<Item = (QueryKey, QueryValue)>,
+        List,
+        Item,
+        F,
+        E,
+    >(
         &self,
         name: Name,
         query: Q,
@@ -656,7 +668,7 @@ impl Client {
         let bucket = BucketBase::new(name.into(), self.get_endpoint().to_owned());
 
         let mut bucket_url = bucket.to_url();
-        let query = query.into();
+        let query = Query::from_iter(query);
         bucket_url.set_search_query(&query);
 
         let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
@@ -960,7 +972,7 @@ mod tests {
             list,
             token,
             Arc::new(client),
-            vec![("key1", "value1")],
+            vec![("key1".into(), "value1".into())],
         );
 
         object_list

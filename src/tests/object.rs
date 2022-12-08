@@ -143,7 +143,9 @@ async fn test_get_object_list() {
     )
     .middleware(Arc::new(MyMiddleware {}));
 
-    let res = client.get_object_list(vec![("max-keys", "5")]).await;
+    let res = client
+        .get_object_list(vec![("max-keys".parse().unwrap(), "5".parse().unwrap())])
+        .await;
 
     //println!("{:?}", res);
     assert_eq!(
