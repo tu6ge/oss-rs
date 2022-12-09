@@ -762,7 +762,7 @@ impl PartialEq<CanonicalizedResource> for &str {
 /// ```
 /// use aliyun_oss_client::types::Query;
 ///
-/// let query: Query = [("abc".into(), "def".into())].into_iter().collect();
+/// let query: Query = [("abc", "def")].into_iter().collect();
 /// assert_eq!(query.len(), 1);
 ///
 /// let value = query.get("abc");
@@ -846,11 +846,15 @@ impl IntoIterator for Query {
     /// 例子
     /// ```
     /// # use aliyun_oss_client::Query;
-    /// let query = Query::from_iter(vec![("foo".into(), "bar".into())]);
-    /// assert_eq!(query.get("foo"), Some(&"bar".into()));
-    ///
-    /// let query = Query::from_iter([("foo2".into(), "bar2".into())]);
-    /// assert_eq!(query.get("foo2"), Some(&"bar2".into()));
+    /// # use aliyun_oss_client::QueryKey;
+    /// # use aliyun_oss_client::QueryValue;
+    /// # use assert_matches::assert_matches;
+    /// let query = Query::from_iter(vec![("foo", "bar")]);
+    /// let list: Vec<_> = query.into_iter().collect();
+    /// assert_eq!(list.len(), 1);
+    /// assert_matches!(&list[0].0, &QueryKey::Custom(_));
+    /// let value: QueryValue = "bar".parse().unwrap();
+    /// assert_eq!(list[0].1, value);
     /// ```
     fn into_iter(self) -> Self::IntoIter {
         self.inner.into_iter().collect::<Vec<_>>().into_iter()
@@ -869,6 +873,14 @@ impl FromIterator<(QueryKey, QueryValue)> for Query {
 }
 
 impl<'a> FromIterator<(&'a str, &'a str)> for Query {
+    /// 转化例子
+    /// ```
+    /// # use aliyun_oss_client::Query;
+    /// # use aliyun_oss_client::QueryKey;
+    /// let query = Query::from_iter([("max-keys", "123")]);
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
+    /// ```
     fn from_iter<I>(iter: I) -> Self
     where
         I: IntoIterator<Item = (&'a str, &'a str)>,
@@ -876,6 +888,115 @@ impl<'a> FromIterator<(&'a str, &'a str)> for Query {
         let inner = iter
             .into_iter()
             .map(|(k, v)| (k.parse().unwrap(), v.parse().unwrap()));
+
+        let mut map = Query::default();
+        map.inner.extend(inner);
+        map
+    }
+}
+
+impl<'a> FromIterator<(&'a str, u8)> for Query {
+    /// 转化例子
+    /// ```
+    /// # use aliyun_oss_client::Query;
+    /// # use aliyun_oss_client::QueryKey;
+    /// let query = Query::from_iter([("max-keys", 123u8)]);
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
+    /// ```
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (&'a str, u8)>,
+    {
+        let inner = iter
+            .into_iter()
+            .map(|(k, v)| (k.parse().unwrap(), v.into()));
+
+        let mut map = Query::default();
+        map.inner.extend(inner);
+        map
+    }
+}
+
+impl<'a> FromIterator<(&'a str, u16)> for Query {
+    /// 转化例子
+    /// ```
+    /// # use aliyun_oss_client::Query;
+    /// # use aliyun_oss_client::QueryKey;
+    /// let query = Query::from_iter([("max-keys", 123u16)]);
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
+    /// ```
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (&'a str, u16)>,
+    {
+        let inner = iter
+            .into_iter()
+            .map(|(k, v)| (k.parse().unwrap(), v.into()));
+
+        let mut map = Query::default();
+        map.inner.extend(inner);
+        map
+    }
+}
+
+impl<'a> FromIterator<(QueryKey, &'a str)> for Query {
+    /// 转化例子
+    /// ```
+    /// # use aliyun_oss_client::Query;
+    /// # use aliyun_oss_client::QueryKey;
+    /// let query = Query::from_iter([(QueryKey::MaxKeys, "123")]);
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
+    /// ```
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (QueryKey, &'a str)>,
+    {
+        let inner = iter.into_iter().map(|(k, v)| (k, v.parse().unwrap()));
+
+        let mut map = Query::default();
+        map.inner.extend(inner);
+        map
+    }
+}
+
+impl FromIterator<(QueryKey, u8)> for Query {
+    /// 转化例子
+    /// ```
+    /// # use aliyun_oss_client::Query;
+    /// # use aliyun_oss_client::QueryKey;
+    /// let query = Query::from_iter([(QueryKey::MaxKeys, 123u8)]);
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
+    /// ```
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (QueryKey, u8)>,
+    {
+        let inner = iter.into_iter().map(|(k, v)| (k, v.into()));
+
+        let mut map = Query::default();
+        map.inner.extend(inner);
+        map
+    }
+}
+
+impl FromIterator<(QueryKey, u16)> for Query {
+    /// 转化例子
+    /// ```
+    /// # use aliyun_oss_client::Query;
+    /// # use aliyun_oss_client::QueryKey;
+    /// let query = Query::from_iter([(QueryKey::MaxKeys, 123u16)]);
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
+    /// ```
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (QueryKey, u16)>,
+    {
+        let inner = iter.into_iter().map(|(k, v)| (k, v.into()));
 
         let mut map = Query::default();
         map.inner.extend(inner);
@@ -906,7 +1027,7 @@ impl UrlQuery for Url {
     /// use aliyun_oss_client::types::UrlQuery;
     /// use reqwest::Url;
     ///
-    /// let query = Query::from_iter([("abc".into(), "def".into())]);
+    /// let query = Query::from_iter([("abc", "def")]);
     /// let mut url = Url::parse("https://exapmle.com").unwrap();
     /// url.set_search_query(&query);
     /// assert_eq!(url.as_str(), "https://exapmle.com/?list-type=2&abc=def");
@@ -917,18 +1038,36 @@ impl UrlQuery for Url {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
-pub struct QueryKey(Cow<'static, str>);
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum QueryKey {
+    Delimiter,
+    StartAfter,
+    ContinuationToken,
+    MaxKeys,
+    Prefix,
+    EncodingType,
+    FetchOwner,
+    Custom(Cow<'static, str>),
+}
 
 impl AsRef<str> for QueryKey {
     fn as_ref(&self) -> &str {
-        &self.0
+        match *self {
+            QueryKey::Delimiter => "delimiter",
+            QueryKey::StartAfter => "start-after",
+            QueryKey::ContinuationToken => "continuation-token",
+            QueryKey::MaxKeys => "max-keys",
+            QueryKey::Prefix => "prefix",
+            QueryKey::EncodingType => "encoding-type",
+            QueryKey::FetchOwner => unimplemented!("parse xml not support fetch owner"),
+            QueryKey::Custom(ref str) => str,
+        }
     }
 }
 
 impl Display for QueryKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self)
     }
 }
 
@@ -941,7 +1080,7 @@ impl Display for QueryKey {
 // }
 impl From<String> for QueryKey {
     fn from(s: String) -> Self {
-        Self(Cow::Owned(s))
+        Self::new(s)
     }
 }
 impl From<&'static str> for QueryKey {
@@ -959,7 +1098,7 @@ impl FromStr for QueryKey {
     /// assert!(value == QueryKey::from_static("abc"));
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(Cow::Owned(s.to_owned())))
+        Ok(Self::new(s.to_owned()))
     }
 }
 
@@ -973,14 +1112,75 @@ impl Display for InvalidQueryKey {
 }
 
 impl QueryKey {
-    /// Creates a new `QueryKey` from the given string.
+    /// # Examples
+    /// ```
+    /// # use aliyun_oss_client::QueryKey;
+    /// # use assert_matches::assert_matches;
+    /// let key = QueryKey::new("delimiter");
+    /// assert!(key == QueryKey::Delimiter);
+    ///
+    /// let key = QueryKey::new("abc");
+    /// assert_matches!(key, QueryKey::Custom(_));
+    /// ```
+    /// `fetch-owner` 功能未实现，特殊说明
+    /// ```should_panic
+    /// # use aliyun_oss_client::QueryKey;
+    /// let key = QueryKey::new("fetch-owner");
+    /// ```
     pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
-        Self(val.into())
+        let val = val.into();
+        if val.contains("delimiter") {
+            Self::Delimiter
+        } else if val.contains("start-after") {
+            Self::StartAfter
+        } else if val.contains("continuation-token") {
+            Self::ContinuationToken
+        } else if val.contains("max-keys") {
+            Self::MaxKeys
+        } else if val.contains("prefix") {
+            Self::Prefix
+        } else if val.contains("encoding-type") {
+            Self::EncodingType
+        } else if val.contains("fetch-owner") {
+            unimplemented!("parse xml not support fetch owner");
+        } else {
+            Self::Custom(val)
+        }
     }
 
-    /// Const function that creates a new `QueryKey` from a static str.
-    pub const fn from_static(val: &'static str) -> Self {
-        Self(Cow::Borrowed(val))
+    /// # Examples
+    /// ```
+    /// # use aliyun_oss_client::QueryKey;
+    /// # use assert_matches::assert_matches;
+    /// let key = QueryKey::from_static("delimiter");
+    /// assert!(key == QueryKey::Delimiter);
+    ///
+    /// let key = QueryKey::from_static("abc");
+    /// assert_matches!(key, QueryKey::Custom(_));
+    /// ```
+    /// `fetch-owner` 功能未实现，特殊说明
+    /// ```should_panic
+    /// # use aliyun_oss_client::QueryKey;
+    /// let key = QueryKey::from_static("fetch-owner");
+    /// ```
+    pub fn from_static(val: &'static str) -> Self {
+        if val.contains("delimiter") {
+            Self::Delimiter
+        } else if val.contains("start-after") {
+            Self::StartAfter
+        } else if val.contains("continuation-token") {
+            Self::ContinuationToken
+        } else if val.contains("max-keys") {
+            Self::MaxKeys
+        } else if val.contains("prefix") {
+            Self::Prefix
+        } else if val.contains("encoding-type") {
+            Self::EncodingType
+        } else if val.contains("fetch-owner") {
+            unimplemented!("parse xml not support fetch owner");
+        } else {
+            Self::Custom(Cow::Borrowed(val))
+        }
     }
 }
 
@@ -1028,8 +1228,10 @@ impl From<u8> for QueryValue {
     /// 数字转 Query 值
     ///
     /// ```
-    /// use aliyun_oss_client::Query;
-    /// let query = Query::from_iter([("max_keys".into(), 100u8.into())]);
+    /// # use aliyun_oss_client::Query;
+    /// # use aliyun_oss_client::QueryKey;
+    /// let query = Query::from_iter([("max_keys", 100u8)]);
+    /// let query = Query::from_iter([(QueryKey::MaxKeys, 100u8)]);
     /// ```
     fn from(num: u8) -> Self {
         Self(Cow::Owned(num.to_string()))
@@ -1048,7 +1250,7 @@ impl From<u16> for QueryValue {
     ///
     /// ```
     /// use aliyun_oss_client::Query;
-    /// let query = Query::from_iter([("max_keys".into(), 100u16.into())]);
+    /// let query = Query::from_iter([("max_keys", 100u16)]);
     /// ```
     fn from(num: u16) -> Self {
         Self(Cow::Owned(num.to_string()))
@@ -1067,7 +1269,7 @@ impl From<bool> for QueryValue {
     ///
     /// ```
     /// use aliyun_oss_client::Query;
-    /// let query = Query::from_iter([("fetch-owner".into(), false.into())]);
+    /// let query = Query::from_iter([("abc", "false")]);
     /// ```
     fn from(b: bool) -> Self {
         if b {

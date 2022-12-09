@@ -199,7 +199,7 @@ pub mod types;
 
 use builder::ClientWithMiddleware;
 use config::Config;
-pub use types::{BucketName, EndPoint, KeyId, KeySecret, Query};
+pub use types::{BucketName, EndPoint, KeyId, KeySecret, Query, QueryKey, QueryValue};
 
 /// # 验证模块
 /// 包含了签名验证的一些方法，header 以及参数的封装
