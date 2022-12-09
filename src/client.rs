@@ -3,8 +3,8 @@ use crate::auth::{AuthBuilder, AuthGetHeader, VERB};
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
 #[cfg(test)]
 use crate::builder::Middleware;
-use crate::builder::{BuilderError, ClientWithMiddleware, RequestBuilder};
-use crate::config::{BucketBase, Config, InvalidConfig};
+use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware, RequestBuilder};
+use crate::config::{BucketBase, Config, InvalidConfig, ObjectBase, ObjectPath};
 use crate::file::AlignBuilder;
 use crate::types::{BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret};
 use chrono::prelude::*;
@@ -138,6 +138,15 @@ impl Client {
     pub(crate) fn middleware(mut self, middleware: Arc<dyn Middleware>) -> Self {
         self.client_middleware.middleware(middleware);
         self
+    }
+
+    /// 根据默认的 bucket，endpoint 和提供的文件路径，获取 ObjectBase
+    #[inline]
+    pub fn get_object_base<P>(&self, path: P) -> ObjectBase
+    where
+        P: Into<ObjectPath>,
+    {
+        ObjectBase::<ArcPointer>::from_bucket(self.get_bucket_base(), path)
     }
 }
 

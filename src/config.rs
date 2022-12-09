@@ -74,6 +74,8 @@ pub enum InvalidConfig {
 //     }
 // }
 
+/// # Bucket 元信息
+/// 包含所属 bucket 名以及所属的 endpoint
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct BucketBase {
     endpoint: EndPoint,
@@ -219,6 +221,7 @@ impl BucketBase {
         Url::parse(&url).unwrap()
     }
 
+    /// 根据查询参数，获取当前 bucket 的接口请求参数（ url 和 CanonicalizedResource）
     #[inline]
     pub fn get_url_resource(&self, query: &Query) -> (Url, CanonicalizedResource) {
         let mut url = self.to_url();
@@ -259,6 +262,8 @@ impl PartialEq<Url> for BucketBase {
     }
 }
 
+/// # Object 元信息
+/// 包含所属 bucket endpoint 以及文件路径
 #[derive(Debug, Clone)]
 pub struct ObjectBase<PointerSel: PointerFamily = ArcPointer> {
     bucket: PointerSel::Bucket,
@@ -336,6 +341,7 @@ impl ObjectBase<ArcPointer> {
         self.bucket.get_name()
     }
 
+    /// 根据提供的查询参数信息，获取当前 object 对应的接口请求参数（ url 和 CanonicalizedResource）
     #[inline]
     pub fn get_url_resource<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         self,
