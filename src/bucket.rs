@@ -85,8 +85,6 @@ pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
     // bucket: Option<Bucket<'c>>,
     creation_date: DateTime<Utc>,
     //pub extranet_endpoint: String,
-    #[deprecated(since = "0.10", note = "base field has intranet endpoint info")]
-    intranet_endpoint: String,
     location: String,
     // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
     // access_control_list;
@@ -109,7 +107,6 @@ impl<T: PointerFamily> fmt::Debug for Bucket<T> {
             .field("base", &self.base)
             .field("creation_date", &self.creation_date)
             //.field("extranet_endpoint", &self.extranet_endpoint)
-            .field("intranet_endpoint", &self.intranet_endpoint)
             .field("location", &self.location)
             .field("storage_class", &self.storage_class)
             .finish()
@@ -123,7 +120,6 @@ impl Default for Bucket<ArcPointer> {
             base: BucketBase::default(),
             creation_date: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
             //extranet_endpoint: String::default(),
-            intranet_endpoint: String::default(),
             location: String::default(),
             storage_class: String::default(),
             client: Arc::default(),
@@ -183,7 +179,6 @@ impl<T: PointerFamily> Bucket<T> {
     pub fn new(
         base: BucketBase,
         creation_date: DateTime<Utc>,
-        intranet_endpoint: String,
         location: String,
         storage_class: String,
         client: T::PointerType,
@@ -191,7 +186,6 @@ impl<T: PointerFamily> Bucket<T> {
         Self {
             base,
             creation_date,
-            intranet_endpoint,
             location,
             storage_class,
             client,

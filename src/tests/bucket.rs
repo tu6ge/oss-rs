@@ -182,7 +182,7 @@ async fn test_get_bucket_info() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, intranet_endpoint: "", location: "oss-cn-shanghai", storage_class: "Standard" })"#
+        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, location: "oss-cn-shanghai", storage_class: "Standard" })"#
     );
 }
 
@@ -264,7 +264,7 @@ fn test_get_blocking_bucket_info() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, intranet_endpoint: "", location: "oss-cn-shanghai", storage_class: "Standard" })"#
+        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, location: "oss-cn-shanghai", storage_class: "Standard" })"#
     );
 }
 
@@ -331,7 +331,6 @@ async fn test_get_object_list() {
         creation_date,
         String::from("foo1"),
         String::from("foo2"),
-        String::from("foo3"),
         Arc::new(client),
     );
 
@@ -414,7 +413,6 @@ fn test_get_blocking_object_list() {
         creation_date,
         String::from("foo1"),
         String::from("foo2"),
-        String::from("foo3"),
         Rc::new(client),
     );
 
