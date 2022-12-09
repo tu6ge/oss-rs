@@ -215,11 +215,11 @@ impl Bucket {
     ///
     /// 参数 query 有多种写法：
     /// - `[]` 查所有
-    /// - `[("max-keys", "5")]` 数组（不可变长度），最大可支持 size 为 8 的数组
-    /// - `[("max-keys", "5"), ("prefix", "babel")]` 数组（不可变长度）
-    /// - `vec![("max-keys", "5")]` Vec(可变长度)
-    /// - `vec![("max-keys", 5u8)]` 数字类型
-    /// - `vec![("max-keys", 1000u16)]` u16 数字类型
+    /// - `[("max-keys".into(), "5".into())]` 数组（不可变长度），最大可支持 size 为 8 的数组
+    /// - `[("max-keys".into(), "5".into()), ("prefix".into(), "babel".into())]` 数组（不可变长度）
+    /// - `vec![("max-keys".into(), "5".into())]` Vec(可变长度)
+    /// - `vec![("max-keys".into(), 5u8.into())]` 数字类型
+    /// - `vec![("max-keys".into(), 1000u16.into())]` u16 数字类型
     pub async fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         &self,
         query: Q,

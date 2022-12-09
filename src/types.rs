@@ -846,10 +846,10 @@ impl IntoIterator for Query {
     /// 例子
     /// ```
     /// # use aliyun_oss_client::Query;
-    /// let query: Query = vec![("foo".into(), "bar".into())].into_iter().collect();
+    /// let query = Query::from_iter(vec![("foo".into(), "bar".into())]);
     /// assert_eq!(query.get("foo"), Some(&"bar".into()));
     ///
-    /// let query: Query = [("foo2".into(), "bar2".into())].into_iter().collect();
+    /// let query = Query::from_iter([("foo2".into(), "bar2".into())]);
     /// assert_eq!(query.get("foo2"), Some(&"bar2".into()));
     /// ```
     fn into_iter(self) -> Self::IntoIter {
@@ -867,6 +867,31 @@ impl FromIterator<(QueryKey, QueryValue)> for Query {
         map
     }
 }
+
+impl<'a> FromIterator<(&'a str, &'a str)> for Query {
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (&'a str, &'a str)>,
+    {
+        let inner = iter
+            .into_iter()
+            .map(|(k, v)| (k.parse().unwrap(), v.parse().unwrap()));
+
+        let mut map = Query::default();
+        map.inner.extend(inner);
+        map
+    }
+}
+
+// impl<K, V, const N: usize> From<[(K, V); N]> for Query
+// where
+//     K: Into<QueryKey>,
+//     V: Into<QueryValue>,
+// {
+//     fn from(arr: [(K, V); N]) -> Self {
+//         arr.into_iter().map(|(k, v)| (k.into(), v.into())).collect()
+//     }
+// }
 
 pub trait UrlQuery {
     fn set_search_query(&mut self, query: &Query);
