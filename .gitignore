@@ -3,3 +3,4 @@
 .env
 /examples/*/.env
 tarpaulin-report.html
+/.vscode/
