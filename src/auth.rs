@@ -240,7 +240,7 @@ impl AuthToOssHeader for Auth {
             return Ok(OssHeader(None));
         }
 
-        header.sort_by(|(k1, _), (k2, _)| k1.to_string().cmp(&k2.to_string()));
+        header.sort_by(|(k1, _), (k2, _)| k1.as_str().cmp(&k2.as_str()));
 
         let header_vec: Vec<_> = header
             .iter()
