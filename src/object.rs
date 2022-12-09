@@ -543,13 +543,11 @@ impl Client {
             object
         };
 
-        let mut bucket_url = bucket.to_url();
         let query = Query::from_iter(query);
-        bucket_url.set_search_query(&query);
 
-        let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
+        let (bucket_url, resource) = bucket.get_url_resource(&query);
 
-        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let response = self.builder(VERB::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
         list.from_xml(
@@ -665,15 +663,12 @@ impl Client {
         E: From<BuilderError> + From<List::Error>,
         F: FnMut() -> Item,
     {
-        let bucket = BucketBase::new(name.into(), self.get_endpoint().to_owned());
-
-        let mut bucket_url = bucket.to_url();
         let query = Query::from_iter(query);
-        bucket_url.set_search_query(&query);
 
-        let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
+        let (bucket_url, resource) =
+            BucketBase::new(name.into(), self.get_endpoint().to_owned()).get_url_resource(&query);
 
-        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let response = self.builder(VERB::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
         list.from_xml(
@@ -690,7 +685,10 @@ impl ClientRc {
     /// 查询默认 bucket 的文件列表
     ///
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`](../bucket/struct.Bucket.html#method.get_object_list) 文档
-    pub fn get_object_list<Q: Into<Query>>(self, query: Q) -> OssResult<ObjectList<RcPointer>> {
+    pub fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+        self,
+        query: Q,
+    ) -> OssResult<ObjectList<RcPointer>> {
         let name = self.get_bucket_name();
         let bucket = BucketBase::new(name.clone(), self.get_endpoint().to_owned());
 
@@ -705,13 +703,11 @@ impl ClientRc {
             object
         };
 
-        let mut bucket_url = bucket.to_url();
-        let query = query.into();
-        bucket_url.set_search_query(&query);
+        let query = Query::from_iter(query);
 
-        let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
+        let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
 
-        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let response = self.builder(VERB::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
@@ -724,7 +720,14 @@ impl ClientRc {
 
     /// 可将 object 列表导出到外部 struct
     #[inline]
-    pub fn base_object_list<Name: Into<BucketName>, Q: Into<Query>, List, Item, F, E>(
+    pub fn base_object_list<
+        Name: Into<BucketName>,
+        Q: IntoIterator<Item = (QueryKey, QueryValue)>,
+        List,
+        Item,
+        F,
+        E,
+    >(
         &self,
         name: Name,
         query: Q,
@@ -739,13 +742,10 @@ impl ClientRc {
     {
         let bucket = BucketBase::new(name.into(), self.get_endpoint().to_owned());
 
-        let mut bucket_url = bucket.to_url();
-        let query = query.into();
-        bucket_url.set_search_query(&query);
+        let query = Query::from_iter(query);
+        let (bucket_url, resource) = bucket.get_url_resource(&query);
 
-        let canonicalized = CanonicalizedResource::from_bucket_query(&bucket, &query);
-
-        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let response = self.builder(VERB::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;

@@ -13,7 +13,7 @@ use crate::file::AlignBuilder;
 use crate::object::{Object, ObjectList};
 use crate::traits::{RefineBucket, RefineBucketList, RefineObjectList};
 use crate::types::{
-    CanonicalizedResource, InvalidEndPoint, Query, QueryKey, QueryValue, UrlQuery, BUCKET_INFO,
+    CanonicalizedResource, InvalidEndPoint, Query, QueryKey, QueryValue, BUCKET_INFO,
 };
 use crate::BucketName;
 use chrono::prelude::*;
@@ -235,13 +235,9 @@ impl Bucket {
         };
         let mut list = ObjectList::<ArcPointer>::default();
 
-        let mut bucket_url = self.base.to_url();
-        let query = query.into();
-        bucket_url.set_search_query(&query);
+        let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
 
-        let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
-
-        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let response = self.builder(VERB::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
         list.from_xml(
@@ -262,8 +258,11 @@ impl Bucket<RcPointer> {
     /// 查询默认 bucket 的文件列表
     ///
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`](#method.get_object_list) 文档
-    pub fn get_object_list<Q: Into<Query>>(&self, query: Q) -> OssResult<ObjectList<RcPointer>> {
-        let query = query.into();
+    pub fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+        &self,
+        query: Q,
+    ) -> OssResult<ObjectList<RcPointer>> {
+        let query = Query::from_iter(query);
 
         let bucket_arc = Rc::new(self.base.clone());
 
@@ -275,11 +274,9 @@ impl Bucket<RcPointer> {
 
         let mut list = ObjectList::<RcPointer>::default();
 
-        let mut bucket_url = self.base.to_url();
-        bucket_url.set_search_query(&query);
-        let canonicalized = CanonicalizedResource::from_bucket_query(&self.base, &query);
+        let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
 
-        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let response = self.builder(VERB::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;

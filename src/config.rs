@@ -19,8 +19,9 @@ use crate::{
     builder::{ArcPointer, PointerFamily},
     types::{
         BucketName, CanonicalizedResource, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId,
-        KeySecret, QueryKey, QueryValue,
+        KeySecret, QueryKey, QueryValue, UrlQuery,
     },
+    Query,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
@@ -216,6 +217,16 @@ impl BucketBase {
 
         let url = url.replace(HTTPS, &name);
         Url::parse(&url).unwrap()
+    }
+
+    #[inline]
+    pub fn get_url_resource(&self, query: &Query) -> (Url, CanonicalizedResource) {
+        let mut url = self.to_url();
+        url.set_search_query(&query);
+
+        let resource = CanonicalizedResource::from_bucket_query(&self, &query);
+
+        (url, resource)
     }
 }
 

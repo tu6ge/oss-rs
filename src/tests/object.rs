@@ -76,7 +76,7 @@ fn object_list_get_object_list() {
         Vec::new(),
         None,
         Rc::new(client),
-        vec![("max-keys", "5")],
+        vec![("max-keys".into(), 5u8.into())],
     );
 
     let res = object_list.get_object_list();
@@ -84,7 +84,7 @@ fn object_list_get_object_list() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("abc") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"##
+        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("abc") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {MaxKeys: QueryValue("5")} } })"##
     );
 }
 
@@ -214,12 +214,12 @@ fn test_get_blocking_object_list() {
     )
     .middleware(Rc::new(MyMiddleware {}));
 
-    let res = client.get_object_list(vec![("max-keys", "5")]);
+    let res = client.get_object_list([("max-keys".into(), "5".into())]);
 
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"##
+        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {MaxKeys: QueryValue("5")} } })"##
     );
 }
 

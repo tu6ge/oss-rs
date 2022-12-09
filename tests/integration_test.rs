@@ -130,7 +130,7 @@ mod test_blocking {
 
         let buckets = bucket_list.buckets;
         let the_bucket = &buckets[0];
-        let object_list = the_bucket.get_object_list(vec![("max-keys", "2")]);
+        let object_list = the_bucket.get_object_list(vec![("max-keys".into(), "2".into())]);
         assert_matches!(object_list, Ok(_));
         let mut object_list = object_list.unwrap();
         assert_matches!(object_list.next(), Some(_));
@@ -152,7 +152,7 @@ mod test_blocking {
         dotenv().ok();
 
         let client = ClientRc::from_env().unwrap();
-        let query = vec![("max-keys", "2")];
+        let query = vec![("max-keys".into(), 2u8.into())];
         let mut object_list = client.get_object_list(query).unwrap();
 
         assert_matches!(object_list.next(), Some(_));

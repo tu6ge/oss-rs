@@ -418,10 +418,10 @@ fn test_get_blocking_object_list() {
         Rc::new(client),
     );
 
-    let res = bucket.get_object_list(vec![("max-keys", "5")]);
+    let res = bucket.get_object_list(vec![("max-keys".into(), "5".into())]);
 
     assert_eq!(
         format!("{:?}", res),
-        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("abc") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {QueryKey("max-keys"): QueryValue("5")} } })"##
+        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("abc") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {MaxKeys: QueryValue("5")} } })"##
     );
 }

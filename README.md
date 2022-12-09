@@ -83,9 +83,7 @@ let client = aliyun_oss_client::client("key1", "secret1", "qingdao", "my-bucket"
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::Query;
-    let query = Query::new();
-    let response = client.get_object_list(query).await;
+    let response = client.get_object_list([]).await;
     println!("objects list: {:?}", response);
 # }
 ```
@@ -101,12 +99,12 @@ let client = aliyun_oss_client::client("key1", "secret1", "qingdao", "my-bucket"
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::Query;
-    let mut query = Query::new();
-    query.insert("max-keys", "5");
-    query.insert("prefix", "babel");
+    use aliyun_oss_client::QueryKey;
 
-    let result = client.get_bucket_info().await.unwrap().get_object_list(query).await;
+    let result = client.get_bucket_info().await.unwrap().get_object_list([
+        (QueryKey::MaxKeys, 5u8.into()),
+        (QueryKey::Prefix, "babel".into()),
+    ]).await;
 
     println!("object list : {:?}", result);
 # }
@@ -173,7 +171,7 @@ use std::env;
 use aliyun_oss_client::BucketName;
 let bucket = BucketName::new("bbb").unwrap();
 // 获取客户端实例
-let client = aliyun_oss_client::ClientRc::new("key1".into(),"secret1".into(),"qingdao".into(), bucket);
+let client = aliyun_oss_client::ClientRc::new("key1".into(), "secret1".into(), "qingdao".into(), bucket);
 ```
 
 ### 查询所有的 bucket 信息
@@ -208,9 +206,7 @@ println!("bucket info: {:?}", response);
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
-use aliyun_oss_client::Query;
-let query = Query::new();
-let response = client.get_object_list(query);
+let response = client.get_object_list([]);
 println!("objects list: {:?}", response);
 ```
 
@@ -223,12 +219,12 @@ println!("objects list: {:?}", response);
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
-use aliyun_oss_client::Query;
-let mut query = Query::new();
-query.insert("max-keys", "5");
-query.insert("prefix", "babel");
+use aliyun_oss_client::QueryKey;
 
-let mut result = client.get_bucket_info().unwrap().get_object_list(query).unwrap();
+let mut result = client.get_bucket_info().unwrap().get_object_list([
+    (QueryKey::MaxKeys, 5u8.into()),
+    (QueryKey::Prefix, "babel".into()),
+]).unwrap();
 
 println!("object list : {:?}", result);
 
