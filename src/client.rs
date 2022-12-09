@@ -96,14 +96,6 @@ impl<M: Default + Clone> Client<M> {
         }
     }
 
-    #[deprecated(
-        since = "0.10",
-        note = "this bucket is default value, is not need change"
-    )]
-    pub fn set_bucket_name(&mut self, bucket: BucketName) {
-        self.bucket = bucket
-    }
-
     pub(crate) fn get_bucket_name(&self) -> &BucketName {
         &self.bucket
     }

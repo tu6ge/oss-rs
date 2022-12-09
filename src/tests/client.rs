@@ -6,16 +6,6 @@ use crate::builder::ClientWithMiddleware;
 use crate::file::AlignBuilder;
 use crate::{client::Client, types::CanonicalizedResource, EndPoint};
 
-#[allow(deprecated)]
-#[test]
-fn set_bucket_name() {
-    use crate::client;
-    let mut client = client("a", "b", EndPoint::CnQingdao, "d");
-    client.set_bucket_name("abcaaa".try_into().unwrap());
-
-    assert_eq!(client.get_bucket_base().name(), "abcaaa");
-}
-
 #[test]
 fn test_get_bucket_url() {
     let client = Client::<ClientWithMiddleware>::new(
