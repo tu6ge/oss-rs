@@ -315,62 +315,62 @@ impl<T: PointerFamily> Object<T> {
     }
 
     #[inline]
-    pub fn base(self) -> ObjectBase<T> {
-        self.base
+    pub fn base(&self) -> &ObjectBase<T> {
+        &self.base
     }
 
     #[inline]
-    pub fn set_base(mut self, base: ObjectBase<T>) {
+    pub fn set_base(&mut self, base: ObjectBase<T>) {
         self.base = base;
     }
 
     #[inline]
-    pub fn last_modified(self) -> DateTime<Utc> {
-        self.last_modified
+    pub fn last_modified(&self) -> &DateTime<Utc> {
+        &self.last_modified
     }
 
     #[inline]
-    pub fn set_last_modified(mut self, last_modified: DateTime<Utc>) {
+    pub fn set_last_modified(&mut self, last_modified: DateTime<Utc>) {
         self.last_modified = last_modified;
     }
 
     #[inline]
-    pub fn etag(self) -> String {
-        self.etag
+    pub fn etag(&self) -> &String {
+        &self.etag
     }
 
     #[inline]
-    pub fn set_etag(mut self, etag: String) {
+    pub fn set_etag(&mut self, etag: String) {
         self.etag = etag
     }
 
     #[inline]
-    pub fn get_type(self) -> String {
-        self._type
+    pub fn get_type(&self) -> &String {
+        &self._type
     }
 
     #[inline]
-    pub fn set_type(mut self, _type: String) {
+    pub fn set_type(&mut self, _type: String) {
         self._type = _type;
     }
 
     #[inline]
-    pub fn size(self) -> u64 {
+    pub fn size(&self) -> u64 {
         self.size
     }
 
     #[inline]
-    pub fn set_size(mut self, size: u64) {
+    pub fn set_size(&mut self, size: u64) {
         self.size = size;
     }
 
     #[inline]
-    pub fn storage_class(self) -> String {
-        self.storage_class
+    pub fn storage_class(&self) -> &String {
+        &self.storage_class
     }
 
     #[inline]
-    pub fn set_storage_class(mut self, storage_class: String) {
+    pub fn set_storage_class(&mut self, storage_class: String) {
         self.storage_class = storage_class;
     }
 
