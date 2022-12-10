@@ -1,6 +1,6 @@
 [package]
 name = "oss_derive"
-version.workspace = true
+version = "0.9.6"
 description = "aliyun-oss-client 's macro"
 edition.workspace = true
 license.workspace = true
