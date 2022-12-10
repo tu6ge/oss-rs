@@ -160,7 +160,7 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
     /// ```
     /// use aliyun_oss_client::{errors::OssError, file::AlignBuilder, Client, Method};
     /// use dotenv::dotenv;
-    /// 
+    ///
     /// async fn run() -> Result<(), OssError> {
     ///     dotenv().ok();
     ///     let client = Client::from_env().unwrap();
@@ -186,7 +186,7 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
     /// - url 要请求的接口，包含 query 参数等信息
     /// - resource 阿里云接口需要提供的统一的信息，[`CanonicalizedResource`] 提供了 bucket ，object 等各种生成方式，如果无法满足
     /// 还可以自己用 trait 来自定义
-    /// 
+    ///
     /// ## 返回值
     /// 返回值是一个封装了 reqwest::Builder 构造器，[`RequestBuilder`], 提供两个方法 `send` 和 `send_adjust_error`
     ///
