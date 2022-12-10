@@ -636,6 +636,7 @@ impl Date {
 
 //===================================================================================================
 
+/// 计算方式，参考 [aliyun 文档](https://help.aliyun.com/document_detail/31951.htm?spm=a2c4g.11186623.0.0.38d27d22mvQcxj#section-w2k-sw2-xdb)
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CanonicalizedResource(Cow<'static, str>);
 

@@ -153,9 +153,50 @@ impl Client {
 }
 
 impl AlignBuilder for Client<ClientWithMiddleware> {
-    /// builder 方法的异步实现
-    /// 带 header 参数
-    #[inline]
+    /// # 构造自定义的接口请求方法
+    /// 比如在上次完文件时，返回自己期望的数据，而不是 lib 封装的 etag 信息
+    ///
+    /// ## 例子是一个获取 object 元信息的接口
+    /// ```
+    /// use aliyun_oss_client::{errors::OssError, file::AlignBuilder, Client, Method};
+    /// use dotenv::dotenv;
+    /// 
+    /// async fn run() -> Result<(), OssError> {
+    ///     dotenv().ok();
+    ///     let client = Client::from_env().unwrap();
+    ///
+    ///     let (url, resource) = client.get_object_base("9AB932LY.jpeg").get_url_resource([]);
+    ///
+    ///     let headers = vec![(
+    ///         "If-Unmodified-Since".parse().unwrap(),
+    ///         "Sat, 01 Jan 2022 18:01:01 GMT".parse().unwrap(),
+    ///     )];
+    ///
+    ///     let builder = client.builder_with_header(Method::HEAD, url, resource, headers)?;
+    ///
+    ///     let response = builder.send().await?;
+    ///
+    ///     println!("status: {:?}", response.status());
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    /// ## 参数
+    /// - method 接口请求方式
+    /// - url 要请求的接口，包含 query 参数等信息
+    /// - resource 阿里云接口需要提供的统一的信息，[`CanonicalizedResource`] 提供了 bucket ，object 等各种生成方式，如果无法满足
+    /// 还可以自己用 trait 来自定义
+    /// 
+    /// ## 返回值
+    /// 返回值是一个封装了 reqwest::Builder 构造器，[`RequestBuilder`], 提供两个方法 `send` 和 `send_adjust_error`
+    ///
+    /// - `send` 方法，直接返回 `reqwest::Response`
+    /// - `send_adjust_error` 方法，会对 api 返回结果进行处理，如果 HTTP 状态码正常（200>= && <300) 则，返回 Ok,
+    /// 否则，会对返回的 xml 异常数据进行解析，返回 Err([`OssService`])
+    ///
+    /// [`RequestBuilder`]: crate::builder::RequestBuilder
+    /// [`OssService`]: crate::errors::OssService
+    /// [`CanonicalizedResource`]: crate::types::CanonicalizedResource
     fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
         &self,
         method: Method,

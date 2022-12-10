@@ -207,6 +207,7 @@ pub trait AuthGetHeader {
 }
 
 impl AuthGetHeader for Auth {
+    /// 返回携带了签名信息的 headers
     fn get_headers(&self) -> AuthResult<HeaderMap> {
         let mut map = HeaderMap::from_auth(self)?;
 
@@ -517,6 +518,7 @@ impl AuthBuilder {
 }
 
 impl AuthGetHeader for AuthBuilder {
+    /// 返回携带了签名信息的 headers
     fn get_headers(&self) -> AuthResult<HeaderMap> {
         self.auth.get_headers()
     }
