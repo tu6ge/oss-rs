@@ -39,9 +39,9 @@ impl<M: Default + Clone> Client<M> {
         endpoint: EndPoint,
         bucket: BucketName,
     ) -> Self {
-        let auth_builder = AuthBuilder::default()
-            .key(access_key_id)
-            .secret(access_key_secret);
+        let mut auth_builder = AuthBuilder::default();
+        auth_builder.key(access_key_id);
+        auth_builder.secret(access_key_secret);
 
         Self::from_builder(auth_builder, endpoint, bucket)
     }
@@ -49,7 +49,9 @@ impl<M: Default + Clone> Client<M> {
     pub fn from_config(config: Config) -> Self {
         let (key, secret, bucket, endpoint) = config.get_all();
 
-        let auth_builder = AuthBuilder::default().key(key).secret(secret);
+        let mut auth_builder = AuthBuilder::default();
+        auth_builder.key(key);
+        auth_builder.secret(secret);
 
         Self::from_builder(auth_builder, endpoint, bucket)
     }
@@ -75,9 +77,9 @@ impl<M: Default + Clone> Client<M> {
         let endpoint = env::var("ALIYUN_ENDPOINT").map_err(InvalidConfig::from)?;
         let bucket = env::var("ALIYUN_BUCKET").map_err(InvalidConfig::from)?;
 
-        let auth_builder = AuthBuilder::default()
-            .key(key_id.into())
-            .secret(key_secret.into());
+        let mut auth_builder = AuthBuilder::default();
+        auth_builder.key(key_id.into());
+        auth_builder.secret(key_secret.into());
 
         Ok(Self::from_builder(
             auth_builder,
@@ -162,16 +164,16 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
         headers: H,
     ) -> Result<RequestBuilder, BuilderError> {
         let method = method.into();
-        let headers = self
-            .auth_builder
-            .clone()
-            .verb(&method)
-            .date(now().into())
-            .canonicalized_resource(resource)
-            .extend_headers(HeaderMap::from_iter(headers))
-            .get_headers()?;
+        let mut auth_builder = self.auth_builder.clone();
+        auth_builder.verb(&method);
+        auth_builder.date(now().into());
+        auth_builder.canonicalized_resource(resource);
+        auth_builder.extend_headers(HeaderMap::from_iter(headers));
 
-        Ok(self.client_middleware.request(method, url).headers(headers))
+        Ok(self
+            .client_middleware
+            .request(method, url)
+            .headers(auth_builder.get_headers()?))
     }
 }
 
@@ -216,15 +218,15 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
         headers: H,
     ) -> Result<BlockingRequestBuilder, BuilderError> {
         let method = method.into();
-        let headers = self
-            .auth_builder
-            .clone()
-            .verb(&method)
-            .date(now().into())
-            .canonicalized_resource(resource)
-            .extend_headers(HeaderMap::from_iter(headers))
-            .get_headers()?;
+        let mut auth_builder = self.auth_builder.clone();
+        auth_builder.verb(&method);
+        auth_builder.date(now().into());
+        auth_builder.canonicalized_resource(resource);
+        auth_builder.extend_headers(HeaderMap::from_iter(headers));
 
-        Ok(self.client_middleware.request(method, url).headers(headers))
+        Ok(self
+            .client_middleware
+            .request(method, url)
+            .headers(auth_builder.get_headers()?))
     }
 }

@@ -113,7 +113,8 @@ mod to_oss_header {
         let header = header.unwrap();
         assert!(header.is_none());
 
-        let builder = AuthBuilder::default().header_insert("abc", "def".try_into().unwrap());
+        let mut builder = AuthBuilder::default();
+        builder.header_insert("abc", "def".try_into().unwrap());
         let header = builder.build().to_oss_header();
         assert!(header.is_ok());
         let header = header.unwrap();
@@ -122,10 +123,10 @@ mod to_oss_header {
 
     #[test]
     fn test_some() {
-        let builder = AuthBuilder::default()
-            .header_insert("x-oss-foo", "bar".try_into().unwrap())
-            .header_insert("x-oss-ffoo", "barbar".try_into().unwrap())
-            .header_insert("fffoo", "aabb".try_into().unwrap());
+        let mut builder = AuthBuilder::default();
+        builder.header_insert("x-oss-foo", "bar".try_into().unwrap());
+        builder.header_insert("x-oss-ffoo", "barbar".try_into().unwrap());
+        builder.header_insert("fffoo", "aabb".try_into().unwrap());
         let header = builder.build().to_oss_header();
         assert!(header.is_ok());
         let header = header.unwrap();
@@ -147,14 +148,14 @@ mod auth_sign_string {
     fn auth_to_sign_string() {
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
 
-        let builder = AuthBuilder::default()
-            .key("foo1".into())
-            .secret("foo2".into())
-            .verb(&VERB::POST)
-            .content_md5(ContentMd5::new("foo4"))
-            .date(date.into())
-            .canonicalized_resource(CanonicalizedResource::new("foo5"))
-            .header_insert("Content-Type", "foo6".try_into().unwrap());
+        let mut builder = AuthBuilder::default();
+        builder.key("foo1".into());
+        builder.secret("foo2".into());
+        builder.verb(&VERB::POST);
+        builder.content_md5(ContentMd5::new("foo4"));
+        builder.date(date.into());
+        builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
+        builder.header_insert("Content-Type", "foo6".try_into().unwrap());
 
         let auth = builder.build();
 
@@ -180,14 +181,14 @@ mod auth_sign_string {
     fn auth_to_sign_string_none() {
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
 
-        let builder = AuthBuilder::default()
-            .key("foo1".into())
-            .secret("foo2".into())
-            .verb(&VERB::POST)
-            //.content_md5(ContentMd5::new("foo4"))
-            .date(date.into())
-            .canonicalized_resource(CanonicalizedResource::new("foo5"))
-            .header_insert("Content-Type", "foo6".try_into().unwrap());
+        let mut builder = AuthBuilder::default();
+        builder.key("foo1".into());
+        builder.secret("foo2".into());
+        builder.verb(&VERB::POST);
+        //.content_md5(ContentMd5::new("foo4"))
+        builder.date(date.into());
+        builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
+        builder.header_insert("Content-Type", "foo6".try_into().unwrap());
 
         let auth = builder.build();
 
@@ -221,7 +222,7 @@ mod auth_builder {
     #[test]
     fn test_key() {
         let mut builder = AuthBuilder::default();
-        builder = builder.key("foo1".to_owned().into());
+        builder.key("foo1".to_owned().into());
         let auth = builder.build();
 
         let (key, ..) = auth.get_sign_info();
@@ -232,7 +233,7 @@ mod auth_builder {
     #[test]
     fn test_secret() {
         let mut builder = AuthBuilder::default();
-        builder = builder.secret("foo2".to_owned().into());
+        builder.secret("foo2".to_owned().into());
         let auth = builder.build();
 
         let (_, secret, ..) = auth.get_sign_info();
@@ -243,7 +244,7 @@ mod auth_builder {
     #[test]
     fn test_verb() {
         let mut builder = AuthBuilder::default();
-        builder = builder.verb(&VERB::POST);
+        builder.verb(&VERB::POST);
         let auth = builder.build();
 
         let (_, _, verb, ..) = auth.get_sign_info();
@@ -254,7 +255,7 @@ mod auth_builder {
     #[test]
     fn test_content_md5() {
         let mut builder = AuthBuilder::default();
-        builder = builder.content_md5("abc3".to_owned().into());
+        builder.content_md5("abc3".to_owned().into());
         let auth = builder.build();
 
         let (_, _, _, content_md5, ..) = auth.get_sign_info();
@@ -266,7 +267,7 @@ mod auth_builder {
     fn test_date() {
         let mut builder = AuthBuilder::default();
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
-        builder = builder.date(date.into());
+        builder.date(date.into());
         let auth = builder.build();
 
         let (.., date, _) = auth.get_sign_info();
@@ -277,7 +278,7 @@ mod auth_builder {
     #[test]
     fn test_canonicalized_resource() {
         let mut builder = AuthBuilder::default();
-        builder = builder.canonicalized_resource("foo323".to_string().into());
+        builder.canonicalized_resource("foo323".to_string().into());
         let auth = builder.build();
 
         let (.., canonicalized_resource) = auth.get_sign_info();
@@ -290,7 +291,7 @@ mod auth_builder {
         let mut builder = AuthBuilder::default();
         let mut header = HeaderMap::new();
         header.insert(HOST, "127.0.0.1".try_into().unwrap());
-        builder = builder.headers(header);
+        builder.headers(header);
 
         let host = builder.build().get_header("HOST");
         assert!(host.is_some());
@@ -302,7 +303,7 @@ mod auth_builder {
     #[test]
     fn test_insert_header() {
         let mut builder = AuthBuilder::default();
-        builder = builder.header_insert("Content-Type", "application/json".parse().unwrap());
+        builder.header_insert("Content-Type", "application/json".parse().unwrap());
 
         let auth = builder.build();
         assert_eq!(auth.header_len(), 1);
@@ -312,8 +313,8 @@ mod auth_builder {
     #[test]
     fn test_clear() {
         let mut builder = AuthBuilder::default();
-        builder = builder.header_insert("Content-Type", "application/json".parse().unwrap());
-        builder = builder.header_clear();
+        builder.header_insert("Content-Type", "application/json".parse().unwrap());
+        builder.header_clear();
 
         assert_eq!(builder.build().header_len(), 0);
     }
@@ -333,14 +334,14 @@ mod auth_to_header_map {
     fn test_to_header_map() {
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
 
-        let builder = AuthBuilder::default()
-            .key("foo1".into())
-            .secret("foo2".into())
-            .verb(&VERB::POST)
-            .content_md5(ContentMd5::new("foo4"))
-            .date(date.into())
-            .canonicalized_resource(CanonicalizedResource::new("foo5"))
-            .header_insert("Content-Type", "foo6".try_into().unwrap());
+        let mut builder = AuthBuilder::default();
+        builder.key("foo1".into());
+        builder.secret("foo2".into());
+        builder.verb(&VERB::POST);
+        builder.content_md5(ContentMd5::new("foo4"));
+        builder.date(date.into());
+        builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
+        builder.header_insert("Content-Type", "foo6".try_into().unwrap());
 
         let auth = builder.build();
 
@@ -372,14 +373,14 @@ mod auth_to_header_map {
     fn test_to_header_map_none() {
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
 
-        let builder = AuthBuilder::default()
-            .key("foo1".into())
-            .secret("foo2".into())
-            .verb(&VERB::POST)
-            //.content_md5(ContentMd5::new("foo4"))
-            .date(date.into())
-            .canonicalized_resource(CanonicalizedResource::new("foo5"))
-            .header_insert("Content-Type", "foo6".try_into().unwrap());
+        let mut builder = AuthBuilder::default();
+        builder.key("foo1".into());
+        builder.secret("foo2".into());
+        builder.verb(&VERB::POST);
+        //.content_md5(ContentMd5::new("foo4"))
+        builder.date(date.into());
+        builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
+        builder.header_insert("Content-Type", "foo6".try_into().unwrap());
 
         let auth = builder.build();
 
@@ -598,14 +599,14 @@ mod get_headers {
     /// 集成测试，其他的都是单元测试
     #[test]
     fn test_get_headers() {
-        let builder = AuthBuilder::default()
-            .key("foo1".into())
-            .secret("foo2".into())
-            .verb(&VERB::POST)
-            .content_md5(ContentMd5::new("foo4"))
-            .date("foo_date".into())
-            .canonicalized_resource(CanonicalizedResource::new("foo5"))
-            .header_insert("Content-Type", "foo6".try_into().unwrap());
+        let mut builder = AuthBuilder::default();
+        builder.key("foo1".into());
+        builder.secret("foo2".into());
+        builder.verb(&VERB::POST);
+        builder.content_md5(ContentMd5::new("foo4"));
+        builder.date("foo_date".into());
+        builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
+        builder.header_insert("Content-Type", "foo6".try_into().unwrap());
         let map = builder.build().get_headers();
 
         assert!(map.is_ok());

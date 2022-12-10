@@ -223,7 +223,7 @@ impl AuthToHeaderMap for Auth {
     }
 }
 
-pub trait AuthToOssHeader {
+pub(crate) trait AuthToOssHeader {
     fn to_oss_header(&self) -> AuthResult<OssHeader>;
 }
 
@@ -361,14 +361,16 @@ impl AuthHeader for HeaderMap {
 /// # 前缀是 x-oss- 的 header 记录
 ///
 /// 将他们按顺序组合成一个字符串，用于计算签名
-pub struct OssHeader(Option<String>);
+pub(crate) struct OssHeader(Option<String>);
 
 impl OssHeader {
-    pub fn new(string: Option<String>) -> Self {
+    #[allow(dead_code)]
+    pub(crate) fn new(string: Option<String>) -> Self {
         Self(string)
     }
 
-    pub fn is_none(&self) -> bool {
+    #[allow(dead_code)]
+    pub(crate) fn is_none(&self) -> bool {
         self.0.is_none()
     }
 
@@ -382,7 +384,7 @@ impl OssHeader {
 }
 
 #[cfg_attr(test, automock)]
-pub trait HeaderToSign {
+pub(crate) trait HeaderToSign {
     fn to_sign_string(self) -> String;
 }
 
@@ -407,7 +409,7 @@ impl Into<String> for OssHeader {
 }
 
 /// 待签名的数据
-pub struct SignString<'a> {
+pub(crate) struct SignString<'a> {
     data: String,
     key: &'a KeyId,
     secret: &'a KeySecret,
@@ -416,7 +418,8 @@ pub struct SignString<'a> {
 const LINE_BREAK: &str = "\n";
 
 impl<'a, 'b> SignString<'_> {
-    pub fn new(data: &'b str, key: &'a KeyId, secret: &'a KeySecret) -> SignString<'a> {
+    #[allow(dead_code)]
+    pub(crate) fn new(data: &'b str, key: &'a KeyId, secret: &'a KeySecret) -> SignString<'a> {
         SignString {
             data: data.to_owned(),
             key,
@@ -452,6 +455,7 @@ impl<'a> SignString<'a> {
         })
     }
 
+    #[cfg(test)]
     pub fn data(&self) -> String {
         self.data.clone()
     }
@@ -468,7 +472,7 @@ impl<'a> SignString<'a> {
 
     // 转化成签名
     #[inline]
-    pub fn to_sign(self) -> AuthResult<Sign<'a>> {
+    pub(crate) fn to_sign(self) -> AuthResult<Sign<'a>> {
         use base64::encode;
         use hmac::{Hmac, Mac};
         use sha1::Sha1;
@@ -491,23 +495,26 @@ impl<'a> SignString<'a> {
 }
 
 /// header 中的签名
-pub struct Sign<'a> {
+pub(crate) struct Sign<'a> {
     data: String,
     key: &'a KeyId,
 }
 
 impl<'a, 'b> Sign<'_> {
-    pub fn new(data: &'b str, key: &'a KeyId) -> Sign<'a> {
+    #[cfg(test)]
+    pub(crate) fn new(data: &'b str, key: &'a KeyId) -> Sign<'a> {
         Sign {
             data: data.to_owned(),
             key,
         }
     }
 
+    #[cfg(test)]
     pub fn data(&self) -> &str {
         &self.data
     }
 
+    #[cfg(test)]
     pub fn key_string(&self) -> String {
         self.key.clone().to_string()
     }
@@ -534,30 +541,28 @@ impl AuthBuilder {
     ///
     /// ```
     /// # use aliyun_oss_client::auth::AuthBuilder;
-    /// use aliyun_oss_client::auth::AuthGetHeader;
-    /// let headers = AuthBuilder::default().key("bar".into()).get_headers();
+    /// # use aliyun_oss_client::auth::AuthGetHeader;
+    /// let mut headers = AuthBuilder::default();
+    /// headers.key("bar".into());
+    /// headers.get_headers();
     /// ```
-    pub fn key(mut self, key: KeyId) -> Self {
+    pub fn key(&mut self, key: KeyId) {
         self.auth.set_key(key);
-        self
     }
 
     /// 给 secret 赋值
-    pub fn secret(mut self, secret: KeySecret) -> Self {
+    pub fn secret(&mut self, secret: KeySecret) {
         self.auth.set_secret(secret);
-        self
     }
 
     /// 给 verb 赋值
-    pub fn verb(mut self, verb: &VERB) -> Self {
+    pub fn verb(&mut self, verb: &VERB) {
         self.auth.set_verb(verb.to_owned());
-        self
     }
 
     /// 给 content_md5 赋值
-    pub fn content_md5(mut self, content_md5: ContentMd5) -> Self {
+    pub fn content_md5(&mut self, content_md5: ContentMd5) {
         self.auth.set_content_md5(content_md5);
-        self
     }
 
     /// # 给 date 赋值
@@ -567,44 +572,37 @@ impl AuthBuilder {
     /// use chrono::Utc;
     /// let builder = aliyun_oss_client::auth::AuthBuilder::default().date(Utc::now().into());
     /// ```
-    pub fn date(mut self, date: Date) -> Self {
+    pub fn date(&mut self, date: Date) {
         self.auth.set_date(date);
-        self
     }
 
     /// 给 content_md5 赋值
-    pub fn canonicalized_resource(mut self, data: CanonicalizedResource) -> Self {
+    pub fn canonicalized_resource(&mut self, data: CanonicalizedResource) {
         self.auth.set_canonicalized_resource(data);
-        self
     }
 
-    pub fn with_headers(mut self, headers: Option<HeaderMap>) -> Self {
+    pub fn with_headers(&mut self, headers: Option<HeaderMap>) {
         if let Some(headers) = headers {
-            self = self.extend_headers(headers);
+            self.extend_headers(headers);
         }
-        self
     }
 
-    pub fn headers(mut self, headers: HeaderMap) -> Self {
+    pub fn headers(&mut self, headers: HeaderMap) {
         self.auth.set_headers(headers);
-        self
     }
 
-    pub fn extend_headers(mut self, headers: HeaderMap) -> Self {
+    pub fn extend_headers(&mut self, headers: HeaderMap) {
         self.auth.extend_headers(headers);
-        self
     }
 
     /// 给 header 序列添加新值
-    pub fn header_insert<K: IntoHeaderName + 'static>(mut self, key: K, val: HeaderValue) -> Self {
+    pub fn header_insert<K: IntoHeaderName + 'static>(&mut self, key: K, val: HeaderValue) {
         self.auth.header_insert(key, val);
-        self
     }
 
     /// 清理 headers
-    pub fn header_clear(mut self) -> Self {
+    pub fn header_clear(&mut self) {
         self.auth.headers_clear();
-        self
     }
 
     #[allow(dead_code)]
@@ -640,7 +638,7 @@ mod builder_tests {
         assert_eq!(builder.build().get_key().as_ref(), "");
 
         let mut builder = AuthBuilder::default();
-        builder = builder.key("bar".into());
+        builder.key("bar".into());
         assert_eq!(builder.build().get_key().as_ref(), "bar");
     }
 }
