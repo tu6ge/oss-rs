@@ -4,101 +4,9 @@ use mockall::mock;
 use reqwest::header::{HeaderMap, HeaderValue};
 
 use crate::{
-    auth::{AuthError, AuthHeader, HeaderToSign, MockAuthToHeaderMap, OssHeader, Sign, VERB},
+    auth::{AuthError, AuthHeader, HeaderToSign, MockAuthToHeaderMap, OssHeader, Sign},
     types::KeyId,
 };
-
-#[test]
-fn test_verb2string() {
-    let verb = VERB::GET;
-    let string: String = verb.into();
-    assert_eq!(string, "GET".to_owned());
-
-    let verb = VERB::POST;
-    let string: String = verb.into();
-    assert_eq!(string, "POST".to_owned());
-
-    let verb = VERB::PUT;
-    let string: String = verb.into();
-    assert_eq!(string, "PUT".to_owned());
-
-    let verb = VERB::DELETE;
-    let string: String = verb.into();
-    assert_eq!(string, "DELETE".to_owned());
-
-    let verb = VERB::HEAD;
-    let string: String = verb.into();
-    assert_eq!(string, "HEAD".to_owned());
-
-    let verb = VERB::OPTIONS;
-    let string: String = verb.into();
-    assert_eq!(string, "OPTIONS".to_owned());
-
-    let verb = VERB::CONNECT;
-    let string: String = verb.into();
-    assert_eq!(string, "CONNECT".to_owned());
-
-    let verb = VERB::PATCH;
-    let string: String = verb.into();
-    assert_eq!(string, "PATCH".to_owned());
-
-    let verb = VERB::TRACE;
-    let string: String = verb.into();
-    assert_eq!(string, "TRACE".to_owned());
-}
-
-#[test]
-fn test_str2verb() {
-    let str = "GET";
-    let verb: VERB = str.into();
-    assert_eq!(verb, VERB::GET);
-
-    let str = "POST";
-    let verb: VERB = str.into();
-    assert_eq!(verb, VERB::POST);
-
-    let str = "PUT";
-    let verb: VERB = str.into();
-    assert_eq!(verb, VERB::PUT);
-
-    let str = "DELETE";
-    let verb: VERB = str.into();
-    assert_eq!(verb, VERB::DELETE);
-
-    let str = "HEAD";
-    let verb: VERB = str.into();
-    assert_eq!(verb, VERB::HEAD);
-
-    let str = "OPTIONS";
-    let verb: VERB = str.into();
-    assert_eq!(verb, VERB::OPTIONS);
-
-    let str = "CONNECT";
-    let verb: VERB = str.into();
-    assert_eq!(verb, VERB::CONNECT);
-
-    let str = "PATCH";
-    let verb: VERB = str.into();
-    assert_eq!(verb, VERB::PATCH);
-
-    let str = "TRACE";
-    let verb: VERB = str.into();
-    assert_eq!(verb, VERB::TRACE);
-}
-
-#[test]
-fn test_verb2headervalue() {
-    let verb = VERB::GET;
-    let header_value: HeaderValue = verb.try_into().unwrap();
-
-    assert_eq!(header_value.to_str().unwrap(), "GET");
-}
-
-#[test]
-fn test_verb_default() {
-    let verb = VERB::default();
-    assert_eq!(verb, VERB::GET);
-}
 
 mod to_oss_header {
     use std::convert::TryInto;
@@ -137,8 +45,9 @@ mod to_oss_header {
 
 mod auth_sign_string {
     use chrono::{TimeZone, Utc};
+    use http::Method;
 
-    use crate::auth::{AuthSignString, VERB};
+    use crate::auth::AuthSignString;
     use crate::{
         auth::AuthBuilder,
         types::{CanonicalizedResource, ContentMd5},
@@ -151,7 +60,7 @@ mod auth_sign_string {
         let mut builder = AuthBuilder::default();
         builder.key("foo1".into());
         builder.secret("foo2".into());
-        builder.verb(&VERB::POST);
+        builder.method(&Method::POST);
         builder.content_md5(ContentMd5::new("foo4"));
         builder.date(date.into());
         builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
@@ -184,7 +93,7 @@ mod auth_sign_string {
         let mut builder = AuthBuilder::default();
         builder.key("foo1".into());
         builder.secret("foo2".into());
-        builder.verb(&VERB::POST);
+        builder.method(&Method::POST);
         //.content_md5(ContentMd5::new("foo4"))
         builder.date(date.into());
         builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
@@ -215,9 +124,9 @@ mod auth_builder {
     use std::convert::TryInto;
 
     use chrono::{TimeZone, Utc};
-    use http::{header::HOST, HeaderMap};
+    use http::{header::HOST, HeaderMap, Method};
 
-    use crate::auth::{AuthBuilder, AuthSignString, VERB};
+    use crate::auth::{AuthBuilder, AuthSignString};
 
     #[test]
     fn test_key() {
@@ -244,12 +153,12 @@ mod auth_builder {
     #[test]
     fn test_verb() {
         let mut builder = AuthBuilder::default();
-        builder.verb(&VERB::POST);
+        builder.method(&Method::POST);
         let auth = builder.build();
 
         let (_, _, verb, ..) = auth.get_sign_info();
 
-        assert_eq!(verb, &VERB::POST);
+        assert_eq!(verb, &Method::POST);
     }
 
     #[test]
@@ -323,8 +232,9 @@ mod auth_builder {
 mod auth_to_header_map {
     use chrono::{TimeZone, Utc};
     use http::header::HeaderValue;
+    use http::Method;
 
-    use crate::auth::{AuthToHeaderMap, VERB};
+    use crate::auth::AuthToHeaderMap;
     use crate::{
         auth::AuthBuilder,
         types::{CanonicalizedResource, ContentMd5},
@@ -337,7 +247,7 @@ mod auth_to_header_map {
         let mut builder = AuthBuilder::default();
         builder.key("foo1".into());
         builder.secret("foo2".into());
-        builder.verb(&VERB::POST);
+        builder.method(&Method::POST);
         builder.content_md5(ContentMd5::new("foo4"));
         builder.date(date.into());
         builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
@@ -353,7 +263,7 @@ mod auth_to_header_map {
 
         let key = auth.get_header_key().unwrap();
         let secret = auth.get_header_secret().unwrap();
-        let verb = auth.get_header_verb().unwrap();
+        let verb = auth.get_header_method().unwrap();
         let md5 = auth.get_header_md5().unwrap();
         let date = auth.get_header_date().unwrap();
         let resource = auth.get_header_resource().unwrap();
@@ -376,7 +286,7 @@ mod auth_to_header_map {
         let mut builder = AuthBuilder::default();
         builder.key("foo1".into());
         builder.secret("foo2".into());
-        builder.verb(&VERB::POST);
+        builder.method(&Method::POST);
         //.content_md5(ContentMd5::new("foo4"))
         builder.date(date.into());
         builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
@@ -402,7 +312,7 @@ fn header_map_from_auth() {
     auth.expect_get_header_secret()
         .times(1)
         .returning(|| Ok("foo2".parse().unwrap()));
-    auth.expect_get_header_verb()
+    auth.expect_get_header_method()
         .times(1)
         .returning(|| Ok("foo3".parse().unwrap()));
 
@@ -500,8 +410,10 @@ fn header_into_string() {
 
 mod sign_string_struct {
 
+    use http::Method;
+
     use crate::{
-        auth::{AuthSignString, MockHeaderToSign, SignString, VERB},
+        auth::{AuthSignString, MockHeaderToSign, SignString},
         types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret},
     };
 
@@ -510,7 +422,7 @@ mod sign_string_struct {
         struct Bar {
             key: KeyId,
             secret: KeySecret,
-            verb: VERB,
+            verb: Method,
             date: Date,
             content_md5: ContentMd5,
             content_type: ContentType,
@@ -523,7 +435,7 @@ mod sign_string_struct {
             ) -> (
                 &KeyId,
                 &KeySecret,
-                &VERB,
+                &Method,
                 ContentMd5,
                 ContentType,
                 &Date,
@@ -544,7 +456,7 @@ mod sign_string_struct {
         let bar = Bar {
             key: KeyId::new("foo1"),
             secret: KeySecret::new("foo2"),
-            verb: VERB::GET,
+            verb: Method::GET,
             content_md5: ContentMd5::new("foo3"),
             content_type: ContentType::new("foo4"),
             date: Date::new("foo5"),
@@ -591,8 +503,10 @@ fn test_sign_to_headervalue() {
 }
 
 mod get_headers {
+    use http::Method;
+
     use crate::{
-        auth::{AuthBuilder, AuthGetHeader, VERB},
+        auth::{AuthBuilder, AuthGetHeader},
         types::{CanonicalizedResource, ContentMd5},
     };
 
@@ -602,7 +516,7 @@ mod get_headers {
         let mut builder = AuthBuilder::default();
         builder.key("foo1".into());
         builder.secret("foo2".into());
-        builder.verb(&VERB::POST);
+        builder.method(&Method::POST);
         builder.content_md5(ContentMd5::new("foo4"));
         builder.date("foo_date".into());
         builder.canonicalized_resource(CanonicalizedResource::new("foo5"));

@@ -9,16 +9,11 @@ use reqwest::Method;
 use std::convert::TryInto;
 use thiserror::Error;
 
-#[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(test, derive(Debug))]
-#[non_exhaustive]
-pub struct VERB(pub Method);
-
 #[derive(Default, Clone)]
 pub struct Auth {
     access_key_id: KeyId,
     access_key_secret: KeySecret,
-    verb: VERB,
+    method: Method,
     content_md5: Option<ContentMd5>,
     date: Date,
     // pub canonicalized_oss_headers: &'a str, // TODO
@@ -39,8 +34,8 @@ impl Auth {
     fn set_secret(&mut self, secret: KeySecret) {
         self.access_key_secret = secret;
     }
-    fn set_verb(&mut self, verb: VERB) {
-        self.verb = verb;
+    fn set_method(&mut self, method: Method) {
+        self.method = method;
     }
     fn set_content_md5(&mut self, content_md5: ContentMd5) {
         self.content_md5 = Some(content_md5)
@@ -86,102 +81,12 @@ impl Auth {
     }
 }
 
-impl VERB {
-    /// GET
-    pub const GET: VERB = VERB(Method::GET);
-
-    /// POST
-    pub const POST: VERB = VERB(Method::POST);
-
-    /// PUT
-    pub const PUT: VERB = VERB(Method::PUT);
-
-    /// DELETE
-    pub const DELETE: VERB = VERB(Method::DELETE);
-
-    /// HEAD
-    pub const HEAD: VERB = VERB(Method::HEAD);
-
-    /// OPTIONS
-    pub const OPTIONS: VERB = VERB(Method::OPTIONS);
-
-    /// CONNECT
-    pub const CONNECT: VERB = VERB(Method::CONNECT);
-
-    /// PATCH
-    pub const PATCH: VERB = VERB(Method::PATCH);
-
-    /// TRACE
-    pub const TRACE: VERB = VERB(Method::TRACE);
-
-    #[inline]
-    pub fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-}
-
-impl TryInto<HeaderValue> for VERB {
-    type Error = AuthError;
-    fn try_into(self) -> AuthResult<HeaderValue> {
-        self.0
-            .to_string()
-            .parse::<HeaderValue>()
-            .map_err(AuthError::from)
-    }
-}
-
-impl From<VERB> for String {
-    fn from(verb: VERB) -> Self {
-        match verb.0 {
-            Method::GET => "GET".into(),
-            Method::POST => "POST".into(),
-            Method::PUT => "PUT".into(),
-            Method::DELETE => "DELETE".into(),
-            Method::HEAD => "HEAD".into(),
-            Method::OPTIONS => "OPTIONS".into(),
-            Method::CONNECT => "CONNECT".into(),
-            Method::PATCH => "PATCH".into(),
-            Method::TRACE => "TRACE".into(),
-            _ => panic!("undefined verb type"),
-        }
-    }
-}
-
-impl From<&str> for VERB {
-    fn from(str: &str) -> Self {
-        match str {
-            "POST" => VERB(Method::POST),
-            "GET" => VERB(Method::GET),
-            "PUT" => VERB(Method::PUT),
-            "DELETE" => VERB(Method::DELETE),
-            "HEAD" => VERB(Method::HEAD),
-            "OPTIONS" => VERB(Method::OPTIONS),
-            "CONNECT" => VERB(Method::CONNECT),
-            "PATCH" => VERB(Method::PATCH),
-            "TRACE" => VERB(Method::TRACE),
-            _ => panic!("undefined verb type"),
-        }
-    }
-}
-
-impl Into<Method> for VERB {
-    fn into(self) -> Method {
-        self.0
-    }
-}
-
-impl Default for VERB {
-    fn default() -> Self {
-        Self::GET
-    }
-}
-
 #[cfg_attr(test, automock)]
 pub(crate) trait AuthToHeaderMap {
     fn get_original_header(&self) -> HeaderMap;
     fn get_header_key(&self) -> AuthResult<HeaderValue>;
     fn get_header_secret(&self) -> AuthResult<HeaderValue>;
-    fn get_header_verb(&self) -> AuthResult<HeaderValue>;
+    fn get_header_method(&self) -> AuthResult<HeaderValue>;
     fn get_header_md5(&self) -> AuthResult<Option<HeaderValue>>;
     fn get_header_date(&self) -> AuthResult<HeaderValue>;
     fn get_header_resource(&self) -> AuthResult<HeaderValue>;
@@ -199,8 +104,8 @@ impl AuthToHeaderMap for Auth {
         let val: HeaderValue = self.access_key_secret.as_ref().try_into()?;
         Ok(val)
     }
-    fn get_header_verb(&self) -> AuthResult<HeaderValue> {
-        let val: HeaderValue = self.verb.clone().try_into()?;
+    fn get_header_method(&self) -> AuthResult<HeaderValue> {
+        let val: HeaderValue = self.method.as_str().try_into()?;
         Ok(val)
     }
     fn get_header_md5(&self) -> AuthResult<Option<HeaderValue>> {
@@ -261,7 +166,7 @@ pub(crate) trait AuthSignString {
     ) -> (
         &KeyId,
         &KeySecret,
-        &VERB,
+        &Method,
         ContentMd5,
         ContentType,
         &Date,
@@ -276,7 +181,7 @@ impl AuthSignString for Auth {
     ) -> (
         &KeyId,
         &KeySecret,
-        &VERB,
+        &Method,
         ContentMd5,
         ContentType,
         &Date,
@@ -285,7 +190,7 @@ impl AuthSignString for Auth {
         (
             &self.access_key_id,
             &self.access_key_secret,
-            &self.verb,
+            &self.method,
             self.content_md5.clone().unwrap_or(ContentMd5::default()),
             match self.headers.get(CONTENT_TYPE) {
                 Some(ct) => ct.to_owned().try_into().unwrap(),
@@ -338,7 +243,7 @@ impl AuthHeader for HeaderMap {
 
         map.insert(ACCESS_KEY_ID, auth.get_header_key()?);
         map.insert(SECRET_ACCESS_KEY, auth.get_header_secret()?);
-        map.insert(VERB_IDENT, auth.get_header_verb()?);
+        map.insert(VERB_IDENT, auth.get_header_method()?);
 
         if let Some(a) = auth.get_header_md5()? {
             map.insert(CONTENT_MD5, a);
@@ -556,8 +461,8 @@ impl AuthBuilder {
     }
 
     /// 给 verb 赋值
-    pub fn verb(&mut self, verb: &VERB) {
-        self.auth.set_verb(verb.to_owned());
+    pub fn method(&mut self, method: &Method) {
+        self.auth.set_method(method.to_owned());
     }
 
     /// 给 content_md5 赋值

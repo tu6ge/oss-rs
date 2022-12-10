@@ -1,4 +1,4 @@
-use aliyun_oss_client::{errors::OssError, file::AlignBuilder, Client};
+use aliyun_oss_client::{errors::OssError, file::AlignBuilder, Client, Method};
 use dotenv::dotenv;
 
 #[tokio::main]
@@ -14,7 +14,7 @@ pub async fn main() -> Result<(), OssError> {
         "Sat, 01 Jan 2022 18:01:01 GMT".parse().unwrap(),
     )];
 
-    let builder = client.builder_with_header("HEAD", url, resource, headers)?;
+    let builder = client.builder_with_header(Method::HEAD, url, resource, headers)?;
 
     let response = builder.send().await?;
 

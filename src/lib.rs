@@ -199,6 +199,12 @@ pub mod types;
 
 use builder::ClientWithMiddleware;
 use config::Config;
+
+/// 重新导出 http 库的一些方法，便于开发者调用 lib 未提供的 api
+pub use http::{
+    header::{HeaderMap, HeaderName, HeaderValue},
+    Method,
+};
 pub use types::{BucketName, EndPoint, KeyId, KeySecret, Query, QueryKey, QueryValue};
 
 /// # 验证模块

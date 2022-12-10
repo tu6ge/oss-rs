@@ -54,7 +54,7 @@ impl<M: Default + Clone> STS for Client<M> {
 
 #[cfg(test)]
 mod tests {
-    use http::HeaderValue;
+    use http::{HeaderValue, Method};
 
     use crate::{file::AlignBuilder, types::CanonicalizedResource, BucketName, Client, EndPoint};
 
@@ -72,7 +72,7 @@ mod tests {
 
         let builder = client
             .builder(
-                "GET",
+                Method::GET,
                 "https://abc.oss-cn-shanghai.aliyuncs.com/"
                     .try_into()
                     .unwrap(),

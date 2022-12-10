@@ -1,4 +1,4 @@
-use crate::auth::{AuthBuilder, AuthGetHeader, VERB};
+use crate::auth::{AuthBuilder, AuthGetHeader};
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
 #[cfg(test)]
@@ -9,7 +9,7 @@ use crate::file::AlignBuilder;
 use crate::types::{BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret};
 use chrono::prelude::*;
 use http::header::HeaderName;
-use http::HeaderValue;
+use http::{HeaderValue, Method};
 use reqwest::header::HeaderMap;
 use reqwest::Url;
 use std::env;
@@ -156,16 +156,15 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
     /// builder 方法的异步实现
     /// 带 header 参数
     #[inline]
-    fn builder_with_header<M: Into<VERB>, H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+    fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
         &self,
-        method: M,
+        method: Method,
         url: Url,
         resource: CanonicalizedResource,
         headers: H,
     ) -> Result<RequestBuilder, BuilderError> {
-        let method = method.into();
         let mut auth_builder = self.auth_builder.clone();
-        auth_builder.verb(&method);
+        auth_builder.method(&method);
         auth_builder.date(now().into());
         auth_builder.canonicalized_resource(resource);
         auth_builder.extend_headers(HeaderMap::from_iter(headers));
@@ -210,16 +209,16 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
     ///
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
     #[inline]
-    fn builder_with_header<M: Into<VERB>, H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+    fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
         &self,
-        method: M,
+        method: Method,
         url: Url,
         resource: CanonicalizedResource,
         headers: H,
     ) -> Result<BlockingRequestBuilder, BuilderError> {
         let method = method.into();
         let mut auth_builder = self.auth_builder.clone();
-        auth_builder.verb(&method);
+        auth_builder.method(&method);
         auth_builder.date(now().into());
         auth_builder.canonicalized_resource(resource);
         auth_builder.extend_headers(HeaderMap::from_iter(headers));

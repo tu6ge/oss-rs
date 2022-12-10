@@ -1,5 +1,5 @@
-use crate::auth::VERB;
 use crate::builder::BuilderError;
+use http::Method;
 use reqwest::blocking::{self, Body, Request, Response};
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
@@ -25,9 +25,9 @@ impl ClientWithMiddleware {
         }
     }
 
-    pub fn request<U: IntoUrl>(&self, method: VERB, url: U) -> RequestBuilder {
+    pub fn request<U: IntoUrl>(&self, method: Method, url: U) -> RequestBuilder {
         RequestBuilder {
-            inner: self.inner.request(method.into(), url),
+            inner: self.inner.request(method, url),
             middleware: self.middleware.clone(),
         }
     }

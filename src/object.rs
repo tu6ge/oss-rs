@@ -1,4 +1,3 @@
-use crate::auth::VERB;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 use crate::builder::{ArcPointer, BuilderError, PointerFamily};
@@ -18,6 +17,7 @@ use crate::{BucketName, Client};
 use async_stream::try_stream;
 use chrono::prelude::*;
 use futures_core::stream::Stream;
+use http::Method;
 use oss_derive::oss_gen_rc;
 
 use std::fmt;
@@ -155,7 +155,7 @@ impl ObjectList {
 
                 let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
 
-                let response = self.builder(VERB::GET, url, canonicalized)?;
+                let response = self.builder(Method::GET, url, canonicalized)?;
                 let content = response.send_adjust_error().await?;
 
                 let mut list = ObjectList::<ArcPointer>::default();
@@ -547,7 +547,7 @@ impl Client {
 
         let (bucket_url, resource) = bucket.get_url_resource(&query);
 
-        let response = self.builder(VERB::GET, bucket_url, resource)?;
+        let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
         list.from_xml(
@@ -668,7 +668,7 @@ impl Client {
         let (bucket_url, resource) =
             BucketBase::new(name.into(), self.get_endpoint().to_owned()).get_url_resource(&query);
 
-        let response = self.builder(VERB::GET, bucket_url, resource)?;
+        let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
         list.from_xml(
@@ -707,7 +707,7 @@ impl ClientRc {
 
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
 
-        let response = self.builder(VERB::GET, bucket_url, resource)?;
+        let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
@@ -745,7 +745,7 @@ impl ClientRc {
         let query = Query::from_iter(query);
         let (bucket_url, resource) = bucket.get_url_resource(&query);
 
-        let response = self.builder(VERB::GET, bucket_url, resource)?;
+        let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;

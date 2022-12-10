@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use http::Method;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Body, IntoUrl,
@@ -10,11 +11,7 @@ use thiserror::Error;
 
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
-use crate::{
-    auth::{AuthError, VERB},
-    client::Client as AliClient,
-    config::BucketBase,
-};
+use crate::{auth::AuthError, client::Client as AliClient, config::BucketBase};
 use reqwest::{Client, Request, Response};
 
 pub trait PointerFamily
@@ -61,9 +58,9 @@ impl ClientWithMiddleware {
         }
     }
 
-    pub fn request<U: IntoUrl>(&self, method: VERB, url: U) -> RequestBuilder {
+    pub fn request<U: IntoUrl>(&self, method: Method, url: U) -> RequestBuilder {
         RequestBuilder {
-            inner: self.inner.request(method.into(), url),
+            inner: self.inner.request(method, url),
             middleware: self.middleware.clone(),
         }
     }

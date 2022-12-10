@@ -1,4 +1,3 @@
-use crate::auth::VERB;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 use crate::builder::{ArcPointer, BuilderError, PointerFamily};
@@ -17,6 +16,7 @@ use crate::types::{
 };
 use crate::BucketName;
 use chrono::prelude::*;
+use http::Method;
 use oss_derive::oss_gen_rc;
 use std::error::Error;
 use std::fmt;
@@ -231,7 +231,7 @@ impl Bucket {
 
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
 
-        let response = self.builder(VERB::GET, bucket_url, resource)?;
+        let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
         list.from_xml(
@@ -270,7 +270,7 @@ impl Bucket<RcPointer> {
 
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
 
-        let response = self.builder(VERB::GET, bucket_url, resource)?;
+        let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
@@ -388,7 +388,7 @@ impl ClientArc {
 
         let canonicalized = CanonicalizedResource::default();
 
-        let response = self.builder(VERB::GET, url, canonicalized)?;
+        let response = self.builder(Method::GET, url, canonicalized)?;
         let content = response.send_adjust_error().await?;
 
         list.from_xml(
@@ -428,7 +428,7 @@ impl ClientArc {
 
         let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
-        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error().await?;
 
         bucket.from_xml(&content.text().await.map_err(BuilderError::from)?)?;
@@ -472,7 +472,7 @@ impl ClientRc {
 
         let canonicalized = CanonicalizedResource::default();
 
-        let response = self.builder(VERB::GET, url, canonicalized)?;
+        let response = self.builder(Method::GET, url, canonicalized)?;
         let content = response.send_adjust_error()?;
 
         list.from_xml(&content.text().map_err(BuilderError::from)?, init_bucket)?;
@@ -509,7 +509,7 @@ impl ClientRc {
 
         let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
 
-        let response = self.builder(VERB::GET, bucket_url, canonicalized)?;
+        let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error()?;
 
         bucket.from_xml(&content.text().map_err(BuilderError::from)?)?;

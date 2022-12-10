@@ -1,5 +1,5 @@
 use http::header::CONTENT_TYPE;
-use http::HeaderValue;
+use http::{HeaderValue, Method};
 use reqwest::Url;
 
 use crate::builder::ClientWithMiddleware;
@@ -29,7 +29,7 @@ fn test_builder_with_header() {
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
     let headers = vec![(CONTENT_TYPE, HeaderValue::from_static("application/json"))];
-    let builder = client.builder_with_header("POST", url, resource, headers);
+    let builder = client.builder_with_header(Method::POST, url, resource, headers);
 
     assert!(builder.is_ok());
 
@@ -83,7 +83,7 @@ fn test_blocking_builder_with_header() {
     let url = Url::parse("http://foo.example.net/foo").unwrap();
     let resource = CanonicalizedResource::new("bar");
     let headers = vec![(CONTENT_TYPE, HeaderValue::from_static("application/json"))];
-    let builder = client.builder_with_header("POST", url, resource, headers);
+    let builder = client.builder_with_header(Method::POST, url, resource, headers);
 
     assert!(builder.is_ok());
 
