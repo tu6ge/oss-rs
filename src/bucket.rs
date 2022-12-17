@@ -5,12 +5,12 @@ use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::BucketBase;
+use crate::decode::{RefineBucket, RefineBucketList, RefineObjectList};
 use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::object::{Object, ObjectList};
-use crate::traits::{RefineBucket, RefineBucketList, RefineObjectList};
 use crate::types::{
     CanonicalizedResource, InvalidEndPoint, Query, QueryKey, QueryValue, BUCKET_INFO,
 };

@@ -5,11 +5,11 @@ use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::{BucketBase, ObjectBase, ObjectPath};
+use crate::decode::{RefineObject, RefineObjectList};
 use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
-use crate::traits::{RefineObject, RefineObjectList};
 use crate::types::{
     CanonicalizedResource, Query, QueryKey, QueryValue, UrlQuery, CONTINUATION_TOKEN,
 };
@@ -567,7 +567,7 @@ impl Client {
     /// ```rust
     /// use aliyun_oss_client::{
     ///     builder::BuilderError,
-    ///     traits::{RefineObject, RefineObjectList},
+    ///     decode::{RefineObject, RefineObjectList},
     ///     Client,
     /// };
     /// use dotenv::dotenv;

@@ -243,8 +243,13 @@ pub mod blocking;
 /// 封装了 reqwest::RequestBuilder 模块
 pub mod builder;
 
-/// 解析 aliyun OSS 接口返回的 xml 格式的各种 trait
+/// 解析 aliyun OSS 接口返回的 xml
+#[deprecated(since = "0.11.0", note = "plase use decode mod")]
 pub mod traits;
+
+/// 解析 aliyun OSS 接口返回的 xml
+#[path = "traits.rs"]
+pub mod decode;
 
 /// 异常处理模块
 pub mod errors;

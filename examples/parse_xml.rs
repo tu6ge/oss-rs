@@ -1,4 +1,4 @@
-use aliyun_oss_client::traits::{RefineObject, RefineObjectList};
+use aliyun_oss_client::decode::{RefineObject, RefineObjectList};
 use thiserror::Error;
 
 struct MyFile {

@@ -12,8 +12,8 @@ mod object_list_xml {
 
     #[test]
     fn from_xml() {
-        use crate::traits::RefineObject;
-        use crate::traits::RefineObjectList;
+        use crate::decode::RefineObject;
+        use crate::decode::RefineObjectList;
 
         #[derive(Default)]
         struct ObjectA {}
@@ -170,8 +170,8 @@ mod object_list_xml {
     #[cfg(feature = "bench")]
     #[bench]
     fn from_xml_bench(b: &mut test::Bencher) {
-        use crate::traits::RefineObject;
-        use crate::traits::RefineObjectList;
+        use crate::decode::RefineObject;
+        use crate::decode::RefineObjectList;
 
         #[derive(Default)]
         struct ObjectA {}
@@ -316,8 +316,8 @@ mod object_list_xml {
     #[cfg(feature = "bench")]
     #[bench]
     fn from_xml_bench_real_object(b: &mut test::Bencher) {
-        use crate::traits::RefineObject;
-        use crate::traits::RefineObjectList;
+        use crate::decode::RefineObject;
+        use crate::decode::RefineObjectList;
 
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
         <ListBucketResult>
@@ -362,8 +362,8 @@ mod object_list_xml {
 
     #[test]
     fn from_xml_has_next() {
-        use crate::traits::RefineObject;
-        use crate::traits::RefineObjectList;
+        use crate::decode::RefineObject;
+        use crate::decode::RefineObjectList;
 
         #[derive(Default)]
         struct ObjectA {}
@@ -435,7 +435,7 @@ mod bucket_xml {
 
     #[test]
     fn from_xml() {
-        use crate::traits::RefineBucket;
+        use crate::decode::RefineBucket;
 
         struct BucketA {}
 
@@ -512,7 +512,7 @@ mod bucket_list_xml {
 
     #[test]
     fn from_xml() {
-        use crate::traits::{RefineBucket, RefineBucketList};
+        use crate::decode::{RefineBucket, RefineBucketList};
 
         #[derive(Default)]
         struct BucketA {}
