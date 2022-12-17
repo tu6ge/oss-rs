@@ -1,9 +1,15 @@
 # aliyun-oss-client
 
-aliyun OSS 的一个客户端
+aliyun OSS 的一个异步/同步客户端，包含以下功能：
 
-> 最开始的时候，是作为一个 rust 练手项目，渐渐的现在越来越完善了，包含了 rust 的 struct,enum, async, trait features 等特性，
-> 以及自定义 error 类，同时也包含完整的的测试用例
+- `auth` 模块，处理 OSS 验证，可以抽离出来，独立与 `reqwest` 库配合使用
+- `traits` 模块，包含 OSS 接口返回的原始 `xml` 数据的解析方式，可以将数据方便的导入到自定义的 rust 类型中，可以独立使用
+- `client` 模块，基础部分，封装了 `reqwest` `auth` 模块，并提供了一些便捷方法
+- `bucket` 模块，包含 bucket 以及其列表的结构体
+- `object` 模块，包含 object 以及其列表的结构体
+- `file` 模块，文件上传，下载，删除等功能，可在 client, bucket, object 等结构体中复用
+- `config` 模块，OSS 配置信息，可用于从数据库读取配置等操作
+
 
 ## 使用方法
 
@@ -11,7 +17,7 @@ aliyun OSS 的一个客户端
 
 ```toml
 [dependencies]
-aliyun-oss-client = "^0.9"
+aliyun-oss-client = "[last_version]"
 ```
 
 2. 打开你需要使用 oss 的文件，在里面添加如下内容，即可使用：
@@ -269,16 +275,6 @@ use aliyun_oss_client::file::blocking::File;
 client.delete_object("examples/bg2015071010.png");
 ```
 
-## 与 [官方 client](https://crates.io/crates/oss-rust-sdk) 对比
-
-- 完整的测试用例
-- 单一入口，避免泛引入导致意外的命名冲突
-- 链式调用
-- 对公共的参数进行了封装，每次调用的时候，只需要传递业务参数即可
-- 默认支持异步调用，可选的支持同步方式调用
-- 支持内置的 object bucket 等结构体
-- 支持导出数据到自定义的 object bucket 结构体
-
 ## 运行 Bench
 
 ```bash
@@ -290,3 +286,7 @@ rustup run nightly cargo bench
 ```bash
 conventional-changelog -p angular -i Changelog.md -s
 ```
+
+## 贡献代码
+
+欢迎各种 PR 贡献
