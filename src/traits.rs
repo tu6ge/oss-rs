@@ -96,10 +96,7 @@ use std::borrow::Cow;
 
 use quick_xml::{events::Event, Reader};
 
-pub trait RefineObject
-where
-    Self: Sized,
-{
+pub trait RefineObject {
     type Error;
 
     /// 提取 key
@@ -156,7 +153,6 @@ const CONTENTS: &[u8] = b"Contents";
 
 pub trait RefineObjectList<T>
 where
-    Self: Sized,
     T: RefineObject,
     Self::Error: From<quick_xml::Error> + From<T::Error>,
 {
@@ -281,7 +277,6 @@ where
 
 pub trait RefineBucket
 where
-    Self: Sized,
     Self::Error: From<quick_xml::Error>,
 {
     type Error;
@@ -353,7 +348,6 @@ const TRUE: &str = "true";
 
 pub trait RefineBucketList<T: RefineBucket>
 where
-    Self: Sized,
     Self::Error: From<quick_xml::Error> + From<T::Error>,
 {
     type Error;
