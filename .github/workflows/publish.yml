@@ -17,6 +17,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check fmt
+        run: cargo fmt --check
+
       # v0.1.15 目前版本
       - name: Cache
         uses: Swatinem/rust-cache@v1
@@ -25,9 +28,6 @@ jobs:
       
       - name: Show cargo info
         run: cargo version --verbose
-
-      - name: Check fmt
-        run: cargo fmt --check
 
       - name: Install publish-action
         if: steps.cache-publish-action.outputs.cache-hit != 'true'
