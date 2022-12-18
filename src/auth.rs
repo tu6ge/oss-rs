@@ -141,11 +141,11 @@ impl AuthToOssHeader for Auth {
             .iter()
             .filter(|(k, _v)| k.as_str().starts_with("x-oss-"))
             .collect();
-        if header.len() == 0 {
+        if header.is_empty() {
             return Ok(OssHeader(None));
         }
 
-        header.sort_by(|(k1, _), (k2, _)| k1.as_str().cmp(&k2.as_str()));
+        header.sort_by(|(k1, _), (k2, _)| k1.as_str().cmp(k2.as_str()));
 
         let header_vec: Vec<_> = header
             .iter()
@@ -191,7 +191,7 @@ impl AuthSignString for Auth {
             &self.access_key_id,
             &self.access_key_secret,
             &self.method,
-            self.content_md5.clone().unwrap_or(ContentMd5::default()),
+            self.content_md5.clone().unwrap_or_default(),
             match self.headers.get(CONTENT_TYPE) {
                 Some(ct) => ct.to_owned().try_into().unwrap(),
                 None => ContentType::default(),
@@ -297,20 +297,17 @@ pub(crate) trait HeaderToSign {
 impl HeaderToSign for OssHeader {
     fn to_sign_string(self) -> String {
         let mut content = String::with_capacity(self.len() + 2);
-        match self.0 {
-            Some(str) => {
-                content.push_str(&str);
-                content.push_str(LINE_BREAK);
-            }
-            None => (),
+        if let Some(str) = self.0 {
+            content.push_str(&str);
+            content.push_str(LINE_BREAK);
         }
         content
     }
 }
 
-impl Into<String> for OssHeader {
-    fn into(self) -> String {
-        self.to_sign_string()
+impl From<OssHeader> for String {
+    fn from(header: OssHeader) -> Self {
+        header.to_sign_string()
     }
 }
 
@@ -378,7 +375,7 @@ impl<'a> SignString<'a> {
 
     // 转化成签名
     #[inline]
-    pub(crate) fn to_sign(self) -> AuthResult<Sign<'a>> {
+    pub(crate) fn to_sign(&self) -> AuthResult<Sign<'a>> {
         use base64::encode;
         use hmac::{Hmac, Mac};
         use sha1::Sha1;
@@ -395,7 +392,7 @@ impl<'a> SignString<'a> {
 
         Ok(Sign {
             data: encode(sha1),
-            key: &self.key,
+            key: self.key,
         })
     }
 }
@@ -406,9 +403,9 @@ pub(crate) struct Sign<'a> {
     key: &'a KeyId,
 }
 
-impl<'a, 'b> Sign<'_> {
+impl Sign<'_> {
     #[cfg(test)]
-    pub(crate) fn new(data: &'b str, key: &'a KeyId) -> Sign<'a> {
+    pub(crate) fn new<'a, 'b>(data: &'b str, key: &'a KeyId) -> Sign<'a> {
         Sign {
             data: data.to_owned(),
             key,

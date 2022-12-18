@@ -10,9 +10,7 @@ use std::sync::Arc;
 #[test]
 fn object_list_get_object_list() {
     use crate::client::ClientRc;
-    use crate::{
-        blocking::builder::Middleware, builder::RcPointer, config::BucketBase, object::ObjectList,
-    };
+    use crate::{blocking::builder::Middleware, builder::RcPointer, object::ObjectList};
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
@@ -69,7 +67,7 @@ fn object_list_get_object_list() {
     .middleware(Rc::new(MyMiddleware {}));
 
     let mut object_list = ObjectList::<RcPointer>::new(
-        BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
+        "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
         String::from("foo2"),
         100,
         200,

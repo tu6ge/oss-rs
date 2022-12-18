@@ -77,7 +77,7 @@
 //!         other: "abc".to_string(),
 //!     };
 //!
-//!     bucket.from_xml(xml, init_file)?;
+//!     bucket.decode(xml, init_file)?;
 //!
 //!     assert!(bucket.name == "foo_bucket");
 //!     assert!(bucket.files[0].key == "9AB932LY.jpeg");
@@ -188,7 +188,7 @@ where
 
     /// # 由 xml 转 struct 的底层实现
     /// - `init_object` 用于初始化 object 结构体的方法
-    fn from_xml<F>(&mut self, xml: &str, mut init_object: F) -> Result<(), Self::Error>
+    fn decode<F>(&mut self, xml: &str, mut init_object: F) -> Result<(), Self::Error>
     where
         F: FnMut() -> T,
     {
@@ -237,7 +237,7 @@ where
                         LAST_MODIFIED => last_modified = reader.read_text(e.to_end().name())?,
                         E_TAG => {
                             let tag = reader.read_text(e.to_end().name())?;
-                            etag = Cow::Owned((*(&*tag.trim_matches('"'))).to_owned());
+                            etag = Cow::Owned((*tag.trim_matches('"')).to_owned());
                         }
                         TYPE => _type = reader.read_text(e.to_end().name())?,
                         SIZE => {
@@ -305,7 +305,7 @@ where
         Ok(())
     }
 
-    fn from_xml(&mut self, xml: &str) -> Result<(), Self::Error> {
+    fn decode(&mut self, xml: &str) -> Result<(), Self::Error> {
         //println!("from_xml: {:#}", xml);
         let mut reader = Reader::from_str(xml);
         reader.trim_text(true);
@@ -384,7 +384,7 @@ where
         Ok(())
     }
 
-    fn from_xml<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), Self::Error>
+    fn decode<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), Self::Error>
     where
         F: FnMut() -> T,
     {

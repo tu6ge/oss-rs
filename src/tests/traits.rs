@@ -5,7 +5,6 @@ mod object_list_xml {
 
     use crate::builder::ArcPointer;
     use crate::client::Client;
-    use crate::config::BucketBase;
     use crate::errors::OssError;
     use crate::object::{Object, ObjectList};
     use crate::tests::traits::OBEJCT_ITEM_ID;
@@ -158,7 +157,7 @@ mod object_list_xml {
 
         let init_object = || ObjectA {};
 
-        let res = list.from_xml(xml, init_object);
+        let res = list.decode(xml, init_object);
 
         assert!(res.is_ok());
     }
@@ -262,7 +261,7 @@ mod object_list_xml {
 
         b.iter(|| {
             let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
-            list.from_xml(xml, Arc::new(base));
+            list.decode(xml, Arc::new(base));
         })
     }
 
@@ -298,7 +297,7 @@ mod object_list_xml {
         );
 
         let object_list = ObjectList::<ArcPointer>::new(
-            BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
+            "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
             String::from("foo2"),
             100,
             200,
@@ -356,7 +355,7 @@ mod object_list_xml {
         let mut list = init_object_list(None, vec![]);
         b.iter(|| {
             let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
-            list.from_xml(xml, Arc::new(base));
+            list.decode(xml, Arc::new(base));
         })
     }
 
@@ -424,7 +423,7 @@ mod object_list_xml {
 
         let init_object = || ObjectA {};
 
-        let res = list.from_xml(xml, init_object);
+        let res = list.decode(xml, init_object);
 
         assert!(res.is_ok());
     }
@@ -499,7 +498,7 @@ mod bucket_xml {
           </Bucket>
         </BucketInfo>"#;
 
-        let info = BucketA {}.from_xml(xml);
+        let info = BucketA {}.decode(xml);
 
         assert!(info.is_ok());
     }
@@ -632,7 +631,7 @@ mod bucket_list_xml {
         </ListAllMyBucketsResult>"#;
 
         let mut list = ListA {};
-        let res = list.from_xml(xml, || BucketA {});
+        let res = list.decode(xml, || BucketA {});
 
         assert!(res.is_ok());
     }

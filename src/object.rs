@@ -170,7 +170,7 @@ impl ObjectList {
                     object
                 };
 
-                list.from_xml(&content.text().await?, init_object)?;
+                list.decode(&content.text().await?, init_object)?;
 
                 list.set_search_query(query);
                 Ok(list)
@@ -264,6 +264,10 @@ impl<T: PointerFamily> ObjectList<T> {
 
     pub fn len(&self) -> usize {
         self.object_list.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.object_list.is_empty()
     }
 }
 
@@ -550,7 +554,7 @@ impl Client {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
-        list.from_xml(
+        list.decode(
             &content.text().await.map_err(BuilderError::from)?,
             init_object,
         )?;
@@ -671,7 +675,7 @@ impl Client {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
-        list.from_xml(
+        list.decode(
             &content.text().await.map_err(BuilderError::from)?,
             init_object,
         )?;
@@ -695,7 +699,7 @@ impl ClientRc {
         let mut list = ObjectList::<RcPointer>::default();
         list.set_bucket(bucket.clone());
 
-        let bucket_arc = Rc::new(bucket.clone());
+        let bucket_arc = Rc::new(bucket);
 
         let init_object = || {
             let mut object = Object::<RcPointer>::default();
@@ -710,7 +714,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_object)?;
 
         list.set_client(Rc::new(self));
         list.set_search_query(query);
@@ -748,7 +752,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_object)?;
 
         Ok(())
     }
@@ -819,7 +823,7 @@ impl Iterator for ObjectList<RcPointer> {
 //                             .set_client(self.client().clone())
 //                             .set_bucket(self.bucket.clone());
 
-//                         let result = list.from_xml(text, Arc::new(self.bucket.clone()));
+//                         let result = list.decode(text, Arc::new(self.bucket.clone()));
 
 //                         let mut result = match result {
 //                             Ok(data) => data,
@@ -965,7 +969,7 @@ mod tests {
         );
 
         let object_list = ObjectList::<ArcPointer>::new(
-            BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
+            "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
             String::from("foo2"),
             100,
             200,
@@ -1027,12 +1031,12 @@ mod tests {
 
     #[test]
     fn test_object_iter_in_list() {
-        let bucket = Arc::new(BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap());
+        let bucket = Arc::new("abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap());
         let object_list = init_object_list(
             None,
             vec![
                 Object::new(
-                    bucket.clone(),
+                    Arc::clone(&bucket),
                     "key1",
                     DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
                     "foo3".into(),
@@ -1041,7 +1045,7 @@ mod tests {
                     "foo5".into(),
                 ),
                 Object::new(
-                    bucket.clone(),
+                    Arc::clone(&bucket),
                     "key2",
                     DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
                     "foo3".into(),
@@ -1067,7 +1071,7 @@ mod tests {
 
     #[test]
     fn test_object_new() {
-        let bucket = Arc::new(BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap());
+        let bucket = Arc::new("abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap());
         let object = Object::<ArcPointer>::new(
             bucket,
             "foo2",
@@ -1119,12 +1123,12 @@ mod blocking_tests {
 
     use chrono::{DateTime, NaiveDateTime, Utc};
 
-    use crate::{builder::RcPointer, config::BucketBase};
+    use crate::builder::RcPointer;
 
     use super::Object;
 
     fn init_object(
-        bucket: &'static str,
+        bucket: &str,
         path: &'static str,
         last_modified: i64,
         etag: &'static str,
@@ -1132,7 +1136,7 @@ mod blocking_tests {
         size: u64,
         storage_class: &'static str,
     ) -> Object<RcPointer> {
-        let bucket = Rc::new(BucketBase::from_str(bucket).unwrap());
+        let bucket = Rc::new(bucket.parse().unwrap());
         Object::<RcPointer>::new(
             bucket,
             path,

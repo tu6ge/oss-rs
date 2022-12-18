@@ -84,23 +84,18 @@ pub struct BucketBase {
 
 const HTTPS: &str = "https://";
 
-impl BucketBase {
-    pub fn new(name: BucketName, endpoint: EndPoint) -> Self {
-        Self { name, endpoint }
-    }
-
+impl FromStr for BucketBase {
+    type Err = InvalidBucketBase;
     /// 通过域名获取
     /// 举例
     /// ```
     /// # use aliyun_oss_client::config::BucketBase;
     /// # use aliyun_oss_client::types::EndPoint;
-    /// let bucket = BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com");
-    /// assert!(bucket.is_ok());
-    /// let bucket = bucket.unwrap();
+    /// let bucket: BucketBase = "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap();
     /// assert_eq!(bucket.name(), "abc");
     /// assert_eq!(bucket.endpoint(), EndPoint::CnShanghai);
     /// ```
-    pub fn from_str(domain: &'static str) -> Result<Self, InvalidBucketBase> {
+    fn from_str(domain: &str) -> Result<Self, InvalidBucketBase> {
         fn valid_character(c: char) -> bool {
             match c {
                 _ if c.is_ascii_lowercase() => true,
@@ -120,9 +115,15 @@ impl BucketBase {
         };
 
         Ok(Self {
-            name: BucketName::new(bucket)?,
+            name: BucketName::from_static(bucket)?,
             endpoint: EndPoint::new(endpoint)?,
         })
+    }
+}
+
+impl BucketBase {
+    pub fn new(name: BucketName, endpoint: EndPoint) -> Self {
+        Self { name, endpoint }
     }
 
     /// 通过环境变量初始化
@@ -225,9 +226,9 @@ impl BucketBase {
     #[inline]
     pub fn get_url_resource(&self, query: &Query) -> (Url, CanonicalizedResource) {
         let mut url = self.to_url();
-        url.set_search_query(&query);
+        url.set_search_query(query);
 
-        let resource = CanonicalizedResource::from_bucket_query(&self, &query);
+        let resource = CanonicalizedResource::from_bucket_query(self, query);
 
         (url, resource)
     }
@@ -320,7 +321,7 @@ impl ObjectBase<ArcPointer> {
         P: Into<ObjectPath>,
     {
         Self {
-            bucket: bucket.clone(),
+            bucket,
             path: path.into(),
         }
     }
@@ -401,7 +402,7 @@ impl AsRef<str> for ObjectPath {
 
 impl fmt::Display for ObjectPath {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0.to_owned())
+        write!(f, "{}", self.0.clone())
     }
 }
 
@@ -446,7 +447,7 @@ impl PartialEq<String> for ObjectPath {
     /// ```
     #[inline]
     fn eq(&self, other: &String) -> bool {
-        &self.0.to_owned() == other
+        &self.0.clone() == other
     }
 }
 
@@ -459,7 +460,7 @@ impl PartialEq<ObjectPath> for String {
     /// ```
     #[inline]
     fn eq(&self, other: &ObjectPath) -> bool {
-        self == &other.0.to_owned()
+        self == &other.0.clone()
     }
 }
 
@@ -485,9 +486,9 @@ impl From<String> for ObjectPath {
     }
 }
 
-impl Into<String> for ObjectPath {
-    fn into(self) -> String {
-        self.0.to_string()
+impl From<ObjectPath> for String {
+    fn from(val: ObjectPath) -> Self {
+        val.0.to_string()
     }
 }
 
@@ -535,9 +536,7 @@ mod blocking_tests {
     fn crate_object_base(bucket: &'static str, path: &'static str) -> ObjectBase<RcPointer> {
         use std::rc::Rc;
 
-        use crate::config::BucketBase;
-
-        let bucket = BucketBase::from_str(bucket).unwrap();
+        let bucket = bucket.parse().unwrap();
 
         let object = ObjectBase::<RcPointer>::new(Rc::new(bucket), path);
         object

@@ -83,7 +83,7 @@ impl OssError {
 /// 当服务器返回的状态码不在 200<=x 且 x<300 范围时，则会返回此错误
 ///
 /// 如果解析 xml 格式错误，则会返回默认值，默认值的 status = 200
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub struct OssService {
     pub code: String,
     pub status: StatusCode,
@@ -142,10 +142,10 @@ impl<'a> OssService {
         };
 
         Self {
-            code: (&source[code0 + 6..code1]).to_owned(),
-            status: status.clone(),
-            message: (&source[message0 + 9..message1]).to_owned(),
-            request_id: (&source[request_id0 + 11..request_id1]).to_owned(),
+            code: source[code0 + 6..code1].to_owned(),
+            status: *status,
+            message: source[message0 + 9..message1].to_owned(),
+            request_id: source[request_id0 + 11..request_id1].to_owned(),
         }
     }
 }

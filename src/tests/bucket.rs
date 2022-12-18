@@ -8,7 +8,6 @@ use http::HeaderValue;
 use reqwest::{Request, Response, Url};
 
 use crate::client::ClientArc;
-use crate::config::BucketBase;
 use crate::{builder::Middleware, client::Client};
 
 #[tokio::test]
@@ -327,7 +326,7 @@ async fn test_get_object_list() {
     let creation_date = DateTime::from_utc(naive, Utc);
 
     let bucket = Bucket::<ArcPointer>::new(
-        BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
+        "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
         creation_date,
         String::from("foo1"),
         String::from("foo2"),
@@ -409,7 +408,7 @@ fn test_get_blocking_object_list() {
     let creation_date = DateTime::from_utc(naive, Utc);
 
     let bucket = Bucket::<RcPointer>::new(
-        BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap(),
+        "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
         creation_date,
         String::from("foo1"),
         String::from("foo2"),

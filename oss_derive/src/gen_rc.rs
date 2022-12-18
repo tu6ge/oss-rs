@@ -44,11 +44,11 @@ impl VisitMut for ReplaceArc {
     }
 
     fn visit_ident_mut(&mut self, i: &mut Ident) {
-        if i.to_owned() == "ArcPointer" {
+        if *i == "ArcPointer" {
             *i = parse_quote! {RcPointer};
-        } else if i.to_owned() == "Arc" {
+        } else if *i == "Arc" {
             *i = parse_quote! {Rc};
-        } else if i.to_owned() == "ClientArc" {
+        } else if *i == "ClientArc" {
             *i = parse_quote! {ClientRc}
         }
         visit_mut::visit_ident_mut(self, i);

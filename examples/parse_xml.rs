@@ -71,7 +71,7 @@ fn get_with_xml() -> Result<(), MyError> {
         other: "abc".to_string(),
     };
 
-    bucket.from_xml(xml, init_file)?;
+    bucket.decode(xml, init_file)?;
 
     assert!(bucket.name == "foo_bucket");
     assert!(bucket.files[0].key == "9AB932LY.jpeg");

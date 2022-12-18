@@ -234,7 +234,7 @@ impl Bucket {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
-        list.from_xml(
+        list.decode(
             &content.text().await.map_err(BuilderError::from)?,
             init_object,
         )?;
@@ -273,7 +273,7 @@ impl Bucket<RcPointer> {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.from_xml(&content.text().map_err(BuilderError::from)?, init_object)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_object)?;
 
         list.set_bucket(self.base.clone());
         list.set_client(self.client());
@@ -287,7 +287,7 @@ impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
     type Error = OssError;
 
     fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
-        self.prefix = if prefix.len() > 0 {
+        self.prefix = if !prefix.is_empty() {
             Some(prefix.to_owned())
         } else {
             None
@@ -296,7 +296,7 @@ impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
     }
 
     fn set_marker(&mut self, marker: &str) -> Result<(), Self::Error> {
-        self.marker = if marker.len() > 0 {
+        self.marker = if !marker.is_empty() {
             Some(marker.to_owned())
         } else {
             None
@@ -305,7 +305,7 @@ impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
     }
 
     fn set_max_keys(&mut self, max_keys: &str) -> Result<(), Self::Error> {
-        self.max_keys = if max_keys.len() > 0 {
+        self.max_keys = if !max_keys.is_empty() {
             Some(max_keys.to_owned())
         } else {
             None
@@ -391,7 +391,7 @@ impl ClientArc {
         let response = self.builder(Method::GET, url, canonicalized)?;
         let content = response.send_adjust_error().await?;
 
-        list.from_xml(
+        list.decode(
             &content.text().await.map_err(BuilderError::from)?,
             init_bucket,
         )?;
@@ -431,7 +431,7 @@ impl ClientArc {
         let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error().await?;
 
-        bucket.from_xml(&content.text().await.map_err(BuilderError::from)?)?;
+        bucket.decode(&content.text().await.map_err(BuilderError::from)?)?;
 
         Ok(())
     }
@@ -475,7 +475,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, url, canonicalized)?;
         let content = response.send_adjust_error()?;
 
-        list.from_xml(&content.text().map_err(BuilderError::from)?, init_bucket)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_bucket)?;
 
         Ok(())
     }
@@ -512,7 +512,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error()?;
 
-        bucket.from_xml(&content.text().map_err(BuilderError::from)?)?;
+        bucket.decode(&content.text().map_err(BuilderError::from)?)?;
 
         Ok(())
     }

@@ -49,10 +49,8 @@ pub trait File: AlignBuilder {
     ) -> OssResult<String> {
         let file_content = std::fs::read(file_name)?;
 
-        let get_content_type = |content: &Vec<u8>| match Infer::new().get(content) {
-            Some(con) => Some(con.mime_type()),
-            None => None,
-        };
+        let get_content_type =
+            |content: &Vec<u8>| Infer::new().get(content).map(|con| con.mime_type());
 
         self.put_content(file_content, path, get_content_type).await
     }
@@ -101,14 +99,14 @@ pub trait File: AlignBuilder {
         F: Fn(&Vec<u8>) -> Option<&'static str> + Send + Sync,
     {
         let content_type = get_content_type(&content)
-            .ok_or(OssError::Input("Failed to get file type".to_string()))?;
+            .ok_or_else(|| OssError::Input("Failed to get file type".to_string()))?;
 
         let content = self.put_content_base(content, content_type, path).await?;
 
         let result = content
             .headers()
             .get("ETag")
-            .ok_or(OssError::Input("get Etag error".to_string()))?
+            .ok_or_else(|| OssError::Input("get Etag error".to_string()))?
             .to_str()
             .map_err(OssError::from)?;
 
@@ -266,10 +264,10 @@ mod tests_macro {
 
     use chrono::{DateTime, NaiveDateTime, Utc};
 
-    use crate::{config::BucketBase, object::Object, Client};
+    use crate::{object::Object, Client};
 
     fn init_object() -> Object {
-        let bucket = Arc::new(BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap());
+        let bucket = Arc::new("abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap());
         Object::new(
             bucket,
             "foo2",
@@ -396,10 +394,8 @@ pub mod blocking {
         ) -> OssResult<String> {
             let file_content = std::fs::read(file_name)?;
 
-            let get_content_type = |content: &Vec<u8>| match Infer::new().get(content) {
-                Some(con) => Some(con.mime_type()),
-                None => None,
-            };
+            let get_content_type =
+                |content: &Vec<u8>| Infer::new().get(content).map(|con| con.mime_type());
 
             self.put_content(file_content, path, get_content_type)
         }
@@ -445,14 +441,14 @@ pub mod blocking {
             F: Fn(&Vec<u8>) -> Option<&'static str>,
         {
             let content_type = get_content_type(&content)
-                .ok_or(OssError::Input("Failed to get file type".to_string()))?;
+                .ok_or_else(|| OssError::Input("Failed to get file type".to_string()))?;
 
             let content = self.put_content_base(content, content_type, path)?;
 
             let result = content
                 .headers()
                 .get("ETag")
-                .ok_or(OssError::Input("get Etag error".to_string()))?
+                .ok_or_else(|| OssError::Input("get Etag error".to_string()))?
                 .to_str()
                 .map_err(OssError::from)?;
 
@@ -590,11 +586,11 @@ pub mod blocking {
     mod tests_macro {
         use chrono::{DateTime, NaiveDateTime, Utc};
 
-        use crate::{builder::RcPointer, config::BucketBase, object::Object, ClientRc};
+        use crate::{builder::RcPointer, object::Object, ClientRc};
         use std::rc::Rc;
 
         fn init_object() -> Object<RcPointer> {
-            let bucket = Rc::new(BucketBase::from_str("abc.oss-cn-shanghai.aliyuncs.com").unwrap());
+            let bucket = Rc::new("abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap());
             Object::<RcPointer>::new(
                 bucket,
                 "foo2",

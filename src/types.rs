@@ -161,7 +161,7 @@ impl AsRef<str> for EndPoint {
 
 impl Display for EndPoint {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{}", self.as_ref())
     }
 }
 
@@ -222,7 +222,7 @@ impl<'a> EndPoint {
     /// EndPoint::from_static("qingdao");
     /// ```
     pub fn from_static(url: &'a str) -> Self {
-        Self::new(url).expect(format!("Unknown Endpoint :{}", url).as_str())
+        Self::new(url).unwrap_or_else(|_| panic!("Unknown Endpoint :{}", url))
     }
 
     /// 初始化 endpoint enum
@@ -283,7 +283,7 @@ impl<'a> EndPoint {
         url.push_str(self.as_ref());
 
         // internal
-        if let Ok(_) = env::var("ALIYUN_OSS_INTERNAL") {
+        if env::var("ALIYUN_OSS_INTERNAL").is_ok() {
             url.push_str(OSS_INTERNAL);
         }
 
@@ -439,7 +439,7 @@ impl<'a> BucketName {
             return Err(InvalidBucketName);
         }
 
-        if bucket.len() < 1 {
+        if bucket.is_empty() {
             return Err(InvalidBucketName);
         }
 
@@ -722,7 +722,7 @@ impl CanonicalizedResource {
         query: Q,
     ) -> Self {
         let query = Query::from_iter(query);
-        if query.len() == 0 {
+        if query.is_empty() {
             Self::from(format!("/{}/{}", bucket, path))
         } else {
             let query_value = query.to_url_query();
@@ -806,6 +806,10 @@ impl Query {
         self.inner.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
     pub fn remove(&mut self, key: impl Into<QueryKey>) -> Option<QueryValue> {
         self.inner.remove(&key.into())
     }
@@ -831,7 +835,7 @@ impl Query {
             .map(|(k, v)| {
                 let mut res = String::with_capacity(k.as_ref().len() + v.as_ref().len() + 1);
                 res.push_str(k.as_ref());
-                res.push_str("=");
+                res.push('=');
                 res.push_str(v.as_ref());
                 res
             })
@@ -1068,7 +1072,7 @@ impl AsRef<str> for QueryKey {
 
 impl Display for QueryKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{}", self.as_ref())
     }
 }
 
@@ -1358,7 +1362,7 @@ impl From<RangeTo<u32>> for ContentRange {
     }
 }
 
-impl Into<HeaderValue> for ContentRange {
+impl From<ContentRange> for HeaderValue {
     /// # 转化成 OSS 需要的格式
     /// @link [OSS 文档](https://help.aliyun.com/document_detail/31980.html)
     ///
@@ -1374,15 +1378,15 @@ impl Into<HeaderValue> for ContentRange {
     /// assert_eq!(abc(10..20), HeaderValue::from_str("bytes=10-20").unwrap());
     /// assert_eq!(abc(..20), HeaderValue::from_str("bytes=0-20").unwrap());
     /// ```
-    fn into(self) -> HeaderValue {
-        let string = match self.start {
-            Some(ref start) => match self.end {
+    fn from(con: ContentRange) -> HeaderValue {
+        let string = match con.start {
+            Some(ref start) => match con.end {
                 Some(ref end) => format!("bytes={}-{}", start, end),
                 None => format!("bytes={}-", start),
             },
-            None => match self.end {
+            None => match con.end {
                 Some(ref end) => format!("bytes=0-{}", end),
-                None => format!("bytes=0-"),
+                None => "bytes=0-".to_string(),
             },
         };
 

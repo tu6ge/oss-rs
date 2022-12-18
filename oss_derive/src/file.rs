@@ -24,11 +24,7 @@ impl FileTrait {
                     Pat::Ident(i) => {
                         let mut a = IdentWrapper::default();
                         a.visit_ident(&i.ident);
-                        if a.is_key() {
-                            false
-                        } else {
-                            true
-                        }
+                        !a.is_key()
                     }
                     _ => true,
                 },
@@ -67,28 +63,20 @@ impl FileTrait {
 
     #[inline]
     fn get_params(params: &Punctuated<GenericParam, Token![,]>) -> TokenStream {
-        let final_params = if params.is_empty() {
+        if params.is_empty() {
             quote! { Ft }
         } else {
-            let params: Vec<TokenStream> = params
+            let params: Vec<_> = params
                 .into_iter()
                 .filter(|p| match p {
-                    GenericParam::Type(t) => {
-                        if t.ident.to_string() == "OP" {
-                            false
-                        } else {
-                            true
-                        }
-                    }
+                    GenericParam::Type(t) => t.ident != "OP",
                     _ => true,
                 })
                 .map(|p| p.to_token_stream())
                 .collect();
 
             quote! { #(#params,)* Ft }
-        };
-
-        final_params
+        }
     }
 
     #[inline]
@@ -104,16 +92,10 @@ impl FileTrait {
         }
     }
 
-    fn get_attrs(attrs: &Vec<syn::Attribute>) -> TokenStream {
+    fn get_attrs(attrs: &[syn::Attribute]) -> TokenStream {
         let attrs_token: Vec<TokenStream> = attrs
-            .into_iter()
-            .filter(|&attr| {
-                if attr.path.to_token_stream().to_string() == "doc" {
-                    false
-                } else {
-                    true
-                }
-            })
+            .iter()
+            .filter(|&attr| attr.path.to_token_stream().to_string() != "doc")
             .map(|res| res.to_token_stream())
             .collect();
 
@@ -121,16 +103,16 @@ impl FileTrait {
     }
 
     fn methods_to_tokens(&self, tokens: &mut TokenStream) {
-        if self.methods.len() == 0 {
+        if self.methods.is_empty() {
             return;
         }
 
         let mut list = Vec::with_capacity(self.methods.len());
         for TraitItemMethod { sig, attrs, .. } in &self.methods {
             let method = sig;
-            let ref output = method.output;
-            let ref method_name = method.ident;
-            if method_name.to_string() == "get_url".to_string() {
+            let output = &method.output;
+            let method_name = &method.ident;
+            if method_name == "get_url" {
                 continue;
             }
 
@@ -142,7 +124,7 @@ impl FileTrait {
             let method_args_str = quote! { #(#method_arg,)* };
             let filer = quote! { filer: &Ft };
 
-            let attrs_final = FileTrait::get_attrs(&attrs);
+            let attrs_final = FileTrait::get_attrs(attrs);
 
             list.push(quote! {
                 #[inline]
@@ -163,16 +145,16 @@ impl FileTrait {
     }
 
     fn async_methods_to_tokens(&self, tokens: &mut TokenStream) {
-        if self.async_methods.len() == 0 {
+        if self.async_methods.is_empty() {
             return;
         }
 
         let mut list = Vec::with_capacity(self.async_methods.len());
         for TraitItemMethod { sig, attrs, .. } in &self.async_methods {
             let method = sig;
-            let ref output = method.output;
-            let ref method_name = method.ident;
-            if method_name.to_string() == "get_url".to_string() {
+            let output = &method.output;
+            let method_name = &method.ident;
+            if method_name == "get_url" {
                 continue;
             }
 
@@ -184,7 +166,7 @@ impl FileTrait {
             let method_args_str = quote! { #(#method_arg,)* };
             let filer = quote! { filer: &Ft , };
 
-            let attrs_final = FileTrait::get_attrs(&attrs);
+            let attrs_final = FileTrait::get_attrs(attrs);
 
             list.push(quote! {
                 #[inline]
@@ -230,7 +212,7 @@ impl<'ast> Visit<'ast> for IdentWrapper {
 
 impl IdentWrapper {
     fn is_key(&self) -> bool {
-        self.key == "path".to_string()
+        self.key == *"path"
     }
 }
 
