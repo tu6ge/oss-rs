@@ -17,6 +17,7 @@ use std::env;
 use std::rc::Rc;
 #[cfg(test)]
 use std::sync::Arc;
+use std::time::Duration;
 
 /// # 构造请求的客户端结构体
 /// Clone 特征不是必须的
@@ -30,6 +31,7 @@ where
     client_middleware: M,
     endpoint: EndPoint,
     bucket: BucketName,
+    timeout: Option<Duration>,
 }
 
 impl<M: Default + Clone> Client<M> {
@@ -95,6 +97,7 @@ impl<M: Default + Clone> Client<M> {
             client_middleware: M::default(),
             endpoint,
             bucket,
+            timeout: None,
         }
     }
 
@@ -116,6 +119,11 @@ impl<M: Default + Clone> Client<M> {
     }
     pub fn get_endpoint_url(&self) -> Url {
         self.endpoint.to_url()
+    }
+
+    /// 设置 timeout
+    pub fn timeout(&mut self, timeout: Duration) {
+        self.timeout = Some(timeout);
     }
 }
 
@@ -210,10 +218,16 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
         auth_builder.canonicalized_resource(resource);
         auth_builder.extend_headers(HeaderMap::from_iter(headers));
 
-        Ok(self
+        let mut builder = self
             .client_middleware
             .request(method, url)
-            .headers(auth_builder.get_headers()?))
+            .headers(auth_builder.get_headers()?);
+
+        if let Some(timeout) = self.timeout {
+            builder = builder.timeout(timeout);
+        };
+
+        Ok(builder)
     }
 }
 
@@ -264,9 +278,15 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
         auth_builder.canonicalized_resource(resource);
         auth_builder.extend_headers(HeaderMap::from_iter(headers));
 
-        Ok(self
+        let mut builder = self
             .client_middleware
             .request(method, url)
-            .headers(auth_builder.get_headers()?))
+            .headers(auth_builder.get_headers()?);
+
+        if let Some(timeout) = self.timeout {
+            builder = builder.timeout(timeout);
+        };
+
+        Ok(builder)
     }
 }

@@ -2,7 +2,7 @@ use std::env;
 
 use aliyun_oss_client::{
     builder::BuilderError,
-    traits::{RefineObject, RefineObjectList},
+    decode::{RefineObject, RefineObjectList},
     Client,
 };
 use dotenv::dotenv;

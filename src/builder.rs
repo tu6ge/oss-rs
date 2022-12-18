@@ -76,7 +76,8 @@ pub struct RequestBuilder {
 }
 
 impl RequestBuilder {
-    pub fn header<K, V>(self, key: K, value: V) -> Self
+    #[allow(dead_code)]
+    pub(crate) fn header<K, V>(self, key: K, value: V) -> Self
     where
         HeaderName: TryFrom<K>,
         <HeaderName as TryFrom<K>>::Error: Into<http::Error>,
@@ -89,28 +90,29 @@ impl RequestBuilder {
         }
     }
 
-    pub fn headers(self, headers: HeaderMap) -> Self {
+    pub(crate) fn headers(self, headers: HeaderMap) -> Self {
         RequestBuilder {
             inner: self.inner.headers(headers),
             ..self
         }
     }
 
-    pub fn body<T: Into<Body>>(self, body: T) -> Self {
+    pub(crate) fn body<T: Into<Body>>(self, body: T) -> Self {
         RequestBuilder {
             inner: self.inner.body(body),
             ..self
         }
     }
 
-    pub fn timeout(self, timeout: Duration) -> Self {
+    pub(crate) fn timeout(self, timeout: Duration) -> Self {
         RequestBuilder {
             inner: self.inner.timeout(timeout),
             ..self
         }
     }
 
-    pub fn build(self) -> reqwest::Result<Request> {
+    #[allow(dead_code)]
+    pub(crate) fn build(self) -> reqwest::Result<Request> {
         self.inner.build()
     }
 
@@ -152,7 +154,7 @@ pub enum BuilderError {
 }
 
 #[async_trait]
-pub trait RequestHandler {
+pub(crate) trait RequestHandler {
     async fn handle_error(self) -> Result<Response, BuilderError>;
 }
 
