@@ -3,7 +3,7 @@ use crate::file::File;
 use crate::{builder::Middleware, client::Client};
 use async_trait::async_trait;
 use http::HeaderValue;
-use reqwest::{Request, Response, Url};
+use reqwest::{Request, Response};
 use std::sync::Arc;
 
 #[cfg(feature = "blocking")]
@@ -22,7 +22,8 @@ fn object_list_get_object_list() {
             assert_eq!(request.method(), "GET");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://abc.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5")
+                "https://abc.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5"
+                    .parse()
                     .unwrap()
             );
             assert_eq!(
@@ -61,8 +62,8 @@ fn object_list_get_object_list() {
     let client = ClientRc::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Rc::new(MyMiddleware {}));
 
@@ -97,7 +98,8 @@ async fn test_get_object_list() {
             assert_eq!(request.method(), "GET");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5")
+                "https://foo4.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5"
+                    .parse()
                     .unwrap()
             );
             assert_eq!(
@@ -136,8 +138,8 @@ async fn test_get_object_list() {
     let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Arc::new(MyMiddleware {}));
 
@@ -168,7 +170,8 @@ fn test_get_blocking_object_list() {
             assert_eq!(request.method(), "GET");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5")
+                "https://foo4.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5"
+                    .parse()
                     .unwrap()
             );
             assert_eq!(
@@ -207,8 +210,8 @@ fn test_get_blocking_object_list() {
     let client = ClientRc::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Rc::new(MyMiddleware {}));
 
@@ -232,7 +235,9 @@ async fn test_put_content_base() {
             assert_eq!(request.method(), "PUT");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/abc.text").unwrap()
+                "https://foo4.oss-cn-shanghai.aliyuncs.com/abc.text"
+                    .parse()
+                    .unwrap()
             );
             assert_eq!(
                 request.headers().get("canonicalizedresource"),
@@ -252,8 +257,8 @@ async fn test_put_content_base() {
     let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Arc::new(MyMiddleware {}));
 
@@ -284,7 +289,9 @@ fn test_blocking_put_content_base() {
             assert_eq!(request.method(), "PUT");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/abc.text").unwrap()
+                "https://foo4.oss-cn-shanghai.aliyuncs.com/abc.text"
+                    .parse()
+                    .unwrap()
             );
             assert_eq!(
                 request.headers().get("canonicalizedresource"),
@@ -322,7 +329,7 @@ mod get_object {
     use std::sync::Arc;
 
     use http::HeaderValue;
-    use reqwest::{Request, Response, Url};
+    use reqwest::{Request, Response};
 
     use crate::builder::{BuilderError, ClientWithMiddleware};
     use crate::file::File;
@@ -340,7 +347,9 @@ mod get_object {
                 assert_eq!(request.method(), "GET");
                 assert_eq!(
                     *request.url(),
-                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                    "https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png"
+                        .parse()
+                        .unwrap()
                 );
                 assert_eq!(
                     request.headers().get("canonicalizedresource"),
@@ -364,8 +373,8 @@ mod get_object {
         let client = Client::<ClientWithMiddleware>::new(
             "foo1".into(),
             "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-            "foo4".try_into().unwrap(),
+            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+            "foo4".parse().unwrap(),
         )
         .middleware(Arc::new(MyMiddleware {}));
 
@@ -388,7 +397,9 @@ mod get_object {
                 assert_eq!(request.method(), "GET");
                 assert_eq!(
                     *request.url(),
-                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                    "https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png"
+                        .parse()
+                        .unwrap()
                 );
                 assert_eq!(
                     request.headers().get("canonicalizedresource"),
@@ -412,8 +423,8 @@ mod get_object {
         let client = Client::<ClientWithMiddleware>::new(
             "foo1".into(),
             "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-            "foo4".try_into().unwrap(),
+            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+            "foo4".parse().unwrap(),
         )
         .middleware(Arc::new(MyMiddleware {}));
 
@@ -436,7 +447,9 @@ mod get_object {
                 assert_eq!(request.method(), "GET");
                 assert_eq!(
                     *request.url(),
-                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                    "https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png"
+                        .parse()
+                        .unwrap()
                 );
                 assert_eq!(
                     request.headers().get("canonicalizedresource"),
@@ -460,8 +473,8 @@ mod get_object {
         let client = Client::<ClientWithMiddleware>::new(
             "foo1".into(),
             "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-            "foo4".try_into().unwrap(),
+            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+            "foo4".parse().unwrap(),
         )
         .middleware(Arc::new(MyMiddleware {}));
 
@@ -484,7 +497,9 @@ mod get_object {
                 assert_eq!(request.method(), "GET");
                 assert_eq!(
                     *request.url(),
-                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                    "https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png"
+                        .parse()
+                        .unwrap()
                 );
                 assert_eq!(
                     request.headers().get("canonicalizedresource"),
@@ -508,8 +523,8 @@ mod get_object {
         let client = Client::<ClientWithMiddleware>::new(
             "foo1".into(),
             "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-            "foo4".try_into().unwrap(),
+            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+            "foo4".parse().unwrap(),
         )
         .middleware(Arc::new(MyMiddleware {}));
 
@@ -528,7 +543,6 @@ mod blocking_get_object {
 
     use http::HeaderValue;
     use reqwest::blocking::{Request, Response};
-    use reqwest::Url;
 
     use crate::blocking::builder::ClientWithMiddleware;
     use crate::builder::BuilderError;
@@ -545,7 +559,9 @@ mod blocking_get_object {
                 assert_eq!(request.method(), "GET");
                 assert_eq!(
                     *request.url(),
-                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                    "https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png"
+                        .parse()
+                        .unwrap()
                 );
                 assert_eq!(
                     request.headers().get("canonicalizedresource"),
@@ -569,8 +585,8 @@ mod blocking_get_object {
         let client = Client::<ClientWithMiddleware>::new(
             "foo1".into(),
             "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-            "foo4".try_into().unwrap(),
+            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+            "foo4".parse().unwrap(),
         )
         .middleware(Rc::new(MyMiddleware {}));
 
@@ -592,7 +608,9 @@ mod blocking_get_object {
                 assert_eq!(request.method(), "GET");
                 assert_eq!(
                     *request.url(),
-                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                    "https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png"
+                        .parse()
+                        .unwrap()
                 );
                 assert_eq!(
                     request.headers().get("canonicalizedresource"),
@@ -616,8 +634,8 @@ mod blocking_get_object {
         let client = Client::<ClientWithMiddleware>::new(
             "foo1".into(),
             "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-            "foo4".try_into().unwrap(),
+            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+            "foo4".parse().unwrap(),
         )
         .middleware(Rc::new(MyMiddleware {}));
 
@@ -639,7 +657,9 @@ mod blocking_get_object {
                 assert_eq!(request.method(), "GET");
                 assert_eq!(
                     *request.url(),
-                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                    "https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png"
+                        .parse()
+                        .unwrap()
                 );
                 assert_eq!(
                     request.headers().get("canonicalizedresource"),
@@ -663,8 +683,8 @@ mod blocking_get_object {
         let client = Client::<ClientWithMiddleware>::new(
             "foo1".into(),
             "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-            "foo4".try_into().unwrap(),
+            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+            "foo4".parse().unwrap(),
         )
         .middleware(Rc::new(MyMiddleware {}));
 
@@ -686,7 +706,9 @@ mod blocking_get_object {
                 assert_eq!(request.method(), "GET");
                 assert_eq!(
                     *request.url(),
-                    Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png").unwrap()
+                    "https://foo4.oss-cn-shanghai.aliyuncs.com/foo.png"
+                        .parse()
+                        .unwrap()
                 );
                 assert_eq!(
                     request.headers().get("canonicalizedresource"),
@@ -710,8 +732,8 @@ mod blocking_get_object {
         let client = Client::<ClientWithMiddleware>::new(
             "foo1".into(),
             "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-            "foo4".try_into().unwrap(),
+            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+            "foo4".parse().unwrap(),
         )
         .middleware(Rc::new(MyMiddleware {}));
 
@@ -735,7 +757,9 @@ async fn test_delete_object() {
             assert_eq!(request.method(), "DELETE");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/abc.png").unwrap()
+                "https://foo4.oss-cn-shanghai.aliyuncs.com/abc.png"
+                    .parse()
+                    .unwrap()
             );
             assert_eq!(
                 request.headers().get("canonicalizedresource"),
@@ -758,8 +782,8 @@ async fn test_delete_object() {
     let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Arc::new(MyMiddleware {}));
 
@@ -785,7 +809,9 @@ fn test_blocking_delete_object() {
             assert_eq!(request.method(), "DELETE");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/abc.png").unwrap()
+                "https://foo4.oss-cn-shanghai.aliyuncs.com/abc.png"
+                    .parse()
+                    .unwrap()
             );
             assert_eq!(
                 request.headers().get("canonicalizedresource"),
@@ -808,8 +834,8 @@ fn test_blocking_delete_object() {
     let client = ClientRc::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Rc::new(MyMiddleware {}));
 

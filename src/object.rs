@@ -964,8 +964,8 @@ mod tests {
         let client = Client::new(
             "foo1".into(),
             "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-            "foo4".try_into().unwrap(),
+            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+            "foo4".parse().unwrap(),
         );
 
         let object_list = ObjectList::<ArcPointer>::new(
@@ -1093,8 +1093,8 @@ mod tests {
     #[test]
     fn test_object_builder() {
         let bucket = Arc::new(BucketBase::new(
-            "abc".try_into().unwrap(),
-            "qingdao".try_into().unwrap(),
+            "abc".parse().unwrap(),
+            "qingdao".parse().unwrap(),
         ));
         let object = ObjectBuilder::<ArcPointer>::new(bucket, "abc")
             .last_modified(DateTime::<Utc>::from_utc(

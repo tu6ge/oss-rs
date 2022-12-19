@@ -14,7 +14,7 @@ use crate::object::{Object, ObjectList};
 use crate::types::{
     CanonicalizedResource, InvalidEndPoint, Query, QueryKey, QueryValue, BUCKET_INFO,
 };
-use crate::BucketName;
+use crate::{BucketName, EndPoint};
 use chrono::prelude::*;
 use http::Method;
 use oss_derive::oss_gen_rc;
@@ -130,7 +130,7 @@ impl Default for Bucket<ArcPointer> {
 impl<T: PointerFamily> RefineBucket for Bucket<T> {
     type Error = OssError;
     fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
-        self.base.set_name(name);
+        self.base.set_name(name.parse::<BucketName>()?);
         Ok(())
     }
 
@@ -147,7 +147,8 @@ impl<T: PointerFamily> RefineBucket for Bucket<T> {
     }
 
     fn set_extranet_endpoint(&mut self, extranet_endpoint: &str) -> Result<(), Self::Error> {
-        self.base.set_endpoint(extranet_endpoint);
+        self.base
+            .set_endpoint(extranet_endpoint.parse::<EndPoint>()?);
         Ok(())
     }
 

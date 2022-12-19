@@ -7,6 +7,7 @@ use mockall::automock;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName};
 use reqwest::Method;
 use std::convert::TryInto;
+use std::fmt::Display;
 use thiserror::Error;
 
 #[derive(Default, Clone)]
@@ -289,25 +290,15 @@ impl OssHeader {
     }
 }
 
-#[cfg_attr(test, automock)]
-pub(crate) trait HeaderToSign {
-    fn to_sign_string(self) -> String;
-}
-
-impl HeaderToSign for OssHeader {
-    fn to_sign_string(self) -> String {
+impl Display for OssHeader {
+    /// 转化成 SignString 需要的格式
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut content = String::with_capacity(self.len() + 2);
-        if let Some(str) = self.0 {
-            content.push_str(&str);
+        if let Some(str) = &self.0 {
+            content.push_str(str);
             content.push_str(LINE_BREAK);
         }
-        content
-    }
-}
-
-impl From<OssHeader> for String {
-    fn from(header: OssHeader) -> Self {
-        header.to_sign_string()
+        write!(f, "{}", content)
     }
 }
 
@@ -334,13 +325,13 @@ impl<'a, 'b> SignString<'_> {
 impl<'a> SignString<'a> {
     pub(crate) fn from_auth(
         auth: &impl AuthSignString,
-        header: impl HeaderToSign,
+        header: OssHeader,
     ) -> AuthResult<SignString> {
         let (key, secret, verb, content_md5, content_type, date, canonicalized_resource) =
             auth.get_sign_info();
         let method = verb.to_string();
 
-        let str: String = method
+        let data = method
             + LINE_BREAK
             + content_md5.as_ref()
             + LINE_BREAK
@@ -348,14 +339,10 @@ impl<'a> SignString<'a> {
             + LINE_BREAK
             + date.as_ref()
             + LINE_BREAK
-            + header.to_sign_string().as_ref()
+            + header.to_string().as_str()
             + canonicalized_resource.as_ref();
 
-        Ok(SignString {
-            data: str,
-            key,
-            secret,
-        })
+        Ok(SignString { data, key, secret })
     }
 
     #[cfg(test)]
@@ -544,5 +531,20 @@ mod builder_tests {
         let mut builder = AuthBuilder::default();
         builder.key("bar".into());
         assert_eq!(builder.build().get_key().as_ref(), "bar");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn oss_header_to_string() {
+        let header = OssHeader::new(Some("foo7".to_string()));
+        assert_eq!(header.to_string(), "foo7\n".to_string());
+
+        let header = OssHeader::new(None);
+
+        assert_eq!(header.to_string(), "".to_string());
     }
 }

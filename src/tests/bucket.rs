@@ -5,7 +5,7 @@ use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware};
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use http::HeaderValue;
-use reqwest::{Request, Response, Url};
+use reqwest::{Request, Response};
 
 use crate::client::ClientArc;
 use crate::{builder::Middleware, client::Client};
@@ -21,7 +21,7 @@ async fn test_get_bucket_list() {
             assert_eq!(request.method(), "GET");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://oss-cn-shanghai.aliyuncs.com/").unwrap()
+                "https://oss-cn-shanghai.aliyuncs.com/".parse().unwrap()
             );
             assert_eq!(
                 request.headers().get("canonicalizedresource"),
@@ -41,8 +41,8 @@ async fn test_get_bucket_list() {
     let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Arc::new(MyMiddleware {}));
 
@@ -71,7 +71,7 @@ fn test_get_blocking_bucket_list() {
             assert_eq!(request.method(), "GET");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://oss-cn-shanghai.aliyuncs.com/").unwrap()
+                "https://oss-cn-shanghai.aliyuncs.com/".parse().unwrap()
             );
             assert_eq!(
                 request.headers().get("canonicalizedresource"),
@@ -91,8 +91,8 @@ fn test_get_blocking_bucket_list() {
     let client = ClientRc::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Rc::new(MyMiddleware {}));
 
@@ -119,7 +119,9 @@ async fn test_get_bucket_info() {
             assert_eq!(request.method(), "GET");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/?bucketInfo").unwrap()
+                "https://foo4.oss-cn-shanghai.aliyuncs.com/?bucketInfo"
+                    .parse()
+                    .unwrap()
             );
             assert_eq!(
                 request.headers().get("canonicalizedresource"),
@@ -171,8 +173,8 @@ async fn test_get_bucket_info() {
     let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Arc::new(MyMiddleware {}));
 
@@ -201,7 +203,9 @@ fn test_get_blocking_bucket_info() {
             assert_eq!(request.method(), "GET");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://foo4.oss-cn-shanghai.aliyuncs.com/?bucketInfo").unwrap()
+                "https://foo4.oss-cn-shanghai.aliyuncs.com/?bucketInfo"
+                    .parse()
+                    .unwrap()
             );
             assert_eq!(
                 request.headers().get("canonicalizedresource"),
@@ -253,8 +257,8 @@ fn test_get_blocking_bucket_info() {
     let client = ClientRc::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Rc::new(MyMiddleware {}));
 
@@ -278,7 +282,8 @@ async fn test_get_object_list() {
             assert_eq!(request.method(), "GET");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://abc.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5")
+                "https://abc.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5"
+                    .parse()
                     .unwrap()
             );
             assert_eq!(
@@ -317,8 +322,8 @@ async fn test_get_object_list() {
     let client = ClientArc::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Arc::new(MyMiddleware {}));
 
@@ -360,7 +365,8 @@ fn test_get_blocking_object_list() {
             assert_eq!(request.method(), "GET");
             assert_eq!(
                 *request.url(),
-                Url::parse("https://abc.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5")
+                "https://abc.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5"
+                    .parse()
                     .unwrap()
             );
             assert_eq!(
@@ -399,8 +405,8 @@ fn test_get_blocking_object_list() {
     let client = ClientRc::new(
         "foo1".into(),
         "foo2".into(),
-        "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-        "foo4".try_into().unwrap(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
     )
     .middleware(Rc::new(MyMiddleware {}));
 

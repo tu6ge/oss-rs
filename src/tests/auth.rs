@@ -4,7 +4,7 @@ use mockall::mock;
 use reqwest::header::{HeaderMap, HeaderValue};
 
 use crate::{
-    auth::{AuthError, AuthHeader, HeaderToSign, MockAuthToHeaderMap, OssHeader, Sign},
+    auth::{AuthError, AuthHeader, MockAuthToHeaderMap, OssHeader, Sign},
     types::KeyId,
 };
 
@@ -38,7 +38,7 @@ mod to_oss_header {
         let header = builder.build().to_oss_header();
         assert!(header.is_ok());
         let header = header.unwrap();
-        let header: String = header.into();
+        let header = header.to_string();
         assert_eq!(&header, "x-oss-ffoo:barbar\nx-oss-foo:bar\n");
     }
 }
@@ -381,30 +381,30 @@ fn test_append_sign() {
 #[test]
 fn to_sign_string() {
     let header = OssHeader::new(None);
-    let string = header.to_sign_string();
+    let string = header.to_string();
     assert_eq!(&string, "");
 
     let header = OssHeader::new(Some(String::from("")));
-    let string = header.to_sign_string();
+    let string = header.to_string();
     assert_eq!(&string, "\n");
 
     let header = OssHeader::new(Some(String::from("abc")));
-    let string = header.to_sign_string();
+    let string = header.to_string();
     assert_eq!(&string, "abc\n");
 }
 
 #[test]
 fn header_into_string() {
     let header = OssHeader::new(None);
-    let string: String = header.try_into().unwrap();
+    let string: String = header.to_string();
     assert_eq!(&string, "");
 
     let header = OssHeader::new(Some(String::from("")));
-    let string: String = header.try_into().unwrap();
+    let string: String = header.to_string();
     assert_eq!(&string, "\n");
 
     let header = OssHeader::new(Some(String::from("abc")));
-    let string: String = header.try_into().unwrap();
+    let string: String = header.to_string();
     assert_eq!(&string, "abc\n");
 }
 
@@ -413,7 +413,7 @@ mod sign_string_struct {
     use http::Method;
 
     use crate::{
-        auth::{AuthSignString, MockHeaderToSign, SignString},
+        auth::{AuthSignString, OssHeader, SignString},
         types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret},
     };
 
@@ -463,18 +463,13 @@ mod sign_string_struct {
             canonicalized_resource: CanonicalizedResource::new("foo6"),
         };
 
-        let mut header = MockHeaderToSign::new();
-
-        header
-            .expect_to_sign_string()
-            .times(1)
-            .returning(|| "foo7".to_string());
+        let header = OssHeader::new(Some("foo7".to_string()));
 
         let res = SignString::from_auth(&bar, header);
 
         assert!(res.is_ok());
         let val = res.unwrap();
-        assert_eq!(val.data(), "GET\nfoo3\nfoo4\nfoo5\nfoo7foo6");
+        assert_eq!(val.data(), "GET\nfoo3\nfoo4\nfoo5\nfoo7\nfoo6");
         assert_eq!(val.key_string(), "foo1".to_string());
         assert_eq!(val.secret_string(), "foo2".to_string());
     }

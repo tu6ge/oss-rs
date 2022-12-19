@@ -486,12 +486,6 @@ impl From<String> for ObjectPath {
     }
 }
 
-impl From<ObjectPath> for String {
-    fn from(val: ObjectPath) -> Self {
-        val.0.to_string()
-    }
-}
-
 impl<'a> From<&'a str> for ObjectPath {
     fn from(string: &'a str) -> Self {
         Self(Cow::Owned(string.to_owned()))
@@ -521,8 +515,7 @@ pub trait UrlObjectPath {
 
 impl UrlObjectPath for Url {
     fn set_object_path(&mut self, path: &ObjectPath) {
-        let inner_path: String = path.clone().into();
-        self.set_path(&inner_path);
+        self.set_path(&path.to_string());
     }
 }
 

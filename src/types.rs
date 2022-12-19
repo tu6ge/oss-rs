@@ -204,6 +204,13 @@ impl<'a> From<&'a str> for EndPoint {
     }
 }
 
+impl FromStr for EndPoint {
+    type Err = InvalidEndPoint;
+    fn from_str(url: &str) -> Result<Self, Self::Err> {
+        Self::new(url)
+    }
+}
+
 pub const OSS_DOMAIN_PREFIX: &str = "https://oss-";
 pub const OSS_INTERNAL: &str = "-internal";
 pub const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
@@ -382,6 +389,13 @@ impl From<String> for BucketName {
 impl<'a> From<&'a str> for BucketName {
     fn from(bucket: &'a str) -> Self {
         Self::from_static(bucket).unwrap()
+    }
+}
+
+impl FromStr for BucketName {
+    type Err = InvalidBucketName;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_static(s)
     }
 }
 
@@ -1064,6 +1078,7 @@ impl AsRef<str> for QueryKey {
             QueryKey::MaxKeys => "max-keys",
             QueryKey::Prefix => "prefix",
             QueryKey::EncodingType => "encoding-type",
+            // TODO
             QueryKey::FetchOwner => unimplemented!("parse xml not support fetch owner"),
             QueryKey::Custom(ref str) => str,
         }
@@ -1390,7 +1405,7 @@ impl From<ContentRange> for HeaderValue {
             },
         };
 
-        // unwrap 是安全的，因为输入的字符都是合法的
+        // unwrap 是安全的，因为输入的字符都是已知的
         HeaderValue::from_str(&string).unwrap()
     }
 }

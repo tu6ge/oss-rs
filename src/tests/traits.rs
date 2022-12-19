@@ -260,7 +260,7 @@ mod object_list_xml {
         let mut list = ListB {};
 
         b.iter(|| {
-            let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
+            let base = BucketBase::new("abc".parse().unwrap(), EndPoint::CnQingdao);
             list.decode(xml, Arc::new(base));
         })
     }
@@ -292,8 +292,8 @@ mod object_list_xml {
         let client = Client::new(
             "foo1".into(),
             "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".try_into().unwrap(),
-            "foo4".try_into().unwrap(),
+            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+            "foo4".parse().unwrap(),
         );
 
         let object_list = ObjectList::<ArcPointer>::new(
@@ -354,7 +354,7 @@ mod object_list_xml {
 
         let mut list = init_object_list(None, vec![]);
         b.iter(|| {
-            let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
+            let base = BucketBase::new("abc".parse().unwrap(), EndPoint::CnQingdao);
             list.decode(xml, Arc::new(base));
         })
     }

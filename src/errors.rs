@@ -3,8 +3,10 @@ use std::fmt;
 use thiserror::Error;
 
 use crate::{
-    bucket::InvalidBucketValue, builder::BuilderError, config::InvalidConfig,
-    types::InvalidEndPoint,
+    bucket::InvalidBucketValue,
+    builder::BuilderError,
+    config::InvalidConfig,
+    types::{InvalidBucketName, InvalidEndPoint},
 };
 
 #[derive(Debug, Error)]
@@ -60,6 +62,9 @@ pub enum OssError {
 
     #[error("{0}")]
     InvalidBucketValue(#[from] InvalidBucketValue),
+
+    #[error("{0}")]
+    InvalidBucketName(#[from] InvalidBucketName),
 
     #[error("{0}")]
     InvalidConfig(#[from] InvalidConfig),

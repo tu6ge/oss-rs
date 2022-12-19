@@ -1,6 +1,5 @@
 use http::header::CONTENT_TYPE;
 use http::{HeaderValue, Method};
-use reqwest::Url;
 
 use crate::builder::ClientWithMiddleware;
 use crate::file::AlignBuilder;
@@ -12,7 +11,7 @@ fn test_get_bucket_url() {
         "foo1".to_owned().into(),
         "foo2".to_owned().into(),
         EndPoint::CnQingdao,
-        "foo4".try_into().unwrap(),
+        "foo4".parse().unwrap(),
     );
     let url = client.get_bucket_url();
     assert_eq!(url.as_str(), "https://foo4.oss-cn-qingdao.aliyuncs.com/");
@@ -24,9 +23,9 @@ fn test_builder_with_header() {
         "foo1".into(),
         "foo2".into(),
         EndPoint::CnQingdao,
-        "foo4".try_into().unwrap(),
+        "foo4".parse().unwrap(),
     );
-    let url = Url::parse("http://foo.example.net/foo").unwrap();
+    let url = "http://foo.example.net/foo".parse().unwrap();
     let resource = CanonicalizedResource::new("bar");
     let headers = vec![(CONTENT_TYPE, HeaderValue::from_static("application/json"))];
     let builder = client.builder_with_header(Method::POST, url, resource, headers);
@@ -78,9 +77,9 @@ fn test_blocking_builder_with_header() {
         "foo1".into(),
         "foo2".into(),
         EndPoint::CnQingdao,
-        "foo4".try_into().unwrap(),
+        "foo4".parse().unwrap(),
     );
-    let url = Url::parse("http://foo.example.net/foo").unwrap();
+    let url = "http://foo.example.net/foo".parse().unwrap();
     let resource = CanonicalizedResource::new("bar");
     let headers = vec![(CONTENT_TYPE, HeaderValue::from_static("application/json"))];
     let builder = client.builder_with_header(Method::POST, url, resource, headers);
@@ -171,7 +170,7 @@ mod handle_error {
         assert!(res.is_ok());
         let ok = res.unwrap();
         assert_eq!(ok.status(), 200);
-        assert_eq!(ok.text().await.unwrap(), "body_abc".to_string());
+        assert_eq!(&ok.text().await.unwrap(), "body_abc");
 
         let http = HttpResponse::builder()
             .status(204)
@@ -184,7 +183,7 @@ mod handle_error {
         assert!(res.is_ok());
         let ok = res.unwrap();
         assert_eq!(ok.status(), 204);
-        assert_eq!(ok.text().await.unwrap(), "body_abc".to_string());
+        assert_eq!(&ok.text().await.unwrap(), "body_abc");
     }
 
     #[cfg(feature = "blocking")]
@@ -236,7 +235,7 @@ mod handle_error {
         assert!(res.is_ok());
         let ok = res.unwrap();
         assert_eq!(ok.status(), 200);
-        assert_eq!(ok.text().unwrap(), "body_abc".to_string());
+        assert_eq!(&ok.text().unwrap(), "body_abc");
 
         let http = HttpResponse::builder()
             .status(204)
@@ -249,7 +248,7 @@ mod handle_error {
         assert!(res.is_ok());
         let ok = res.unwrap();
         assert_eq!(ok.status(), 204);
-        assert_eq!(ok.text().unwrap(), "body_abc".to_string());
+        assert_eq!(&ok.text().unwrap(), "body_abc");
     }
 }
 
