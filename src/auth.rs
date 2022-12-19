@@ -214,8 +214,7 @@ impl AuthGetHeader for Auth {
 
         let oss_header = self.to_oss_header()?;
         let sign_string = SignString::from_auth(self, oss_header)?;
-        let sign = sign_string.to_sign()?;
-        map.append_sign(sign)?;
+        map.append_sign(sign_string.to_sign()?)?;
 
         Ok(map)
     }
