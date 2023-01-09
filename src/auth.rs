@@ -4,7 +4,7 @@ use http::header::AsHeaderName;
 use http::header::CONTENT_TYPE;
 #[cfg(test)]
 use mockall::automock;
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue, IntoHeaderName};
+use reqwest::header::{HeaderMap, HeaderValue, IntoHeaderName};
 use reqwest::Method;
 use std::convert::TryInto;
 use std::fmt::Display;
@@ -137,7 +137,7 @@ impl AuthToOssHeader for Auth {
     /// 转化成 OssHeader
     fn to_oss_header(&self) -> AuthResult<OssHeader> {
         //return Some("x-oss-copy-source:/honglei123/file1.txt");
-        let mut header: Vec<(&HeaderName, &HeaderValue)> = self
+        let mut header: Vec<_> = self
             .headers
             .iter()
             .filter(|(k, _v)| k.as_str().starts_with("x-oss-"))
