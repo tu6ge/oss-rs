@@ -1401,7 +1401,9 @@ impl From<ContentRange> for HeaderValue {
             (None, None) => format!("bytes=0-"),
         };
 
-        // unwrap 是安全的，因为输入的字符都是已知的
-        HeaderValue::from_str(&string).unwrap()
+        HeaderValue::from_str(&string).expect(&format!(
+            "content-range into header-value failed, content-range is : {}",
+            string
+        ))
     }
 }
