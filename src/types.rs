@@ -1394,15 +1394,11 @@ impl From<ContentRange> for HeaderValue {
     /// assert_eq!(abc(..20), HeaderValue::from_str("bytes=0-20").unwrap());
     /// ```
     fn from(con: ContentRange) -> HeaderValue {
-        let string = match con.start {
-            Some(ref start) => match con.end {
-                Some(ref end) => format!("bytes={}-{}", start, end),
-                None => format!("bytes={}-", start),
-            },
-            None => match con.end {
-                Some(ref end) => format!("bytes=0-{}", end),
-                None => "bytes=0-".to_string(),
-            },
+        let string = match (con.start, con.end) {
+            (Some(ref start), Some(ref end)) => format!("bytes={}-{}", start, end),
+            (Some(ref start), None) => format!("bytes={}-", start),
+            (None, Some(ref end)) => format!("bytes=0-{}", end),
+            (None, None) => format!("bytes=0-"),
         };
 
         // unwrap 是安全的，因为输入的字符都是已知的
