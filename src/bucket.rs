@@ -16,7 +16,7 @@ use crate::types::{
 };
 use crate::{BucketName, EndPoint};
 
-use chrono::{DateTime, Utc, NaiveDateTime};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use http::Method;
 use oss_derive::oss_gen_rc;
 use std::error::Error;

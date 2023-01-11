@@ -1,8 +1,10 @@
 use crate::builder::BuilderError;
-use http::Method;
-use reqwest::blocking::{self, Body, Request, Response};
-use reqwest::{
+use http::{
     header::{HeaderMap, HeaderName, HeaderValue},
+    Method,
+};
+use reqwest::{
+    blocking::{self, Body, Request, Response},
     IntoUrl,
 };
 use std::{rc::Rc, time::Duration};

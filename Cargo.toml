@@ -29,6 +29,7 @@ documentation = "https://docs.rs/aliyun-oss-client"
 [dependencies.oss_derive]
 version = "0.9.6"
 path = "./oss_derive"
+optional = true
 
 [[example]]
 name = "bucket"
@@ -57,29 +58,44 @@ required-features = ["sts"]
 [features]
 default = [
   #"blocking",
+  "core",
   "sts",
-  "put_file"
+  "put_file",
 ]
-blocking = ["reqwest/blocking"]
-sts = []
-put_file = ["infer"]
+core = [
+  "reqwest",
+  "async-trait",
+  "futures",
+  "futures-core",
+  "async-stream",
+  "thiserror",
+  "chrono",
+  "http",
+  "oss_derive",
+  "auth",
+  "decode",
+]
+blocking = ["core", "reqwest/blocking"]
+sts = ["core", "auth"]
+put_file = ["core", "infer"]
+auth = ["hmac", "sha1", "base64", "thiserror", "http", "chrono"]
+decode = ["quick-xml"]
 # bench = []
 
 [dependencies]
-hmac = "^0.12"
-sha1 = "^0.10"
-base64 = "^0.20"
-reqwest = {version ="^0.11"}
-chrono = "^0.4"
-quick-xml = "^0.26"
+hmac = {version = "^0.12", optional = true}
+sha1 = {version = "^0.10", optional = true}
+base64 = {version = "^0.20", optional = true}
+reqwest = {version ="^0.11", optional = true}
+chrono = {version = "^0.4", optional = true}
+quick-xml = {version = "^0.26", optional = true}
 infer = {version = "^0.11", optional = true}
-thiserror = "^1"
-futures = {version = "^0.3"}
-async-trait = "^0.1"
-http="^0.2"
-async-stream = "^0.3"
-futures-core = "^0.3"
-futures-util = "^0.3"
+thiserror = {version = "^1", optional = true}
+futures = {version = "^0.3", optional = true}
+async-trait = {version = "^0.1", optional = true}
+http= {version = "^0.2", optional = true}
+async-stream = {version = "^0.3", optional = true}
+futures-core = {version = "^0.3", optional = true}
 
 [dev-dependencies]
 dotenv = "0.15.0"
@@ -89,6 +105,11 @@ mockall = "0.11.2"
 mockall_double= "0.3.0"
 #faux = "^0.1"
 reqwest = {version ="^0.11", features = ["blocking"]}
+http= {version = "^0.2"}
+async-trait = {version = "^0.1"}
+quick-xml = {version = "^0.26"}
+thiserror = {version = "^1"}
+chrono = {version = "^0.4"}
 
 [build-dependencies]
 rustc_version = "0.4.0"

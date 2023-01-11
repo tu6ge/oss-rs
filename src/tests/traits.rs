@@ -1,11 +1,24 @@
 static mut OBEJCT_ITEM_ID: i8 = 0;
-mod object_list_xml {
 
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+enum MyError {
+    #[error(transparent)]
+    QuickXml(#[from] quick_xml::Error),
+    // #[error(transparent)]
+    // BuilderError(#[from] BuilderError),
+}
+mod object_list_xml {
+    #[cfg(feature = "core")]
     use std::sync::Arc;
 
+    use super::MyError;
+    #[cfg(feature = "core")]
     use crate::builder::ArcPointer;
+    #[cfg(feature = "core")]
     use crate::client::Client;
-    use crate::errors::OssError;
+    #[cfg(feature = "core")]
     use crate::object::{Object, ObjectList};
     use crate::tests::traits::OBEJCT_ITEM_ID;
 
@@ -18,8 +31,8 @@ mod object_list_xml {
         struct ObjectA {}
 
         impl RefineObject for ObjectA {
-            type Error = OssError;
-            fn set_key(&mut self, key: &str) -> Result<(), OssError> {
+            type Error = MyError;
+            fn set_key(&mut self, key: &str) -> Result<(), Self::Error> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(key, "9AB932LY.jpeg");
@@ -31,7 +44,7 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_last_modified(&mut self, last_modified: &str) -> Result<(), OssError> {
+            fn set_last_modified(&mut self, last_modified: &str) -> Result<(), Self::Error> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(last_modified, "2022-06-26T09:53:21.000Z");
@@ -43,7 +56,7 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_etag(&mut self, etag: &str) -> Result<(), OssError> {
+            fn set_etag(&mut self, etag: &str) -> Result<(), Self::Error> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(etag, "F75A15996D0857B16FA31A3B16624C26");
@@ -55,7 +68,7 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_type(&mut self, _type: &str) -> Result<(), OssError> {
+            fn set_type(&mut self, _type: &str) -> Result<(), Self::Error> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(_type, "Normal");
@@ -67,7 +80,7 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_size(&mut self, size: &str) -> Result<(), OssError> {
+            fn set_size(&mut self, size: &str) -> Result<(), Self::Error> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(size, "18027");
@@ -79,7 +92,7 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), OssError> {
+            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), Self::Error> {
                 assert_eq!(storage_class, "Standard");
                 unsafe {
                     OBEJCT_ITEM_ID += 1;
@@ -89,24 +102,27 @@ mod object_list_xml {
         }
         struct ListB {}
         impl RefineObjectList<ObjectA> for ListB {
-            type Error = OssError;
-            fn set_name(&mut self, name: &str) -> Result<(), OssError> {
+            type Error = MyError;
+            fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
                 assert_eq!(name, "foo_bucket");
                 Ok(())
             }
-            fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
+            fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
                 assert_eq!(prefix, "");
                 Ok(())
             }
-            fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
+            fn set_max_keys(&mut self, max_keys: &str) -> Result<(), Self::Error> {
                 assert_eq!(max_keys, "100");
                 Ok(())
             }
-            fn set_key_count(&mut self, key_count: &str) -> Result<(), OssError> {
+            fn set_key_count(&mut self, key_count: &str) -> Result<(), Self::Error> {
                 assert_eq!(key_count, "3");
                 Ok(())
             }
-            fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), OssError> {
+            fn set_next_continuation_token(
+                &mut self,
+                token: Option<&str>,
+            ) -> Result<(), Self::Error> {
                 assert!(matches!(token, None));
                 Ok(())
             }
@@ -287,6 +303,7 @@ mod object_list_xml {
     //     object_list
     // }
 
+    #[cfg(feature = "core")]
     #[allow(dead_code)]
     fn init_object_list(token: Option<String>, list: Vec<Object>) -> ObjectList {
         let client = Client::new(
@@ -368,13 +385,16 @@ mod object_list_xml {
         struct ObjectA {}
 
         impl RefineObject for ObjectA {
-            type Error = OssError;
+            type Error = MyError;
         }
 
         struct ListB {}
         impl RefineObjectList<ObjectA> for ListB {
-            type Error = OssError;
-            fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), OssError> {
+            type Error = MyError;
+            fn set_next_continuation_token(
+                &mut self,
+                token: Option<&str>,
+            ) -> Result<(), Self::Error> {
                 assert!(
                     matches!(token, Some(v) if v=="CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--")
                 );
@@ -430,7 +450,7 @@ mod object_list_xml {
 }
 
 mod bucket_xml {
-    use crate::errors::OssError;
+    use super::MyError;
 
     #[test]
     fn from_xml() {
@@ -439,28 +459,34 @@ mod bucket_xml {
         struct BucketA {}
 
         impl RefineBucket for BucketA {
-            type Error = OssError;
-            fn set_name(&mut self, name: &str) -> Result<(), OssError> {
+            type Error = MyError;
+            fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
                 assert_eq!(name, "foo");
                 Ok(())
             }
-            fn set_creation_date(&mut self, creation_date: &str) -> Result<(), OssError> {
+            fn set_creation_date(&mut self, creation_date: &str) -> Result<(), Self::Error> {
                 assert_eq!(creation_date, "2016-11-05T13:10:10.000Z");
                 Ok(())
             }
-            fn set_location(&mut self, location: &str) -> Result<(), OssError> {
+            fn set_location(&mut self, location: &str) -> Result<(), Self::Error> {
                 assert_eq!(location, "oss-cn-shanghai");
                 Ok(())
             }
-            fn set_extranet_endpoint(&mut self, extranet_endpoint: &str) -> Result<(), OssError> {
+            fn set_extranet_endpoint(
+                &mut self,
+                extranet_endpoint: &str,
+            ) -> Result<(), Self::Error> {
                 assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com");
                 Ok(())
             }
-            fn set_intranet_endpoint(&mut self, intranet_endpoint: &str) -> Result<(), OssError> {
+            fn set_intranet_endpoint(
+                &mut self,
+                intranet_endpoint: &str,
+            ) -> Result<(), Self::Error> {
                 assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com");
                 Ok(())
             }
-            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), OssError> {
+            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), Self::Error> {
                 assert_eq!(storage_class, "Standard");
                 Ok(())
             }
@@ -505,7 +531,7 @@ mod bucket_xml {
 }
 static mut BUCKETS_ITEM_ID: i8 = 0;
 mod bucket_list_xml {
-    use crate::errors::OssError;
+    use super::MyError;
 
     use super::BUCKETS_ITEM_ID;
 
@@ -517,8 +543,8 @@ mod bucket_list_xml {
         struct BucketA {}
 
         impl RefineBucket for BucketA {
-            type Error = OssError;
-            fn set_name(&mut self, name: &str) -> Result<(), OssError> {
+            type Error = MyError;
+            fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
                         assert_eq!(name, "foo124442");
@@ -529,7 +555,7 @@ mod bucket_list_xml {
 
                 Ok(())
             }
-            fn set_creation_date(&mut self, creation_date: &str) -> Result<(), OssError> {
+            fn set_creation_date(&mut self, creation_date: &str) -> Result<(), Self::Error> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
                         assert_eq!(creation_date, "2020-09-13T03:14:54.000Z");
@@ -539,7 +565,7 @@ mod bucket_list_xml {
                 }
                 Ok(())
             }
-            fn set_location(&mut self, location: &str) -> Result<(), OssError> {
+            fn set_location(&mut self, location: &str) -> Result<(), Self::Error> {
                 unsafe {
                     if BUCKETS_ITEM_ID == 0 {
                         assert_eq!(location, "oss-cn-shanghai");
@@ -549,15 +575,21 @@ mod bucket_list_xml {
                 }
                 Ok(())
             }
-            fn set_extranet_endpoint(&mut self, extranet_endpoint: &str) -> Result<(), OssError> {
+            fn set_extranet_endpoint(
+                &mut self,
+                extranet_endpoint: &str,
+            ) -> Result<(), Self::Error> {
                 assert_eq!(extranet_endpoint, "oss-cn-shanghai.aliyuncs.com");
                 Ok(())
             }
-            fn set_intranet_endpoint(&mut self, intranet_endpoint: &str) -> Result<(), OssError> {
+            fn set_intranet_endpoint(
+                &mut self,
+                intranet_endpoint: &str,
+            ) -> Result<(), Self::Error> {
                 assert_eq!(intranet_endpoint, "oss-cn-shanghai-internal.aliyuncs.com");
                 Ok(())
             }
-            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), OssError> {
+            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), Self::Error> {
                 assert_eq!(storage_class, "Standard");
                 unsafe {
                     BUCKETS_ITEM_ID += 1;
@@ -569,32 +601,32 @@ mod bucket_list_xml {
         struct ListA {}
 
         impl RefineBucketList<BucketA> for ListA {
-            type Error = OssError;
-            fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
+            type Error = MyError;
+            fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
                 assert_eq!(prefix, "");
                 Ok(())
             }
-            fn set_marker(&mut self, marker: &str) -> Result<(), OssError> {
+            fn set_marker(&mut self, marker: &str) -> Result<(), Self::Error> {
                 assert_eq!(marker, "");
                 Ok(())
             }
-            fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
+            fn set_max_keys(&mut self, max_keys: &str) -> Result<(), Self::Error> {
                 assert_eq!(max_keys, "");
                 Ok(())
             }
-            fn set_is_truncated(&mut self, is_truncated: bool) -> Result<(), OssError> {
+            fn set_is_truncated(&mut self, is_truncated: bool) -> Result<(), Self::Error> {
                 assert_eq!(is_truncated, false);
                 Ok(())
             }
-            fn set_next_marker(&mut self, next_marker: &str) -> Result<(), OssError> {
+            fn set_next_marker(&mut self, next_marker: &str) -> Result<(), Self::Error> {
                 assert_eq!(next_marker, "");
                 Ok(())
             }
-            fn set_id(&mut self, id: &str) -> Result<(), OssError> {
+            fn set_id(&mut self, id: &str) -> Result<(), Self::Error> {
                 assert_eq!(id, "100861222333");
                 Ok(())
             }
-            fn set_display_name(&mut self, display_name: &str) -> Result<(), OssError> {
+            fn set_display_name(&mut self, display_name: &str) -> Result<(), Self::Error> {
                 assert_eq!(display_name, "100861222");
                 Ok(())
             }

@@ -9,9 +9,11 @@ use std::rc::Rc;
 use std::{sync::Arc, time::Duration};
 use thiserror::Error;
 
+#[cfg(feature = "auth")]
+use crate::auth::AuthError;
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
-use crate::{auth::AuthError, client::Client as AliClient, config::BucketBase};
+use crate::{client::Client as AliClient, config::BucketBase};
 use reqwest::{Client, Request, Response};
 
 pub trait PointerFamily
@@ -149,6 +151,7 @@ pub enum BuilderError {
     #[error("OssService {0}")]
     OssService(#[from] OssService),
 
+    #[cfg(feature = "auth")]
     #[error("{0}")]
     AuthError(#[from] AuthError),
 }

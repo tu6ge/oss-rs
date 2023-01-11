@@ -1,11 +1,12 @@
 use crate::types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret};
 #[cfg(test)]
 use http::header::AsHeaderName;
-use http::header::CONTENT_TYPE;
+use http::{
+    header::{HeaderMap, HeaderValue, IntoHeaderName, CONTENT_TYPE},
+    Method,
+};
 #[cfg(test)]
 use mockall::automock;
-use reqwest::header::{HeaderMap, HeaderValue, IntoHeaderName};
-use reqwest::Method;
 use std::convert::TryInto;
 use std::fmt::Display;
 use thiserror::Error;
@@ -510,7 +511,7 @@ impl AuthGetHeader for AuthBuilder {
 #[derive(Debug, Error)]
 pub enum AuthError {
     #[error("invalid header value msg: {0}")]
-    InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
+    InvalidHeaderValue(#[from] http::header::InvalidHeaderValue),
 
     #[error("hmac InvalidLength: {0}")]
     InvalidLength(#[from] hmac::digest::crypto_common::InvalidLength),

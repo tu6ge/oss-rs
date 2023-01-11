@@ -9,9 +9,10 @@ use crate::file::AlignBuilder;
 use crate::types::{BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret};
 
 use chrono::{DateTime, Utc};
-use http::header::HeaderName;
-use http::{HeaderValue, Method};
-use reqwest::header::HeaderMap;
+use http::{
+    header::{HeaderMap, HeaderName},
+    HeaderValue, Method,
+};
 use reqwest::Url;
 use std::env;
 #[cfg(all(feature = "blocking", test))]

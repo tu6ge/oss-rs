@@ -1,17 +1,18 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
+#[cfg(feature = "core")]
 use std::env;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
-use reqwest::header::{HeaderValue, InvalidHeaderValue};
+use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
+#[cfg(feature = "core")]
 use reqwest::Url;
-use thiserror::Error;
 
+#[cfg(feature = "core")]
 use crate::config::BucketBase;
-use crate::errors::{OssError, OssResult};
 
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct KeyId(Cow<'static, str>);
@@ -114,6 +115,7 @@ impl KeySecret {
 //===================================================================================================
 
 /// OSS 的可用区
+#[cfg(feature = "core")]
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum EndPoint {
@@ -141,6 +143,7 @@ pub const US_WEST1: &str = "us-west1";
 pub const US_EAST1: &str = "us-east1";
 pub const AP_SOUTH_EAST1: &str = "ap-south-east1";
 
+#[cfg(feature = "core")]
 impl AsRef<str> for EndPoint {
     fn as_ref(&self) -> &str {
         match *self {
@@ -159,19 +162,12 @@ impl AsRef<str> for EndPoint {
     }
 }
 
+#[cfg(feature = "core")]
 impl Display for EndPoint {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_ref())
     }
 }
-
-// 已实现，需要的时候再打开
-// impl TryInto<Url> for EndPoint {
-//     type Error = OssError;
-//     fn try_into(self) -> Result<Url, OssError> {
-//         Url::parse(self.as_ref()).map_err(|e|OssError::Input(e.to_string()))
-//     }
-// }
 
 pub const HANGZHOU_L: &str = "hangzhou";
 pub const SHANGHAI_L: &str = "shanghai";
@@ -181,6 +177,7 @@ pub const ZHANGJIAKOU_L: &str = "zhangjiakou";
 pub const HONGKONG_L: &str = "hongkong";
 pub const SHENZHEN_L: &str = "shenzhen";
 
+#[cfg(feature = "core")]
 impl From<String> for EndPoint {
     /// 字符串转 endpoint
     /// 举例1 - 产生恐慌
@@ -198,12 +195,14 @@ impl From<String> for EndPoint {
     }
 }
 
+#[cfg(feature = "core")]
 impl<'a> From<&'a str> for EndPoint {
     fn from(url: &'a str) -> Self {
         Self::new(url).unwrap()
     }
 }
 
+#[cfg(feature = "core")]
 impl FromStr for EndPoint {
     type Err = InvalidEndPoint;
     fn from_str(url: &str) -> Result<Self, Self::Err> {
@@ -215,6 +214,7 @@ pub const OSS_DOMAIN_PREFIX: &str = "https://oss-";
 pub const OSS_INTERNAL: &str = "-internal";
 pub const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
 
+#[cfg(feature = "core")]
 impl<'a> EndPoint {
     /// 通过字符串字面值初始化 endpoint
     ///
@@ -299,18 +299,22 @@ impl<'a> EndPoint {
     }
 }
 
+#[cfg(feature = "core")]
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct InvalidEndPoint;
 
+#[cfg(feature = "core")]
 impl Error for InvalidEndPoint {}
 
+#[cfg(feature = "core")]
 impl fmt::Display for InvalidEndPoint {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "endpoint must like with https://xxx.aliyuncs.com")
     }
 }
 
+#[cfg(feature = "core")]
 impl PartialEq<&str> for EndPoint {
     /// # 相等比较
     /// ```
@@ -324,6 +328,7 @@ impl PartialEq<&str> for EndPoint {
     }
 }
 
+#[cfg(feature = "core")]
 impl PartialEq<EndPoint> for &str {
     /// # 相等比较
     /// ```
@@ -337,6 +342,7 @@ impl PartialEq<EndPoint> for &str {
     }
 }
 
+#[cfg(feature = "core")]
 impl PartialEq<Url> for EndPoint {
     /// # 相等比较
     /// ```
@@ -571,11 +577,9 @@ impl TryInto<HeaderValue> for ContentType {
     }
 }
 impl TryFrom<HeaderValue> for ContentType {
-    type Error = OssError;
-    fn try_from(value: HeaderValue) -> OssResult<Self> {
-        Ok(Self(Cow::Owned(
-            value.to_str().map_err(OssError::from)?.to_owned(),
-        )))
+    type Error = ToStrError;
+    fn try_from(value: HeaderValue) -> Result<Self, Self::Error> {
+        Ok(Self(Cow::Owned(value.to_str()?.to_owned())))
     }
 }
 impl From<String> for ContentType {
@@ -686,6 +690,7 @@ impl Default for CanonicalizedResource {
 
 pub const CONTINUATION_TOKEN: &str = "continuation-token";
 pub const BUCKET_INFO: &str = "bucketInfo";
+#[cfg(feature = "core")]
 const QUERY_KEYWORD: [&str; 2] = ["acl", BUCKET_INFO];
 
 impl CanonicalizedResource {
@@ -700,6 +705,7 @@ impl CanonicalizedResource {
     }
 
     /// 获取 bucket 的签名参数
+    #[cfg(feature = "core")]
     pub fn from_bucket(bucket: &BucketBase, query: Option<&str>) -> Self {
         match query {
             Some(q) => {
@@ -719,6 +725,7 @@ impl CanonicalizedResource {
     /// 带查询条件的
     ///
     /// 如果查询条件中有翻页的话，则忽略掉其他字段
+    #[cfg(feature = "core")]
     pub fn from_bucket_query(bucket: &BucketBase, query: &Query) -> Self {
         match query.get(CONTINUATION_TOKEN) {
             Some(v) => Self::from(format!(
@@ -731,6 +738,7 @@ impl CanonicalizedResource {
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
+    #[cfg(feature = "core")]
     pub(crate) fn from_object<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         (bucket, path): (&str, &str),
         query: Q,
@@ -1033,10 +1041,12 @@ impl FromIterator<(QueryKey, u16)> for Query {
 //     }
 // }
 
+#[cfg(feature = "core")]
 pub trait UrlQuery {
     fn set_search_query(&mut self, query: &Query);
 }
 
+#[cfg(feature = "core")]
 impl UrlQuery for Url {
     /// 将查询参数拼接到 API 的 Url 上
     ///
@@ -1122,8 +1132,10 @@ impl FromStr for QueryKey {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub struct InvalidQueryKey;
+
+impl Error for InvalidQueryKey {}
 
 impl Display for InvalidQueryKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1313,8 +1325,10 @@ impl FromStr for QueryValue {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub struct InvalidQueryValue;
+
+impl Error for InvalidQueryValue {}
 
 impl Display for InvalidQueryValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

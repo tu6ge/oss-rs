@@ -1,4 +1,6 @@
+#[cfg(feature = "core")]
 mod test_async {
+    #[cfg(feature = "put_file")]
     use aliyun_oss_client::file::File;
     use aliyun_oss_client::Client;
     use assert_matches::assert_matches;
@@ -56,6 +58,7 @@ mod test_async {
         assert_matches!(object_list, Ok(_));
     }
 
+    #[cfg(feature = "put_file")]
     #[tokio::test]
     async fn test_put_get_and_delete_file() {
         dotenv().ok();
@@ -93,6 +96,7 @@ mod test_async {
 #[cfg(feature = "blocking")]
 mod test_blocking {
 
+    #[cfg(feature = "put_file")]
     use aliyun_oss_client::file::BlockingFile;
     use aliyun_oss_client::ClientRc;
     use assert_matches::assert_matches;
@@ -159,6 +163,7 @@ mod test_blocking {
         assert_matches!(object_list.next(), Some(_));
     }
 
+    #[cfg(feature = "put_file")]
     #[test]
     fn test_put_and_delete_file() {
         dotenv().ok();

@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
+use http::header::{HeaderMap, HeaderValue};
 use mockall::mock;
-use reqwest::header::{HeaderMap, HeaderValue};
 
 use crate::{
     auth::{AuthError, AuthHeader, MockAuthToHeaderMap, OssHeader, Sign},
