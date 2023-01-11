@@ -15,7 +15,8 @@ use crate::types::{
     CanonicalizedResource, InvalidEndPoint, Query, QueryKey, QueryValue, BUCKET_INFO,
 };
 use crate::{BucketName, EndPoint};
-use chrono::prelude::*;
+
+use chrono::{DateTime, Utc, NaiveDateTime};
 use http::Method;
 use oss_derive::oss_gen_rc;
 use std::error::Error;

@@ -7,7 +7,8 @@ use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware, RequestBuil
 use crate::config::{BucketBase, Config, InvalidConfig, ObjectBase, ObjectPath};
 use crate::file::AlignBuilder;
 use crate::types::{BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret};
-use chrono::prelude::*;
+
+use chrono::{DateTime, Utc};
 use http::header::HeaderName;
 use http::{HeaderValue, Method};
 use reqwest::header::HeaderMap;
@@ -135,6 +136,7 @@ fn now() -> DateTime<Utc> {
 
 #[cfg(test)]
 fn now() -> DateTime<Utc> {
+    use chrono::NaiveDateTime;
     let naive = NaiveDateTime::parse_from_str("2022/10/6 20:40:00", "%Y/%m/%d %H:%M:%S").unwrap();
     DateTime::from_utc(naive, Utc)
 }

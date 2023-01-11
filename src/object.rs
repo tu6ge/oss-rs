@@ -15,7 +15,7 @@ use crate::types::{
 };
 use crate::{BucketName, Client};
 use async_stream::try_stream;
-use chrono::prelude::*;
+use chrono::{DateTime, Utc, NaiveDateTime};
 use futures_core::stream::Stream;
 use http::Method;
 use oss_derive::oss_gen_rc;
