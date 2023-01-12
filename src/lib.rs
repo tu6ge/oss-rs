@@ -191,6 +191,8 @@ let client = aliyun_oss_client::Client::new(
 
 #![cfg_attr(all(feature = "bench", test), feature(test))]
 
+// #![doc(html_playground_url = "https://play.rust-lang.org/")]
+
 #[cfg(all(feature = "bench", test))]
 extern crate test;
 
