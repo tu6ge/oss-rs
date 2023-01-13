@@ -5,7 +5,7 @@ use thiserror::Error;
 use crate::{
     bucket::InvalidBucketValue,
     builder::BuilderError,
-    config::InvalidConfig,
+    config::{InvalidConfig, InvalidObjectPath},
     types::{InvalidBucketName, InvalidEndPoint},
 };
 
@@ -69,6 +69,9 @@ pub enum OssError {
 
     #[error("{0}")]
     InvalidConfig(#[from] InvalidConfig),
+
+    #[error("{0}")]
+    InvalidObjectPath(#[from] InvalidObjectPath),
 
     /// 用于 Stream
     #[error("Without More Content")]

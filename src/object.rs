@@ -4,7 +4,7 @@ use crate::builder::{ArcPointer, BuilderError, PointerFamily};
 use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
-use crate::config::{BucketBase, ObjectBase, ObjectPath};
+use crate::config::{BucketBase, CommonPrefixes, ObjectBase, ObjectPath};
 use crate::decode::{RefineObject, RefineObjectList};
 use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
@@ -37,6 +37,7 @@ pub struct ObjectList<PointerSel: PointerFamily = ArcPointer> {
     key_count: u64,
     pub object_list: Vec<Object<PointerSel>>,
     next_continuation_token: Option<String>,
+    common_prefixes: CommonPrefixes,
     client: PointerSel::PointerType,
     search_query: Query,
 }
@@ -49,6 +50,7 @@ impl<T: PointerFamily> fmt::Debug for ObjectList<T> {
             .field("max_keys", &self.max_keys)
             .field("key_count", &self.key_count)
             .field("next_continuation_token", &self.next_continuation_token)
+            .field("common_prefixes", &self.common_prefixes)
             .field("search_query", &self.search_query)
             .finish()
     }
@@ -64,6 +66,7 @@ impl Default for ObjectList<ArcPointer> {
             key_count: u64::default(),
             object_list: Vec::new(),
             next_continuation_token: None,
+            common_prefixes: CommonPrefixes::default(),
             client: Arc::new(ClientArc::default()),
             search_query: Query::default(),
         }
@@ -88,6 +91,7 @@ impl<T: PointerFamily> ObjectList<T> {
             key_count,
             object_list,
             next_continuation_token,
+            common_prefixes: CommonPrefixes::default(),
             client,
             search_query: Query::from_iter(search_query),
         }
@@ -99,6 +103,15 @@ impl<T: PointerFamily> ObjectList<T> {
 
     pub fn prefix(&self) -> &String {
         &self.prefix
+    }
+
+    /// 获取文件夹下的子文件夹名，子文件夹下递归的所有文件和文件夹不包含在这里。
+    pub fn common_prefixes(&self) -> &CommonPrefixes {
+        &self.common_prefixes
+    }
+
+    pub fn set_common_prefixes<P: IntoIterator<Item = ObjectPath>>(&mut self, prefixes: P) {
+        self.common_prefixes = CommonPrefixes::from_iter(prefixes);
     }
 
     pub fn max_keys(&self) -> &u32 {
@@ -502,6 +515,22 @@ impl<T: PointerFamily> RefineObjectList<Object<T>> for ObjectList<T> {
     #[inline]
     fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
         self.prefix = prefix.to_owned();
+        Ok(())
+    }
+
+    #[inline]
+    fn set_common_prefix(
+        &mut self,
+        list: &Vec<std::borrow::Cow<'_, str>>,
+    ) -> Result<(), Self::Error> {
+        for val in list.iter() {
+            match val.parse::<ObjectPath>() {
+                Ok(val) => {
+                    self.common_prefixes.push(val);
+                }
+                Err(err) => return Err(err.into()),
+            }
+        }
         Ok(())
     }
 
@@ -1067,6 +1096,20 @@ mod tests {
 
         let third = iter.next();
         assert!(third.is_none());
+    }
+
+    #[test]
+    fn test_common_prefixes() {
+        let mut object_list = init_object_list(None, vec![]);
+        let list = object_list.common_prefixes();
+        assert!(list.len() == 0);
+
+        object_list.set_common_prefixes(["abc".into(), "cde".into()]);
+        let list = object_list.common_prefixes();
+
+        assert!(list.len() == 2);
+        assert!(list[0] == "abc");
+        assert!(list[1] == "cde");
     }
 
     #[test]

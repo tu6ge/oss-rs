@@ -127,6 +127,7 @@ pub trait RefineObject {
 }
 
 const PREFIX: &[u8] = b"Prefix";
+const COMMON_PREFIX: &[u8] = b"CommonPrefixes";
 const NAME: &[u8] = b"Name";
 const MAX_KEYS: &[u8] = b"MaxKeys";
 const KEY_COUNT: &[u8] = b"KeyCount";
@@ -168,6 +169,11 @@ where
         Ok(())
     }
 
+    /// 提取文件目录
+    fn set_common_prefix(&mut self, _list: &Vec<Cow<'_, str>>) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
     fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Self::Error> {
         Ok(())
     }
@@ -205,11 +211,24 @@ where
         let mut size = Cow::from("");
         let mut storage_class = Cow::from(String::with_capacity(11));
 
+        let mut is_common_pre = false;
+        let mut prefix_vec = Vec::new();
+
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => {
                     match e.name().as_ref() {
-                        PREFIX => self.set_prefix(&reader.read_text(e.to_end().name())?)?,
+                        COMMON_PREFIX => {
+                            is_common_pre = true;
+                            prefix_vec = Vec::new();
+                        }
+                        PREFIX => {
+                            if is_common_pre {
+                                prefix_vec.push(reader.read_text(e.to_end().name())?);
+                            } else {
+                                self.set_prefix(&reader.read_text(e.to_end().name())?)?;
+                            }
+                        }
                         NAME => self.set_name(&reader.read_text(e.to_end().name())?)?,
                         MAX_KEYS => self.set_max_keys(&reader.read_text(e.to_end().name())?)?,
                         KEY_COUNT => self.set_key_count(&reader.read_text(e.to_end().name())?)?,
@@ -249,16 +268,23 @@ where
                         _ => (),
                     }
                 }
-                Ok(Event::End(ref e)) if e.name().as_ref() == CONTENTS => {
-                    let mut object = init_object();
-                    object.set_key(&key)?;
-                    object.set_last_modified(&last_modified)?;
-                    object.set_etag(&etag)?;
-                    object.set_type(&_type)?;
-                    object.set_size(&size)?;
-                    object.set_storage_class(&storage_class)?;
-                    result.push(object);
-                }
+                Ok(Event::End(ref e)) => match e.name().as_ref() {
+                    COMMON_PREFIX => {
+                        self.set_common_prefix(&prefix_vec)?;
+                        is_common_pre = false;
+                    }
+                    CONTENTS => {
+                        let mut object = init_object();
+                        object.set_key(&key)?;
+                        object.set_last_modified(&last_modified)?;
+                        object.set_etag(&etag)?;
+                        object.set_type(&_type)?;
+                        object.set_size(&size)?;
+                        object.set_storage_class(&storage_class)?;
+                        result.push(object);
+                    }
+                    _ => (),
+                },
                 Ok(Event::Eof) => {
                     self.set_list(result)?;
                     break;
@@ -454,5 +480,58 @@ where
             buf.clear();
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_common_prefixes() {
+        struct ObjectA {}
+        impl RefineObject for ObjectA {
+            type Error = quick_xml::Error;
+        }
+
+        struct ListA {}
+
+        impl RefineObjectList<ObjectA> for ListA {
+            type Error = quick_xml::Error;
+
+            fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
+                assert!(prefix == "bar");
+                Ok(())
+            }
+
+            fn set_common_prefix(&mut self, list: &Vec<Cow<'_, str>>) -> Result<(), Self::Error> {
+                assert!(list[0] == "foo1");
+                assert!(list[1] == "foo2");
+                Ok(())
+            }
+        }
+
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+        <ListBucketResult>
+          <Prefix>bar</Prefix>
+          <Contents>
+            <Key>9AB932LY.jpeg</Key>
+          </Contents>
+          <Contents>
+            <Key>9AB932LY.jpeg</Key>
+          </Contents>
+          <CommonPrefixes>
+            <Prefix>foo1</Prefix>
+            <Prefix>foo2</Prefix>
+          </CommonPrefixes>
+        </ListBucketResult>
+        "#;
+
+        let mut list = ListA {};
+
+        let init_object = || ObjectA {};
+
+        let res = list.decode(xml, init_object);
+
+        assert!(res.is_ok());
     }
 }
