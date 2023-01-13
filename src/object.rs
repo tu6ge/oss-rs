@@ -101,6 +101,11 @@ impl<T: PointerFamily> ObjectList<T> {
         &self.prefix
     }
 
+    #[cfg(test)]
+    pub fn test_set_prefix(&mut self, prefix: &str) {
+        self.set_prefix(prefix).expect("error in set_prefix");
+    }
+
     pub fn max_keys(&self) -> &u32 {
         &self.max_keys
     }
@@ -287,7 +292,7 @@ impl<T: PointerFamily> Default for Object<T> {
     fn default() -> Self {
         Object {
             base: ObjectBase::<T>::default(),
-            last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
+            last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(61, 0).unwrap(), Utc),
             etag: String::default(),
             _type: String::default(),
             size: 0,
@@ -411,7 +416,7 @@ impl<T: PointerFamily> ObjectBuilder<T> {
         Self {
             object: Object {
                 base,
-                last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
+                last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(61, 0).unwrap(), Utc),
                 etag: String::default(),
                 _type: String::default(),
                 size: 0,
@@ -501,7 +506,12 @@ impl<T: PointerFamily> RefineObjectList<Object<T>> for ObjectList<T> {
 
     #[inline]
     fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
-        self.prefix = prefix.to_owned();
+        if self.prefix == "" {
+            self.prefix.push_str(&prefix.to_owned())
+        } else {
+            self.prefix
+                .push_str(format!(",{}", &prefix.to_owned()).as_str());
+        }
         Ok(())
     }
 
@@ -968,7 +978,7 @@ mod tests {
             "foo4".parse().unwrap(),
         );
 
-        let object_list = ObjectList::<ArcPointer>::new(
+        let mut object_list = ObjectList::<ArcPointer>::new(
             "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
             String::from("foo2"),
             100,
@@ -978,6 +988,8 @@ mod tests {
             Arc::new(client),
             vec![("key1".into(), "value1".into())],
         );
+
+        object_list.test_set_prefix("foo2/next");
 
         object_list
     }
@@ -990,8 +1002,7 @@ mod tests {
 
         assert_eq!(bucket.name(), "abc");
 
-        assert!(object_list.prefix() == "foo2");
-        assert_eq!(object_list.prefix(), "foo2");
+        assert_eq!(object_list.prefix(), "foo2,foo2/next");
 
         assert!(object_list.max_keys() == &100u32);
         assert_eq!(object_list.max_keys().to_owned(), 100u32);
@@ -1038,7 +1049,7 @@ mod tests {
                 Object::new(
                     Arc::clone(&bucket),
                     "key1",
-                    DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+                    DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(), Utc),
                     "foo3".into(),
                     "foo4".into(),
                     100,
@@ -1047,7 +1058,7 @@ mod tests {
                 Object::new(
                     Arc::clone(&bucket),
                     "key2",
-                    DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+                    DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(), Utc),
                     "foo3".into(),
                     "foo4".into(),
                     100,
@@ -1075,7 +1086,7 @@ mod tests {
         let object = Object::<ArcPointer>::new(
             bucket,
             "foo2",
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(), Utc),
             "foo3".into(),
             "foo4".into(),
             100,
@@ -1098,7 +1109,7 @@ mod tests {
         ));
         let object = ObjectBuilder::<ArcPointer>::new(bucket, "abc")
             .last_modified(DateTime::<Utc>::from_utc(
-                NaiveDateTime::from_timestamp(123000, 0),
+                NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
                 Utc,
             ))
             .etag("foo1".to_owned())
@@ -1140,7 +1151,7 @@ mod blocking_tests {
         Object::<RcPointer>::new(
             bucket,
             path,
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(last_modified, 0), Utc),
+            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(last_modified, 0).unwrap(), Utc),
             etag.into(),
             _type.into(),
             size,

@@ -1,14 +1,30 @@
 #[cfg(feature = "core")]
 mod test_async {
+    use std::env;
+
     #[cfg(feature = "put_file")]
     use aliyun_oss_client::file::File;
     use aliyun_oss_client::Client;
     use assert_matches::assert_matches;
     use dotenv::dotenv;
 
+    fn check_env() -> bool {
+        let key_id = env::var("ALIYUN_KEY_ID").ok();
+        let key_secret = env::var("ALIYUN_KEY_SECRET").ok();
+        if key_id == None || key_secret == None {
+            return false;
+        }
+        true
+    }
+
     #[tokio::test]
     async fn test_get_bucket_list() {
         dotenv().ok();
+
+        if !check_env() {
+            assert_eq!(1, 1);
+            return;
+        }
 
         let client = Client::from_env().unwrap();
 
@@ -21,6 +37,11 @@ mod test_async {
     async fn test_get_bucket_info() {
         dotenv().ok();
 
+        if !check_env() {
+            assert_eq!(1, 1);
+            return;
+        }
+
         let client = Client::from_env().unwrap();
 
         let bucket_list = client.get_bucket_info().await;
@@ -31,6 +52,11 @@ mod test_async {
     #[tokio::test]
     async fn get_object_by_bucket_struct() {
         dotenv().ok();
+
+        if !check_env() {
+            assert_eq!(1, 1);
+            return;
+        }
 
         let client = Client::from_env().unwrap();
 
@@ -51,6 +77,11 @@ mod test_async {
     async fn test_get_object_list() {
         dotenv().ok();
 
+        if !check_env() {
+            assert_eq!(1, 1);
+            return;
+        }
+
         let client = Client::from_env().unwrap();
 
         let object_list = client.get_object_list([]).await;
@@ -62,6 +93,11 @@ mod test_async {
     #[tokio::test]
     async fn test_put_get_and_delete_file() {
         dotenv().ok();
+
+        if !check_env() {
+            assert_eq!(1, 1);
+            return;
+        }
 
         let client = Client::from_env().unwrap();
 

@@ -271,7 +271,7 @@ mod tests_macro {
         Object::new(
             bucket,
             "foo2",
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(), Utc),
             "foo3".into(),
             "foo4".into(),
             100,
@@ -594,7 +594,7 @@ pub mod blocking {
             Object::<RcPointer>::new(
                 bucket,
                 "foo2",
-                DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+                DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(), Utc),
                 "foo3".into(),
                 "foo4".into(),
                 100,

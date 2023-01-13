@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use oss_derive::oss_file;
 
 fn main() {
     assert!(true);
