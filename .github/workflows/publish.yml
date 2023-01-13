@@ -3,6 +3,8 @@ name: Publish to Cargo
 on:
   push:
     branches: [ master,branch* ]
+  pull_request:
+    branches: []
 
 jobs:
   publish:
@@ -55,6 +57,7 @@ jobs:
           cargo test --features blocking
       
       - name: Run publish-action
+        if: ${{ github.event_name == 'push' }}
         id: publish-action
         run: 
           publish-action
