@@ -126,6 +126,10 @@ impl<T: PointerFamily> ObjectList<T> {
         &self.next_continuation_token
     }
 
+    pub fn search_query(&self) -> &Query {
+        &self.search_query
+    }
+
     /// # 下一页的查询条件
     ///
     /// 如果有下一页，返回 Some(Query)

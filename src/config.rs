@@ -520,7 +520,7 @@ impl UrlObjectPath for Url {
 }
 
 /// 文件夹下的子文件夹名，子文件夹下递归的所有文件和文件夹不包含在这里。
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct CommonPrefixes(Vec<ObjectPath>);
 
 impl CommonPrefixes {

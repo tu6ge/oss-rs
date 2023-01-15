@@ -2,6 +2,10 @@ use std::sync::Arc;
 
 use crate::bucket::Bucket;
 use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware};
+use crate::config::CommonPrefixes;
+use crate::tests::object::assert_object_list;
+use crate::{EndPoint, Query, QueryKey};
+
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use http::HeaderValue;
@@ -342,9 +346,18 @@ async fn test_get_object_list() {
         .get_object_list(vec![("max-keys".into(), "5".into())])
         .await;
 
-    assert_eq!(
-        format!("{:?}", res),
-        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("abc") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {MaxKeys: QueryValue("5")} } })"##
+    assert!(res.is_ok());
+    let list = res.unwrap();
+    assert_object_list::<ArcPointer>(
+        list,
+        EndPoint::CnShanghai,
+        "abc".parse().unwrap(),
+        "".to_string(),
+        100,
+        23,
+        None,
+        CommonPrefixes::from_iter([]),
+        Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );
 }
 
@@ -354,6 +367,9 @@ fn test_get_blocking_object_list() {
     use crate::blocking::builder::Middleware;
     use crate::builder::RcPointer;
     use crate::client::ClientRc;
+    use crate::config::CommonPrefixes;
+    use crate::tests::object::assert_object_list;
+    use crate::{EndPoint, Query, QueryKey};
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
@@ -423,8 +439,17 @@ fn test_get_blocking_object_list() {
 
     let res = bucket.get_object_list(vec![("max-keys".into(), "5".into())]);
 
-    assert_eq!(
-        format!("{:?}", res),
-        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("abc") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {MaxKeys: QueryValue("5")} } })"##
+    assert!(res.is_ok());
+    let list = res.unwrap();
+    assert_object_list::<RcPointer>(
+        list,
+        EndPoint::CnShanghai,
+        "abc".parse().unwrap(),
+        "".to_string(),
+        100,
+        23,
+        None,
+        CommonPrefixes::from_iter([]),
+        Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );
 }

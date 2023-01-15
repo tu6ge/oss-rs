@@ -1,10 +1,37 @@
-use crate::builder::{BuilderError, ClientWithMiddleware};
+use crate::builder::ArcPointer;
+#[cfg(feature = "blocking")]
+use crate::builder::RcPointer;
+use crate::builder::{BuilderError, ClientWithMiddleware, PointerFamily};
+use crate::config::CommonPrefixes;
 use crate::file::File;
+use crate::object::ObjectList;
 use crate::{builder::Middleware, client::Client};
+use crate::{BucketName, EndPoint, Query, QueryKey};
 use async_trait::async_trait;
 use http::HeaderValue;
 use reqwest::{Request, Response};
 use std::sync::Arc;
+
+pub(super) fn assert_object_list<T: PointerFamily>(
+    list: ObjectList<T>,
+    endpoint: EndPoint,
+    name: BucketName,
+    prefix: String,
+    max_keys: u32,
+    key_count: u64,
+    next_continuation_token: Option<String>,
+    common_prefixes: CommonPrefixes,
+    search_query: Query,
+) {
+    assert!(list.bucket().clone().endpoint() == endpoint);
+    assert!(list.bucket().clone().name() == name);
+    assert!(*list.prefix() == prefix);
+    assert!(*list.max_keys() == max_keys);
+    assert!(*list.key_count() == key_count);
+    assert!(*list.next_continuation_token() == next_continuation_token);
+    assert!(*list.common_prefixes() == common_prefixes);
+    assert!(*list.search_query() == search_query);
+}
 
 #[cfg(feature = "blocking")]
 #[test]
@@ -80,10 +107,18 @@ fn object_list_get_object_list() {
 
     let res = object_list.get_object_list();
 
-    //println!("{:?}", res);
-    assert_eq!(
-        format!("{:?}", res),
-        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("abc") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {MaxKeys: QueryValue("5")} } })"##
+    assert!(res.is_ok());
+    let list = res.unwrap();
+    assert_object_list::<RcPointer>(
+        list,
+        EndPoint::CnShanghai,
+        "abc".parse().unwrap(),
+        "".to_string(),
+        100,
+        23,
+        None,
+        CommonPrefixes::from_iter([]),
+        Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );
 }
 
@@ -148,9 +183,18 @@ async fn test_get_object_list() {
         .await;
 
     //println!("{:?}", res);
-    assert_eq!(
-        format!("{:?}", res),
-        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {MaxKeys: QueryValue("5")} } })"##
+    assert!(res.is_ok());
+    let list = res.unwrap();
+    assert_object_list::<ArcPointer>(
+        list,
+        EndPoint::CnShanghai,
+        "foo4".parse().unwrap(),
+        "".to_string(),
+        100,
+        23,
+        None,
+        CommonPrefixes::from_iter([]),
+        Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );
 }
 
@@ -217,10 +261,18 @@ fn test_get_blocking_object_list() {
 
     let res = client.get_object_list([("max-keys".into(), "5".into())]);
 
-    //println!("{:?}", res);
-    assert_eq!(
-        format!("{:?}", res),
-        r##"Ok(ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName("foo4") }, prefix: "", max_keys: 100, key_count: 23, next_continuation_token: None, search_query: Query { inner: {MaxKeys: QueryValue("5")} } })"##
+    assert!(res.is_ok());
+    let list = res.unwrap();
+    assert_object_list::<RcPointer>(
+        list,
+        EndPoint::CnShanghai,
+        "foo4".parse().unwrap(),
+        "".to_string(),
+        100,
+        23,
+        None,
+        CommonPrefixes::from_iter([]),
+        Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );
 }
 

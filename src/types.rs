@@ -1031,6 +1031,12 @@ impl FromIterator<(QueryKey, u16)> for Query {
     }
 }
 
+impl PartialEq<Query> for Query {
+    fn eq(&self, other: &Query) -> bool {
+        self.inner == other.inner
+    }
+}
+
 // impl<K, V, const N: usize> From<[(K, V); N]> for Query
 // where
 //     K: Into<QueryKey>,
