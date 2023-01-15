@@ -289,4 +289,4 @@ conventional-changelog -p angular -i Changelog.md -s
 
 ## 贡献代码
 
-欢迎各种 PR 贡献
+欢迎各种 PR 贡献，[贡献者指南](https://github.com/tu6ge/oss-rs/blob/master/CONTRIBUTION.md)
