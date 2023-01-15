@@ -904,7 +904,7 @@ impl<'a> FromIterator<(&'a str, &'a str)> for Query {
     /// ```
     /// # use aliyun_oss_client::Query;
     /// # use aliyun_oss_client::QueryKey;
-    /// let query = Query::from_iter([("max-keys", "123")]);
+    /// let query: Query = [("max-keys", "123")].into_iter().collect();
     /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
     /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
     /// ```
