@@ -520,52 +520,7 @@ impl UrlObjectPath for Url {
 }
 
 /// 文件夹下的子文件夹名，子文件夹下递归的所有文件和文件夹不包含在这里。
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct CommonPrefixes(Vec<ObjectPath>);
-
-impl CommonPrefixes {
-    #[inline]
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    #[inline]
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self(Vec::with_capacity(capacity))
-    }
-
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    #[inline]
-    pub fn push(&mut self, path: ObjectPath) {
-        self.0.push(path);
-    }
-}
-
-impl FromIterator<ObjectPath> for CommonPrefixes {
-    #[inline]
-    fn from_iter<I>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = ObjectPath>,
-    {
-        Self(Vec::from_iter(iter))
-    }
-}
-
-impl core::ops::Index<usize> for CommonPrefixes {
-    type Output = ObjectPath;
-    fn index(&self, index: usize) -> &Self::Output {
-        self.0.index(index)
-    }
-}
+pub type CommonPrefixes = Vec<ObjectPath>;
 
 #[cfg(feature = "blocking")]
 #[cfg(test)]
