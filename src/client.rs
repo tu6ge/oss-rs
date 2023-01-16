@@ -277,7 +277,7 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
         let method = method;
         let mut auth_builder = self.auth_builder.clone();
         auth_builder.method(&method);
-        auth_builder.date(now().into());
+        auth_builder.date(now());
         auth_builder.canonicalized_resource(resource);
         auth_builder.extend_headers(HeaderMap::from_iter(headers));
 
