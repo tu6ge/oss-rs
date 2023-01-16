@@ -9,7 +9,6 @@ use http::{
 use mockall::automock;
 use std::convert::TryInto;
 use std::fmt::Display;
-use thiserror::Error;
 
 #[derive(Default, Clone)]
 pub struct Auth {
@@ -508,13 +507,33 @@ impl AuthGetHeader for AuthBuilder {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum AuthError {
-    #[error("invalid header value msg: {0}")]
-    InvalidHeaderValue(#[from] http::header::InvalidHeaderValue),
+    InvalidHeaderValue(http::header::InvalidHeaderValue),
 
-    #[error("hmac InvalidLength: {0}")]
-    InvalidLength(#[from] hmac::digest::crypto_common::InvalidLength),
+    InvalidLength(hmac::digest::crypto_common::InvalidLength),
+}
+
+impl std::error::Error for AuthError {}
+
+impl Display for AuthError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Self::InvalidHeaderValue(_) => f.write_str("failed to parse header value"),
+            Self::InvalidLength(_) => f.write_str("Invalid hmac Length"),
+        }
+    }
+}
+
+impl From<http::header::InvalidHeaderValue> for AuthError {
+    fn from(value: http::header::InvalidHeaderValue) -> Self {
+        Self::InvalidHeaderValue(value)
+    }
+}
+impl From<hmac::digest::crypto_common::InvalidLength> for AuthError {
+    fn from(value: hmac::digest::crypto_common::InvalidLength) -> Self {
+        Self::InvalidLength(value)
+    }
 }
 
 type AuthResult<T> = Result<T, AuthError>;
