@@ -38,20 +38,12 @@ pub enum OssError {
     #[error("chrono error: {0}")]
     Chrono(#[from] chrono::ParseError),
 
-    #[error("toStrError: {0}")]
-    ToStr(String),
-
     #[error("{0}")]
     ToStrError(#[from] ToStrError),
 
     #[error("ParseIntError: {0}")]
     ParseIntError(#[from] std::num::ParseIntError),
 
-    // #[error("hmac InvalidLength: {0}")]
-    // InvalidLength(#[from] crypto_common::InvalidLength),
-
-    // #[error("FromUtf8Error: {0}")]
-    // FromUtf8Error(#[from] std::string::FromUtf8Error),
     #[error("aliyun response error: {0}")]
     OssService(#[from] OssService),
 
@@ -125,36 +117,28 @@ impl fmt::Display for OssService {
 impl<'a> OssService {
     /// 解析 oss 的错误信息
     pub fn new(source: &'a str, status: &StatusCode) -> Self {
-        let code0 = match source.find("<Code>") {
-            Some(offset) => offset,
-            None => return Self::default(),
-        };
-        let code1 = match source.find("</Code>") {
-            Some(offset) => offset,
-            None => return Self::default(),
-        };
-        let message0 = match source.find("<Message>") {
-            Some(offset) => offset,
-            None => return Self::default(),
-        };
-        let message1 = match source.find("</Message>") {
-            Some(offset) => offset,
-            None => return Self::default(),
-        };
-        let request_id0 = match source.find("<RequestId>") {
-            Some(offset) => offset,
-            None => return Self::default(),
-        };
-        let request_id1 = match source.find("</RequestId>") {
-            Some(offset) => offset,
-            None => return Self::default(),
-        };
-
-        Self {
-            code: source[code0 + 6..code1].to_owned(),
-            status: *status,
-            message: source[message0 + 9..message1].to_owned(),
-            request_id: source[request_id0 + 11..request_id1].to_owned(),
+        match (
+            source.find("<Code>"),
+            source.find("</Code>"),
+            source.find("<Message>"),
+            source.find("</Message>"),
+            source.find("<RequestId>"),
+            source.find("</RequestId>"),
+        ) {
+            (
+                Some(code0),
+                Some(code1),
+                Some(message0),
+                Some(message1),
+                Some(request_id0),
+                Some(request_id1),
+            ) => Self {
+                code: source[code0 + 6..code1].to_owned(),
+                status: *status,
+                message: source[message0 + 9..message1].to_owned(),
+                request_id: source[request_id0 + 11..request_id1].to_owned(),
+            },
+            _ => Self::default(),
         }
     }
 }
