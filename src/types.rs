@@ -759,8 +759,7 @@ impl CanonicalizedResource {
         if query.is_empty() {
             Self::from(format!("/{}/{}", bucket, path))
         } else {
-            let query_value = query.to_url_query();
-            Self::from(format!("/{}/{}?{}", bucket, path, query_value))
+            Self::from(format!("/{}/{}?{}", bucket, path, query.to_url_query()))
         }
     }
 }
