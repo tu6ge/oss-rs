@@ -541,6 +541,12 @@ impl From<String> for ContentMd5 {
     }
 }
 
+impl<'a> From<&'a str> for ContentMd5 {
+    fn from(value: &'a str) -> Self {
+        Self(Cow::Owned(value.to_owned()))
+    }
+}
+
 impl ContentMd5 {
     /// Creates a new `ContentMd5` from the given string.
     pub fn new(val: impl Into<Cow<'static, str>>) -> Self {

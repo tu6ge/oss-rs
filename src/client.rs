@@ -82,8 +82,8 @@ impl<M: Default + Clone> Client<M> {
         let bucket = env::var("ALIYUN_BUCKET").map_err(InvalidConfig::from)?;
 
         let mut auth_builder = AuthBuilder::default();
-        auth_builder.key(key_id.into());
-        auth_builder.secret(key_secret.into());
+        auth_builder.key(key_id);
+        auth_builder.secret(key_secret);
 
         Ok(Self::from_builder(
             auth_builder,
@@ -217,7 +217,7 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
     ) -> Result<RequestBuilder, BuilderError> {
         let mut auth_builder = self.auth_builder.clone();
         auth_builder.method(&method);
-        auth_builder.date(now().into());
+        auth_builder.date(now());
         auth_builder.canonicalized_resource(resource);
         auth_builder.extend_headers(HeaderMap::from_iter(headers));
 

@@ -7,11 +7,11 @@
 //! use http::Method;
 //! use chrono::Utc;
 //! let mut auth_builder = AuthBuilder::default();
-//! auth_builder.key("my_key".into());
-//! auth_builder.secret("my_secret".into());
+//! auth_builder.key("my_key");
+//! auth_builder.secret("my_secret");
 //! auth_builder.method(&Method::GET);
-//! auth_builder.date(Utc::now().into());
-//! auth_builder.canonicalized_resource("/abc/?bucketInfo".into());
+//! auth_builder.date(Utc::now());
+//! auth_builder.canonicalized_resource("/abc/?bucketInfo");
 //!
 //! let builder = reqwest::Client::default().request(
 //!     Method::GET,
@@ -356,7 +356,7 @@ impl<'a> SignString<'a> {
             + LINE_BREAK
             + date.as_ref()
             + LINE_BREAK
-            + header.to_string().as_str()
+            + &header.to_string()
             + canonicalized_resource.as_ref();
 
         Ok(SignString { data, key, secret })
@@ -442,23 +442,22 @@ pub struct AuthBuilder {
     auth: Auth,
 }
 
-#[cfg_attr(test, mockall::automock)]
 impl AuthBuilder {
     /// 给 key 赋值
     ///
     /// ```
     /// # use aliyun_oss_client::auth::AuthBuilder;
     /// let mut headers = AuthBuilder::default();
-    /// headers.key("bar".into());
+    /// headers.key("bar");
     /// headers.get_headers();
     /// ```
-    pub fn key(&mut self, key: KeyId) {
-        self.auth.set_key(key);
+    pub fn key<K: Into<KeyId>>(&mut self, key: K) {
+        self.auth.set_key(key.into());
     }
 
     /// 给 secret 赋值
-    pub fn secret(&mut self, secret: KeySecret) {
-        self.auth.set_secret(secret);
+    pub fn secret<S: Into<KeySecret>>(&mut self, secret: S) {
+        self.auth.set_secret(secret.into());
     }
 
     /// 给 verb 赋值
@@ -467,8 +466,8 @@ impl AuthBuilder {
     }
 
     /// 给 content_md5 赋值
-    pub fn content_md5(&mut self, content_md5: ContentMd5) {
-        self.auth.set_content_md5(content_md5);
+    pub fn content_md5<Md5: Into<ContentMd5>>(&mut self, content_md5: Md5) {
+        self.auth.set_content_md5(content_md5.into());
     }
 
     /// # 给 date 赋值
@@ -476,15 +475,16 @@ impl AuthBuilder {
     /// ## Example
     /// ```
     /// use chrono::Utc;
-    /// let builder = aliyun_oss_client::auth::AuthBuilder::default().date(Utc::now().into());
+    /// let builder =
+    ///     aliyun_oss_client::auth::AuthBuilder::default().date(Utc::now());
     /// ```
-    pub fn date(&mut self, date: Date) {
-        self.auth.set_date(date);
+    pub fn date<D: Into<Date>>(&mut self, date: D) {
+        self.auth.set_date(date.into());
     }
 
     /// 给 content_md5 赋值
-    pub fn canonicalized_resource(&mut self, data: CanonicalizedResource) {
-        self.auth.set_canonicalized_resource(data);
+    pub fn canonicalized_resource<Res: Into<CanonicalizedResource>>(&mut self, data: Res) {
+        self.auth.set_canonicalized_resource(data.into());
     }
 
     pub fn with_headers(&mut self, headers: Option<HeaderMap>) {
@@ -565,7 +565,7 @@ mod builder_tests {
         assert_eq!(builder.build().get_key().as_ref(), "");
 
         let mut builder = AuthBuilder::default();
-        builder.key("bar".into());
+        builder.key("bar");
         assert_eq!(builder.build().get_key().as_ref(), "bar");
     }
 }

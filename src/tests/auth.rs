@@ -47,23 +47,20 @@ mod auth_sign_string {
     use chrono::{TimeZone, Utc};
     use http::Method;
 
+    use crate::auth::AuthBuilder;
     use crate::auth::AuthSignString;
-    use crate::{
-        auth::AuthBuilder,
-        types::{CanonicalizedResource, ContentMd5},
-    };
 
     #[test]
     fn auth_to_sign_string() {
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
 
         let mut builder = AuthBuilder::default();
-        builder.key("foo1".into());
-        builder.secret("foo2".into());
+        builder.key("foo1");
+        builder.secret("foo2");
         builder.method(&Method::POST);
-        builder.content_md5(ContentMd5::new("foo4"));
-        builder.date(date.into());
-        builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
+        builder.content_md5("foo4");
+        builder.date(date);
+        builder.canonicalized_resource("foo5");
         builder.header_insert("Content-Type", "foo6".try_into().unwrap());
 
         let auth = builder.build();
@@ -91,12 +88,12 @@ mod auth_sign_string {
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
 
         let mut builder = AuthBuilder::default();
-        builder.key("foo1".into());
-        builder.secret("foo2".into());
+        builder.key("foo1");
+        builder.secret("foo2");
         builder.method(&Method::POST);
         //.content_md5(ContentMd5::new("foo4"))
-        builder.date(date.into());
-        builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
+        builder.date(date);
+        builder.canonicalized_resource("foo5");
         builder.header_insert("Content-Type", "foo6".try_into().unwrap());
 
         let auth = builder.build();
@@ -131,7 +128,7 @@ mod auth_builder {
     #[test]
     fn test_key() {
         let mut builder = AuthBuilder::default();
-        builder.key("foo1".to_owned().into());
+        builder.key("foo1");
         let auth = builder.build();
 
         let (key, ..) = auth.get_sign_info();
@@ -142,7 +139,7 @@ mod auth_builder {
     #[test]
     fn test_secret() {
         let mut builder = AuthBuilder::default();
-        builder.secret("foo2".to_owned().into());
+        builder.secret("foo2");
         let auth = builder.build();
 
         let (_, secret, ..) = auth.get_sign_info();
@@ -164,7 +161,7 @@ mod auth_builder {
     #[test]
     fn test_content_md5() {
         let mut builder = AuthBuilder::default();
-        builder.content_md5("abc3".to_owned().into());
+        builder.content_md5("abc3");
         let auth = builder.build();
 
         let (_, _, _, content_md5, ..) = auth.get_sign_info();
@@ -176,7 +173,7 @@ mod auth_builder {
     fn test_date() {
         let mut builder = AuthBuilder::default();
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
-        builder.date(date.into());
+        builder.date(date);
         let auth = builder.build();
 
         let (.., date, _) = auth.get_sign_info();
@@ -187,7 +184,7 @@ mod auth_builder {
     #[test]
     fn test_canonicalized_resource() {
         let mut builder = AuthBuilder::default();
-        builder.canonicalized_resource("foo323".to_string().into());
+        builder.canonicalized_resource("foo323");
         let auth = builder.build();
 
         let (.., canonicalized_resource) = auth.get_sign_info();
@@ -234,23 +231,20 @@ mod auth_to_header_map {
     use http::header::HeaderValue;
     use http::Method;
 
+    use crate::auth::AuthBuilder;
     use crate::auth::AuthToHeaderMap;
-    use crate::{
-        auth::AuthBuilder,
-        types::{CanonicalizedResource, ContentMd5},
-    };
 
     #[test]
     fn test_to_header_map() {
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
 
         let mut builder = AuthBuilder::default();
-        builder.key("foo1".into());
-        builder.secret("foo2".into());
+        builder.key("foo1");
+        builder.secret("foo2");
         builder.method(&Method::POST);
-        builder.content_md5(ContentMd5::new("foo4"));
-        builder.date(date.into());
-        builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
+        builder.content_md5("foo4");
+        builder.date(date);
+        builder.canonicalized_resource("foo5");
         builder.header_insert("Content-Type", "foo6".try_into().unwrap());
 
         let auth = builder.build();
@@ -284,12 +278,12 @@ mod auth_to_header_map {
         let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
 
         let mut builder = AuthBuilder::default();
-        builder.key("foo1".into());
-        builder.secret("foo2".into());
+        builder.key("foo1");
+        builder.secret("foo2");
         builder.method(&Method::POST);
         //.content_md5(ContentMd5::new("foo4"))
-        builder.date(date.into());
-        builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
+        builder.date(date);
+        builder.canonicalized_resource("foo5");
         builder.header_insert("Content-Type", "foo6".try_into().unwrap());
 
         let auth = builder.build();
@@ -500,21 +494,18 @@ fn test_sign_to_headervalue() {
 mod get_headers {
     use http::Method;
 
-    use crate::{
-        auth::AuthBuilder,
-        types::{CanonicalizedResource, ContentMd5},
-    };
+    use crate::auth::AuthBuilder;
 
     /// 集成测试，其他的都是单元测试
     #[test]
     fn test_get_headers() {
         let mut builder = AuthBuilder::default();
-        builder.key("foo1".into());
-        builder.secret("foo2".into());
+        builder.key("foo1");
+        builder.secret("foo2");
         builder.method(&Method::POST);
-        builder.content_md5(ContentMd5::new("foo4"));
-        builder.date("foo_date".into());
-        builder.canonicalized_resource(CanonicalizedResource::new("foo5"));
+        builder.content_md5("foo4");
+        builder.date("foo_date");
+        builder.canonicalized_resource("foo5");
         builder.header_insert("Content-Type", "foo6".try_into().unwrap());
         let map = builder.build().get_headers();
 
