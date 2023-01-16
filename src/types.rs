@@ -682,6 +682,12 @@ impl From<String> for CanonicalizedResource {
     }
 }
 
+impl<'a> From<&'a str> for CanonicalizedResource {
+    fn from(value: &'a str) -> Self {
+        Self(Cow::Owned(value.to_owned()))
+    }
+}
+
 impl Default for CanonicalizedResource {
     fn default() -> Self {
         Self::new("/")

@@ -1,3 +1,25 @@
+//! # Auth 模块
+//! 计算 OSS API 的签名，并将数据收集到 `http::header::HeaderMap` 中
+//!
+//! ## Examples
+//! ```rust
+//! # use aliyun_oss_client::auth::AuthBuilder;
+//! use http::Method;
+//! use chrono::Utc;
+//! let mut auth_builder = AuthBuilder::default();
+//! auth_builder.key("my_key".into());
+//! auth_builder.secret("my_secret".into());
+//! auth_builder.method(&Method::GET);
+//! auth_builder.date(Utc::now().into());
+//! auth_builder.canonicalized_resource("/abc/?bucketInfo".into());
+//!
+//! let builder = reqwest::Client::default().request(
+//!     Method::GET,
+//!     "https://abc.oss-cn-shanghai.aliyuncs.com/?bucketInfo",
+//! )
+//! .headers(auth_builder.get_headers().unwrap());
+//! ```
+
 use crate::types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret};
 #[cfg(test)]
 use http::header::AsHeaderName;
@@ -203,13 +225,9 @@ impl AuthSignString for Auth {
     }
 }
 
-pub trait AuthGetHeader {
-    fn get_headers(&self) -> AuthResult<HeaderMap>;
-}
-
-impl AuthGetHeader for Auth {
+impl Auth {
     /// 返回携带了签名信息的 headers
-    fn get_headers(&self) -> AuthResult<HeaderMap> {
+    pub fn get_headers(&self) -> AuthResult<HeaderMap> {
         let mut map = HeaderMap::from_auth(self)?;
 
         let oss_header = self.to_oss_header()?;
@@ -430,7 +448,6 @@ impl AuthBuilder {
     ///
     /// ```
     /// # use aliyun_oss_client::auth::AuthBuilder;
-    /// # use aliyun_oss_client::auth::AuthGetHeader;
     /// let mut headers = AuthBuilder::default();
     /// headers.key("bar".into());
     /// headers.get_headers();
@@ -500,9 +517,9 @@ impl AuthBuilder {
     }
 }
 
-impl AuthGetHeader for AuthBuilder {
+impl AuthBuilder {
     /// 返回携带了签名信息的 headers
-    fn get_headers(&self) -> AuthResult<HeaderMap> {
+    pub fn get_headers(&self) -> AuthResult<HeaderMap> {
         self.auth.get_headers()
     }
 }

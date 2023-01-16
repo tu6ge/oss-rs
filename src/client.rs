@@ -1,4 +1,4 @@
-use crate::auth::{AuthBuilder, AuthGetHeader};
+use crate::auth::AuthBuilder;
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
 #[cfg(test)]

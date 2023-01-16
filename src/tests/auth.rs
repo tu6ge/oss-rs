@@ -501,7 +501,7 @@ mod get_headers {
     use http::Method;
 
     use crate::{
-        auth::{AuthBuilder, AuthGetHeader},
+        auth::AuthBuilder,
         types::{CanonicalizedResource, ContentMd5},
     };
 
