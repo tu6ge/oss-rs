@@ -10,6 +10,7 @@ aliyun OSS 的一个异步/同步客户端，包含以下功能：
 - `file` 模块，文件上传，下载，删除等功能，可在 client, bucket, object 等结构体中复用
 - `config` 模块，OSS 配置信息，可用于从数据库读取配置等操作
 
+[![Coverage Status](https://coveralls.io/repos/github/tu6ge/oss-rs/badge.svg?branch=master)](https://coveralls.io/github/tu6ge/oss-rs?branch=master) [![Test and Publish](https://github.com/tu6ge/oss-rs/actions/workflows/publish.yml/badge.svg)](https://github.com/tu6ge/oss-rs/actions/workflows/publish.yml)
 
 ## 使用方法
 

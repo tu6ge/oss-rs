@@ -1,4 +1,4 @@
-name: Publish to Cargo
+name: Test and Publish
 
 on:
   push:
