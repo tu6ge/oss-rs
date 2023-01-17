@@ -102,9 +102,9 @@ jobs:
         with:
           command: tarpaulin
           # --all-features, exclude bench features
-          args: --output-dir coverage --out Lcov --features blocking --features sts --features put_file -- tests
+          args: --output-dir coverage --out Lcov --all-features -- tests
       
-      # - name: Publish to Coveralls
-      #   uses: coverallsapp/github-action@master
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish to Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
