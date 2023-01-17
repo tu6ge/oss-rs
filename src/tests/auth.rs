@@ -52,7 +52,7 @@ mod auth_sign_string {
 
     #[test]
     fn auth_to_sign_string() {
-        let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
+        let date = Utc.with_ymd_and_hms(2022, 1, 1, 18, 1, 1).unwrap();
 
         let mut builder = AuthBuilder::default();
         builder.key("foo1");
@@ -85,7 +85,7 @@ mod auth_sign_string {
 
     #[test]
     fn auth_to_sign_string_none() {
-        let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
+        let date = Utc.with_ymd_and_hms(2022, 1, 1, 18, 1, 1).unwrap();
 
         let mut builder = AuthBuilder::default();
         builder.key("foo1");
@@ -172,7 +172,7 @@ mod auth_builder {
     #[test]
     fn test_date() {
         let mut builder = AuthBuilder::default();
-        let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
+        let date = Utc.with_ymd_and_hms(2022, 1, 1, 18, 1, 1).unwrap();
         builder.date(date);
         let auth = builder.build();
 
@@ -236,7 +236,7 @@ mod auth_to_header_map {
 
     #[test]
     fn test_to_header_map() {
-        let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
+        let date = Utc.with_ymd_and_hms(2022, 1, 1, 18, 1, 1).unwrap();
 
         let mut builder = AuthBuilder::default();
         builder.key("foo1");
@@ -275,7 +275,7 @@ mod auth_to_header_map {
 
     #[test]
     fn test_to_header_map_none() {
-        let date = Utc.ymd(2022, 1, 1).and_hms(18, 1, 1);
+        let date = Utc.with_ymd_and_hms(2022, 1, 1, 18, 1, 1).unwrap();
 
         let mut builder = AuthBuilder::default();
         builder.key("foo1");

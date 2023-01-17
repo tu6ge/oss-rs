@@ -119,7 +119,10 @@ impl Default for Bucket<ArcPointer> {
     fn default() -> Self {
         Self {
             base: BucketBase::default(),
-            creation_date: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
+            creation_date: DateTime::<Utc>::from_utc(
+                NaiveDateTime::from_timestamp_opt(61, 0).unwrap(),
+                Utc,
+            ),
             //extranet_endpoint: String::default(),
             location: String::default(),
             storage_class: String::default(),

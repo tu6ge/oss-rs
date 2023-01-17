@@ -304,7 +304,10 @@ impl<T: PointerFamily> Default for Object<T> {
     fn default() -> Self {
         Object {
             base: ObjectBase::<T>::default(),
-            last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
+            last_modified: DateTime::<Utc>::from_utc(
+                NaiveDateTime::from_timestamp_opt(61, 0).unwrap(),
+                Utc,
+            ),
             etag: String::default(),
             _type: String::default(),
             size: 0,
@@ -428,7 +431,10 @@ impl<T: PointerFamily> ObjectBuilder<T> {
         Self {
             object: Object {
                 base,
-                last_modified: DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(61, 0), Utc),
+                last_modified: DateTime::<Utc>::from_utc(
+                    NaiveDateTime::from_timestamp_opt(61, 0).unwrap(),
+                    Utc,
+                ),
                 etag: String::default(),
                 _type: String::default(),
                 size: 0,
@@ -1071,7 +1077,10 @@ mod tests {
                 Object::new(
                     Arc::clone(&bucket),
                     "key1",
-                    DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+                    DateTime::<Utc>::from_utc(
+                        NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
+                        Utc,
+                    ),
                     "foo3".into(),
                     "foo4".into(),
                     100,
@@ -1080,7 +1089,10 @@ mod tests {
                 Object::new(
                     Arc::clone(&bucket),
                     "key2",
-                    DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+                    DateTime::<Utc>::from_utc(
+                        NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
+                        Utc,
+                    ),
                     "foo3".into(),
                     "foo4".into(),
                     100,
@@ -1122,7 +1134,7 @@ mod tests {
         let object = Object::<ArcPointer>::new(
             bucket,
             "foo2",
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(123000, 0), Utc),
+            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(), Utc),
             "foo3".into(),
             "foo4".into(),
             100,
@@ -1145,7 +1157,7 @@ mod tests {
         ));
         let object = ObjectBuilder::<ArcPointer>::new(bucket, "abc")
             .last_modified(DateTime::<Utc>::from_utc(
-                NaiveDateTime::from_timestamp(123000, 0),
+                NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
                 Utc,
             ))
             .etag("foo1".to_owned())
@@ -1187,7 +1199,10 @@ mod blocking_tests {
         Object::<RcPointer>::new(
             bucket,
             path,
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(last_modified, 0), Utc),
+            DateTime::<Utc>::from_utc(
+                NaiveDateTime::from_timestamp_opt(last_modified, 0).unwrap(),
+                Utc,
+            ),
             etag.into(),
             _type.into(),
             size,
