@@ -84,7 +84,7 @@ println!("objects list: {:?}", response);
 
 ### 也可以使用 bucket struct 查询 object 列表
 
-```no_run
+```ignore
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");

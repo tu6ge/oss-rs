@@ -84,7 +84,7 @@ jobs:
       - name: Install rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
           profile: minimal
           override: true
 
@@ -102,7 +102,7 @@ jobs:
         with:
           command: tarpaulin
           # --all-features, exclude bench features
-          args: --output-dir coverage --out Lcov --all-features -- tests
+          args: --output-dir coverage --out Lcov --all-features --run-types Tests --run-types Doctests --run-types Lib
       
       - name: Publish to Coveralls
         uses: coverallsapp/github-action@master

@@ -180,12 +180,8 @@ pub const SHENZHEN_L: &str = "shenzhen";
 #[cfg(feature = "core")]
 impl From<String> for EndPoint {
     /// 字符串转 endpoint
-    /// 举例1 - 产生恐慌
-    /// ```should_panic
-    /// # use aliyun_oss_client::types::EndPoint;
-    /// let e: EndPoint = String::from("weifang").into();
-    /// ```
-    /// 举例2 - 正常
+    ///
+    /// 举例
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
     /// let e: EndPoint = String::from("qingdao").into();
@@ -218,12 +214,7 @@ pub const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
 impl<'a> EndPoint {
     /// 通过字符串字面值初始化 endpoint
     ///
-    /// 举例1 - 产生恐慌
-    /// ```should_panic
-    /// # use aliyun_oss_client::types::EndPoint;
-    /// EndPoint::from_static("weifang");
-    /// ```
-    /// 举例2 - 正常
+    /// 例如
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
     /// EndPoint::from_static("qingdao");
@@ -296,6 +287,23 @@ impl<'a> EndPoint {
 
         url.push_str(OSS_DOMAIN_MAIN);
         Url::parse(&url).unwrap()
+    }
+}
+
+#[cfg(all(test, feature = "core"))]
+mod test_endpoint {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn test_endpoint_painc() {
+        EndPoint::from_static("weifang");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_string2endpoint() {
+        let _: EndPoint = String::from("weifang").into();
     }
 }
 
@@ -1171,11 +1179,7 @@ impl QueryKey {
     /// let key = QueryKey::new("abc");
     /// assert_matches!(key, QueryKey::Custom(_));
     /// ```
-    /// `fetch-owner` 功能未实现，特殊说明
-    /// ```should_panic
-    /// # use aliyun_oss_client::QueryKey;
-    /// let key = QueryKey::new("fetch-owner");
-    /// ```
+    /// *`fetch-owner` 功能未实现，特殊说明*
     pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
         let val = val.into();
         if val.contains("delimiter") {
@@ -1207,11 +1211,7 @@ impl QueryKey {
     /// let key = QueryKey::from_static("abc");
     /// assert_matches!(key, QueryKey::Custom(_));
     /// ```
-    /// `fetch-owner` 功能未实现，特殊说明
-    /// ```should_panic
-    /// # use aliyun_oss_client::QueryKey;
-    /// let key = QueryKey::from_static("fetch-owner");
-    /// ```
+    /// *`fetch-owner` 功能未实现，特殊说明*
     pub fn from_static(val: &'static str) -> Self {
         if val.contains("delimiter") {
             Self::Delimiter
@@ -1230,6 +1230,17 @@ impl QueryKey {
         } else {
             Self::Custom(Cow::Borrowed(val))
         }
+    }
+}
+
+#[cfg(test)]
+mod test_query_key {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn test_fetch_owner() {
+        QueryKey::new("fetch-owner");
     }
 }
 

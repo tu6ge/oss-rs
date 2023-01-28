@@ -106,7 +106,7 @@ let client = aliyun_oss_client::Client::new(
 ```
 
 ### 也可以使用 bucket struct 查询 object 列表
-```no_run
+```rust,ignore
 # #[tokio::main]
 # async fn main(){
     # use std::env::set_var;
@@ -279,8 +279,8 @@ pub mod sts;
 #[cfg(test)]
 mod tests;
 
+#[cfg(all(doctest, not(tarpaulin)))]
 #[doc = include_str!("../README.md")]
-#[cfg(doctest)]
 pub struct ReadmeDoctests;
 
 /** # 主要入口

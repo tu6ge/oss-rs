@@ -1,4 +1,4 @@
-#[cfg(feature = "core")]
+#[cfg(all(feature = "core", not(tarpaulin)))]
 mod test_async {
     #[cfg(feature = "put_file")]
     use aliyun_oss_client::file::File;
@@ -93,7 +93,7 @@ mod test_async {
     // }
 }
 
-#[cfg(feature = "blocking")]
+#[cfg(all(feature = "blocking", not(tarpaulin)))]
 mod test_blocking {
 
     #[cfg(feature = "put_file")]
