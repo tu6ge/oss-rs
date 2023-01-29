@@ -534,6 +534,15 @@ pub enum AuthError {
 impl std::error::Error for AuthError {}
 
 impl Display for AuthError {
+    /// Error message
+    /// ```
+    /// # use aliyun_oss_client::auth::AuthError;
+    /// # use http::header::HeaderValue;
+    /// let val = HeaderValue::from_str("\n");
+    /// let header_error = val.unwrap_err();
+    /// assert_eq!(format!("{}", AuthError::InvalidHeaderValue(header_error)), "failed to parse header value");
+    /// assert_eq!(format!("{}", AuthError::InvalidLength(hmac::digest::crypto_common::InvalidLength {})), "Invalid hmac Length");
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             Self::InvalidHeaderValue(_) => f.write_str("failed to parse header value"),
@@ -543,11 +552,25 @@ impl Display for AuthError {
 }
 
 impl From<http::header::InvalidHeaderValue> for AuthError {
+    /// ```
+    /// # use aliyun_oss_client::auth::AuthError;
+    /// # use http::header::HeaderValue;
+    /// let val = HeaderValue::from_str("\n");
+    /// let header_error = val.unwrap_err();
+    /// let auth_error: AuthError = header_error.into();
+    /// assert_eq!(format!("{}", auth_error), "failed to parse header value");
+    /// ```
     fn from(value: http::header::InvalidHeaderValue) -> Self {
         Self::InvalidHeaderValue(value)
     }
 }
 impl From<hmac::digest::crypto_common::InvalidLength> for AuthError {
+    /// ```
+    /// # use aliyun_oss_client::auth::AuthError;
+    /// let hmac_error = hmac::digest::crypto_common::InvalidLength {};
+    /// let auth_error: AuthError = hmac_error.into();
+    /// assert_eq!(format!("{}", auth_error), "Invalid hmac Length");
+    /// ```
     fn from(value: hmac::digest::crypto_common::InvalidLength) -> Self {
         Self::InvalidLength(value)
     }
@@ -557,6 +580,8 @@ type AuthResult<T> = Result<T, AuthError>;
 
 #[cfg(test)]
 mod builder_tests {
+    use http::{header::CONTENT_LANGUAGE, HeaderMap};
+
     use super::AuthBuilder;
 
     #[test]
@@ -567,6 +592,27 @@ mod builder_tests {
         let mut builder = AuthBuilder::default();
         builder.key("bar");
         assert_eq!(builder.build().get_key().as_ref(), "bar");
+    }
+
+    #[test]
+    fn with_headers() {
+        let builder = AuthBuilder::default();
+        let before_len = builder.build().get_headers().unwrap().len();
+        assert!(before_len == 6);
+
+        let mut builder = AuthBuilder::default();
+        builder.with_headers(Some({
+            let mut headers = HeaderMap::new();
+            headers.insert(CONTENT_LANGUAGE, "abc".parse().unwrap());
+            headers
+        }));
+        let len = builder.build().get_headers().unwrap().len();
+        assert!(len == 7);
+
+        let mut builder = AuthBuilder::default();
+        builder.with_headers(None);
+        let len = builder.build().get_headers().unwrap().len();
+        assert!(len == 6);
     }
 }
 
@@ -582,5 +628,15 @@ mod tests {
         let header = OssHeader::new(None);
 
         assert_eq!(header.to_string(), "".to_string());
+    }
+
+    #[test]
+    fn get_sign_info() {
+        let mut builder = AuthBuilder::default();
+        builder.key("abc");
+        let auth = builder.build();
+        let (key, ..) = auth.get_sign_info();
+
+        assert_eq!(*key, KeyId::new("abc"))
     }
 }
