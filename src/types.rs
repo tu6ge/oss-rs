@@ -146,18 +146,18 @@ pub const AP_SOUTH_EAST1: &str = "ap-south-east1";
 #[cfg(feature = "core")]
 impl AsRef<str> for EndPoint {
     fn as_ref(&self) -> &str {
+        use EndPoint::*;
         match *self {
-            Self::CnHangzhou => HANGZHOU,
-            Self::CnShanghai => SHANGHAI,
-            Self::CnQingdao => QINGDAO,
-            Self::CnBeijing => BEIJING,
-            Self::CnZhangjiakou => ZHANGJIAKOU,
-            Self::CnHongkong => HONGKONG,
-            Self::CnShenzhen => SHENZHEN,
-            Self::UsWest1 => US_WEST1,
-            Self::UsEast1 => US_EAST1,
-            Self::ApSouthEast1 => AP_SOUTH_EAST1,
-            //_ => "custom",
+            CnHangzhou => HANGZHOU,
+            CnShanghai => SHANGHAI,
+            CnQingdao => QINGDAO,
+            CnBeijing => BEIJING,
+            CnZhangjiakou => ZHANGJIAKOU,
+            CnHongkong => HONGKONG,
+            CnShenzhen => SHENZHEN,
+            UsWest1 => US_WEST1,
+            UsEast1 => US_EAST1,
+            ApSouthEast1 => AP_SOUTH_EAST1,
         }
     }
 }
@@ -233,26 +233,28 @@ impl<'a> EndPoint {
     /// assert!(EndPoint::new("weifang").is_err());
     /// ```
     pub fn new(url: &'a str) -> Result<Self, InvalidEndPoint> {
+        use EndPoint::*;
+
         if url.contains(SHANGHAI_L) {
-            Ok(Self::CnShanghai)
+            Ok(CnShanghai)
         } else if url.contains(HANGZHOU_L) {
-            Ok(Self::CnHangzhou)
+            Ok(CnHangzhou)
         } else if url.contains(QINGDAO_L) {
-            Ok(Self::CnQingdao)
+            Ok(CnQingdao)
         } else if url.contains(BEIJING_L) {
-            Ok(Self::CnBeijing)
+            Ok(CnBeijing)
         } else if url.contains(ZHANGJIAKOU_L) {
-            Ok(Self::CnZhangjiakou)
+            Ok(CnZhangjiakou)
         } else if url.contains(HONGKONG_L) {
-            Ok(Self::CnHongkong)
+            Ok(CnHongkong)
         } else if url.contains(SHENZHEN_L) {
-            Ok(Self::CnShenzhen)
+            Ok(CnShenzhen)
         } else if url.contains(US_WEST1) {
-            Ok(Self::UsWest1)
+            Ok(UsWest1)
         } else if url.contains(US_EAST1) {
-            Ok(Self::UsEast1)
+            Ok(UsEast1)
         } else if url.contains(AP_SOUTH_EAST1) {
-            Ok(Self::ApSouthEast1)
+            Ok(ApSouthEast1)
         } else {
             Err(InvalidEndPoint)
         }
@@ -1106,16 +1108,18 @@ pub enum QueryKey {
 
 impl AsRef<str> for QueryKey {
     fn as_ref(&self) -> &str {
+        use QueryKey::*;
+
         match *self {
-            QueryKey::Delimiter => "delimiter",
-            QueryKey::StartAfter => "start-after",
-            QueryKey::ContinuationToken => "continuation-token",
-            QueryKey::MaxKeys => "max-keys",
-            QueryKey::Prefix => "prefix",
-            QueryKey::EncodingType => "encoding-type",
+            Delimiter => "delimiter",
+            StartAfter => "start-after",
+            ContinuationToken => "continuation-token",
+            MaxKeys => "max-keys",
+            Prefix => "prefix",
+            EncodingType => "encoding-type",
             // TODO
-            QueryKey::FetchOwner => unimplemented!("parse xml not support fetch owner"),
-            QueryKey::Custom(ref str) => str,
+            FetchOwner => unimplemented!("parse xml not support fetch owner"),
+            Custom(ref str) => str,
         }
     }
 }
@@ -1181,23 +1185,25 @@ impl QueryKey {
     /// ```
     /// *`fetch-owner` 功能未实现，特殊说明*
     pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
+        use QueryKey::*;
+
         let val = val.into();
         if val.contains("delimiter") {
-            Self::Delimiter
+            Delimiter
         } else if val.contains("start-after") {
-            Self::StartAfter
+            StartAfter
         } else if val.contains("continuation-token") {
-            Self::ContinuationToken
+            ContinuationToken
         } else if val.contains("max-keys") {
-            Self::MaxKeys
+            MaxKeys
         } else if val.contains("prefix") {
-            Self::Prefix
+            Prefix
         } else if val.contains("encoding-type") {
-            Self::EncodingType
+            EncodingType
         } else if val.contains("fetch-owner") {
             unimplemented!("parse xml not support fetch owner");
         } else {
-            Self::Custom(val)
+            Custom(val)
         }
     }
 
@@ -1213,22 +1219,24 @@ impl QueryKey {
     /// ```
     /// *`fetch-owner` 功能未实现，特殊说明*
     pub fn from_static(val: &'static str) -> Self {
+        use QueryKey::*;
+
         if val.contains("delimiter") {
-            Self::Delimiter
+            Delimiter
         } else if val.contains("start-after") {
-            Self::StartAfter
+            StartAfter
         } else if val.contains("continuation-token") {
-            Self::ContinuationToken
+            ContinuationToken
         } else if val.contains("max-keys") {
-            Self::MaxKeys
+            MaxKeys
         } else if val.contains("prefix") {
-            Self::Prefix
+            Prefix
         } else if val.contains("encoding-type") {
-            Self::EncodingType
+            EncodingType
         } else if val.contains("fetch-owner") {
             unimplemented!("parse xml not support fetch owner");
         } else {
-            Self::Custom(Cow::Borrowed(val))
+            Custom(Cow::Borrowed(val))
         }
     }
 }
