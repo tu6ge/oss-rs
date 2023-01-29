@@ -1022,6 +1022,15 @@ mod tests {
     }
 
     #[test]
+    fn test_object_list_fmt() {
+        let object_list = init_object_list(Some(String::from("foo3")), vec![]);
+        assert_eq!(
+            format!("{object_list:?}"),
+            "ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName(\"abc\") }, prefix: \"foo2\", max_keys: 100, key_count: 200, next_continuation_token: Some(\"foo3\"), common_prefixes: [], search_query: Query { inner: {Custom(\"key1\"): QueryValue(\"value1\")} } }"
+        );
+    }
+
+    #[test]
     fn test_get_bucket() {
         let object_list = init_object_list(Some(String::from("foo3")), vec![]);
 
@@ -1044,6 +1053,14 @@ mod tests {
                 panic!("token is valid value");
             }
         }
+    }
+
+    #[test]
+    fn test_bucket_name() {
+        let object_list = init_object_list(Some(String::from("foo3")), vec![]);
+        let bucket_name = object_list.bucket_name();
+
+        assert!("abc" == bucket_name);
     }
 
     #[test]
