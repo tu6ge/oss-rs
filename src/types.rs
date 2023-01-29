@@ -194,7 +194,7 @@ impl From<String> for EndPoint {
 #[cfg(feature = "core")]
 impl<'a> From<&'a str> for EndPoint {
     fn from(url: &'a str) -> Self {
-        Self::new(url).unwrap()
+        Self::new(url).expect(&format!("\"{}\" convert to endpoint failed", url))
     }
 }
 

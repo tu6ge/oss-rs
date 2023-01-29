@@ -293,3 +293,56 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
         Ok(builder)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::ClientArc;
+    use crate::{
+        builder::ArcPointer,
+        config::{BucketBase, Config, ObjectBase},
+        BucketName,
+    };
+
+    use std::time::Duration;
+
+    #[test]
+    fn from_config() {
+        let config = Config::new("foo1", "foo2", "qingdao", "foo4");
+        let client = ClientArc::from_config(config);
+
+        assert_eq!(client.bucket, "foo4".parse::<BucketName>().unwrap());
+    }
+
+    #[test]
+    fn timeout() {
+        let config = Config::new("foo1", "foo2", "qingdao", "foo4");
+        let mut client = ClientArc::from_config(config);
+
+        assert!(client.timeout.is_none());
+
+        client.timeout(Duration::new(10, 0));
+
+        assert!(client.timeout.is_some());
+
+        assert_eq!(client.timeout, Some(Duration::new(10, 0)));
+    }
+
+    #[test]
+    fn get_object_base() {
+        use std::sync::Arc;
+
+        let config = Config::new("foo1", "foo2", "qingdao", "foo4");
+        let client = ClientArc::from_config(config);
+
+        let base = client.get_object_base("file111");
+
+        let base2 = ObjectBase::<ArcPointer>::new(
+            Arc::new(BucketBase::new(
+                "foo4".parse().unwrap(),
+                "qingdao".parse().unwrap(),
+            )),
+            "file111",
+        );
+        assert!(base == base2);
+    }
+}
