@@ -79,6 +79,14 @@ impl Display for KeySecret {
 
 impl TryInto<HeaderValue> for KeySecret {
     type Error = InvalidHeaderValue;
+
+    /// ```
+    /// # use aliyun_oss_client::types::KeySecret;
+    /// # use http::header::HeaderValue;
+    /// let secret = KeySecret::new("foo");
+    /// let value: HeaderValue = secret.try_into().unwrap();
+    /// assert_eq!(value.to_str().unwrap(), "foo");
+    /// ```
     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
         HeaderValue::from_str(self.as_ref())
     }
@@ -145,6 +153,20 @@ pub const AP_SOUTH_EAST1: &str = "ap-south-east1";
 
 #[cfg(feature = "core")]
 impl AsRef<str> for EndPoint {
+    /// ```
+    /// # use aliyun_oss_client::types::EndPoint::*;
+    ///
+    /// assert_eq!(CnHangzhou.as_ref(), "cn-hangzhou");
+    /// assert_eq!(CnShanghai.as_ref(), "cn-shanghai");
+    /// assert_eq!(CnQingdao.as_ref(), "cn-qingdao");
+    /// assert_eq!(CnBeijing.as_ref(), "cn-beijing");
+    /// assert_eq!(CnZhangjiakou.as_ref(), "cn-zhangjiakou");
+    /// assert_eq!(CnHongkong.as_ref(), "cn-hongkong");
+    /// assert_eq!(CnShenzhen.as_ref(), "cn-shenzhen");
+    /// assert_eq!(UsWest1.as_ref(), "us-west1");
+    /// assert_eq!(UsEast1.as_ref(), "us-east1");
+    /// assert_eq!(ApSouthEast1.as_ref(), "ap-south-east1");
+    /// ```
     fn as_ref(&self) -> &str {
         use EndPoint::*;
         match *self {
@@ -164,6 +186,10 @@ impl AsRef<str> for EndPoint {
 
 #[cfg(feature = "core")]
 impl Display for EndPoint {
+    /// ```
+    /// # use aliyun_oss_client::types::EndPoint::*;
+    /// assert_eq!(format!("{}", CnHangzhou), "cn-hangzhou");
+    /// ```
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_ref())
     }
@@ -306,6 +332,42 @@ mod test_endpoint {
     #[should_panic]
     fn test_string2endpoint() {
         let _: EndPoint = String::from("weifang").into();
+    }
+
+    #[test]
+    fn test_new() {
+        assert!(matches!(
+            EndPoint::new("hangzhou"),
+            Ok(EndPoint::CnHangzhou)
+        ));
+
+        assert!(matches!(EndPoint::new("qingdao"), Ok(EndPoint::CnQingdao)));
+
+        assert!(matches!(EndPoint::new("beijing"), Ok(EndPoint::CnBeijing)));
+
+        assert!(matches!(
+            EndPoint::new("zhangjiakou"),
+            Ok(EndPoint::CnZhangjiakou)
+        ));
+
+        assert!(matches!(
+            EndPoint::new("hongkong"),
+            Ok(EndPoint::CnHongkong)
+        ));
+
+        assert!(matches!(
+            EndPoint::new("shenzhen"),
+            Ok(EndPoint::CnShenzhen)
+        ));
+
+        assert!(matches!(EndPoint::new("us-west1"), Ok(EndPoint::UsWest1)));
+
+        assert!(matches!(EndPoint::new("us-east1"), Ok(EndPoint::UsEast1)));
+
+        assert!(matches!(
+            EndPoint::new("ap-south-east1"),
+            Ok(EndPoint::ApSouthEast1)
+        ));
     }
 }
 
@@ -456,6 +518,16 @@ impl<'a> BucketName {
     }
 
     /// Const function that creates a new `BucketName` from a static str.
+    /// ```
+    /// # use aliyun_oss_client::types::BucketName;
+    ///
+    /// assert!(BucketName::from_static("").is_err());
+    /// assert!(BucketName::from_static("abc").is_ok());
+    /// assert!(BucketName::from_static("abc-").is_err());
+    /// assert!(BucketName::from_static("-abc").is_err());
+    /// assert!(BucketName::from_static("abc-def234ab").is_ok());
+    /// assert!(BucketName::from_static("abc-def*#$%^ab").is_err());
+    /// ```
     pub fn from_static(bucket: &'a str) -> Result<Self, InvalidBucketName> {
         fn valid_character(c: char) -> bool {
             match c {
@@ -514,6 +586,12 @@ pub struct InvalidBucketName;
 impl Error for InvalidBucketName {}
 
 impl fmt::Display for InvalidBucketName {
+    /// ```
+    /// # use aliyun_oss_client::types::BucketName;
+    ///
+    /// let err = BucketName::from_static("").unwrap_err();
+    /// assert_eq!(format!("{}", err), "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾");
+    /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
@@ -534,6 +612,11 @@ impl AsRef<str> for ContentMd5 {
 }
 
 impl Display for ContentMd5 {
+    /// ```
+    /// # use aliyun_oss_client::types::ContentMd5;
+    /// let md5 = ContentMd5::new("abc");
+    /// assert_eq!(format!("{md5}"), "abc");
+    /// ```
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -546,6 +629,11 @@ impl TryInto<HeaderValue> for ContentMd5 {
     }
 }
 impl From<String> for ContentMd5 {
+    /// ```
+    /// # use aliyun_oss_client::types::ContentMd5;
+    /// let md5: ContentMd5 = String::from("abc").into();
+    /// assert_eq!(format!("{md5}"), "abc");
+    /// ```
     fn from(s: String) -> Self {
         Self(Cow::Owned(s))
     }
@@ -799,6 +887,16 @@ impl PartialEq<CanonicalizedResource> for &str {
         self == &other.0
     }
 }
+
+// #[cfg(test)]
+// mod tests_canonicalized_resource {
+
+//     #[cfg(feature = "core")]
+//     #[test]
+//     fn test_from_bucket() {
+
+//     }
+// }
 
 //===================================================================================================
 /// 查询条件
@@ -1107,6 +1205,17 @@ pub enum QueryKey {
 }
 
 impl AsRef<str> for QueryKey {
+    /// ```
+    /// # use aliyun_oss_client::QueryKey;
+    /// # use std::borrow::Cow;
+    /// assert_eq!(QueryKey::Delimiter.as_ref(), "delimiter");
+    /// assert_eq!(QueryKey::StartAfter.as_ref(), "start-after");
+    /// assert_eq!(QueryKey::ContinuationToken.as_ref(), "continuation-token");
+    /// assert_eq!(QueryKey::MaxKeys.as_ref(), "max-keys");
+    /// assert_eq!(QueryKey::Prefix.as_ref(), "prefix");
+    /// assert_eq!(QueryKey::EncodingType.as_ref(), "encoding-type");
+    /// assert_eq!(QueryKey::Custom(Cow::Borrowed("abc")).as_ref(), "abc");
+    /// ```
     fn as_ref(&self) -> &str {
         use QueryKey::*;
 
@@ -1125,6 +1234,10 @@ impl AsRef<str> for QueryKey {
 }
 
 impl Display for QueryKey {
+    /// ```
+    /// # use aliyun_oss_client::QueryKey;
+    /// assert_eq!(format!("{}", QueryKey::Delimiter), "delimiter");
+    /// ```
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_ref())
     }
@@ -1179,6 +1292,11 @@ impl QueryKey {
     /// # use assert_matches::assert_matches;
     /// let key = QueryKey::new("delimiter");
     /// assert!(key == QueryKey::Delimiter);
+    /// assert!(QueryKey::new("start-after") == QueryKey::StartAfter);
+    /// assert!(QueryKey::new("continuation-token") == QueryKey::ContinuationToken);
+    /// assert!(QueryKey::new("max-keys") == QueryKey::MaxKeys);
+    /// assert!(QueryKey::new("prefix") == QueryKey::Prefix);
+    /// assert!(QueryKey::new("encoding-type") == QueryKey::EncodingType);
     ///
     /// let key = QueryKey::new("abc");
     /// assert_matches!(key, QueryKey::Custom(_));
@@ -1213,6 +1331,11 @@ impl QueryKey {
     /// # use assert_matches::assert_matches;
     /// let key = QueryKey::from_static("delimiter");
     /// assert!(key == QueryKey::Delimiter);
+    /// assert!(QueryKey::from_static("start-after") == QueryKey::StartAfter);
+    /// assert!(QueryKey::from_static("continuation-token") == QueryKey::ContinuationToken);
+    /// assert!(QueryKey::from_static("max-keys") == QueryKey::MaxKeys);
+    /// assert!(QueryKey::from_static("prefix") == QueryKey::Prefix);
+    /// assert!(QueryKey::from_static("encoding-type") == QueryKey::EncodingType);
     ///
     /// let key = QueryKey::from_static("abc");
     /// assert_matches!(key, QueryKey::Custom(_));
