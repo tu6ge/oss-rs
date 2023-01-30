@@ -137,6 +137,7 @@ client.delete_object("examples/bg2015071010.png");
 ```
 */
 
+#[cfg(not(tarpaulin))]
 pub mod builder;
 
 use crate::config::Config;

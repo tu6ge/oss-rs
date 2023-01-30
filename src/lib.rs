@@ -254,7 +254,7 @@ pub use client::ClientRc;
 pub mod blocking;
 
 /// 封装了 reqwest::RequestBuilder 模块
-#[cfg(feature = "core")]
+#[cfg(all(feature = "core", not(tarpaulin)))]
 pub mod builder;
 
 /// 解析 aliyun OSS 接口返回的 xml 计划弃用
