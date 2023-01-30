@@ -451,21 +451,25 @@ impl AuthBuilder {
     /// headers.key("bar");
     /// headers.get_headers();
     /// ```
+    #[inline]
     pub fn key<K: Into<KeyId>>(&mut self, key: K) {
         self.auth.set_key(key.into());
     }
 
     /// 给 secret 赋值
+    #[inline]
     pub fn secret<S: Into<KeySecret>>(&mut self, secret: S) {
         self.auth.set_secret(secret.into());
     }
 
     /// 给 verb 赋值
+    #[inline]
     pub fn method(&mut self, method: &Method) {
         self.auth.set_method(method.to_owned());
     }
 
     /// 给 content_md5 赋值
+    #[inline]
     pub fn content_md5<Md5: Into<ContentMd5>>(&mut self, content_md5: Md5) {
         self.auth.set_content_md5(content_md5.into());
     }
@@ -478,40 +482,48 @@ impl AuthBuilder {
     /// let builder =
     ///     aliyun_oss_client::auth::AuthBuilder::default().date(Utc::now());
     /// ```
+    #[inline]
     pub fn date<D: Into<Date>>(&mut self, date: D) {
         self.auth.set_date(date.into());
     }
 
     /// 给 content_md5 赋值
+    #[inline]
     pub fn canonicalized_resource<Res: Into<CanonicalizedResource>>(&mut self, data: Res) {
         self.auth.set_canonicalized_resource(data.into());
     }
 
+    #[inline]
     pub fn with_headers(&mut self, headers: Option<HeaderMap>) {
         if let Some(headers) = headers {
             self.extend_headers(headers);
         }
     }
 
+    #[inline]
     pub fn headers(&mut self, headers: HeaderMap) {
         self.auth.set_headers(headers);
     }
 
+    #[inline]
     pub fn extend_headers(&mut self, headers: HeaderMap) {
         self.auth.extend_headers(headers);
     }
 
     /// 给 header 序列添加新值
+    #[inline]
     pub fn header_insert<K: IntoHeaderName + 'static>(&mut self, key: K, val: HeaderValue) {
         self.auth.header_insert(key, val);
     }
 
     /// 清理 headers
+    #[inline]
     pub fn header_clear(&mut self) {
         self.auth.headers_clear();
     }
 
     #[allow(dead_code)]
+    #[inline]
     pub(crate) fn build(self) -> Auth {
         self.auth
     }
