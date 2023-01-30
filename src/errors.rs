@@ -144,3 +144,44 @@ impl<'a> OssService {
 }
 
 pub type OssResult<T> = Result<T, OssError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn oss_service_display() {
+        assert_eq!(
+            format!(
+                "{}",
+                OssService {
+                    code: "abc".to_owned(),
+                    status: StatusCode::OK,
+                    message: "mes1".to_owned(),
+                    request_id: "xx".to_owned(),
+                }
+            ),
+            "OssService { code: \"abc\", status: 200, message: \"mes1\", request_id: \"xx\" }"
+        );
+    }
+
+    #[test]
+    fn oss_service_default() {
+        let oss = OssService::default();
+        assert_eq!(oss.code, "Undefined".to_string());
+        assert_eq!(oss.status, StatusCode::OK);
+        assert_eq!(
+            oss.message,
+            "Parse aliyun response xml error message failed.".to_owned()
+        );
+        assert_eq!(oss.request_id, "XXXXXXXXXXXXXXXXXXXXXXXX".to_owned());
+    }
+
+    #[test]
+    fn oss_service_new() {
+        assert_eq!(
+            OssService::new("abc", &StatusCode::OK),
+            OssService::default()
+        );
+    }
+}
