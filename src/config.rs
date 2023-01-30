@@ -94,6 +94,9 @@ impl FromStr for BucketBase {
     /// let bucket: BucketBase = "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap();
     /// assert_eq!(bucket.name(), "abc");
     /// assert_eq!(bucket.endpoint(), EndPoint::CnShanghai);
+    ///
+    /// assert!("abc*#!".parse::<BucketBase>().is_err());
+    /// assert!("abc".parse::<BucketBase>().is_err());
     /// ```
     fn from_str(domain: &str) -> Result<Self, InvalidBucketBase> {
         fn valid_character(c: char) -> bool {
@@ -126,7 +129,15 @@ impl BucketBase {
         Self { name, endpoint }
     }
 
-    /// 通过环境变量初始化
+    /// # 通过环境变量初始化
+    /// ## 举例
+    /// ```
+    /// # use aliyun_oss_client::config::BucketBase;
+    /// use std::env::set_var;
+    /// set_var("ALIYUN_ENDPOINT", "qingdao");
+    /// set_var("ALIYUN_BUCKET", "foo1");
+    /// assert!(BucketBase::from_env().is_ok());
+    /// ```
     pub fn from_env() -> Result<Self, InvalidConfig> {
         let endpoint = env::var("ALIYUN_ENDPOINT").map_err(InvalidConfig::from)?;
         let bucket = env::var("ALIYUN_BUCKET").map_err(InvalidConfig::from)?;
@@ -142,6 +153,15 @@ impl BucketBase {
         self.name.as_ref()
     }
 
+    /// 返回 BucketName 引用
+    /// ```
+    /// # use aliyun_oss_client::config::BucketBase;
+    /// # use aliyun_oss_client::BucketName;
+    /// use std::env::set_var;
+    /// set_var("ALIYUN_ENDPOINT", "qingdao");
+    /// set_var("ALIYUN_BUCKET", "foo1");
+    /// assert_eq!(*BucketBase::from_env().unwrap().get_name(), BucketName::new("foo1").unwrap());
+    /// ```
     #[inline]
     pub fn get_name(&self) -> &BucketName {
         &self.name
@@ -173,7 +193,7 @@ impl BucketBase {
     /// ```
     /// # use aliyun_oss_client::config::BucketBase;
     /// let mut bucket = BucketBase::default();
-    /// assert!(bucket.try_set_name("abc").is_ok());
+    /// assert_eq!(bucket.try_set_name("abc"), Ok(()));
     /// assert_eq!(bucket.name(), "abc");
     /// ```
     pub fn try_set_name<N: TryInto<BucketName>>(&mut self, name: N) -> Result<(), N::Error> {
@@ -181,6 +201,15 @@ impl BucketBase {
         Ok(())
     }
 
+    /// 设置 endpoint
+    ///
+    /// ```
+    /// # use aliyun_oss_client::config::BucketBase;
+    /// # use aliyun_oss_client::EndPoint;
+    /// let mut bucket = BucketBase::default();
+    /// assert_eq!(bucket.try_set_endpoint("hangzhou"), Ok(()));
+    /// assert_eq!(bucket.endpoint(), EndPoint::CnHangzhou);
+    /// ```
     pub fn try_set_endpoint<E: TryInto<EndPoint>>(&mut self, endpoint: E) -> Result<(), E::Error> {
         self.endpoint = endpoint.try_into()?;
         Ok(())
@@ -407,6 +436,12 @@ impl fmt::Display for ObjectPath {
 }
 
 impl Default for ObjectPath {
+    /// 默认值
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectPath;
+    /// let path = ObjectPath::default();
+    /// assert!(path == "");
+    /// ```
     fn default() -> Self {
         Self(Cow::Borrowed(""))
     }
@@ -470,7 +505,12 @@ impl ObjectPath {
         Self(val.into())
     }
 
-    /// Const function that creates a new `KeySecret` from a static str.
+    /// Const function that creates a new `ObjectPath` from a static str.
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectPath;
+    /// let path = ObjectPath::from_static("abc");
+    /// assert!(path == "abc");
+    /// ```
     pub const fn from_static(secret: &'static str) -> Self {
         Self(Cow::Borrowed(secret))
     }
@@ -481,6 +521,11 @@ impl ObjectPath {
 }
 
 impl From<String> for ObjectPath {
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectPath;
+    /// let path: ObjectPath = String::from("abc").into();
+    /// assert!(path == "abc");
+    /// ```
     fn from(val: String) -> Self {
         Self(val.into())
     }
@@ -494,6 +539,11 @@ impl<'a> From<&'a str> for ObjectPath {
 
 impl FromStr for ObjectPath {
     type Err = InvalidObjectPath;
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectPath;
+    /// let path: ObjectPath = "img1.jpg".parse().unwrap();
+    /// assert!(path == "img1.jpg");
+    /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(Cow::Owned(s.to_owned())))
     }
@@ -503,6 +553,10 @@ impl FromStr for ObjectPath {
 pub struct InvalidObjectPath;
 
 impl Display for InvalidObjectPath {
+    /// ```
+    /// # use aliyun_oss_client::config::InvalidObjectPath;
+    /// assert_eq!(format!("{}", InvalidObjectPath), "invalid object path");
+    /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "invalid object path")
     }
@@ -521,6 +575,31 @@ impl UrlObjectPath for Url {
 
 /// 文件夹下的子文件夹名，子文件夹下递归的所有文件和文件夹不包含在这里。
 pub type CommonPrefixes = Vec<ObjectPath>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn object_from_ref_bucket() {
+        use std::env::set_var;
+        set_var("ALIYUN_ENDPOINT", "qingdao");
+        set_var("ALIYUN_BUCKET", "foo1");
+        let object = ObjectBase::<ArcPointer>::from_ref_bucket(
+            Arc::new(BucketBase::from_env().unwrap()),
+            "img1.jpg",
+        );
+
+        assert_eq!(object.path(), "img1.jpg");
+    }
+
+    #[test]
+    fn object_from_bucket_name() {
+        let object = ObjectBase::<ArcPointer>::from_bucket_name("foo1", "qingdao", "img1.jpg");
+
+        assert_eq!(object.path(), "img1.jpg");
+    }
+}
 
 #[cfg(feature = "blocking")]
 #[cfg(test)]
