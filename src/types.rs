@@ -849,7 +849,7 @@ impl CanonicalizedResource {
 
                 Self::from(format!("/{}/", bucket.name()))
             }
-            None => Self::from_static("/"),
+            None => Self::default(),
         }
     }
 
@@ -991,7 +991,7 @@ impl Query {
 
     /// 转化成 url 参数的形式
     /// a=foo&b=bar
-    /// 未进行 urlencode 转码
+    /// TODO 未进行 urlencode 转码
     pub fn to_url_query(&self) -> String {
         self.inner
             .iter()
@@ -1265,13 +1265,6 @@ impl Display for QueryKey {
     }
 }
 
-// TODO 需要的时候再开启
-// impl TryInto<HeaderValue> for QueryKey {
-//     type Error = InvalidHeaderValue;
-//     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-//         HeaderValue::from_str(self.as_ref())
-//     }
-// }
 impl From<String> for QueryKey {
     fn from(s: String) -> Self {
         Self::new(s)
