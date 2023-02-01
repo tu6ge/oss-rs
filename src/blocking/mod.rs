@@ -40,8 +40,8 @@ let client = aliyun_oss_client::ClientRc::from_env();
 let client = aliyun_oss_client::ClientRc::new(
     "key1".into(),
     "secret1".into(),
-    "qingdao".into(),
-    "my-bucket".into()
+    "qingdao".parse().unwrap(),
+    "my-bucket".parse().unwrap()
 );
 ```
 

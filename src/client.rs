@@ -4,7 +4,7 @@ use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddlewa
 #[cfg(test)]
 use crate::builder::Middleware;
 use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware, RequestBuilder};
-use crate::config::{BucketBase, Config, InvalidConfig, ObjectBase, ObjectPath};
+use crate::config::{BucketBase, Config, InvalidConfig, InvalidObjectPath, ObjectBase, ObjectPath};
 use crate::file::AlignBuilder;
 use crate::types::{BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret};
 
@@ -87,8 +87,8 @@ impl<M: Default + Clone> Client<M> {
 
         Ok(Self::from_builder(
             auth_builder,
-            endpoint.into(),
-            bucket.into(),
+            endpoint.try_into().map_err(InvalidConfig::from)?,
+            bucket.try_into().map_err(InvalidConfig::from)?,
         ))
     }
 
@@ -155,9 +155,10 @@ impl Client {
 
     /// 根据默认的 bucket，endpoint 和提供的文件路径，获取 ObjectBase
     #[inline]
-    pub fn get_object_base<P>(&self, path: P) -> ObjectBase
+    pub fn get_object_base<P>(&self, path: P) -> Result<ObjectBase, InvalidObjectPath>
     where
-        P: Into<ObjectPath>,
+        P: TryInto<ObjectPath>,
+        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
     {
         ObjectBase::<ArcPointer>::from_bucket(self.get_bucket_base(), path)
     }
@@ -176,7 +177,7 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
     ///     dotenv().ok();
     ///     let client = Client::from_env().unwrap();
     ///
-    ///     let (url, resource) = client.get_object_base("9AB932LY.jpeg").get_url_resource([]);
+    ///     let (url, resource) = client.get_object_base("9AB932LY.jpeg")?.get_url_resource([]);
     ///
     ///     let headers = vec![(
     ///         "If-Unmodified-Since".parse().unwrap(),
@@ -307,7 +308,7 @@ mod tests {
 
     #[test]
     fn from_config() {
-        let config = Config::new("foo1", "foo2", "qingdao", "foo4");
+        let config = Config::try_new("foo1", "foo2", "qingdao", "foo4").unwrap();
         let client = ClientArc::from_config(config);
 
         assert_eq!(client.bucket, "foo4".parse::<BucketName>().unwrap());
@@ -315,7 +316,7 @@ mod tests {
 
     #[test]
     fn timeout() {
-        let config = Config::new("foo1", "foo2", "qingdao", "foo4");
+        let config = Config::try_new("foo1", "foo2", "qingdao", "foo4").unwrap();
         let mut client = ClientArc::from_config(config);
 
         assert!(client.timeout.is_none());
@@ -331,10 +332,10 @@ mod tests {
     fn get_object_base() {
         use std::sync::Arc;
 
-        let config = Config::new("foo1", "foo2", "qingdao", "foo4");
+        let config = Config::try_new("foo1", "foo2", "qingdao", "foo4").unwrap();
         let client = ClientArc::from_config(config);
 
-        let base = client.get_object_base("file111");
+        let base = client.get_object_base("file111").unwrap();
 
         let base2 = ObjectBase::<ArcPointer>::new(
             Arc::new(BucketBase::new(
@@ -342,7 +343,8 @@ mod tests {
                 "qingdao".parse().unwrap(),
             )),
             "file111",
-        );
+        )
+        .unwrap();
         assert!(base == base2);
     }
 }

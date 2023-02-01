@@ -35,13 +35,15 @@ let client = aliyun_oss_client::Client::from_env();
 或者
 
 ```rust
-let client = aliyun_oss_client::Client::new("key1".into(), "secret1".into(), "qingdao".into(), "my-bucket".into());
+let client = aliyun_oss_client::Client::new("key1".into(), "secret1".into(), "qingdao".parse().unwrap(), "my-bucket".parse().unwrap());
 ```
 
 或者
 
+不推荐使用
+
 ```rust
-let client = aliyun_oss_client::client("key1", "secret1", "qingdao", "my-bucket");
+// let client = aliyun_oss_client::client("key1", "secret1", "qingdao", "my-bucket");
 ```
 
 ## 支持内网访问 Version +0.9

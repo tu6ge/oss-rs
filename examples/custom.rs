@@ -3,7 +3,7 @@ use std::env;
 use aliyun_oss_client::{
     builder::BuilderError,
     decode::{RefineObject, RefineObjectList},
-    Client,
+    BucketName, Client,
 };
 use dotenv::dotenv;
 use thiserror::Error;
@@ -68,7 +68,12 @@ async fn get_with_client() -> Result<(), MyError> {
     let bucket_name = env::var("ALIYUN_BUCKET").unwrap();
 
     let res: Result<_, MyError> = client
-        .base_object_list(bucket_name, [], &mut bucket, init_file)
+        .base_object_list(
+            bucket_name.parse::<BucketName>().unwrap(),
+            [],
+            &mut bucket,
+            init_file,
+        )
         .await;
 
     res?;

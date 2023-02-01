@@ -318,16 +318,16 @@ impl<T: PointerFamily> Default for Object<T> {
 
 impl<T: PointerFamily> Object<T> {
     /// 初始化 Object 结构体
-    pub fn new<P: Into<ObjectPath>>(
+    pub fn new(
         bucket: T::Bucket,
-        path: P,
+        path: ObjectPath,
         last_modified: DateTime<Utc>,
         etag: String,
         _type: String,
         size: u64,
         storage_class: String,
     ) -> Self {
-        let base = ObjectBase::<T>::new(bucket, path);
+        let base = ObjectBase::<T>::new2(bucket, path);
         Self {
             base,
             last_modified,
@@ -427,7 +427,7 @@ pub struct ObjectBuilder<T: PointerFamily = ArcPointer> {
 impl<T: PointerFamily> ObjectBuilder<T> {
     /// TODO 有待进一步优化
     pub fn new<P: Into<ObjectPath>>(bucket: T::Bucket, key: P) -> Self {
-        let base = ObjectBase::<T>::new(bucket, key);
+        let base = ObjectBase::<T>::new2(bucket, key.into());
         Self {
             object: Object {
                 base,
@@ -478,8 +478,7 @@ impl<T: PointerFamily + Sized> RefineObject for Object<T> {
 
     #[inline]
     fn set_key(&mut self, key: &str) -> Result<(), Self::Error> {
-        self.base.set_path(key);
-        Ok(())
+        self.base.set_path(key).map_err(OssError::from)
     }
 
     #[inline]
@@ -660,6 +659,7 @@ impl Client {
     ///
     /// async fn run() -> Result<(), MyError> {
     ///     dotenv().ok();
+    ///     use aliyun_oss_client::BucketName;
     ///
     ///     let client = Client::from_env().unwrap();
     ///
@@ -672,7 +672,7 @@ impl Client {
     ///         other: "abc".to_string(),
     ///     };
     ///     //let bucket_name = env::var("ALIYUN_BUCKET").unwrap();
-    ///     let bucket_name = "abc";
+    ///     let bucket_name = "abc".parse::<BucketName>().unwrap();
     ///
     ///     let res: Result<_, MyError> = client
     ///         .base_object_list(bucket_name, [], &mut bucket, init_file)
@@ -991,7 +991,7 @@ mod tests {
     use super::ObjectList;
     use crate::{
         builder::ArcPointer,
-        config::BucketBase,
+        config::{BucketBase, ObjectPath},
         object::{Object, ObjectBuilder},
         types::QueryValue,
         Client,
@@ -1093,7 +1093,7 @@ mod tests {
             vec![
                 Object::new(
                     Arc::clone(&bucket),
-                    "key1",
+                    "key1".parse().unwrap(),
                     DateTime::<Utc>::from_utc(
                         NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
                         Utc,
@@ -1105,7 +1105,7 @@ mod tests {
                 ),
                 Object::new(
                     Arc::clone(&bucket),
-                    "key2",
+                    "key2".parse().unwrap(),
                     DateTime::<Utc>::from_utc(
                         NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
                         Utc,
@@ -1137,7 +1137,7 @@ mod tests {
         let list = object_list.common_prefixes();
         assert!(list.len() == 0);
 
-        object_list.set_common_prefixes(["abc".into(), "cde".into()]);
+        object_list.set_common_prefixes(["abc".parse().unwrap(), "cde".parse().unwrap()]);
         let list = object_list.common_prefixes();
 
         assert!(list.len() == 2);
@@ -1150,7 +1150,7 @@ mod tests {
         let bucket = Arc::new("abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap());
         let object = Object::<ArcPointer>::new(
             bucket,
-            "foo2",
+            "foo2".parse().unwrap(),
             DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(), Utc),
             "foo3".into(),
             "foo4".into(),
@@ -1172,7 +1172,7 @@ mod tests {
             "abc".parse().unwrap(),
             "qingdao".parse().unwrap(),
         ));
-        let object = ObjectBuilder::<ArcPointer>::new(bucket, "abc")
+        let object = ObjectBuilder::<ArcPointer>::new(bucket, "abc".parse::<ObjectPath>().unwrap())
             .last_modified(DateTime::<Utc>::from_utc(
                 NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
                 Utc,
@@ -1215,7 +1215,7 @@ mod blocking_tests {
         let bucket = Rc::new(bucket.parse().unwrap());
         Object::<RcPointer>::new(
             bucket,
-            path,
+            path.parse().unwrap(),
             DateTime::<Utc>::from_utc(
                 NaiveDateTime::from_timestamp_opt(last_modified, 0).unwrap(),
                 Utc,

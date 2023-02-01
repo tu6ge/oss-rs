@@ -48,6 +48,28 @@ impl Config {
         }
     }
 
+    pub fn try_new<ID, S, E, B>(
+        key: ID,
+        secret: S,
+        endpoint: E,
+        bucket: B,
+    ) -> Result<Config, InvalidConfig>
+    where
+        ID: Into<KeyId>,
+        S: Into<KeySecret>,
+        E: TryInto<EndPoint>,
+        <E as TryInto<EndPoint>>::Error: Into<InvalidConfig>,
+        B: TryInto<BucketName>,
+        <B as TryInto<BucketName>>::Error: Into<InvalidConfig>,
+    {
+        Ok(Config {
+            key: key.into(),
+            secret: secret.into(),
+            endpoint: endpoint.try_into().map_err(|e| e.into())?,
+            bucket: bucket.try_into().map_err(|e| e.into())?,
+        })
+    }
+
     pub(crate) fn get_all(self) -> (KeyId, KeySecret, BucketName, EndPoint) {
         (self.key, self.secret, self.bucket, self.endpoint)
     }
@@ -144,7 +166,7 @@ impl BucketBase {
 
         Ok(Self {
             name: BucketName::new(bucket)?,
-            endpoint: endpoint.into(),
+            endpoint: endpoint.try_into().map_err(InvalidConfig::from)?,
         })
     }
 
@@ -176,8 +198,9 @@ impl BucketBase {
     ///
     /// ```
     /// # use aliyun_oss_client::config::BucketBase;
+    /// use aliyun_oss_client::types::BucketName;
     /// let mut bucket = BucketBase::default();
-    /// bucket.set_name("abc");
+    /// bucket.set_name("abc".parse::<BucketName>().unwrap());
     /// assert_eq!(bucket.name(), "abc");
     /// ```
     pub fn set_name<N: Into<BucketName>>(&mut self, name: N) {
@@ -193,7 +216,7 @@ impl BucketBase {
     /// ```
     /// # use aliyun_oss_client::config::BucketBase;
     /// let mut bucket = BucketBase::default();
-    /// assert_eq!(bucket.try_set_name("abc"), Ok(()));
+    /// assert!(bucket.try_set_name("abc").is_ok());
     /// assert_eq!(bucket.name(), "abc");
     /// ```
     pub fn try_set_name<N: TryInto<BucketName>>(&mut self, name: N) -> Result<(), N::Error> {
@@ -207,7 +230,7 @@ impl BucketBase {
     /// # use aliyun_oss_client::config::BucketBase;
     /// # use aliyun_oss_client::EndPoint;
     /// let mut bucket = BucketBase::default();
-    /// assert_eq!(bucket.try_set_endpoint("hangzhou"), Ok(()));
+    /// assert!(bucket.try_set_endpoint("hangzhou").is_ok());
     /// assert_eq!(bucket.endpoint(), EndPoint::CnHangzhou);
     /// ```
     pub fn try_set_endpoint<E: TryInto<EndPoint>>(&mut self, endpoint: E) -> Result<(), E::Error> {
@@ -219,17 +242,18 @@ impl BucketBase {
     /// 举例
     /// ```
     /// # use aliyun_oss_client::config::BucketBase;
+    /// use aliyun_oss_client::types::BucketName;
     /// let mut bucket = BucketBase::default();
-    /// bucket.set_name("abc");
-    /// bucket.set_endpoint("shanghai");
+    /// bucket.set_name("abc".parse::<BucketName>().unwrap());
+    /// bucket.try_set_endpoint("shanghai").unwrap();
     /// let url = bucket.to_url();
     /// assert_eq!(url.as_str(), "https://abc.oss-cn-shanghai.aliyuncs.com/");
     ///
     /// use std::env::set_var;
     /// set_var("ALIYUN_OSS_INTERNAL", "true");
     /// let mut bucket = BucketBase::default();
-    /// bucket.set_name("abc");
-    /// bucket.set_endpoint("shanghai");
+    /// bucket.set_name("abc".parse::<BucketName>().unwrap());
+    /// bucket.try_set_endpoint("shanghai").unwrap();
     /// let url = bucket.to_url();
     /// assert_eq!(
     ///     url.as_str(),
@@ -280,10 +304,11 @@ impl PartialEq<Url> for BucketBase {
     /// # 相等比较
     /// ```
     /// # use aliyun_oss_client::config::BucketBase;
+    /// use aliyun_oss_client::types::BucketName;
     /// use reqwest::Url;
     /// let mut bucket = BucketBase::default();
-    /// bucket.set_name("abc");
-    /// bucket.set_endpoint("shanghai");
+    /// bucket.set_name("abc".parse::<BucketName>().unwrap());
+    /// bucket.try_set_endpoint("shanghai").unwrap();
     /// assert!(bucket == Url::parse("https://abc.oss-cn-shanghai.aliyuncs.com/").unwrap());
     /// ```
     #[inline]
@@ -302,27 +327,41 @@ pub struct ObjectBase<PointerSel: PointerFamily = ArcPointer> {
 
 impl<T: PointerFamily> Default for ObjectBase<T> {
     fn default() -> Self {
-        Self::new(T::Bucket::default(), "")
+        Self {
+            bucket: T::Bucket::default(),
+            path: ObjectPath::default(),
+        }
     }
 }
 
 impl<T: PointerFamily> ObjectBase<T> {
-    pub fn new<P>(bucket: T::Bucket, path: P) -> Self
+    pub fn new<P>(bucket: T::Bucket, path: P) -> Result<Self, InvalidObjectPath>
     where
-        P: Into<ObjectPath>,
+        P: TryInto<ObjectPath>,
+        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
     {
-        Self {
-            bucket,
-            path: path.into(),
-        }
+        let path = path.try_into().map_err(|e| e.into())?;
+
+        Ok(Self { bucket, path })
+    }
+
+    #[inline]
+    pub(crate) fn new2(bucket: T::Bucket, path: ObjectPath) -> Self {
+        Self { bucket, path }
     }
 
     pub fn set_bucket(&mut self, bucket: T::Bucket) {
         self.bucket = bucket;
     }
 
-    pub fn set_path<P: Into<ObjectPath>>(&mut self, path: P) {
-        self.path = path.into();
+    pub fn set_path<P>(&mut self, path: P) -> Result<(), InvalidObjectPath>
+    where
+        P: TryInto<ObjectPath>,
+        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
+    {
+        self.path = path.try_into().map_err(|e| e.into())?;
+
+        Ok(())
     }
 
     pub fn path(&self) -> ObjectPath {
@@ -333,37 +372,63 @@ impl<T: PointerFamily> ObjectBase<T> {
 #[oss_gen_rc]
 impl ObjectBase<ArcPointer> {
     #[inline]
-    pub fn from_bucket<B, P>(bucket: B, path: P) -> Self
+    pub fn from_bucket<P>(bucket: BucketBase, path: P) -> Result<Self, InvalidObjectPath>
     where
-        B: Into<BucketBase>,
-        P: Into<ObjectPath>,
+        P: TryInto<ObjectPath>,
+        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
     {
-        Self {
-            bucket: Arc::new(bucket.into()),
-            path: path.into(),
-        }
+        Ok(Self {
+            bucket: Arc::new(bucket),
+            path: path.try_into().map_err(|e| e.into())?,
+        })
     }
 
     #[inline]
-    pub fn from_ref_bucket<P>(bucket: Arc<BucketBase>, path: P) -> Self
+    pub fn try_from_bucket<B, P>(bucket: B, path: P) -> Result<Self, InvalidObjectBase>
     where
-        P: Into<ObjectPath>,
+        B: TryInto<BucketBase>,
+        P: TryInto<ObjectPath>,
+        <B as TryInto<BucketBase>>::Error: Into<InvalidObjectBase>,
+        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectBase>,
     {
-        Self {
+        Ok(Self {
+            bucket: Arc::new(bucket.try_into().map_err(|e| e.into())?),
+            path: path.try_into().map_err(|e| e.into())?,
+        })
+    }
+
+    #[inline]
+    pub fn from_ref_bucket<P>(bucket: Arc<BucketBase>, path: P) -> Result<Self, InvalidObjectPath>
+    where
+        P: TryInto<ObjectPath>,
+        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
+    {
+        Ok(Self {
             bucket,
-            path: path.into(),
-        }
+            path: path.try_into().map_err(|e| e.into())?,
+        })
     }
 
+    /// TODO bucket name 可能会panic
     #[inline]
-    pub fn from_bucket_name<B, E, P>(bucket: B, endpoint: E, path: P) -> Self
+    pub fn from_bucket_name<B, E, P>(
+        bucket: B,
+        endpoint: E,
+        path: P,
+    ) -> Result<Self, InvalidObjectBase>
     where
-        B: Into<BucketName>,
-        E: Into<EndPoint>,
-        P: Into<ObjectPath>,
+        B: TryInto<BucketName>,
+        <B as TryInto<BucketName>>::Error: Into<InvalidObjectBase>,
+        E: TryInto<EndPoint>,
+        <E as TryInto<EndPoint>>::Error: Into<InvalidObjectBase>,
+        P: TryInto<ObjectPath>,
+        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
     {
-        let bucket = BucketBase::new(bucket.into(), endpoint.into());
-        Self::from_bucket(bucket, path)
+        let bucket = BucketBase::new(
+            bucket.try_into().map_err(|e| e.into())?,
+            endpoint.try_into().map_err(|e| e.into())?,
+        );
+        Self::from_bucket(bucket, path).map_err(|e| e.into())
     }
 
     #[inline]
@@ -374,7 +439,7 @@ impl ObjectBase<ArcPointer> {
     /// 根据提供的查询参数信息，获取当前 object 对应的接口请求参数（ url 和 CanonicalizedResource）
     #[inline]
     pub fn get_url_resource<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
-        self,
+        &self,
         query: Q,
     ) -> (Url, CanonicalizedResource) {
         let mut url = self.bucket.to_url();
@@ -402,19 +467,60 @@ impl<T: PointerFamily> PartialEq<&str> for ObjectBase<T> {
     /// # use aliyun_oss_client::config::BucketBase;
     /// # use aliyun_oss_client::builder::ArcPointer;
     /// # use std::sync::Arc;
+    /// use aliyun_oss_client::types::BucketName;
     /// let mut path = ObjectBase::<ArcPointer>::default();
     /// path.set_path("abc");
     /// assert!(path == "abc");
     ///
     /// let mut bucket = BucketBase::default();
-    /// bucket.set_name("def");
-    /// bucket.set_endpoint("shanghai");
+    /// bucket.set_name("def".parse::<BucketName>().unwrap());
+    /// bucket.try_set_endpoint("shanghai").unwrap();
     /// path.set_bucket(Arc::new(bucket));
     /// assert!(path == "abc");
     /// ```
     #[inline]
     fn eq(&self, other: &&str) -> bool {
         &self.path == other
+    }
+}
+
+#[derive(Debug)]
+pub enum InvalidObjectBase {
+    Bucket(InvalidBucketBase),
+    Path(InvalidObjectPath),
+}
+
+impl Display for InvalidObjectBase {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use InvalidObjectBase::*;
+        match self {
+            Bucket(b) => write!(f, "{}", b),
+            Path(p) => write!(f, "{}", p),
+        }
+    }
+}
+
+impl From<InvalidBucketBase> for InvalidObjectBase {
+    fn from(value: InvalidBucketBase) -> Self {
+        Self::Bucket(value)
+    }
+}
+
+impl From<InvalidObjectPath> for InvalidObjectBase {
+    fn from(value: InvalidObjectPath) -> Self {
+        Self::Path(value)
+    }
+}
+
+impl From<InvalidBucketName> for InvalidObjectBase {
+    fn from(value: InvalidBucketName) -> Self {
+        Self::Bucket(value.into())
+    }
+}
+
+impl From<InvalidEndPoint> for InvalidObjectBase {
+    fn from(value: InvalidEndPoint) -> Self {
+        Self::Bucket(value.into())
     }
 }
 
@@ -451,7 +557,7 @@ impl PartialEq<&str> for ObjectPath {
     /// 相等比较
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
-    /// let path = ObjectPath::new("abc");
+    /// let path = ObjectPath::new("abc").unwrap();
     /// assert!(path == "abc");
     /// ```
     #[inline]
@@ -464,7 +570,7 @@ impl PartialEq<ObjectPath> for &str {
     /// 相等比较
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
-    /// let path = ObjectPath::new("abc");
+    /// let path = ObjectPath::new("abc").unwrap();
     /// assert!("abc" == path);
     /// ```
     #[inline]
@@ -477,7 +583,7 @@ impl PartialEq<String> for ObjectPath {
     /// 相等比较
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
-    /// let path = ObjectPath::new("abc");
+    /// let path = ObjectPath::new("abc").unwrap();
     /// assert!(path == "abc".to_string());
     /// ```
     #[inline]
@@ -490,7 +596,7 @@ impl PartialEq<ObjectPath> for String {
     /// 相等比较
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
-    /// let path = ObjectPath::new("abc");
+    /// let path = ObjectPath::new("abc").unwrap();
     /// assert!("abc".to_string() == path);
     /// ```
     #[inline]
@@ -501,17 +607,31 @@ impl PartialEq<ObjectPath> for String {
 
 impl ObjectPath {
     /// Creates a new `ObjectPath` from the given string.
-    pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
-        Self(val.into())
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectPath;
+    /// assert!(ObjectPath::new("abc.jpg").is_ok());
+    /// assert!(ObjectPath::new("abc/def.jpg").is_ok());
+    /// assert!(ObjectPath::new("/").is_err());
+    /// assert!(ObjectPath::new("/abc").is_err());
+    /// assert!(ObjectPath::new("abc/").is_err());
+    /// assert!(ObjectPath::new(".abc").is_err());
+    /// assert!(ObjectPath::new("../abc").is_err());
+    /// ```
+    pub fn new(val: impl Into<Cow<'static, str>>) -> Result<Self, InvalidObjectPath> {
+        let val = val.into();
+        if val.starts_with('/') || val.starts_with('.') || val.ends_with('/') {
+            return Err(InvalidObjectPath);
+        }
+        Ok(Self(val))
     }
 
     /// Const function that creates a new `ObjectPath` from a static str.
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
-    /// let path = ObjectPath::from_static("abc");
+    /// let path = unsafe{ ObjectPath::from_static("abc") };
     /// assert!(path == "abc");
     /// ```
-    pub const fn from_static(secret: &'static str) -> Self {
+    pub const unsafe fn from_static(secret: &'static str) -> Self {
         Self(Cow::Borrowed(secret))
     }
 
@@ -520,20 +640,22 @@ impl ObjectPath {
     }
 }
 
-impl From<String> for ObjectPath {
+impl TryFrom<String> for ObjectPath {
+    type Error = InvalidObjectPath;
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
-    /// let path: ObjectPath = String::from("abc").into();
+    /// let path: ObjectPath = String::from("abc").try_into().unwrap();
     /// assert!(path == "abc");
     /// ```
-    fn from(val: String) -> Self {
-        Self(val.into())
+    fn try_from(val: String) -> Result<Self, Self::Error> {
+        Self::new(val)
     }
 }
 
-impl<'a> From<&'a str> for ObjectPath {
-    fn from(string: &'a str) -> Self {
-        Self(Cow::Owned(string.to_owned()))
+impl<'a> TryFrom<&'a str> for ObjectPath {
+    type Error = InvalidObjectPath;
+    fn try_from(val: &'a str) -> Result<Self, Self::Error> {
+        Self::new(val.to_owned())
     }
 }
 
@@ -541,10 +663,22 @@ impl FromStr for ObjectPath {
     type Err = InvalidObjectPath;
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
+    /// use std::str::FromStr;
     /// let path: ObjectPath = "img1.jpg".parse().unwrap();
     /// assert!(path == "img1.jpg");
+    /// assert!(ObjectPath::from_str("abc.jpg").is_ok());
+    /// assert!(ObjectPath::from_str("abc/def.jpg").is_ok());
+    /// assert!(ObjectPath::from_str("/").is_err());
+    /// assert!(ObjectPath::from_str("/abc").is_err());
+    /// assert!(ObjectPath::from_str("abc/").is_err());
+    /// assert!(ObjectPath::from_str(".abc").is_err());
+    /// assert!(ObjectPath::from_str("../abc").is_err());
+    /// ```
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.starts_with('/') || s.starts_with('.') || s.ends_with('/') {
+            return Err(InvalidObjectPath);
+        }
         Ok(Self(Cow::Owned(s.to_owned())))
     }
 }
@@ -588,14 +722,16 @@ mod tests {
         let object = ObjectBase::<ArcPointer>::from_ref_bucket(
             Arc::new(BucketBase::from_env().unwrap()),
             "img1.jpg",
-        );
+        )
+        .unwrap();
 
         assert_eq!(object.path(), "img1.jpg");
     }
 
     #[test]
     fn object_from_bucket_name() {
-        let object = ObjectBase::<ArcPointer>::from_bucket_name("foo1", "qingdao", "img1.jpg");
+        let object =
+            ObjectBase::<ArcPointer>::from_bucket_name("foo1", "qingdao", "img1.jpg").unwrap();
 
         assert_eq!(object.path(), "img1.jpg");
     }
@@ -613,7 +749,7 @@ mod blocking_tests {
 
         let bucket = bucket.parse().unwrap();
 
-        let object = ObjectBase::<RcPointer>::new(Rc::new(bucket), path);
+        let object = ObjectBase::<RcPointer>::new2(Rc::new(bucket), path.try_into().unwrap());
         object
     }
 

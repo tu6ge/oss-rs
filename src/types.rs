@@ -204,23 +204,34 @@ pub const HONGKONG_L: &str = "hongkong";
 pub const SHENZHEN_L: &str = "shenzhen";
 
 #[cfg(feature = "core")]
-impl From<String> for EndPoint {
+impl TryFrom<String> for EndPoint {
+    type Error = InvalidEndPoint;
     /// 字符串转 endpoint
     ///
     /// 举例
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
-    /// let e: EndPoint = String::from("qingdao").into();
+    /// let e: EndPoint = String::from("qingdao").try_into().unwrap();
+    /// assert_eq!(e, EndPoint::CnQingdao);
     /// ```
-    fn from(url: String) -> Self {
-        Self::new(&url).unwrap()
+    fn try_from(url: String) -> Result<Self, Self::Error> {
+        Self::new(&url)
     }
 }
 
 #[cfg(feature = "core")]
-impl<'a> From<&'a str> for EndPoint {
-    fn from(url: &'a str) -> Self {
-        Self::new(url).expect(&format!("\"{}\" convert to endpoint failed", url))
+impl<'a> TryFrom<&'a str> for EndPoint {
+    type Error = InvalidEndPoint;
+    /// 字符串字面量转 endpoint
+    ///
+    /// 举例
+    /// ```
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// let e: EndPoint = "qingdao".try_into().unwrap();
+    /// assert_eq!(e, EndPoint::CnQingdao);
+    /// ```
+    fn try_from(url: &'a str) -> Result<Self, Self::Error> {
+        Self::new(url)
     }
 }
 
@@ -326,12 +337,6 @@ mod test_endpoint {
     #[should_panic]
     fn test_endpoint_painc() {
         EndPoint::from_static("weifang");
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_string2endpoint() {
-        let _: EndPoint = String::from("weifang").into();
     }
 
     #[test]
@@ -458,20 +463,37 @@ impl Default for BucketName {
 //         HeaderValue::from_str(self.as_ref())
 //     }
 // }
-impl From<String> for BucketName {
-    fn from(s: String) -> Self {
-        Self::new(s).unwrap()
+impl TryFrom<String> for BucketName {
+    type Error = InvalidBucketName;
+    /// ```
+    /// # use aliyun_oss_client::types::BucketName;
+    /// let b: BucketName = String::from("abc").try_into().unwrap();
+    /// assert_eq!(b, BucketName::new("abc").unwrap());
+    /// ```
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        Self::new(s)
     }
 }
 
-impl<'a> From<&'a str> for BucketName {
-    fn from(bucket: &'a str) -> Self {
-        Self::from_static(bucket).unwrap()
+impl<'a> TryFrom<&'a str> for BucketName {
+    type Error = InvalidBucketName;
+    /// ```
+    /// # use aliyun_oss_client::types::BucketName;
+    /// let b: BucketName = "abc".try_into().unwrap();
+    /// assert_eq!(b, BucketName::new("abc").unwrap());
+    /// ```
+    fn try_from(bucket: &'a str) -> Result<Self, Self::Error> {
+        Self::from_static(bucket)
     }
 }
 
 impl FromStr for BucketName {
     type Err = InvalidBucketName;
+    /// ```
+    /// # use aliyun_oss_client::types::BucketName;
+    /// let b: BucketName = "abc".parse().unwrap();
+    /// assert_eq!(b, BucketName::new("abc").unwrap());
+    /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_static(s)
     }
