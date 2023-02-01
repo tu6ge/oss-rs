@@ -533,12 +533,8 @@ impl<T: PointerFamily> RefineObjectList<Object<T>> for ObjectList<T> {
         list: &Vec<std::borrow::Cow<'_, str>>,
     ) -> Result<(), Self::Error> {
         for val in list.iter() {
-            match val.parse::<ObjectPath>() {
-                Ok(val) => {
-                    self.common_prefixes.push(val);
-                }
-                Err(err) => return Err(err.into()),
-            }
+            self.common_prefixes
+                .push(val.parse::<ObjectPath>().map_err(Self::Error::from)?);
         }
         Ok(())
     }
@@ -801,17 +797,10 @@ impl ClientRc {
 impl Iterator for ObjectList<RcPointer> {
     type Item = ObjectList<RcPointer>;
     fn next(&mut self) -> Option<Self> {
-        match self.next_continuation_token.clone() {
-            Some(token) => {
-                self.search_query.insert(CONTINUATION_TOKEN, token);
-
-                match self.get_object_list() {
-                    Ok(v) => Some(v),
-                    _ => None,
-                }
-            }
-            None => None,
-        }
+        self.next_continuation_token.clone().and_then(|token| {
+            self.search_query.insert(CONTINUATION_TOKEN, token);
+            self.get_object_list().ok()
+        })
     }
 }
 

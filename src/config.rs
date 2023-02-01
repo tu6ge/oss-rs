@@ -134,10 +134,9 @@ impl FromStr for BucketBase {
             return Err(InvalidBucketBase::Tacitly);
         }
 
-        let (bucket, endpoint) = match domain.split_once('.') {
-            Some(v) => v,
-            None => return Err(InvalidBucketBase::Tacitly),
-        };
+        let (bucket, endpoint) = domain
+            .split_once('.')
+            .ok_or_else(|| InvalidBucketBase::Tacitly)?;
 
         Ok(Self {
             name: BucketName::from_static(bucket)?,
