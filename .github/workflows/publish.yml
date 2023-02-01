@@ -88,9 +88,6 @@ jobs:
           profile: minimal
           override: false
 
-      - name: Cache
-        uses: Swatinem/rust-cache@v1
-
       - name: Install cargo-tarpaulin
         uses: actions-rs/cargo@v1
         with:
