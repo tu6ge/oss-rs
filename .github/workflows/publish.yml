@@ -84,22 +84,22 @@ jobs:
       - name: Install rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: "nightly-2023-02-01"
+          toolchain: "nightly-x86_64-unknown-linux-gnu"
           profile: minimal
           override: false
 
+      - name: Install cargo-binstall
+        run: |
+          wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
+          tar -xvzf cargo-binstall-x86_64-unknown-linux-musl.tgz -C $HOME/.cargo/bin/
+
       - name: Install cargo-tarpaulin
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-tarpaulin
+        run:
+          cargo binstall cargo-tarpaulin -y
 
       - name: Run cargo tarpaulin
-        uses: actions-rs/cargo@v1
-        with:
-          command: tarpaulin
-          # --all-features, exclude bench features
-          args: --output-dir coverage --out Lcov --all-features --run-types Tests --run-types Doctests --run-types Lib
+        run:
+          rustup run nightly cargo tarpaulin --output-dir coverage --out Lcov --all-features --run-types Tests --run-types Doctests --run-types Lib
       
       - name: Publish to Coveralls
         uses: coverallsapp/github-action@master
