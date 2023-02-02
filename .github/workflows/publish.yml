@@ -73,35 +73,47 @@ jobs:
       #   if: steps.publish-action.outputs.new_version == 'true' && steps.publish-action.outputs.publish == 'true'
       #   with:
       #     commit_message: Update Changelog.md
-  coverage:
-    name: Coverage
+  grcov:
+    name: Coverage and Grcov
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install rust
-        uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1
         with:
-          toolchain: "nightly-x86_64-unknown-linux-gnu"
-          profile: minimal
-          override: false
+          toolchain: nightly
+          override: true
 
-      - name: Install cargo-binstall
-        run: |
-          wget https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz
-          tar -xvzf cargo-binstall-x86_64-unknown-linux-musl.tgz -C $HOME/.cargo/bin/
+      - name: Cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          key: ${{ runner.os }}-coverage-v0.2.0
 
-      - name: Install cargo-tarpaulin
-        run:
-          cargo binstall cargo-tarpaulin -y
-
-      - name: Run cargo tarpaulin
-        run:
-          rustup run nightly cargo tarpaulin --output-dir coverage --out Lcov --all-features --run-types Tests --run-types Doctests --run-types Lib
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features --lib
+        env:
+          CARGO_INCREMENTAL: '0'
+          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+          RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
       
-      - name: Publish to Coveralls
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features --doc
+        env:
+          CARGO_INCREMENTAL: '0'
+          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+          RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+      - name: Gather coverage data
+        id: coverage
+        uses: actions-rs/grcov@v0.1
+
+      - name: Coveralls upload
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: ${{ steps.coverage.outputs.report }}
