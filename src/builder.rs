@@ -13,7 +13,10 @@ use thiserror::Error;
 use crate::auth::AuthError;
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
-use crate::{client::Client as AliClient, config::BucketBase};
+use crate::{
+    client::Client as AliClient,
+    config::{BucketBase, InvalidConfig},
+};
 use reqwest::{Client, Request, Response};
 
 pub trait PointerFamily
@@ -154,6 +157,9 @@ pub enum BuilderError {
     #[cfg(feature = "auth")]
     #[error("{0}")]
     AuthError(#[from] AuthError),
+
+    #[error("{0}")]
+    Config(#[from] InvalidConfig),
 }
 
 #[async_trait]

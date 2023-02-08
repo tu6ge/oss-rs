@@ -132,13 +132,17 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::file::File;
-    client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").await;
+
+    use aliyun_oss_client::file::Files;
+    client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png".parse().unwrap()).await;
+
+    use aliyun_oss_client::file::FileAs;
+    client.put_file_as("examples/bg2015071010.png", "examples/bg2015071010.png").await;
 
     // or 上传文件内容
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
     client
-        .put_content(file_content, "examples/bg2015071010.png", |_| {
+        .put_content_as(file_content, "examples/bg2015071010.png", |_| {
             Some("image/png")
         })
         .await;
@@ -146,7 +150,7 @@ let client = aliyun_oss_client::Client::new(
     // or 自定义上传文件 Content-Type
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
     client
-        .put_content_base(file_content, "image/png", "examples/bg2015071010.png")
+        .put_content_base_as(file_content, "image/png", "examples/bg2015071010.png")
         .await;
 # }
 ```
@@ -161,15 +165,15 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::file::File;
+    use aliyun_oss_client::file::FileAs;
 
     // 获取完整文件
-    let content = client.get_object("bar.json", ..).await;
+    let content = client.get_object_as("bar.json", ..).await;
 
     // 获取文件一部分
-    let content = client.get_object("bar.json", ..100).await;
-    let content = client.get_object("bar.json", 100..).await;
-    let content = client.get_object("bar.json", 100..200).await;
+    let content = client.get_object_as("bar.json", ..100).await;
+    let content = client.get_object_as("bar.json", 100..).await;
+    let content = client.get_object_as("bar.json", 100..200).await;
 # }
 ```
 
@@ -183,8 +187,8 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::file::File;
-    client.delete_object("examples/bg2015071010.png").await;
+    use aliyun_oss_client::file::FileAs;
+    client.delete_object_as("examples/bg2015071010.png").await;
 # }
 ```
 */
@@ -228,12 +232,7 @@ pub mod bucket;
 #[cfg(feature = "core")]
 pub mod object;
 
-/// # 文件上传及下载等操作
-/// 用于将这些功能复用到 [`Client`]，[`Bucket`],[`ObjectList`] 等结构体的 trait
-///
-/// [`Client`]: crate::client::Client
-/// [`Bucket`]: crate::bucket::Bucket
-/// [`ObjectList`]: crate::object::ObjectList
+/// OSS 文件相关操作
 #[cfg(feature = "core")]
 pub mod file;
 

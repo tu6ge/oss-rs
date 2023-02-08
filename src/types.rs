@@ -573,6 +573,10 @@ impl<'a> BucketName {
 
         Ok(Self(Cow::Owned(bucket.to_owned())))
     }
+
+    pub const unsafe fn from_static2(bucket: &'static str) -> Self {
+        Self(Cow::Borrowed(bucket))
+    }
 }
 
 impl PartialEq<&str> for BucketName {

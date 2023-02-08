@@ -3,7 +3,7 @@ use crate::builder::ArcPointer;
 use crate::builder::RcPointer;
 use crate::builder::{BuilderError, ClientWithMiddleware, PointerFamily};
 use crate::config::CommonPrefixes;
-use crate::file::File;
+use crate::file::Files;
 use crate::object::ObjectList;
 use crate::{builder::Middleware, client::Client};
 use crate::{BucketName, EndPoint, Query, QueryKey};
@@ -318,7 +318,7 @@ async fn test_put_content_base() {
     let content: Vec<u8> = content.into();
 
     let res = client
-        .put_content_base(content, "application/text", "abc.text")
+        .put_content_base(content, "application/text", "abc.text".parse().unwrap())
         .await;
 
     //println!("{:?}", res);
@@ -384,7 +384,7 @@ mod get_object {
     use reqwest::{Request, Response};
 
     use crate::builder::{BuilderError, ClientWithMiddleware};
-    use crate::file::File;
+    use crate::file::Files;
     use crate::{builder::Middleware, client::Client};
     use async_trait::async_trait;
 
@@ -430,7 +430,7 @@ mod get_object {
         )
         .middleware(Arc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png", ..).await;
+        let res = client.get_object("foo.png".parse().unwrap(), ..).await;
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -480,7 +480,7 @@ mod get_object {
         )
         .middleware(Arc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png", 1..).await;
+        let res = client.get_object("foo.png".parse().unwrap(), 1..).await;
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -530,7 +530,7 @@ mod get_object {
         )
         .middleware(Arc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png", ..10).await;
+        let res = client.get_object("foo.png".parse().unwrap(), ..10).await;
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -580,7 +580,7 @@ mod get_object {
         )
         .middleware(Arc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png", 2..10).await;
+        let res = client.get_object("foo.png".parse().unwrap(), 2..10).await;
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -839,7 +839,7 @@ async fn test_delete_object() {
     )
     .middleware(Arc::new(MyMiddleware {}));
 
-    let res = client.delete_object("abc.png").await;
+    let res = client.delete_object("abc.png".parse().unwrap()).await;
     //println!("{:?}", res);
     assert!(res.is_ok());
 }

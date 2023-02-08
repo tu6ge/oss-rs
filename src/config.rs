@@ -4,6 +4,7 @@ use std::{
     borrow::Cow,
     env::{self, VarError},
     fmt::Display,
+    path::Path,
     str::FromStr,
     sync::Arc,
 };
@@ -17,6 +18,7 @@ use thiserror::Error;
 use crate::builder::RcPointer;
 use crate::{
     builder::{ArcPointer, PointerFamily},
+    object::Object,
     types::{
         BucketName, CanonicalizedResource, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId,
         KeySecret, QueryKey, QueryValue, UrlQuery,
@@ -615,10 +617,14 @@ impl ObjectPath {
     /// assert!(ObjectPath::new("abc/").is_err());
     /// assert!(ObjectPath::new(".abc").is_err());
     /// assert!(ObjectPath::new("../abc").is_err());
+    /// assert!(ObjectPath::new(r"aaa\abc").is_err());
     /// ```
     pub fn new(val: impl Into<Cow<'static, str>>) -> Result<Self, InvalidObjectPath> {
         let val = val.into();
         if val.starts_with('/') || val.starts_with('.') || val.ends_with('/') {
+            return Err(InvalidObjectPath);
+        }
+        if !val.chars().all(|c| c != '\\') {
             return Err(InvalidObjectPath);
         }
         Ok(Self(val))
@@ -627,7 +633,7 @@ impl ObjectPath {
     /// Const function that creates a new `ObjectPath` from a static str.
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
-    /// let path = unsafe{ ObjectPath::from_static("abc") };
+    /// let path = unsafe { ObjectPath::from_static("abc") };
     /// assert!(path == "abc");
     /// ```
     pub const unsafe fn from_static(secret: &'static str) -> Self {
@@ -672,13 +678,36 @@ impl FromStr for ObjectPath {
     /// assert!(ObjectPath::from_str("abc/").is_err());
     /// assert!(ObjectPath::from_str(".abc").is_err());
     /// assert!(ObjectPath::from_str("../abc").is_err());
-    /// ```
+    /// assert!(ObjectPath::from_str(r"aaa\abc").is_err());
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with('/') || s.starts_with('.') || s.ends_with('/') {
             return Err(InvalidObjectPath);
         }
+
+        if !s.chars().all(|c| c != '\\') {
+            return Err(InvalidObjectPath);
+        }
         Ok(Self(Cow::Owned(s.to_owned())))
+    }
+}
+
+impl TryFrom<&Path> for ObjectPath {
+    type Error = InvalidObjectPath;
+    fn try_from(value: &Path) -> Result<Self, Self::Error> {
+        let val = value.to_str().ok_or(InvalidObjectPath)?;
+        if std::path::MAIN_SEPARATOR != '/' {
+            val.replace(std::path::MAIN_SEPARATOR, "/").parse()
+        } else {
+            val.parse()
+        }
+    }
+}
+
+impl<T: PointerFamily> From<Object<T>> for ObjectPath {
+    #[inline]
+    fn from(obj: Object<T>) -> Self {
+        obj.base.path
     }
 }
 
@@ -703,6 +732,31 @@ pub trait UrlObjectPath {
 impl UrlObjectPath for Url {
     fn set_object_path(&mut self, path: &ObjectPath) {
         self.set_path(&path.to_string());
+    }
+}
+
+pub trait OssFullUrl {
+    fn from_oss(endpoint: &EndPoint, bucket: &BucketName, path: &ObjectPath) -> Self;
+}
+
+impl OssFullUrl for Url {
+    fn from_oss(endpoint: &EndPoint, bucket: &BucketName, path: &ObjectPath) -> Self {
+        let mut end_url = endpoint.to_url();
+
+        let host = end_url.host_str();
+
+        let mut name_str = bucket.to_string() + ".";
+
+        let new_host = host.map(|h| {
+            name_str.push_str(h);
+            &*name_str
+        });
+        // 因为 endpoint 都是已知字符组成，bucket 也有格式要求，所以 unwrap 是安全的
+        end_url.set_host(new_host).unwrap();
+
+        end_url.set_object_path(&path);
+
+        end_url
     }
 }
 

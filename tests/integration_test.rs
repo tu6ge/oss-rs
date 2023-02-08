@@ -1,7 +1,5 @@
 #[cfg(all(feature = "core", not(tarpaulin)))]
 mod test_async {
-    #[cfg(feature = "put_file")]
-    use aliyun_oss_client::file::File;
     use aliyun_oss_client::Client;
     use assert_matches::assert_matches;
     use dotenv::dotenv;
@@ -62,20 +60,23 @@ mod test_async {
     #[tokio::test]
     async fn test_put_get_and_delete_file() {
         dotenv().ok();
+        use aliyun_oss_client::file::FileAs;
 
         let client = Client::from_env().unwrap();
 
         let object_list = client
-            .put_file("examples/bg2015071010.png", "examples/bg2015071010.png")
+            .put_file_as("examples/bg2015071010.png", "examples/bg2015071010.png")
             .await;
 
         assert_matches!(object_list, Ok(_));
 
-        let object = client.get_object("examples/bg2015071010.png", ..10).await;
+        let object = client
+            .get_object_as("examples/bg2015071010.png", ..10)
+            .await;
 
         assert_matches!(object, Ok(_));
 
-        let result = client.delete_object("examples/bg2015071010.png").await;
+        let result = client.delete_object_as("examples/bg2015071010.png").await;
 
         assert_matches!(result, Ok(_));
     }

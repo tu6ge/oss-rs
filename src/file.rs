@@ -1,4 +1,72 @@
-use std::{error::Error, fmt::Display};
+//! # OSS 文件相关操作
+//!
+//! [`File`] 是一个文件操作的工具包，包含上传，下载，删除功能，开发者可以方便的调用使用
+//!
+//! ```rust
+//! use std::{fs, path::Path};
+//!
+//! use aliyun_oss_client::{
+//!     config::ObjectPath,
+//!     file::{File, FileError, Files},
+//!     BucketName, Client, EndPoint, KeyId, KeySecret,
+//! };
+//!
+//! struct MyObject {
+//!     path: ObjectPath,
+//! }
+//!
+//! impl MyObject {
+//!     const KEY_ID: KeyId = KeyId::from_static("xxxxxxxxxxxxxxxx");
+//!     const KEY_SECRET: KeySecret = KeySecret::from_static("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+//!     const END_POINT: EndPoint = EndPoint::CnShanghai;
+//!     const BUCKET: BucketName = unsafe { BucketName::from_static2("xxxxxx") };
+//!
+//!     fn new(path: &Path) -> Result<MyObject, FileError> {
+//!         Ok(MyObject {
+//!             path: path.try_into()?,
+//!         })
+//!     }
+//! }
+//!
+//! impl File for MyObject {
+//!     type Client = Client;
+//!     fn get_path(&self) -> ObjectPath {
+//!         self.path.clone()
+//!     }
+//!
+//!     fn oss_client(&self) -> Self::Client {
+//!         Client::new(
+//!             Self::KEY_ID,
+//!             Self::KEY_SECRET,
+//!             Self::END_POINT,
+//!             Self::BUCKET,
+//!         )
+//!     }
+//! }
+//!
+//! async fn run() -> Result<(), FileError> {
+//!     for entry in fs::read_dir("examples")? {
+//!         let path = entry?.path();
+//!         let path = path.as_path();
+//!
+//!         if !path.is_file() {
+//!             continue;
+//!         }
+//!
+//!         let obj = MyObject::new(path)?;
+//!         let content = fs::read(path)?;
+//!
+//!         let res = obj.put_oss(content, Client::DEFAULT_CONTENT_TYPE).await?;
+//!
+//!         println!("result status: {}", res.status());
+//!     }
+//!
+//!     Ok(())
+//! }
+//! ```
+//! [`File`]: crate::file::File
+
+use std::{error::Error, fmt::Display, sync::Arc};
 
 use async_trait::async_trait;
 use http::{
@@ -18,7 +86,60 @@ use crate::{
 #[cfg(feature = "put_file")]
 use infer::Infer;
 
-/// # 文件相关功能
+/// # 文件的相关操作
+///
+/// 包括 上传，下载，删除等功能
+#[async_trait]
+pub trait File
+where
+    Self::Client: Files,
+{
+    /// 用于发起 OSS 接口调用的客户端，如[`Client`]，[`Bucket`], [`ObjectList`] 等结构体
+    ///
+    /// [`Client`]: crate::client::Client
+    /// [`Bucket`]: crate::bucket::Bucket
+    /// [`ObjectList`]: crate::object::ObjectList
+    type Client;
+
+    /// 指定要操作的 OSS 对象的路径，需要自行实现
+    fn get_path(&self) -> <Self::Client as Files>::Path;
+
+    /// 指定发起 OSS 接口调用的客户端
+    fn oss_client(&self) -> Self::Client;
+
+    /// 上传文件内容到 OSS 上面
+    #[inline]
+    async fn put_oss(
+        &self,
+        content: Vec<u8>,
+        content_type: &str,
+    ) -> Result<Response, <Self::Client as Files>::Err> {
+        self.oss_client()
+            .put_content_base(content, content_type, self.get_path())
+            .await
+    }
+
+    /// # 获取 OSS 上文件的部分或全部内容
+    /// 参数可指定范围:
+    /// - `..` 获取文件的所有内容，常规大小的文件，使用这个即可
+    /// - `..100`, `100..200`, `200..` 可用于获取文件的部分内容，一般用于大文件
+    #[inline]
+    async fn get_oss<R: Into<ContentRange> + Send + Sync>(
+        &self,
+        range: R,
+    ) -> Result<Vec<u8>, <Self::Client as Files>::Err> {
+        self.oss_client().get_object(self.get_path(), range).await
+    }
+
+    /// # 从 OSS 中删除文件
+    #[inline]
+    async fn delete_oss(&self) -> Result<(), <Self::Client as Files>::Err> {
+        self.oss_client().delete_object(self.get_path()).await
+    }
+}
+
+/// # 文件集合的相关操作
+/// 在对文件执行相关操作的时候，需要指定文件路径
 ///
 /// 包括 上传，下载，删除等功能
 /// 在 [`Client`]，[`Bucket`], [`ObjectList`] 等结构体中均已实现，其中 Client 是在默认的 bucket 上操作文件，
@@ -28,30 +149,35 @@ use infer::Infer;
 /// [`Bucket`]: crate::bucket::Bucket
 /// [`ObjectList`]: crate::object::ObjectList
 #[async_trait]
-pub trait File: AlignBuilder {
+pub trait Files: AlignBuilder
+where
+    Self::Path: Send + Sync,
+    Self::Err: From<FileError>,
+{
+    type Path;
+    type Err;
+
+    /// # 默认的文件类型
+    /// 在上传文件时，如果找不到合适的 mime 类型，可以使用
+    const DEFAULT_CONTENT_TYPE: &'static str = "application/octet-stream";
+
     /// 根据文件路径获取最终的调用接口以及相关参数
-    fn get_url<OP>(&self, path: OP) -> Result<(Url, CanonicalizedResource), FileError>
-    where
-        OP: TryInto<ObjectPath> + Send + Sync,
-        <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>;
+    fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), Self::Err>;
 
     /// # 上传文件到 OSS
     ///
     /// 需指定文件的路径
+    ///
+    /// *如果获取不到文件类型，则使用默认的文件类型，如果您不希望这么做，可以使用 `put_content_base` 方法*
     #[cfg(feature = "put_file")]
     async fn put_file<
         P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path> + Send + Sync,
-        OP,
     >(
         &self,
         file_name: P,
-        path: OP,
-    ) -> Result<String, FileError>
-    where
-        OP: TryInto<ObjectPath> + Send + Sync,
-        <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-    {
-        let file_content = std::fs::read(file_name)?;
+        path: Self::Path,
+    ) -> Result<String, Self::Err> {
+        let file_content = std::fs::read(file_name).map_err(|e| e.into())?;
 
         let get_content_type =
             |content: &Vec<u8>| Infer::new().get(content).map(|con| con.mime_type());
@@ -64,6 +190,8 @@ pub trait File: AlignBuilder {
     /// 需指定要上传的文件内容
     /// 以及根据文件内容获取文件类型的闭包
     ///
+    /// *如果获取不到文件类型，则使用默认的文件类型，如果您不希望这么做，可以使用 `put_content_base` 方法*
+    ///
     /// # Examples
     ///
     /// 上传 tauri 升级用的签名文件
@@ -74,7 +202,7 @@ pub trait File: AlignBuilder {
     /// # use dotenv::dotenv;
     /// # dotenv().ok();
     /// # let client = aliyun_oss_client::Client::from_env().unwrap();
-    /// use aliyun_oss_client::file::File;
+    /// use aliyun_oss_client::file::Files;
     ///
     /// fn sig_match(buf: &[u8]) -> bool {
     ///     return buf.len() >= 3 && buf[0] == 0x64 && buf[1] == 0x57 && buf[2] == 0x35;
@@ -88,23 +216,21 @@ pub trait File: AlignBuilder {
     /// };
     /// let content: Vec<u8> = String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
     /// let res = client
-    ///     .put_content(content, "xxxxxx.msi.zip.sig", get_content_type)
+    ///     .put_content(content, "xxxxxx.msi.zip.sig".parse().unwrap(), get_content_type)
     ///     .await;
     /// assert!(res.is_ok());
     /// # }
     /// ```
-    async fn put_content<F, OP>(
+    async fn put_content<F>(
         &self,
         content: Vec<u8>,
-        path: OP,
+        path: Self::Path,
         get_content_type: F,
-    ) -> Result<String, FileError>
+    ) -> Result<String, Self::Err>
     where
         F: Fn(&Vec<u8>) -> Option<&'static str> + Send + Sync,
-        OP: TryInto<ObjectPath> + Send + Sync,
-        <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
     {
-        let content_type = get_content_type(&content).ok_or_else(|| FileError::FileTypeNotFound)?;
+        let content_type = get_content_type(&content).unwrap_or(Self::DEFAULT_CONTENT_TYPE);
 
         let content = self.put_content_base(content, content_type, path).await?;
 
@@ -119,16 +245,12 @@ pub trait File: AlignBuilder {
     }
 
     /// 最核心的上传文件到 OSS 的方法
-    async fn put_content_base<OP>(
+    async fn put_content_base(
         &self,
         content: Vec<u8>,
         content_type: &str,
-        path: OP,
-    ) -> Result<Response, FileError>
-    where
-        OP: TryInto<ObjectPath> + Send + Sync,
-        <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-    {
+        path: Self::Path,
+    ) -> Result<Response, Self::Err> {
         let (url, canonicalized) = self.get_url(path)?;
 
         let content_length = content.len().to_string();
@@ -141,88 +263,169 @@ pub trait File: AlignBuilder {
         ];
 
         self.builder_with_header(Method::PUT, url, canonicalized, headers)
-            .map_err(FileError::from)?
+            .map_err(|e| FileError::from(e).into())?
             .body(content)
             .send_adjust_error()
             .await
-            .map_err(FileError::from)
+            .map_err(|e| FileError::from(e).into())
     }
 
-    /// # 获取 OSS 上的文件内容
-    async fn get_object<R: Into<ContentRange> + Send + Sync, OP>(
+    /// # 获取 OSS 上文件的部分或全部内容
+    async fn get_object<R: Into<ContentRange> + Send + Sync>(
         &self,
-        path: OP,
+        path: Self::Path,
         range: R,
-    ) -> Result<Vec<u8>, FileError>
-    where
-        OP: TryInto<ObjectPath> + Send + Sync,
-        <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-    {
+    ) -> Result<Vec<u8>, Self::Err> {
         let (url, canonicalized) = self.get_url(path)?;
 
         let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
 
         let content = self
-            .builder_with_header(Method::GET, url, canonicalized, list)?
+            .builder_with_header(Method::GET, url, canonicalized, list)
+            .map_err(|e| FileError::from(e).into())?
             .send_adjust_error()
-            .await?
+            .await
+            .map_err(|e| e.into())?
             .text()
             .await
-            .map_err(FileError::from)?;
+            .map_err(|e| FileError::from(e).into())?;
 
         Ok(content.into_bytes())
     }
 
     /// # 删除 OSS 上的文件
-    async fn delete_object<OP>(&self, path: OP) -> Result<(), FileError>
-    where
-        OP: TryInto<ObjectPath> + Send + Sync,
-        <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-    {
+    async fn delete_object(&self, path: Self::Path) -> Result<(), Self::Err> {
         let (url, canonicalized) = self.get_url(path)?;
 
-        self.builder(Method::DELETE, url, canonicalized)?
+        self.builder(Method::DELETE, url, canonicalized)
+            .map_err(|e| FileError::from(e).into())?
             .send_adjust_error()
-            .await?;
+            .await
+            .map_err(|e| FileError::from(e).into())?;
 
         Ok(())
     }
 }
 
-impl File for Client {
-    fn get_url<OP>(&self, path: OP) -> Result<(Url, CanonicalizedResource), FileError>
-    where
-        OP: TryInto<ObjectPath> + Send + Sync,
-        <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-    {
-        let object_base = ObjectBase::<ArcPointer>::from_bucket(self.get_bucket_base(), path)
-            .map_err(FileError::from)?;
-
+impl Files for Client {
+    type Path = ObjectPath;
+    type Err = FileError;
+    fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), FileError> {
+        let object_base = ObjectBase::<ArcPointer>::new2(Arc::new(self.get_bucket_base()), path);
         Ok(object_base.get_url_resource([]))
     }
 }
 
-impl File for Bucket {
-    fn get_url<OP>(&self, path: OP) -> Result<(Url, CanonicalizedResource), FileError>
-    where
-        OP: TryInto<ObjectPath> + Send + Sync,
-        <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-    {
-        let object_base = ObjectBase::<ArcPointer>::from_bucket(self.base.to_owned(), path)?;
-
+impl Files for Bucket {
+    type Path = ObjectPath;
+    type Err = FileError;
+    fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), FileError> {
+        let object_base = ObjectBase::<ArcPointer>::new2(Arc::new(self.base.to_owned()), path);
         Ok(object_base.get_url_resource([]))
     }
 }
 
-impl File for ObjectList<ArcPointer> {
-    fn get_url<OP>(&self, path: OP) -> Result<(Url, CanonicalizedResource), FileError>
-    where
-        OP: TryInto<ObjectPath> + Send + Sync,
-        <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-    {
-        let object_base = ObjectBase::<ArcPointer>::from_bucket(self.bucket.to_owned(), path)?;
+/// 可将 `Object` 实例作为参数传递给各种操作方法
+impl Files for ObjectList<ArcPointer> {
+    type Path = Object<ArcPointer>;
+    type Err = FileError;
+    fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), FileError> {
+        let object_base =
+            ObjectBase::<ArcPointer>::new2(Arc::new(self.bucket.to_owned()), path.into());
         Ok(object_base.get_url_resource([]))
     }
+}
+
+use oss_derive::path_where;
+
+#[async_trait]
+pub trait FileAs: Files<Path = ObjectPath>
+where
+    Self::Error: From<<Self as Files>::Err>,
+{
+    type Error;
+
+    /// # 上传文件到 OSS
+    ///
+    /// 需指定文件的路径
+    #[cfg(feature = "put_file")]
+    #[path_where]
+    async fn put_file_as<
+        P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path> + Send + Sync,
+        OP,
+    >(
+        &self,
+        file_name: P,
+        path: OP,
+    ) -> Result<String, Self::Error> {
+        let path = path.try_into().map_err(|e| e.into())?;
+        Files::put_file(self, file_name, path)
+            .await
+            .map_err(Self::Error::from)
+    }
+
+    /// # 上传文件内容到 OSS
+    ///
+    /// 需指定要上传的文件内容
+    /// 以及根据文件内容获取文件类型的闭包
+    #[path_where]
+    async fn put_content_as<F, OP>(
+        &self,
+        content: Vec<u8>,
+        path: OP,
+        get_content_type: F,
+    ) -> Result<String, Self::Error>
+    where
+        F: Fn(&Vec<u8>) -> Option<&'static str> + Send + Sync,
+    {
+        let path = path.try_into().map_err(|e| e.into())?;
+        Files::put_content(self, content, path, get_content_type)
+            .await
+            .map_err(Self::Error::from)
+    }
+
+    /// 上传文件
+    #[path_where]
+    async fn put_content_base_as<OP>(
+        &self,
+        content: Vec<u8>,
+        content_type: &str,
+        path: OP,
+    ) -> Result<Response, Self::Error> {
+        let path = path.try_into().map_err(|e| e.into())?;
+        Files::put_content_base(self, content, content_type, path)
+            .await
+            .map_err(Self::Error::from)
+    }
+
+    /// 获取文件内容
+    #[path_where]
+    async fn get_object_as<R: Into<ContentRange> + Send + Sync, OP>(
+        &self,
+        path: OP,
+        range: R,
+    ) -> Result<Vec<u8>, Self::Error> {
+        let path = path.try_into().map_err(|e| e.into())?;
+        Files::get_object(self, path, range)
+            .await
+            .map_err(Self::Error::from)
+    }
+
+    /// # 删除 OSS 上的文件
+    #[path_where]
+    async fn delete_object_as<OP>(&self, path: OP) -> Result<(), Self::Error> {
+        let path = path.try_into().map_err(|e| e.into())?;
+        Files::delete_object(self, path)
+            .await
+            .map_err(Self::Error::from)
+    }
+}
+
+impl FileAs for Client {
+    type Error = FileError;
+}
+impl FileAs for Bucket {
+    type Error = FileError;
 }
 
 #[derive(Debug)]
@@ -344,140 +547,13 @@ impl AlignBuilder for ObjectList<ArcPointer> {
     }
 }
 
-impl Object<ArcPointer> {
-    /// # 将当前 Object 的文件上传到 OSS
-    ///
-    /// 需指定要上传的本地文件路径
-    #[cfg(feature = "put_file")]
-    pub async fn put_file<
-        P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path> + Send + Sync,
-        B: AlignBuilder,
-    >(
-        &self,
-        file_name: P,
-        builder: &B,
-    ) -> Result<String, FileError> {
-        let file_content = std::fs::read(file_name)?;
-
-        let get_content_type =
-            |content: &Vec<u8>| Infer::new().get(content).map(|con| con.mime_type());
-
-        self.put_content(file_content, get_content_type, builder)
-            .await
-    }
-
-    /// # 上传文件内容到 OSS
-    ///
-    /// 需指定要上传的文件内容
-    /// 以及根据文件内容获取文件类型的闭包
-    pub async fn put_content<F, B>(
-        &self,
-        content: Vec<u8>,
-        get_content_type: F,
-        builder: &B,
-    ) -> Result<String, FileError>
-    where
-        F: Fn(&Vec<u8>) -> Option<&'static str> + Send + Sync,
-        B: AlignBuilder,
-    {
-        let content_type = get_content_type(&content).ok_or_else(|| FileError::FileTypeNotFound)?;
-
-        let content = self
-            .put_content_base(content, content_type, builder)
-            .await?;
-
-        let result = content
-            .headers()
-            .get("ETag")
-            .ok_or_else(|| FileError::EtagNotFound)?
-            .to_str()
-            .map_err(FileError::from)?;
-
-        Ok(result.to_string())
-    }
-
-    pub async fn put_content_base<B: AlignBuilder>(
-        &self,
-        content: Vec<u8>,
-        content_type: &str,
-        builder: &B,
-    ) -> Result<Response, FileError> {
-        let (url, canonicalized) = self.base.get_url_resource([]);
-
-        let content_length = content.len().to_string();
-        let headers = vec![
-            (
-                CONTENT_LENGTH,
-                HeaderValue::from_str(&content_length).map_err(FileError::from)?,
-            ),
-            (CONTENT_TYPE, content_type.parse().map_err(FileError::from)?),
-        ];
-
-        builder
-            .builder_with_header(Method::PUT, url, canonicalized, headers)
-            .map_err(FileError::from)?
-            .body(content)
-            .send_adjust_error()
-            .await
-            .map_err(FileError::from)
-    }
-
-    /// # 获取 Object 对应的 OSS 上的资源文件
-    /// 可以获取一部分
-    pub async fn get_object<R: Into<ContentRange> + Send + Sync, B: AlignBuilder>(
-        &self,
-        range: R,
-        builder: &B,
-    ) -> Result<Vec<u8>, FileError> {
-        let (url, canonicalized) = self.base.get_url_resource([]);
-
-        let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
-
-        let content = builder
-            .builder_with_header(Method::GET, url, canonicalized, list)?
-            .send_adjust_error()
-            .await?
-            .text()
-            .await
-            .map_err(FileError::from)?;
-
-        Ok(content.into_bytes())
-    }
-
-    /// 删除 Object 对应的 OSS 上的资源文件
-    pub async fn delete_object<B: AlignBuilder>(&self, builder: &B) -> Result<(), FileError> {
-        let (url, canonicalized) = self.base.get_url_resource([]);
-
-        builder
-            .builder(Method::DELETE, url, canonicalized)?
-            .send_adjust_error()
-            .await?;
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
-mod tests_macro {
-    use std::sync::Arc;
+mod test_try {
+    use crate::config::ObjectPath;
+    use crate::file::FileError;
+    use crate::Client;
 
-    use chrono::{DateTime, NaiveDateTime, Utc};
-
-    use crate::{object::Object, Client};
-
-    fn init_object() -> Object {
-        let bucket = Arc::new("abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap());
-        Object::new(
-            bucket,
-            "foo2".parse().unwrap(),
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(), Utc),
-            "foo3".into(),
-            "foo4".into(),
-            100,
-            "foo5".into(),
-        )
-    }
-
+    use super::FileAs;
     fn init_client() -> Client {
         use std::env::set_var;
         set_var("ALIYUN_KEY_ID", "foo1");
@@ -487,66 +563,27 @@ mod tests_macro {
         Client::from_env().unwrap()
     }
 
-    #[cfg(feature = "put_file")]
     #[tokio::test]
-    async fn test_object_put_file() {
-        let object = init_object();
-
+    async fn try_delete() {
         let client = init_client();
 
-        let res = object.put_file("abc", &client).await;
+        struct Path;
+        impl TryFrom<Path> for ObjectPath {
+            type Error = MyError;
+            fn try_from(_path: Path) -> Result<Self, Self::Error> {
+                ObjectPath::new("abc").map_err(|_| MyError {})
+            }
+        }
 
-        assert!(res.is_err());
-    }
+        struct MyError;
 
-    #[tokio::test]
-    async fn test_object_put_content() {
-        let object = init_object();
+        impl Into<FileError> for MyError {
+            fn into(self) -> FileError {
+                FileError::FileTypeNotFound
+            }
+        }
 
-        let client = init_client();
-
-        let content: Vec<u8> = String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
-
-        let res = object
-            .put_content(content, |_| Some("image/png"), &client)
-            .await;
-
-        assert!(res.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_object_put_content_base() {
-        let object = init_object();
-
-        let client = init_client();
-
-        let content: Vec<u8> = String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
-
-        let res = object.put_content_base(content, "image/png", &client).await;
-
-        assert!(res.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_object_get_object() {
-        let object = init_object();
-
-        let client = init_client();
-
-        let res = object.get_object(.., &client).await;
-
-        assert!(res.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_object_delete() {
-        let object = init_object();
-
-        let client = init_client();
-
-        let res = object.delete_object(&client).await;
-
-        assert!(res.is_err());
+        let _ = client.delete_object_as(Path {}).await;
     }
 }
 
@@ -643,8 +680,7 @@ pub mod blocking {
             OP: TryInto<ObjectPath>,
             <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
         {
-            let content_type =
-                get_content_type(&content).ok_or_else(|| FileError::FileTypeNotFound)?;
+            let content_type = get_content_type(&content).unwrap_or("application/octet-stream");
 
             let content = self.put_content_base(content, content_type, path)?;
 
@@ -847,8 +883,7 @@ pub mod blocking {
             F: Fn(&Vec<u8>) -> Option<&'static str>,
             B: AlignBuilder,
         {
-            let content_type =
-                get_content_type(&content).ok_or_else(|| FileError::FileTypeNotFound)?;
+            let content_type = get_content_type(&content).unwrap_or("application/octet-stream");
 
             let content = self.put_content_base(content, content_type, builder)?;
 

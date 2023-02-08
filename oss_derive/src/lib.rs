@@ -57,3 +57,18 @@ pub fn array2query(attr: TokenStream, input: TokenStream) -> TokenStream {
     update_count(&mut item, attr.count);
     TokenStream::from(quote!(#item))
 }
+
+mod path_where;
+
+/// # 为 `OP` 自动生成 `where` 语句
+///
+/// ```rust,ignore
+/// where:
+///     OP: TryInto<ObjectPath> + Send + Sync,
+///     <OP as TryInto<ObjectPath>>::Error: Into<Self::Error>,
+/// ```
+#[proc_macro_attribute]
+pub fn path_where(_attr: TokenStream, input: TokenStream) -> TokenStream {
+    let item = parse_macro_input!(input as path_where::GenWhere);
+    TokenStream::from(quote!(#item))
+}

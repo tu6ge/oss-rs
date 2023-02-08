@@ -129,15 +129,15 @@ let client = aliyun_oss_client::Client::new("key1".into(), "secret1".into(), "qi
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::file::File;
+    use aliyun_oss_client::file::FileAs;
     client
-        .put_file("examples/bg2015071010.png", "examples/bg2015071010.png")
+        .put_file_as("examples/bg2015071010.png", "examples/bg2015071010.png")
         .await;
 
     // or 上传文件内容
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
     client
-        .put_content(file_content, "examples/bg2015071010.png", |_| {
+        .put_content_as(file_content, "examples/bg2015071010.png", |_| {
             Some("image/png")
         })
         .await;
@@ -145,7 +145,7 @@ let client = aliyun_oss_client::Client::new("key1".into(), "secret1".into(), "qi
     // or 自定义上传文件 Content-Type
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
     client
-        .put_content_base(file_content, "image/png", "examples/bg2015071010.png")
+        .put_content_base_as(file_content, "image/png", "examples/bg2015071010.png")
         .await;
 # }
 ```
@@ -160,8 +160,8 @@ let client = aliyun_oss_client::Client::new("key1".into(), "secret1".into(), "qi
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::file::File;
-    client.delete_object("examples/bg2015071010.png").await;
+    use aliyun_oss_client::file::FileAs;
+    client.delete_object_as("examples/bg2015071010.png").await;
 # }
 ```
 
@@ -249,7 +249,7 @@ println!("next object list: {:?}", result.next());
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
-use aliyun_oss_client::file::blocking::File;
+use aliyun_oss_client::file::blocking::Files;
 client
     .put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
