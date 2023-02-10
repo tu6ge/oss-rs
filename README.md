@@ -251,19 +251,19 @@ println!("next object list: {:?}", result.next());
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
 use aliyun_oss_client::file::blocking::Files;
 client
-    .put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
+    .put_file("examples/bg2015071010.png", "examples/bg2015071010.png".parse().unwrap());
 
 // or 上传文件内容
 let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
 client
-    .put_content(file_content, "examples/bg2015071010.png", |_| {
+    .put_content(file_content, "examples/bg2015071010.png".parse().unwrap(), |_| {
         Some("image/png")
     });
 
 // or 自定义上传文件 Content-Type
 let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
 client
-    .put_content_base(file_content, "image/png", "examples/bg2015071010.png");
+    .put_content_base(file_content, "image/png", "examples/bg2015071010.png".parse().unwrap());
 ```
 
 ### 删除文件
@@ -274,8 +274,8 @@ client
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
-use aliyun_oss_client::file::blocking::File;
-client.delete_object("examples/bg2015071010.png");
+use aliyun_oss_client::file::blocking::Files;
+client.delete_object("examples/bg2015071010.png".parse().unwrap());
 ```
 
 ## 运行 Bench

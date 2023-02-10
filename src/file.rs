@@ -588,16 +588,18 @@ mod test_try {
 }
 
 #[cfg(feature = "blocking")]
-pub use blocking::File as BlockingFile;
+pub use blocking::Files as BlockingFile;
 
 #[cfg(feature = "blocking")]
 pub mod blocking {
+    use std::rc::Rc;
+
     use super::FileError;
     use crate::{
         blocking::builder::RequestBuilder,
         bucket::Bucket,
         builder::{BuilderError, RcPointer},
-        config::{InvalidObjectPath, ObjectBase, ObjectPath},
+        config::{ObjectBase, ObjectPath},
         object::{Object, ObjectList},
         types::{CanonicalizedResource, ContentRange},
         ClientRc,
@@ -610,27 +612,30 @@ pub mod blocking {
     use infer::Infer;
     use reqwest::{blocking::Response, Url};
 
-    pub trait File: AlignBuilder {
+    pub trait Files: AlignBuilder
+    where
+        Self::Err: From<FileError>,
+    {
+        type Path;
+        type Err;
+
+        /// # 默认的文件类型
+        /// 在上传文件时，如果找不到合适的 mime 类型，可以使用
+        const DEFAULT_CONTENT_TYPE: &'static str = "application/octet-stream";
+
         /// 根据文件路径获取最终的调用接口以及相关参数
-        fn get_url<OP>(&self, path: OP) -> Result<(Url, CanonicalizedResource), FileError>
-        where
-            OP: TryInto<ObjectPath>,
-            <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>;
+        fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), Self::Err>;
 
         /// # 上传文件到 OSS
         ///
         /// 需指定文件的路径
         #[cfg(feature = "put_file")]
-        fn put_file<P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path>, OP>(
+        fn put_file<P: Into<std::path::PathBuf> + std::convert::AsRef<std::path::Path>>(
             &self,
             file_name: P,
-            path: OP,
-        ) -> Result<String, FileError>
-        where
-            OP: TryInto<ObjectPath>,
-            <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-        {
-            let file_content = std::fs::read(file_name)?;
+            path: Self::Path,
+        ) -> Result<String, Self::Err> {
+            let file_content = std::fs::read(file_name).map_err(|e| e.into())?;
 
             let get_content_type =
                 |content: &Vec<u8>| Infer::new().get(content).map(|con| con.mime_type());
@@ -665,20 +670,18 @@ pub mod blocking {
         ///     None => None,
         /// };
         /// let content: Vec<u8> = String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
-        /// let res = client.put_content(content, "xxxxxx.msi.zip.sig", get_content_type);
+        /// let res = client.put_content(content, "xxxxxx.msi.zip.sig".parse().unwrap(), get_content_type);
         /// assert!(res.is_ok());
         /// # }
         /// ```
-        fn put_content<F, OP>(
+        fn put_content<F>(
             &self,
             content: Vec<u8>,
-            path: OP,
+            path: Self::Path,
             get_content_type: F,
-        ) -> Result<String, FileError>
+        ) -> Result<String, Self::Err>
         where
             F: Fn(&Vec<u8>) -> Option<&'static str>,
-            OP: TryInto<ObjectPath>,
-            <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
         {
             let content_type = get_content_type(&content).unwrap_or("application/octet-stream");
 
@@ -695,16 +698,12 @@ pub mod blocking {
         }
 
         /// 最原始的上传文件的方法
-        fn put_content_base<OP>(
+        fn put_content_base(
             &self,
             content: Vec<u8>,
             content_type: &str,
-            path: OP,
-        ) -> Result<Response, FileError>
-        where
-            OP: TryInto<ObjectPath>,
-            <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-        {
+            path: Self::Path,
+        ) -> Result<Response, Self::Err> {
             let (url, canonicalized) = self.get_url(path)?;
 
             let content_length = content.len().to_string();
@@ -717,83 +716,74 @@ pub mod blocking {
             ];
 
             let response = self
-                .builder_with_header(Method::PUT, url, canonicalized, headers)?
+                .builder_with_header(Method::PUT, url, canonicalized, headers)
+                .map_err(|e| FileError::from(e).into())?
                 .body(content);
 
-            let content = response.send_adjust_error()?;
-            Ok(content)
+            response
+                .send_adjust_error()
+                .map_err(|e| FileError::from(e).into())
         }
 
         /// # 获取文件内容
-        fn get_object<R: Into<ContentRange>, OP>(
+        fn get_object<R: Into<ContentRange>>(
             &self,
-            path: OP,
+            path: Self::Path,
             range: R,
-        ) -> Result<Vec<u8>, FileError>
-        where
-            OP: TryInto<ObjectPath>,
-            <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-        {
+        ) -> Result<Vec<u8>, Self::Err> {
             let (url, canonicalized) = self.get_url(path)?;
 
             let headers: Vec<(_, HeaderValue)> =
                 vec![("Range".parse().unwrap(), range.into().into())];
 
             Ok(self
-                .builder_with_header(Method::GET, url, canonicalized, headers)?
-                .send_adjust_error()?
-                .text()?
+                .builder_with_header(Method::GET, url, canonicalized, headers)
+                .map_err(|e| FileError::from(e).into())?
+                .send_adjust_error()
+                .map_err(|e| e.into())?
+                .text()
+                .map_err(|e| FileError::from(e).into())?
                 .into_bytes())
         }
 
-        fn delete_object<OP>(&self, path: OP) -> Result<(), FileError>
-        where
-            OP: TryInto<ObjectPath>,
-            <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-        {
+        fn delete_object(&self, path: Self::Path) -> Result<(), Self::Err> {
             let (url, canonicalized) = self.get_url(path)?;
 
-            self.builder(Method::DELETE, url, canonicalized)?
-                .send_adjust_error()?;
+            self.builder(Method::DELETE, url, canonicalized)
+                .map_err(|e| FileError::from(e).into())?
+                .send_adjust_error()
+                .map_err(|e| FileError::from(e).into())?;
 
             Ok(())
         }
     }
 
-    impl File for ClientRc {
-        fn get_url<OP>(&self, path: OP) -> Result<(Url, CanonicalizedResource), FileError>
-        where
-            OP: TryInto<ObjectPath>,
-            <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-        {
-            let object_base = ObjectBase::<RcPointer>::from_bucket(self.get_bucket_base(), path)
-                .map_err(FileError::from)?;
+    impl Files for ClientRc {
+        type Path = ObjectPath;
+        type Err = FileError;
+        fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), FileError> {
+            let object_base = ObjectBase::<RcPointer>::new2(Rc::new(self.get_bucket_base()), path);
 
             Ok(object_base.get_url_resource([]))
         }
     }
 
-    impl File for Bucket<RcPointer> {
-        fn get_url<OP>(&self, path: OP) -> Result<(Url, CanonicalizedResource), FileError>
-        where
-            OP: TryInto<ObjectPath>,
-            <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-        {
-            let object_base = ObjectBase::<RcPointer>::from_bucket(self.base.clone(), path)
-                .map_err(FileError::from)?;
+    impl Files for Bucket<RcPointer> {
+        type Path = ObjectPath;
+        type Err = FileError;
+        fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), FileError> {
+            let object_base = ObjectBase::<RcPointer>::new2(Rc::new(self.base.clone()), path);
 
             Ok(object_base.get_url_resource([]))
         }
     }
 
-    impl File for ObjectList<RcPointer> {
-        fn get_url<OP>(&self, path: OP) -> Result<(Url, CanonicalizedResource), FileError>
-        where
-            OP: TryInto<ObjectPath>,
-            <OP as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
-        {
-            let object_base = ObjectBase::<RcPointer>::from_bucket(self.bucket.clone(), path)
-                .map_err(FileError::from)?;
+    impl Files for ObjectList<RcPointer> {
+        type Path = Object<RcPointer>;
+        type Err = FileError;
+        fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), FileError> {
+            let object_base =
+                ObjectBase::<RcPointer>::new2(Rc::new(self.bucket.clone()), path.into());
 
             Ok(object_base.get_url_resource([]))
         }

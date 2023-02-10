@@ -172,20 +172,26 @@ mod test_blocking {
         let client = ClientRc::from_env().unwrap();
 
         // 第一种读取文件路径的方式
-        let object_list = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
+        let object_list = client.put_file(
+            "examples/bg2015071010.png",
+            "examples/bg2015071010.png".parse().unwrap(),
+        );
 
         assert_matches!(object_list, Ok(_));
 
-        let result = client.delete_object("examples/bg2015071010.png");
+        let result = client.delete_object("examples/bg2015071010.png".parse().unwrap());
 
         assert_matches!(result, Ok(_));
 
         // 第二种读取文件路径的方式
-        let object_list = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
+        let object_list = client.put_file(
+            "examples/bg2015071010.png",
+            "examples/bg2015071010.png".parse().unwrap(),
+        );
 
         assert_matches!(object_list, Ok(_));
 
-        let result = client.delete_object("examples/bg2015071010.png");
+        let result = client.delete_object("examples/bg2015071010.png".parse().unwrap());
 
         assert_matches!(result, Ok(_));
     }

@@ -4,7 +4,7 @@ use aliyun_oss_client::client::Client;
 
 extern crate dotenv;
 
-use aliyun_oss_client::file::blocking::File;
+use aliyun_oss_client::file::blocking::Files;
 use dotenv::dotenv;
 use std::path::PathBuf;
 
@@ -16,7 +16,7 @@ fn main() {
     let response = client
         .put_file(
             PathBuf::from("examples/bg2015071010.png"),
-            "examples/bg2015071010.png",
+            "examples/bg2015071010.png".parse().unwrap(),
         )
         .unwrap();
     println!("put file result: {:?}", response);

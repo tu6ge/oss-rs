@@ -13,6 +13,8 @@ fn main() {
 
     let client = Client::<ClientWithMiddleware>::from_env().unwrap();
     //let headers = None;
-    client.delete_object("examples/bg2015071010.png").unwrap();
+    client
+        .delete_object("examples/bg2015071010.png".parse().unwrap())
+        .unwrap();
     println!("delet file success");
 }

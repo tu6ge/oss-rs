@@ -329,7 +329,7 @@ async fn test_put_content_base() {
 #[test]
 fn test_blocking_put_content_base() {
     use crate::client::ClientRc;
-    use crate::{blocking::builder::Middleware, file::blocking::File};
+    use crate::{blocking::builder::Middleware, file::blocking::Files};
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
@@ -371,7 +371,7 @@ fn test_blocking_put_content_base() {
     let content = String::from("Hello world");
     let content: Vec<u8> = content.into();
 
-    let res = client.put_content_base(content, "application/text", "abc.text");
+    let res = client.put_content_base(content, "application/text", "abc.text".parse().unwrap());
 
     //println!("{:?}", res);
     assert!(res.is_ok());
@@ -598,7 +598,7 @@ mod blocking_get_object {
 
     use crate::blocking::builder::ClientWithMiddleware;
     use crate::builder::BuilderError;
-    use crate::file::blocking::File;
+    use crate::file::blocking::Files;
     use crate::{blocking::builder::Middleware, client::Client};
 
     #[test]
@@ -642,7 +642,7 @@ mod blocking_get_object {
         )
         .middleware(Rc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png", ..);
+        let res = client.get_object("foo.png".parse().unwrap(), ..);
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -691,7 +691,7 @@ mod blocking_get_object {
         )
         .middleware(Rc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png", 1..);
+        let res = client.get_object("foo.png".parse().unwrap(), 1..);
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -740,7 +740,7 @@ mod blocking_get_object {
         )
         .middleware(Rc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png", ..10);
+        let res = client.get_object("foo.png".parse().unwrap(), ..10);
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -789,7 +789,7 @@ mod blocking_get_object {
         )
         .middleware(Rc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png", 2..10);
+        let res = client.get_object("foo.png".parse().unwrap(), 2..10);
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -891,7 +891,7 @@ fn test_blocking_delete_object() {
     )
     .middleware(Rc::new(MyMiddleware {}));
 
-    let res = client.delete_object("abc.png");
+    let res = client.delete_object("abc.png".parse().unwrap());
     //println!("{:?}", res);
     assert!(res.is_ok());
 }
