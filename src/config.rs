@@ -735,6 +735,196 @@ impl UrlObjectPath for Url {
     }
 }
 
+/// OSS Object 对象路径的前缀目录
+/// 不带前缀 `/`, 必须以 `/` 结尾
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObjectDir<'a>(Cow<'a, str>);
+
+impl AsRef<str> for ObjectDir<'_> {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for ObjectDir<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0.clone())
+    }
+}
+
+// impl Default for ObjectDir<'_> {
+//     /// 默认值
+//     /// ```
+//     /// # use aliyun_oss_client::config::ObjectDir;
+//     /// let path = ObjectDir::default();
+//     /// assert!(path == "default/");
+//     /// ```
+//     fn default() -> Self {
+//         Self(Cow::Borrowed("default/"))
+//     }
+// }
+
+impl PartialEq<&str> for ObjectDir<'_> {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectDir;
+    /// let path = ObjectDir::new("abc/").unwrap();
+    /// assert!(path == "abc/");
+    /// ```
+    #[inline]
+    fn eq(&self, other: &&str) -> bool {
+        &self.0 == other
+    }
+}
+
+impl PartialEq<ObjectDir<'_>> for &str {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectDir;
+    /// let path = ObjectDir::new("abc/").unwrap();
+    /// assert!("abc/" == path);
+    /// ```
+    #[inline]
+    fn eq(&self, other: &ObjectDir<'_>) -> bool {
+        self == &other.0
+    }
+}
+
+impl PartialEq<String> for ObjectDir<'_> {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectDir;
+    /// let path = ObjectDir::new("abc/").unwrap();
+    /// assert!(path == "abc/".to_string());
+    /// ```
+    #[inline]
+    fn eq(&self, other: &String) -> bool {
+        &self.0.clone() == other
+    }
+}
+
+impl PartialEq<ObjectDir<'_>> for String {
+    /// 相等比较
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectDir;
+    /// let path = ObjectDir::new("abc/").unwrap();
+    /// assert!("abc/".to_string() == path);
+    /// ```
+    #[inline]
+    fn eq(&self, other: &ObjectDir) -> bool {
+        self == &other.0.clone()
+    }
+}
+
+impl<'a> ObjectDir<'a> {
+    /// Creates a new `ObjectPath` from the given string.
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectDir;
+    /// assert!(ObjectDir::new("abc/").is_ok());
+    /// assert!(ObjectDir::new("abc/def/").is_ok());
+    /// assert!(ObjectDir::new("/").is_err());
+    /// assert!(ObjectDir::new("/abc/").is_err());
+    /// assert!(ObjectDir::new(".abc/").is_err());
+    /// assert!(ObjectDir::new("../abc/").is_err());
+    /// assert!(ObjectDir::new(r"aaa\abc/").is_err());
+    /// ```
+    pub fn new(val: impl Into<Cow<'a, str>>) -> Result<Self, InvalidObjectDir> {
+        let val = val.into();
+        if val.starts_with('/') || val.starts_with('.') || !val.ends_with('/') {
+            return Err(InvalidObjectDir);
+        }
+        if !val.chars().all(|c| c != '\\') {
+            return Err(InvalidObjectDir);
+        }
+        Ok(Self(val))
+    }
+
+    /// Const function that creates a new `ObjectPath` from a static str.
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectDir;
+    /// let path = unsafe { ObjectDir::from_static("abc/") };
+    /// assert!(path == "abc/");
+    /// ```
+    pub const unsafe fn from_static(secret: &'a str) -> Self {
+        Self(Cow::Borrowed(secret))
+    }
+
+    pub fn to_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl TryFrom<String> for ObjectDir<'_> {
+    type Error = InvalidObjectDir;
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectDir;
+    /// let path: ObjectDir = String::from("abc/").try_into().unwrap();
+    /// assert!(path == "abc/");
+    /// ```
+    fn try_from(val: String) -> Result<Self, Self::Error> {
+        Self::new(val)
+    }
+}
+
+impl<'a: 'b, 'b> TryFrom<&'a str> for ObjectDir<'b> {
+    type Error = InvalidObjectDir;
+    fn try_from(val: &'a str) -> Result<Self, Self::Error> {
+        Self::new(val)
+    }
+}
+
+impl FromStr for ObjectDir<'_> {
+    type Err = InvalidObjectDir;
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectDir;
+    /// use std::str::FromStr;
+    /// let path: ObjectDir = "path1/".parse().unwrap();
+    /// assert!(path == "path1/");
+    /// assert!(ObjectDir::from_str("abc/").is_ok());
+    /// assert!(ObjectDir::from_str("abc/def/").is_ok());
+    /// assert!(ObjectDir::from_str("/").is_err());
+    /// assert!(ObjectDir::from_str("/abc/").is_err());
+    /// assert!(ObjectDir::from_str(".abc/").is_err());
+    /// assert!(ObjectDir::from_str("../abc/").is_err());
+    /// assert!(ObjectDir::from_str(r"aaa\abc/").is_err());
+    /// ```
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.starts_with('/') || s.starts_with('.') || !s.ends_with('/') {
+            return Err(InvalidObjectDir);
+        }
+
+        if !s.chars().all(|c| c != '\\') {
+            return Err(InvalidObjectDir);
+        }
+        Ok(Self(Cow::Owned(s.to_owned())))
+    }
+}
+
+impl TryFrom<&Path> for ObjectDir<'_> {
+    type Error = InvalidObjectDir;
+    fn try_from(value: &Path) -> Result<Self, Self::Error> {
+        let val = value.to_str().ok_or(InvalidObjectDir)?;
+        if std::path::MAIN_SEPARATOR != '/' {
+            val.replace(std::path::MAIN_SEPARATOR, "/").parse()
+        } else {
+            val.parse()
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+pub struct InvalidObjectDir;
+
+impl Display for InvalidObjectDir {
+    /// ```
+    /// # use aliyun_oss_client::config::InvalidObjectDir;
+    /// assert_eq!(format!("{}", InvalidObjectDir), "ObjectDir must end with `/`");
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "ObjectDir must end with `/`")
+    }
+}
+
 pub trait OssFullUrl {
     fn from_oss(endpoint: &EndPoint, bucket: &BucketName, path: &ObjectPath) -> Self;
 }
@@ -761,7 +951,7 @@ impl OssFullUrl for Url {
 }
 
 /// 文件夹下的子文件夹名，子文件夹下递归的所有文件和文件夹不包含在这里。
-pub type CommonPrefixes = Vec<ObjectPath>;
+pub type CommonPrefixes = Vec<ObjectDir<'static>>;
 
 #[cfg(test)]
 mod tests {

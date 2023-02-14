@@ -4,7 +4,7 @@ use crate::builder::{ArcPointer, BuilderError, PointerFamily};
 use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
-use crate::config::{BucketBase, CommonPrefixes, ObjectBase, ObjectPath};
+use crate::config::{BucketBase, CommonPrefixes, ObjectBase, ObjectDir, ObjectPath};
 use crate::decode::{RefineObject, RefineObjectList};
 use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
@@ -110,7 +110,7 @@ impl<T: PointerFamily> ObjectList<T> {
         &self.common_prefixes
     }
 
-    pub fn set_common_prefixes<P: IntoIterator<Item = ObjectPath>>(&mut self, prefixes: P) {
+    pub fn set_common_prefixes<P: IntoIterator<Item = ObjectDir<'static>>>(&mut self, prefixes: P) {
         self.common_prefixes = CommonPrefixes::from_iter(prefixes);
     }
 
@@ -534,7 +534,7 @@ impl<T: PointerFamily> RefineObjectList<Object<T>> for ObjectList<T> {
     ) -> Result<(), Self::Error> {
         for val in list.iter() {
             self.common_prefixes
-                .push(val.parse::<ObjectPath>().map_err(Self::Error::from)?);
+                .push(val.parse::<ObjectDir>().map_err(Self::Error::from)?);
         }
         Ok(())
     }
@@ -1126,12 +1126,12 @@ mod tests {
         let list = object_list.common_prefixes();
         assert!(list.len() == 0);
 
-        object_list.set_common_prefixes(["abc".parse().unwrap(), "cde".parse().unwrap()]);
+        object_list.set_common_prefixes(["abc/".parse().unwrap(), "cde/".parse().unwrap()]);
         let list = object_list.common_prefixes();
 
         assert!(list.len() == 2);
-        assert!(list[0] == "abc");
-        assert!(list[1] == "cde");
+        assert!(list[0] == "abc/");
+        assert!(list[1] == "cde/");
     }
 
     #[test]

@@ -504,8 +504,8 @@ mod tests {
             }
 
             fn set_common_prefix(&mut self, list: &Vec<Cow<'_, str>>) -> Result<(), Self::Error> {
-                assert!(list[0] == "foo1");
-                assert!(list[1] == "foo2");
+                assert!(list[0] == "foo1/");
+                assert!(list[1] == "foo2/");
                 Ok(())
             }
         }
@@ -520,8 +520,8 @@ mod tests {
             <Key>9AB932LY.jpeg</Key>
           </Contents>
           <CommonPrefixes>
-            <Prefix>foo1</Prefix>
-            <Prefix>foo2</Prefix>
+            <Prefix>foo1/</Prefix>
+            <Prefix>foo2/</Prefix>
           </CommonPrefixes>
         </ListBucketResult>
         "#;
