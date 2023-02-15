@@ -828,7 +828,7 @@ impl<'a> ObjectDir<'a> {
     /// assert!(ObjectDir::new("../abc/").is_err());
     /// assert!(ObjectDir::new(r"aaa\abc/").is_err());
     /// ```
-    pub fn new(val: impl Into<Cow<'a, str>>) -> Result<Self, InvalidObjectDir> {
+    pub fn new<'b: 'a>(val: impl Into<Cow<'b, str>>) -> Result<Self, InvalidObjectDir> {
         let val = val.into();
         if val.starts_with('/') || val.starts_with('.') || !val.ends_with('/') {
             return Err(InvalidObjectDir);
