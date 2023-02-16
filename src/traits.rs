@@ -13,10 +13,9 @@
 //!     #[allow(dead_code)]
 //!     other: String,
 //! }
-//! impl RefineObject for MyFile {
-//!     type Error = MyError;
+//! impl RefineObject<MyError> for MyFile {
 //!
-//!     fn set_key(&mut self, key: &str) -> Result<(), Self::Error> {
+//!     fn set_key(&mut self, key: &str) -> Result<(), MyError> {
 //!         self.key = key.to_string();
 //!         Ok(())
 //!     }
@@ -28,14 +27,13 @@
 //!     files: Vec<MyFile>,
 //! }
 //!
-//! impl RefineObjectList<MyFile> for MyBucket {
-//!     type Error = MyError;
+//! impl RefineObjectList<MyFile, MyError> for MyBucket {
 //!
-//!     fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
+//!     fn set_name(&mut self, name: &str) -> Result<(), MyError> {
 //!         self.name = name.to_string();
 //!         Ok(())
 //!     }
-//!     fn set_list(&mut self, list: Vec<MyFile>) -> Result<(), Self::Error> {
+//!     fn set_list(&mut self, list: Vec<MyFile>) -> Result<(), MyError> {
 //!         self.files = list;
 //!         Ok(())
 //!     }
@@ -96,32 +94,30 @@ use std::borrow::Cow;
 
 use quick_xml::{events::Event, Reader};
 
-pub trait RefineObject {
-    type Error;
-
+pub trait RefineObject<Error> {
     /// 提取 key
-    fn set_key(&mut self, _key: &str) -> Result<(), Self::Error> {
+    fn set_key(&mut self, _key: &str) -> Result<(), Error> {
         Ok(())
     }
 
     /// 提取最后修改时间
-    fn set_last_modified(&mut self, _last_modified: &str) -> Result<(), Self::Error> {
+    fn set_last_modified(&mut self, _last_modified: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_etag(&mut self, _etag: &str) -> Result<(), Self::Error> {
+    fn set_etag(&mut self, _etag: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_type(&mut self, _type: &str) -> Result<(), Self::Error> {
+    fn set_type(&mut self, _type: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_size(&mut self, _size: &str) -> Result<(), Self::Error> {
+    fn set_size(&mut self, _size: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Self::Error> {
+    fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Error> {
         Ok(())
     }
 }
@@ -152,49 +148,47 @@ const ID: &[u8] = b"ID";
 const DISPLAY_NAME: &[u8] = b"DisplayName";
 const CONTENTS: &[u8] = b"Contents";
 
-pub trait RefineObjectList<T>
+pub trait RefineObjectList<T, Error>
 where
-    T: RefineObject,
-    Self::Error: From<quick_xml::Error> + From<T::Error>,
+    T: RefineObject<Error>,
+    Error: From<quick_xml::Error>,
 {
-    type Error;
-
     /// 提取 bucket 名
-    fn set_name(&mut self, _name: &str) -> Result<(), Self::Error> {
+    fn set_name(&mut self, _name: &str) -> Result<(), Error> {
         Ok(())
     }
 
     /// 提取前缀
-    fn set_prefix(&mut self, _prefix: &str) -> Result<(), Self::Error> {
+    fn set_prefix(&mut self, _prefix: &str) -> Result<(), Error> {
         Ok(())
     }
 
     /// 提取文件目录
-    fn set_common_prefix(&mut self, _list: &Vec<Cow<'_, str>>) -> Result<(), Self::Error> {
+    fn set_common_prefix(&mut self, _list: &Vec<Cow<'_, str>>) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Self::Error> {
+    fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_key_count(&mut self, _key_count: &str) -> Result<(), Self::Error> {
+    fn set_key_count(&mut self, _key_count: &str) -> Result<(), Error> {
         Ok(())
     }
 
     /// 提取翻页信息，有下一页，返回 Some, 否则返回 None
-    fn set_next_continuation_token(&mut self, _token: Option<&str>) -> Result<(), Self::Error> {
+    fn set_next_continuation_token(&mut self, _token: Option<&str>) -> Result<(), Error> {
         Ok(())
     }
 
     /// 提取 object 列表
-    fn set_list(&mut self, _list: Vec<T>) -> Result<(), Self::Error> {
+    fn set_list(&mut self, _list: Vec<T>) -> Result<(), Error> {
         Ok(())
     }
 
     /// # 由 xml 转 struct 的底层实现
     /// - `init_object` 用于初始化 object 结构体的方法
-    fn decode<F>(&mut self, xml: &str, mut init_object: F) -> Result<(), Self::Error>
+    fn decode<F>(&mut self, xml: &str, mut init_object: F) -> Result<(), Error>
     where
         F: FnMut() -> T,
     {
@@ -290,7 +284,7 @@ where
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(Self::Error::from(e));
+                    return Err(Error::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -489,21 +483,20 @@ mod tests {
     #[test]
     fn test_common_prefixes() {
         struct ObjectA {}
-        impl RefineObject for ObjectA {
-            type Error = quick_xml::Error;
-        }
+        impl RefineObject<quick_xml::Error> for ObjectA {}
 
         struct ListA {}
 
-        impl RefineObjectList<ObjectA> for ListA {
-            type Error = quick_xml::Error;
-
-            fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
+        impl RefineObjectList<ObjectA, quick_xml::Error> for ListA {
+            fn set_prefix(&mut self, prefix: &str) -> Result<(), quick_xml::Error> {
                 assert!(prefix == "bar");
                 Ok(())
             }
 
-            fn set_common_prefix(&mut self, list: &Vec<Cow<'_, str>>) -> Result<(), Self::Error> {
+            fn set_common_prefix(
+                &mut self,
+                list: &Vec<Cow<'_, str>>,
+            ) -> Result<(), quick_xml::Error> {
                 assert!(list[0] == "foo1/");
                 assert!(list[1] == "foo2/");
                 Ok(())

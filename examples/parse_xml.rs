@@ -7,10 +7,8 @@ struct MyFile {
     other: String,
 }
 
-impl RefineObject for MyFile {
-    type Error = MyError;
-
-    fn set_key(&mut self, key: &str) -> Result<(), Self::Error> {
+impl RefineObject<MyError> for MyFile {
+    fn set_key(&mut self, key: &str) -> Result<(), MyError> {
         self.key = key.to_string();
         Ok(())
     }
@@ -22,14 +20,12 @@ struct MyBucket {
     files: Vec<MyFile>,
 }
 
-impl RefineObjectList<MyFile> for MyBucket {
-    type Error = MyError;
-
-    fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
+impl RefineObjectList<MyFile, MyError> for MyBucket {
+    fn set_name(&mut self, name: &str) -> Result<(), MyError> {
         self.name = name.to_string();
         Ok(())
     }
-    fn set_list(&mut self, list: Vec<MyFile>) -> Result<(), Self::Error> {
+    fn set_list(&mut self, list: Vec<MyFile>) -> Result<(), MyError> {
         self.files = list;
         Ok(())
     }

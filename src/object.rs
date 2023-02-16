@@ -1,10 +1,101 @@
+//! # Object 相关功能
+//! `ObjectList` 对应文件列表，`Object` 对应的是单个文件对象
+//!
+//! `ObjectList` 也可以支持自定义的类型存储单个文件对象，例如 [issue 12](https://github.com/tu6ge/oss-rs/issues/12) 提到的，有些时候，
+//! Oss 接口不仅返回文件路径，还会返回目录路径，可以使用如下例子进行适配
+//!
+//! ```rust,no_run
+//! use aliyun_oss_client::{
+//!     builder::{ArcPointer, BuilderError},
+//!     config::{InvalidObjectDir, ObjectDir, ObjectPath},
+//!     decode::RefineObject,
+//!     object::ObjectList,
+//!     BucketName, Client,
+//! };
+//! use dotenv::dotenv;
+//!
+//! #[derive(Debug)]
+//! enum MyObject {
+//!     File(ObjectPath),
+//!     Dir(ObjectDir<'static>),
+//! }
+//!
+//! impl RefineObject<MyError> for MyObject {
+//!     fn set_key(&mut self, key: &str) -> Result<(), MyError> {
+//!         let res = key.parse::<ObjectPath>();
+//!     
+//!         *self = match res {
+//!             Ok(file) => MyObject::File(file),
+//!             _ => {
+//!                 let re = key.parse::<ObjectDir>();
+//!                 MyObject::Dir(re.unwrap())
+//!             }
+//!         };
+//!     
+//!         Ok(())
+//!     }
+//! }
+//!
+//! struct MyError(String);
+//!
+//! impl From<quick_xml::Error> for MyError {
+//!     fn from(value: quick_xml::Error) -> Self {
+//!         Self(value.to_string())
+//!     }
+//! }
+//!
+//! impl From<BuilderError> for MyError {
+//!     fn from(value: BuilderError) -> Self {
+//!         Self(value.to_string())
+//!     }
+//! }
+//!
+//! impl From<std::num::ParseIntError> for MyError {
+//!     fn from(value: std::num::ParseIntError) -> Self {
+//!         Self(value.to_string())
+//!     }
+//! }
+//!
+//! impl From<InvalidObjectDir> for MyError {
+//!     fn from(value: InvalidObjectDir) -> Self {
+//!         Self(value.to_string())
+//!     }
+//! }
+//!
+//! type MyList = ObjectList<ArcPointer, MyObject, MyError>;
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     dotenv().ok();
+//!
+//!     let client = Client::from_env().unwrap();
+//!
+//!     let mut list = MyList::default();
+//!
+//!     let init_object = || MyObject::File(ObjectPath::default());
+//!
+//!     let _ = client
+//!         .base_object_list(
+//!             "xxxxxx".parse::<BucketName>().unwrap(),
+//!             [],
+//!             &mut list,
+//!             init_object,
+//!         )
+//!         .await;
+//!
+//!     println!("list: {:?}", list.object_list);
+//! }
+//! ```
+
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 use crate::builder::{ArcPointer, BuilderError, PointerFamily};
 use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
-use crate::config::{BucketBase, CommonPrefixes, ObjectBase, ObjectDir, ObjectPath};
+use crate::config::{
+    BucketBase, CommonPrefixes, InvalidObjectDir, ObjectBase, ObjectDir, ObjectPath,
+};
 use crate::decode::{RefineObject, RefineObjectList};
 use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
@@ -21,6 +112,8 @@ use http::Method;
 use oss_derive::oss_gen_rc;
 
 use std::fmt;
+use std::marker::PhantomData;
+use std::num::ParseIntError;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::sync::Arc;
@@ -30,19 +123,26 @@ use std::vec::IntoIter;
 /// TODO impl core::ops::Index
 #[derive(Clone)]
 #[non_exhaustive]
-pub struct ObjectList<PointerSel: PointerFamily = ArcPointer> {
+pub struct ObjectList<
+    P: PointerFamily = ArcPointer,
+    Item: RefineObject<E> = Object<P>,
+    E: From<quick_xml::Error> = OssError,
+> {
     pub(crate) bucket: BucketBase,
     prefix: String,
     max_keys: u32,
     key_count: u64,
-    pub object_list: Vec<Object<PointerSel>>,
+    pub object_list: Vec<Item>,
     next_continuation_token: Option<String>,
     common_prefixes: CommonPrefixes,
-    client: PointerSel::PointerType,
+    client: P::PointerType,
     search_query: Query,
+    ph_err: PhantomData<E>,
 }
 
-impl<T: PointerFamily> fmt::Debug for ObjectList<T> {
+impl<T: PointerFamily, Item: RefineObject<E>, E: From<quick_xml::Error>> fmt::Debug
+    for ObjectList<T, Item, E>
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ObjectList")
             .field("bucket", &self.bucket)
@@ -57,7 +157,7 @@ impl<T: PointerFamily> fmt::Debug for ObjectList<T> {
 }
 
 #[oss_gen_rc]
-impl Default for ObjectList<ArcPointer> {
+impl<Item: RefineObject<E>, E: From<quick_xml::Error>> Default for ObjectList<ArcPointer, Item, E> {
     fn default() -> Self {
         Self {
             bucket: BucketBase::default(),
@@ -69,17 +169,18 @@ impl Default for ObjectList<ArcPointer> {
             common_prefixes: CommonPrefixes::default(),
             client: Arc::new(ClientArc::default()),
             search_query: Query::default(),
+            ph_err: PhantomData,
         }
     }
 }
 
-impl<T: PointerFamily> ObjectList<T> {
+impl<T: PointerFamily, Item: RefineObject<E>, E: From<quick_xml::Error>> ObjectList<T, Item, E> {
     pub fn new<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         bucket: BucketBase,
         prefix: String,
         max_keys: u32,
         key_count: u64,
-        object_list: Vec<Object<T>>,
+        object_list: Vec<Item>,
         next_continuation_token: Option<String>,
         client: T::PointerType,
         search_query: Q,
@@ -94,6 +195,7 @@ impl<T: PointerFamily> ObjectList<T> {
             common_prefixes: CommonPrefixes::default(),
             client,
             search_query: Query::from_iter(search_query),
+            ph_err: PhantomData,
         }
     }
 
@@ -146,13 +248,13 @@ impl<T: PointerFamily> ObjectList<T> {
     }
 
     /// 将 object 列表转化为迭代器
-    pub fn object_iter(self) -> IntoIter<Object<T>> {
+    pub fn object_iter(self) -> IntoIter<Item> {
         self.object_list.into_iter()
     }
 }
 
 #[oss_gen_rc]
-impl ObjectList<ArcPointer> {
+impl<Item: RefineObject<E>, E: From<quick_xml::Error>> ObjectList<ArcPointer, Item, E> {
     pub fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
     }
@@ -162,8 +264,8 @@ impl ObjectList<ArcPointer> {
     }
 }
 
-impl ObjectList {
-    pub async fn get_next_list(&self) -> OssResult<Self> {
+impl ObjectList<ArcPointer> {
+    pub async fn get_next_list(&self) -> OssResult<ObjectList<ArcPointer>> {
         match self.next_query() {
             None => Err(OssError::WithoutMore),
             Some(query) => {
@@ -265,7 +367,7 @@ impl ObjectList<RcPointer> {
     }
 }
 
-impl<T: PointerFamily> ObjectList<T> {
+impl<T: PointerFamily, Item: RefineObject<E>, E: From<quick_xml::Error>> ObjectList<T, Item, E> {
     #[inline]
     pub fn set_search_query(&mut self, search_query: Query) {
         self.search_query = search_query;
@@ -473,86 +575,83 @@ impl<T: PointerFamily> ObjectBuilder<T> {
     }
 }
 
-impl<T: PointerFamily + Sized> RefineObject for Object<T> {
-    type Error = OssError;
-
+impl<T: PointerFamily + Sized> RefineObject<OssError> for Object<T> {
     #[inline]
-    fn set_key(&mut self, key: &str) -> Result<(), Self::Error> {
+    fn set_key(&mut self, key: &str) -> Result<(), OssError> {
         self.base.set_path(key).map_err(OssError::from)
     }
 
     #[inline]
-    fn set_last_modified(&mut self, value: &str) -> Result<(), Self::Error> {
+    fn set_last_modified(&mut self, value: &str) -> Result<(), OssError> {
         self.last_modified = value.parse::<DateTime<Utc>>().map_err(OssError::from)?;
         Ok(())
     }
 
     #[inline]
-    fn set_etag(&mut self, value: &str) -> Result<(), Self::Error> {
+    fn set_etag(&mut self, value: &str) -> Result<(), OssError> {
         self.etag = value.to_string();
         Ok(())
     }
 
     #[inline]
-    fn set_type(&mut self, value: &str) -> Result<(), Self::Error> {
+    fn set_type(&mut self, value: &str) -> Result<(), OssError> {
         self._type = value.to_string();
         Ok(())
     }
 
     #[inline]
-    fn set_size(&mut self, size: &str) -> Result<(), Self::Error> {
+    fn set_size(&mut self, size: &str) -> Result<(), OssError> {
         self.size = size.parse::<u64>().map_err(OssError::from)?;
         Ok(())
     }
 
     #[inline]
-    fn set_storage_class(&mut self, value: &str) -> Result<(), Self::Error> {
+    fn set_storage_class(&mut self, value: &str) -> Result<(), OssError> {
         self.storage_class = value.to_string();
         Ok(())
     }
 }
 
-impl<T: PointerFamily> RefineObjectList<Object<T>> for ObjectList<T> {
-    type Error = OssError;
-
+impl<P: PointerFamily, Item: RefineObject<E>, E> RefineObjectList<Item, E>
+    for ObjectList<P, Item, E>
+where
+    E: From<quick_xml::Error> + From<ParseIntError> + From<InvalidObjectDir>,
+{
     #[inline]
-    fn set_key_count(&mut self, key_count: &str) -> Result<(), Self::Error> {
-        self.key_count = key_count.parse::<u64>().map_err(OssError::from)?;
+    fn set_key_count(&mut self, key_count: &str) -> Result<(), E> {
+        self.key_count = key_count.parse::<u64>().map_err(E::from)?;
         Ok(())
     }
 
     #[inline]
-    fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
+    fn set_prefix(&mut self, prefix: &str) -> Result<(), E> {
         self.prefix = prefix.to_owned();
         Ok(())
     }
 
     #[inline]
-    fn set_common_prefix(
-        &mut self,
-        list: &Vec<std::borrow::Cow<'_, str>>,
-    ) -> Result<(), Self::Error> {
+    fn set_common_prefix(&mut self, list: &Vec<std::borrow::Cow<'_, str>>) -> Result<(), E> {
         for val in list.iter() {
             self.common_prefixes
-                .push(val.parse::<ObjectDir>().map_err(Self::Error::from)?);
+                .push(val.parse::<ObjectDir>().map_err(E::from)?);
         }
         Ok(())
     }
 
     #[inline]
-    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), Self::Error> {
-        self.max_keys = max_keys.parse::<u32>().map_err(OssError::from)?;
+    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), E> {
+        self.max_keys = max_keys.parse::<u32>().map_err(E::from)?;
         Ok(())
     }
 
     #[inline]
-    fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), Self::Error> {
+    fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), E> {
         self.next_continuation_token = token.map(|t| t.to_owned());
         Ok(())
     }
 
     #[inline]
-    fn set_list(&mut self, list: Vec<Object<T>>) -> Result<(), Self::Error> {
+    fn set_list(&mut self, list: Vec<Item>) -> Result<(), E> {
         self.object_list = list;
         Ok(())
     }
@@ -617,10 +716,8 @@ impl Client {
     ///     #[allow(dead_code)]
     ///     other: String,
     /// }
-    /// impl RefineObject for MyFile {
-    ///     type Error = MyError;
-    ///
-    ///     fn set_key(&mut self, key: &str) -> Result<(), Self::Error> {
+    /// impl RefineObject<MyError> for MyFile {
+    ///     fn set_key(&mut self, key: &str) -> Result<(), MyError> {
     ///         self.key = key.to_string();
     ///         Ok(())
     ///     }
@@ -632,14 +729,13 @@ impl Client {
     ///     files: Vec<MyFile>,
     /// }
     ///
-    /// impl RefineObjectList<MyFile> for MyBucket {
-    ///     type Error = MyError;
+    /// impl RefineObjectList<MyFile, MyError> for MyBucket {
     ///
-    ///     fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
+    ///     fn set_name(&mut self, name: &str) -> Result<(), MyError> {
     ///         self.name = name.to_string();
     ///         Ok(())
     ///     }
-    ///     fn set_list(&mut self, list: Vec<MyFile>) -> Result<(), Self::Error> {
+    ///     fn set_list(&mut self, list: Vec<MyFile>) -> Result<(), MyError> {
     ///         self.files = list;
     ///         Ok(())
     ///     }
@@ -697,9 +793,9 @@ impl Client {
         init_object: F,
     ) -> Result<(), E>
     where
-        List: RefineObjectList<Item>,
-        Item: RefineObject,
-        E: From<BuilderError> + From<List::Error>,
+        List: RefineObjectList<Item, E>,
+        Item: RefineObject<E>,
+        E: From<BuilderError> + From<quick_xml::Error>,
         F: FnMut() -> Item,
     {
         let query = Query::from_iter(query);
@@ -774,9 +870,9 @@ impl ClientRc {
         init_object: F,
     ) -> Result<(), E>
     where
-        List: RefineObjectList<Item>,
-        Item: RefineObject,
-        E: From<BuilderError> + From<List::Error>,
+        List: RefineObjectList<Item, E>,
+        Item: RefineObject<E>,
+        E: From<BuilderError> + From<quick_xml::Error>,
         F: FnMut() -> Item,
     {
         let bucket = BucketBase::new(name.into(), self.get_endpoint().to_owned());

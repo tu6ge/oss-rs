@@ -79,6 +79,7 @@ use crate::{
     bucket::Bucket,
     builder::{ArcPointer, BuilderError, RequestBuilder},
     config::{InvalidObjectPath, ObjectBase, ObjectPath},
+    decode::RefineObject,
     object::{Object, ObjectList},
     types::{CanonicalizedResource, ContentRange},
     Client,
@@ -326,7 +327,9 @@ impl Files for Bucket {
 }
 
 /// 可将 `Object` 实例作为参数传递给各种操作方法
-impl Files for ObjectList<ArcPointer> {
+impl<Item: RefineObject<E> + Send + Sync, E: From<quick_xml::Error> + Send + Sync> Files
+    for ObjectList<ArcPointer, Item, E>
+{
     type Path = Object<ArcPointer>;
     type Err = FileError;
     fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), FileError> {
@@ -533,7 +536,9 @@ impl AlignBuilder for Bucket {
     }
 }
 
-impl AlignBuilder for ObjectList<ArcPointer> {
+impl<Item: RefineObject<E> + Send + Sync, E: From<quick_xml::Error> + Send + Sync> AlignBuilder
+    for ObjectList<ArcPointer, Item, E>
+{
     #[inline]
     fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
         &self,

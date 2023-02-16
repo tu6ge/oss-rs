@@ -30,9 +30,8 @@ mod object_list_xml {
         #[derive(Default)]
         struct ObjectA {}
 
-        impl RefineObject for ObjectA {
-            type Error = MyError;
-            fn set_key(&mut self, key: &str) -> Result<(), Self::Error> {
+        impl RefineObject<MyError> for ObjectA {
+            fn set_key(&mut self, key: &str) -> Result<(), MyError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(key, "9AB932LY.jpeg");
@@ -44,7 +43,7 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_last_modified(&mut self, last_modified: &str) -> Result<(), Self::Error> {
+            fn set_last_modified(&mut self, last_modified: &str) -> Result<(), MyError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(last_modified, "2022-06-26T09:53:21.000Z");
@@ -56,7 +55,7 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_etag(&mut self, etag: &str) -> Result<(), Self::Error> {
+            fn set_etag(&mut self, etag: &str) -> Result<(), MyError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(etag, "F75A15996D0857B16FA31A3B16624C26");
@@ -68,7 +67,7 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_type(&mut self, _type: &str) -> Result<(), Self::Error> {
+            fn set_type(&mut self, _type: &str) -> Result<(), MyError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(_type, "Normal");
@@ -80,7 +79,7 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_size(&mut self, size: &str) -> Result<(), Self::Error> {
+            fn set_size(&mut self, size: &str) -> Result<(), MyError> {
                 unsafe {
                     if OBEJCT_ITEM_ID == 0 {
                         assert_eq!(size, "18027");
@@ -92,7 +91,7 @@ mod object_list_xml {
                 }
                 Ok(())
             }
-            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), Self::Error> {
+            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), MyError> {
                 assert_eq!(storage_class, "Standard");
                 unsafe {
                     OBEJCT_ITEM_ID += 1;
@@ -101,28 +100,24 @@ mod object_list_xml {
             }
         }
         struct ListB {}
-        impl RefineObjectList<ObjectA> for ListB {
-            type Error = MyError;
-            fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
+        impl RefineObjectList<ObjectA, MyError> for ListB {
+            fn set_name(&mut self, name: &str) -> Result<(), MyError> {
                 assert_eq!(name, "foo_bucket");
                 Ok(())
             }
-            fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
+            fn set_prefix(&mut self, prefix: &str) -> Result<(), MyError> {
                 assert_eq!(prefix, "");
                 Ok(())
             }
-            fn set_max_keys(&mut self, max_keys: &str) -> Result<(), Self::Error> {
+            fn set_max_keys(&mut self, max_keys: &str) -> Result<(), MyError> {
                 assert_eq!(max_keys, "100");
                 Ok(())
             }
-            fn set_key_count(&mut self, key_count: &str) -> Result<(), Self::Error> {
+            fn set_key_count(&mut self, key_count: &str) -> Result<(), MyError> {
                 assert_eq!(key_count, "3");
                 Ok(())
             }
-            fn set_next_continuation_token(
-                &mut self,
-                token: Option<&str>,
-            ) -> Result<(), Self::Error> {
+            fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), MyError> {
                 assert!(matches!(token, None));
                 Ok(())
             }
@@ -384,17 +379,11 @@ mod object_list_xml {
         #[derive(Default)]
         struct ObjectA {}
 
-        impl RefineObject for ObjectA {
-            type Error = MyError;
-        }
+        impl RefineObject<MyError> for ObjectA {}
 
         struct ListB {}
-        impl RefineObjectList<ObjectA> for ListB {
-            type Error = MyError;
-            fn set_next_continuation_token(
-                &mut self,
-                token: Option<&str>,
-            ) -> Result<(), Self::Error> {
+        impl RefineObjectList<ObjectA, MyError> for ListB {
+            fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), MyError> {
                 assert!(
                     matches!(token, Some(v) if v=="CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--")
                 );
