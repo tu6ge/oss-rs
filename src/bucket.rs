@@ -21,13 +21,18 @@ use http::Method;
 use oss_derive::oss_gen_rc;
 use std::error::Error;
 use std::fmt;
+use std::marker::PhantomData;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::sync::Arc;
 
 #[derive(Clone)]
 #[non_exhaustive]
-pub struct ListBuckets<PointerSel: PointerFamily = ArcPointer> {
+pub struct ListBuckets<
+    PointerSel: PointerFamily = ArcPointer,
+    Item: RefineBucket<E> = Bucket<PointerSel>,
+    E: From<quick_xml::Error> = OssError,
+> {
     prefix: Option<String>,
     marker: Option<String>,
     max_keys: Option<String>,
@@ -35,11 +40,14 @@ pub struct ListBuckets<PointerSel: PointerFamily = ArcPointer> {
     next_marker: Option<String>,
     id: Option<String>,
     display_name: Option<String>,
-    pub buckets: Vec<Bucket<PointerSel>>,
+    pub buckets: Vec<Item>,
     client: PointerSel::PointerType,
+    ph_err: PhantomData<E>,
 }
 
-impl<T: PointerFamily> fmt::Debug for ListBuckets<T> {
+impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: From<quick_xml::Error>>
+    fmt::Debug for ListBuckets<T, Item, E>
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ListBuckets")
             .field("prefix", &self.prefix)
@@ -55,14 +63,16 @@ impl<T: PointerFamily> fmt::Debug for ListBuckets<T> {
 }
 
 #[oss_gen_rc]
-impl ListBuckets<ArcPointer> {
+impl<Item: RefineBucket<E>, E: From<quick_xml::Error>> ListBuckets<ArcPointer, Item, E> {
     pub(crate) fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = Arc::clone(&client);
     }
 }
 
 #[oss_gen_rc]
-impl Default for ListBuckets<ArcPointer> {
+impl<Item: RefineBucket<E>, E: From<quick_xml::Error>> Default
+    for ListBuckets<ArcPointer, Item, E>
+{
     fn default() -> Self {
         Self {
             prefix: None,
@@ -74,6 +84,7 @@ impl Default for ListBuckets<ArcPointer> {
             display_name: None,
             buckets: Vec::default(),
             client: Arc::default(),
+            ph_err: PhantomData,
         }
     }
 }
@@ -131,32 +142,31 @@ impl Default for Bucket<ArcPointer> {
     }
 }
 
-impl<T: PointerFamily> RefineBucket for Bucket<T> {
-    type Error = OssError;
-    fn set_name(&mut self, name: &str) -> Result<(), Self::Error> {
+impl<T: PointerFamily> RefineBucket<OssError> for Bucket<T> {
+    fn set_name(&mut self, name: &str) -> Result<(), OssError> {
         self.base.set_name(name.parse::<BucketName>()?);
         Ok(())
     }
 
-    fn set_creation_date(&mut self, creation_date: &str) -> Result<(), Self::Error> {
+    fn set_creation_date(&mut self, creation_date: &str) -> Result<(), OssError> {
         self.creation_date = creation_date
             .parse::<DateTime<Utc>>()
             .map_err(|_| InvalidBucketValue)?;
         Ok(())
     }
 
-    fn set_location(&mut self, location: &str) -> Result<(), Self::Error> {
+    fn set_location(&mut self, location: &str) -> Result<(), OssError> {
         self.location = location.to_string();
         Ok(())
     }
 
-    fn set_extranet_endpoint(&mut self, extranet_endpoint: &str) -> Result<(), Self::Error> {
+    fn set_extranet_endpoint(&mut self, extranet_endpoint: &str) -> Result<(), OssError> {
         self.base
             .set_endpoint(extranet_endpoint.parse::<EndPoint>()?);
         Ok(())
     }
 
-    fn set_storage_class(&mut self, storage_class: &str) -> Result<(), Self::Error> {
+    fn set_storage_class(&mut self, storage_class: &str) -> Result<(), OssError> {
         self.storage_class = storage_class.to_string();
         Ok(())
     }
@@ -288,10 +298,10 @@ impl Bucket<RcPointer> {
     }
 }
 
-impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
-    type Error = OssError;
-
-    fn set_prefix(&mut self, prefix: &str) -> Result<(), Self::Error> {
+impl<T: PointerFamily, Item: RefineBucket<E>, E: From<quick_xml::Error>> RefineBucketList<Item, E>
+    for ListBuckets<T, Item, E>
+{
+    fn set_prefix(&mut self, prefix: &str) -> Result<(), E> {
         self.prefix = if !prefix.is_empty() {
             Some(prefix.to_owned())
         } else {
@@ -300,7 +310,7 @@ impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
         Ok(())
     }
 
-    fn set_marker(&mut self, marker: &str) -> Result<(), Self::Error> {
+    fn set_marker(&mut self, marker: &str) -> Result<(), E> {
         self.marker = if !marker.is_empty() {
             Some(marker.to_owned())
         } else {
@@ -309,7 +319,7 @@ impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
         Ok(())
     }
 
-    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), Self::Error> {
+    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), E> {
         self.max_keys = if !max_keys.is_empty() {
             Some(max_keys.to_owned())
         } else {
@@ -318,12 +328,12 @@ impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
         Ok(())
     }
 
-    fn set_is_truncated(&mut self, is_truncated: bool) -> Result<(), Self::Error> {
+    fn set_is_truncated(&mut self, is_truncated: bool) -> Result<(), E> {
         self.is_truncated = is_truncated;
         Ok(())
     }
 
-    fn set_next_marker(&mut self, marker: &str) -> Result<(), Self::Error> {
+    fn set_next_marker(&mut self, marker: &str) -> Result<(), E> {
         self.next_marker = if marker.is_empty() {
             None
         } else {
@@ -332,7 +342,7 @@ impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
         Ok(())
     }
 
-    fn set_id(&mut self, id: &str) -> Result<(), Self::Error> {
+    fn set_id(&mut self, id: &str) -> Result<(), E> {
         self.id = if id.is_empty() {
             None
         } else {
@@ -341,7 +351,7 @@ impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
         Ok(())
     }
 
-    fn set_display_name(&mut self, display_name: &str) -> Result<(), Self::Error> {
+    fn set_display_name(&mut self, display_name: &str) -> Result<(), E> {
         self.display_name = if display_name.is_empty() {
             None
         } else {
@@ -350,7 +360,7 @@ impl<T: PointerFamily> RefineBucketList<Bucket<T>> for ListBuckets<T> {
         Ok(())
     }
 
-    fn set_list(&mut self, list: Vec<Bucket<T>>) -> Result<(), Self::Error> {
+    fn set_list(&mut self, list: Vec<Item>) -> Result<(), E> {
         self.buckets = list;
         Ok(())
     }
@@ -384,9 +394,9 @@ impl ClientArc {
         init_bucket: F,
     ) -> Result<(), E>
     where
-        List: RefineBucketList<Item>,
-        Item: RefineBucket,
-        E: From<BuilderError> + From<List::Error>,
+        List: RefineBucketList<Item, E>,
+        Item: RefineBucket<E>,
+        E: From<BuilderError> + From<quick_xml::Error>,
         F: FnMut() -> Item,
     {
         let url = self.get_endpoint_url();
@@ -424,8 +434,8 @@ impl ClientArc {
         bucket: &mut Bucket,
     ) -> Result<(), E>
     where
-        Bucket: RefineBucket,
-        E: From<BuilderError> + From<Bucket::Error>,
+        Bucket: RefineBucket<E>,
+        E: From<BuilderError> + From<quick_xml::Error>,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some(BUCKET_INFO);
@@ -468,9 +478,9 @@ impl ClientRc {
         init_bucket: F,
     ) -> Result<(), E>
     where
-        List: RefineBucketList<Item>,
-        Item: RefineBucket,
-        E: From<BuilderError> + From<List::Error>,
+        List: RefineBucketList<Item, E>,
+        Item: RefineBucket<E>,
+        E: From<BuilderError> + From<quick_xml::Error>,
         F: FnMut() -> Item,
     {
         let url = self.get_endpoint_url();
@@ -505,8 +515,8 @@ impl ClientRc {
         bucket: &mut Bucket,
     ) -> Result<(), E>
     where
-        Bucket: RefineBucket,
-        E: From<BuilderError> + From<Bucket::Error>,
+        Bucket: RefineBucket<E>,
+        E: From<BuilderError> + From<quick_xml::Error>,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some(BUCKET_INFO);

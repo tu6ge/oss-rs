@@ -295,37 +295,35 @@ where
     }
 }
 
-pub trait RefineBucket
+pub trait RefineBucket<Error>
 where
-    Self::Error: From<quick_xml::Error>,
+    Error: From<quick_xml::Error>,
 {
-    type Error;
-
-    fn set_name(&mut self, _name: &str) -> Result<(), Self::Error> {
+    fn set_name(&mut self, _name: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_creation_date(&mut self, _creation_date: &str) -> Result<(), Self::Error> {
+    fn set_creation_date(&mut self, _creation_date: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_location(&mut self, _location: &str) -> Result<(), Self::Error> {
+    fn set_location(&mut self, _location: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_extranet_endpoint(&mut self, _extranet_endpoint: &str) -> Result<(), Self::Error> {
+    fn set_extranet_endpoint(&mut self, _extranet_endpoint: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_intranet_endpoint(&mut self, _intranet_endpoint: &str) -> Result<(), Self::Error> {
+    fn set_intranet_endpoint(&mut self, _intranet_endpoint: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Self::Error> {
+    fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn decode(&mut self, xml: &str) -> Result<(), Self::Error> {
+    fn decode(&mut self, xml: &str) -> Result<(), Error> {
         //println!("from_xml: {:#}", xml);
         let mut reader = Reader::from_str(xml);
         reader.trim_text(true);
@@ -354,7 +352,7 @@ where
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(Self::Error::from(e));
+                    return Err(Error::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -366,45 +364,43 @@ where
 
 const TRUE: &str = "true";
 
-pub trait RefineBucketList<T: RefineBucket>
+pub trait RefineBucketList<T: RefineBucket<Error>, Error>
 where
-    Self::Error: From<quick_xml::Error> + From<T::Error>,
+    Error: From<quick_xml::Error>,
 {
-    type Error;
-
-    fn set_prefix(&mut self, _prefix: &str) -> Result<(), Self::Error> {
+    fn set_prefix(&mut self, _prefix: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_marker(&mut self, _marker: &str) -> Result<(), Self::Error> {
+    fn set_marker(&mut self, _marker: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Self::Error> {
+    fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_is_truncated(&mut self, _is_truncated: bool) -> Result<(), Self::Error> {
+    fn set_is_truncated(&mut self, _is_truncated: bool) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_next_marker(&mut self, _next_marker: &str) -> Result<(), Self::Error> {
+    fn set_next_marker(&mut self, _next_marker: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_id(&mut self, _id: &str) -> Result<(), Self::Error> {
+    fn set_id(&mut self, _id: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_display_name(&mut self, _display_name: &str) -> Result<(), Self::Error> {
+    fn set_display_name(&mut self, _display_name: &str) -> Result<(), Error> {
         Ok(())
     }
 
-    fn set_list(&mut self, _list: Vec<T>) -> Result<(), Self::Error> {
+    fn set_list(&mut self, _list: Vec<T>) -> Result<(), Error> {
         Ok(())
     }
 
-    fn decode<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), Self::Error>
+    fn decode<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), Error>
     where
         F: FnMut() -> T,
     {
@@ -467,7 +463,7 @@ where
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(Self::Error::from(e));
+                    return Err(Error::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
