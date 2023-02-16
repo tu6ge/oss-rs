@@ -238,7 +238,7 @@ where
         let result = content
             .headers()
             .get("ETag")
-            .ok_or_else(|| FileError::EtagNotFound)?
+            .ok_or(FileError::EtagNotFound)?
             .to_str()
             .map_err(FileError::from)?;
 
@@ -264,7 +264,7 @@ where
         ];
 
         self.builder_with_header(Method::PUT, url, canonicalized, headers)
-            .map_err(|e| FileError::from(e).into())?
+            .map_err(FileError::from)?
             .body(content)
             .send_adjust_error()
             .await
@@ -283,13 +283,13 @@ where
 
         let content = self
             .builder_with_header(Method::GET, url, canonicalized, list)
-            .map_err(|e| FileError::from(e).into())?
+            .map_err(FileError::from)?
             .send_adjust_error()
             .await
             .map_err(|e| e.into())?
             .text()
             .await
-            .map_err(|e| FileError::from(e).into())?;
+            .map_err(FileError::from)?;
 
         Ok(content.into_bytes())
     }
@@ -299,10 +299,10 @@ where
         let (url, canonicalized) = self.get_url(path)?;
 
         self.builder(Method::DELETE, url, canonicalized)
-            .map_err(|e| FileError::from(e).into())?
+            .map_err(FileError::from)?
             .send_adjust_error()
             .await
-            .map_err(|e| FileError::from(e).into())?;
+            .map_err(FileError::from)?;
 
         Ok(())
     }

@@ -574,6 +574,7 @@ impl<'a> BucketName {
         Ok(Self(Cow::Owned(bucket.to_owned())))
     }
 
+    /// # Safety
     pub const unsafe fn from_static2(bucket: &'static str) -> Self {
         Self(Cow::Borrowed(bucket))
     }
@@ -1590,12 +1591,14 @@ impl From<ContentRange> for HeaderValue {
             (Some(ref start), Some(ref end)) => format!("bytes={}-{}", start, end),
             (Some(ref start), None) => format!("bytes={}-", start),
             (None, Some(ref end)) => format!("bytes=0-{}", end),
-            (None, None) => format!("bytes=0-"),
+            (None, None) => "bytes=0-".to_string(),
         };
 
-        HeaderValue::from_str(&string).expect(&format!(
-            "content-range into header-value failed, content-range is : {}",
-            string
-        ))
+        HeaderValue::from_str(&string).unwrap_or_else(|_| {
+            panic!(
+                "content-range into header-value failed, content-range is : {}",
+                string
+            )
+        })
     }
 }

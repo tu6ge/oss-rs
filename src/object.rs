@@ -175,6 +175,7 @@ impl<Item: RefineObject<E>, E: From<quick_xml::Error>> Default for ObjectList<Ar
 }
 
 impl<T: PointerFamily, Item: RefineObject<E>, E: From<quick_xml::Error>> ObjectList<T, Item, E> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         bucket: BucketBase,
         prefix: String,
@@ -630,7 +631,7 @@ where
     }
 
     #[inline]
-    fn set_common_prefix(&mut self, list: &Vec<std::borrow::Cow<'_, str>>) -> Result<(), E> {
+    fn set_common_prefix(&mut self, list: &[std::borrow::Cow<'_, str>]) -> Result<(), E> {
         for val in list.iter() {
             self.common_prefixes
                 .push(val.parse::<ObjectDir>().map_err(E::from)?);

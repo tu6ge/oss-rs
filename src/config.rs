@@ -136,9 +136,7 @@ impl FromStr for BucketBase {
             return Err(InvalidBucketBase::Tacitly);
         }
 
-        let (bucket, endpoint) = domain
-            .split_once('.')
-            .ok_or_else(|| InvalidBucketBase::Tacitly)?;
+        let (bucket, endpoint) = domain.split_once('.').ok_or(InvalidBucketBase::Tacitly)?;
 
         Ok(Self {
             name: BucketName::from_static(bucket)?,
@@ -630,6 +628,8 @@ impl ObjectPath {
         Ok(Self(val))
     }
 
+    /// # Safety
+    ///
     /// Const function that creates a new `ObjectPath` from a static str.
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
@@ -731,7 +731,7 @@ pub trait UrlObjectPath {
 
 impl UrlObjectPath for Url {
     fn set_object_path(&mut self, path: &ObjectPath) {
-        self.set_path(&path.to_string());
+        self.set_path(path.as_ref());
     }
 }
 
@@ -839,6 +839,8 @@ impl<'a> ObjectDir<'a> {
         Ok(Self(val))
     }
 
+    /// # Safety
+    ///
     /// Const function that creates a new `ObjectPath` from a static str.
     /// ```
     /// # use aliyun_oss_client::config::ObjectDir;
@@ -944,7 +946,7 @@ impl OssFullUrl for Url {
         // 因为 endpoint 都是已知字符组成，bucket 也有格式要求，所以 unwrap 是安全的
         end_url.set_host(new_host).unwrap();
 
-        end_url.set_object_path(&path);
+        end_url.set_object_path(path);
 
         end_url
     }

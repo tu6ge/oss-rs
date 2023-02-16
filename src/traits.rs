@@ -164,7 +164,7 @@ where
     }
 
     /// 提取文件目录
-    fn set_common_prefix(&mut self, _list: &Vec<Cow<'_, str>>) -> Result<(), Error> {
+    fn set_common_prefix(&mut self, _list: &[Cow<'_, str>]) -> Result<(), Error> {
         Ok(())
     }
 
@@ -489,10 +489,7 @@ mod tests {
                 Ok(())
             }
 
-            fn set_common_prefix(
-                &mut self,
-                list: &Vec<Cow<'_, str>>,
-            ) -> Result<(), quick_xml::Error> {
+            fn set_common_prefix(&mut self, list: &[Cow<'_, str>]) -> Result<(), quick_xml::Error> {
                 assert!(list[0] == "foo1/");
                 assert!(list[1] == "foo2/");
                 Ok(())
