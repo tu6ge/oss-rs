@@ -256,11 +256,6 @@ pub mod blocking;
 #[cfg(feature = "core")]
 pub mod builder;
 
-/// 解析 aliyun OSS 接口返回的 xml 计划弃用
-#[cfg(feature = "decode")]
-#[deprecated(since = "0.11.0", note = "plase use decode mod")]
-pub mod traits;
-
 /// 解析 aliyun OSS 接口返回的 xml
 #[cfg(feature = "decode")]
 #[path = "traits.rs"]
