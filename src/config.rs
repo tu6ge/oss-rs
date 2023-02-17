@@ -26,6 +26,7 @@ use crate::{
     Query,
 };
 
+/// OSS 配置信息
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct Config {
     key: KeyId,
@@ -35,6 +36,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// 初始化 OSS 配置信息
     pub fn new<ID, S, E, B>(key: ID, secret: S, endpoint: E, bucket: B) -> Config
     where
         ID: Into<KeyId>,
@@ -50,6 +52,9 @@ impl Config {
         }
     }
 
+    /// 初始化 OSS 配置信息
+    ///
+    /// 支持更宽泛的输入类型
     pub fn try_new<ID, S, E, B>(
         key: ID,
         secret: S,
@@ -77,15 +82,19 @@ impl Config {
     }
 }
 
+/// Config 错误信息集合
 #[derive(Error, Debug)]
 #[non_exhaustive]
 pub enum InvalidConfig {
+    /// 非法的可用区
     #[error("{0}")]
     EndPoint(#[from] InvalidEndPoint),
 
+    /// 非法的 bucket 名称
     #[error("{0}")]
     BucketName(#[from] InvalidBucketName),
 
+    /// 非法的环境变量
     #[error("{0}")]
     VarError(#[from] VarError),
 }
@@ -146,6 +155,7 @@ impl FromStr for BucketBase {
 }
 
 impl BucketBase {
+    /// 初始化
     pub fn new(name: BucketName, endpoint: EndPoint) -> Self {
         Self { name, endpoint }
     }
@@ -169,6 +179,7 @@ impl BucketBase {
         })
     }
 
+    /// 返回 bucket 名称的引用
     #[inline]
     pub fn name(&self) -> &str {
         self.name.as_ref()
@@ -188,6 +199,7 @@ impl BucketBase {
         &self.name
     }
 
+    /// 获取 Bucket 元信息中的可用区
     #[inline]
     pub fn endpoint(self) -> EndPoint {
         self.endpoint
@@ -206,6 +218,7 @@ impl BucketBase {
         self.name = name.into();
     }
 
+    /// 为 Bucket 元信息设置可用区
     pub fn set_endpoint<E: Into<EndPoint>>(&mut self, endpoint: E) {
         self.endpoint = endpoint.into();
     }
@@ -286,15 +299,19 @@ impl BucketBase {
     }
 }
 
+/// Bucket 元信息的错误集
 #[derive(Error, Debug)]
 #[non_exhaustive]
 pub enum InvalidBucketBase {
+    #[doc(hidden)]
     #[error("bucket url must like with https://yyy.xxx.aliyuncs.com")]
     Tacitly,
 
+    #[doc(hidden)]
     #[error("{0}")]
     EndPoint(#[from] InvalidEndPoint),
 
+    #[doc(hidden)]
     #[error("{0}")]
     BucketName(#[from] InvalidBucketName),
 }
@@ -334,6 +351,7 @@ impl<T: PointerFamily> Default for ObjectBase<T> {
 }
 
 impl<T: PointerFamily> ObjectBase<T> {
+    /// 初始化 Object 元信息
     pub fn new<P>(bucket: T::Bucket, path: P) -> Result<Self, InvalidObjectPath>
     where
         P: TryInto<ObjectPath>,
@@ -349,10 +367,12 @@ impl<T: PointerFamily> ObjectBase<T> {
         Self { bucket, path }
     }
 
+    /// 为 Object 元信息设置 bucket
     pub fn set_bucket(&mut self, bucket: T::Bucket) {
         self.bucket = bucket;
     }
 
+    /// 为 Object 元信息设置文件路径
     pub fn set_path<P>(&mut self, path: P) -> Result<(), InvalidObjectPath>
     where
         P: TryInto<ObjectPath>,
@@ -363,6 +383,7 @@ impl<T: PointerFamily> ObjectBase<T> {
         Ok(())
     }
 
+    /// 返回 Object 元信息的文件路径
     pub fn path(&self) -> ObjectPath {
         self.path.to_owned()
     }
@@ -370,6 +391,7 @@ impl<T: PointerFamily> ObjectBase<T> {
 
 #[oss_gen_rc]
 impl ObjectBase<ArcPointer> {
+    #[doc(hidden)]
     #[inline]
     pub fn from_bucket<P>(bucket: BucketBase, path: P) -> Result<Self, InvalidObjectPath>
     where
@@ -382,6 +404,7 @@ impl ObjectBase<ArcPointer> {
         })
     }
 
+    #[doc(hidden)]
     #[inline]
     pub fn try_from_bucket<B, P>(bucket: B, path: P) -> Result<Self, InvalidObjectBase>
     where
@@ -396,6 +419,7 @@ impl ObjectBase<ArcPointer> {
         })
     }
 
+    #[doc(hidden)]
     #[inline]
     pub fn from_ref_bucket<P>(bucket: Arc<BucketBase>, path: P) -> Result<Self, InvalidObjectPath>
     where
@@ -430,6 +454,7 @@ impl ObjectBase<ArcPointer> {
         Self::from_bucket(bucket, path).map_err(|e| e.into())
     }
 
+    #[doc(hidden)]
     #[inline]
     pub fn bucket_name(&self) -> &BucketName {
         self.bucket.get_name()
@@ -483,9 +508,12 @@ impl<T: PointerFamily> PartialEq<&str> for ObjectBase<T> {
     }
 }
 
+/// Object 元信息的错误集
 #[derive(Debug)]
 pub enum InvalidObjectBase {
+    #[doc(hidden)]
     Bucket(InvalidBucketBase),
+    #[doc(hidden)]
     Path(InvalidObjectPath),
 }
 
@@ -640,6 +668,7 @@ impl ObjectPath {
         Self(Cow::Borrowed(secret))
     }
 
+    #[doc(hidden)]
     pub fn to_str(&self) -> &str {
         &self.0
     }
@@ -711,6 +740,7 @@ impl<T: PointerFamily> From<Object<T>> for ObjectPath {
     }
 }
 
+/// 不合法的文件路径
 #[derive(Debug, Error)]
 pub struct InvalidObjectPath;
 
@@ -726,6 +756,7 @@ impl Display for InvalidObjectPath {
 
 /// 将 object 的路径拼接到 Url 上去
 pub trait UrlObjectPath {
+    /// 为 Url 添加方法
     fn set_object_path(&mut self, path: &ObjectPath);
 }
 
@@ -851,6 +882,7 @@ impl<'a> ObjectDir<'a> {
         Self(Cow::Borrowed(secret))
     }
 
+    #[doc(hidden)]
     pub fn to_str(&self) -> &str {
         &self.0
     }
@@ -914,6 +946,7 @@ impl TryFrom<&Path> for ObjectDir<'_> {
     }
 }
 
+/// 不合法的文件路径
 #[derive(Debug, Error)]
 pub struct InvalidObjectDir;
 
@@ -927,7 +960,9 @@ impl Display for InvalidObjectDir {
     }
 }
 
+/// 给 Url 设置一个初始化方法，根据 OSS 的配置信息，返回文件的完整 OSS Url
 pub trait OssFullUrl {
+    /// 根据配置信息，计算完整的 Url
     fn from_oss(endpoint: &EndPoint, bucket: &BucketName, path: &ObjectPath) -> Self;
 }
 

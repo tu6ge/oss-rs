@@ -37,6 +37,7 @@ where
 }
 
 impl<M: Default + Clone> Client<M> {
+    /// 使用基本配置信息初始化 Client
     pub fn new(
         access_key_id: KeyId,
         access_key_secret: KeySecret,
@@ -50,6 +51,9 @@ impl<M: Default + Clone> Client<M> {
         Self::from_builder(auth_builder, endpoint, bucket)
     }
 
+    /// 使用 [`Config`] 中的配置初始化 Client
+    ///
+    /// [`Config`]: crate::config::Config
     pub fn from_config(config: Config) -> Self {
         let (key, secret, bucket, endpoint) = config.get_all();
 
@@ -92,6 +96,7 @@ impl<M: Default + Clone> Client<M> {
         ))
     }
 
+    #[doc(hidden)]
     #[inline]
     pub fn from_builder(auth_builder: AuthBuilder, endpoint: EndPoint, bucket: BucketName) -> Self {
         Self {
@@ -112,6 +117,7 @@ impl<M: Default + Clone> Client<M> {
         BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned())
     }
 
+    /// 获取默认的 bucket 的 url
     pub fn get_bucket_url(&self) -> Url {
         self.get_bucket_base().to_url()
     }
@@ -119,6 +125,8 @@ impl<M: Default + Clone> Client<M> {
     pub(crate) fn get_endpoint(&self) -> &EndPoint {
         &self.endpoint
     }
+
+    /// 获取默认的可用区的 url
     pub fn get_endpoint_url(&self) -> Url {
         self.endpoint.to_url()
     }
@@ -142,6 +150,7 @@ fn now() -> DateTime<Utc> {
     DateTime::from_utc(naive, Utc)
 }
 
+/// 异步 Client 别名
 pub type ClientArc = Client<ClientWithMiddleware>;
 
 impl Client {
@@ -240,6 +249,7 @@ use crate::blocking::builder::Middleware as BlockingMiddleware;
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::RequestBuilder as BlockingRequestBuilder;
 
+/// 同步的 Client 别名
 #[cfg(feature = "blocking")]
 pub type ClientRc = Client<BlockingClientWithMiddleware>;
 

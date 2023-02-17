@@ -23,7 +23,11 @@
 
 use crate::{auth::AuthBuilder, client::Client, BucketName, EndPoint, KeyId, KeySecret};
 
+/// 给 Client 增加 STS 能力
 pub trait STS {
+    /// 用 STS 配置信息初始化 [`Client`]
+    ///
+    /// [`Client`]: crate::client::Client
     fn new_with_sts(
         access_key_id: KeyId,
         access_key_secret: KeySecret,

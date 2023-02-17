@@ -137,6 +137,7 @@ client.delete_object("examples/bg2015071010.png".parse().unwrap());
 ```
 */
 
+#[doc(hidden)]
 pub mod builder;
 
 use crate::config::Config;
@@ -144,6 +145,7 @@ use crate::types::{BucketName, EndPoint, KeyId, KeySecret};
 
 use self::builder::ClientWithMiddleware;
 
+/// 初始化同步 Client 的函数
 pub fn client<ID, S, E, B>(
     access_key_id: ID,
     access_key_secret: S,

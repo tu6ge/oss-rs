@@ -194,6 +194,7 @@ let client = aliyun_oss_client::Client::new(
 */
 
 #![cfg_attr(all(feature = "bench", test), feature(test))]
+#![warn(missing_docs)]
 
 // #![doc(html_playground_url = "https://play.rust-lang.org/")]
 
@@ -236,6 +237,7 @@ pub mod object;
 #[cfg(feature = "core")]
 pub mod file;
 
+/// 配置类型
 #[cfg(feature = "core")]
 pub mod config;
 
@@ -254,6 +256,7 @@ pub mod blocking;
 
 /// 封装了 reqwest::RequestBuilder 模块
 #[cfg(feature = "core")]
+#[doc(hidden)]
 pub mod builder;
 
 /// 解析 aliyun OSS 接口返回的 xml

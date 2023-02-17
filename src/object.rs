@@ -132,6 +132,7 @@ pub struct ObjectList<
     prefix: String,
     max_keys: u32,
     key_count: u64,
+    /// 存放单个文件对象的 Vec 集合
     pub object_list: Vec<Item>,
     next_continuation_token: Option<String>,
     common_prefixes: CommonPrefixes,
@@ -175,6 +176,7 @@ impl<Item: RefineObject<E>, E: From<quick_xml::Error>> Default for ObjectList<Ar
 }
 
 impl<T: PointerFamily, Item: RefineObject<E>, E: From<quick_xml::Error>> ObjectList<T, Item, E> {
+    /// 文件列表的初始化方法
     #[allow(clippy::too_many_arguments)]
     pub fn new<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         bucket: BucketBase,
@@ -200,10 +202,12 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: From<quick_xml::Error>> ObjectL
         }
     }
 
+    /// 返回 bucket 元信息的引用
     pub fn bucket(&self) -> &BucketBase {
         &self.bucket
     }
 
+    /// 返回 prefix 的引用
     pub fn prefix(&self) -> &String {
         &self.prefix
     }
@@ -213,22 +217,28 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: From<quick_xml::Error>> ObjectL
         &self.common_prefixes
     }
 
+    /// 设置 common_prefixes 信息
     pub fn set_common_prefixes<P: IntoIterator<Item = ObjectDir<'static>>>(&mut self, prefixes: P) {
         self.common_prefixes = CommonPrefixes::from_iter(prefixes);
     }
 
+    /// 返回 max_keys
     pub fn max_keys(&self) -> &u32 {
         &self.max_keys
     }
 
+    /// 返回 key_count
     pub fn key_count(&self) -> &u64 {
         &self.key_count
     }
 
+    /// # 返回下一个 continuation_token
+    /// 用于翻页使用
     pub fn next_continuation_token(&self) -> &Option<String> {
         &self.next_continuation_token
     }
 
+    /// 返回查询条件
     pub fn search_query(&self) -> &Query {
         &self.search_query
     }
@@ -256,16 +266,19 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: From<quick_xml::Error>> ObjectL
 
 #[oss_gen_rc]
 impl<Item: RefineObject<E>, E: From<quick_xml::Error>> ObjectList<ArcPointer, Item, E> {
+    /// 设置 Client
     pub fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
     }
 
+    /// 获取 Client 引用
     pub fn client(&self) -> Arc<ClientArc> {
         Arc::clone(&self.client)
     }
 }
 
 impl ObjectList<ArcPointer> {
+    /// 异步获取下一页的数据
     pub async fn get_next_list(&self) -> OssResult<ObjectList<ArcPointer>> {
         match self.next_query() {
             None => Err(OssError::WithoutMore),
@@ -339,6 +352,7 @@ impl ObjectList<ArcPointer> {
 
 #[cfg(feature = "blocking")]
 impl ObjectList<RcPointer> {
+    /// 从 OSS 获取 object 列表信息
     pub fn get_object_list(&mut self) -> OssResult<Self> {
         let name = self.bucket.get_name();
 
@@ -369,23 +383,28 @@ impl ObjectList<RcPointer> {
 }
 
 impl<T: PointerFamily, Item: RefineObject<E>, E: From<quick_xml::Error>> ObjectList<T, Item, E> {
+    /// 设置查询条件
     #[inline]
     pub fn set_search_query(&mut self, search_query: Query) {
         self.search_query = search_query;
     }
 
+    /// 设置 bucket 元信息
     pub fn set_bucket(&mut self, bucket: BucketBase) {
         self.bucket = bucket;
     }
 
+    /// 获取 bucket 名称
     pub fn bucket_name(&self) -> &str {
         self.bucket.name()
     }
 
+    /// 返回文件数量
     pub fn len(&self) -> usize {
         self.object_list.len()
     }
 
+    /// 返回是否存在文件
     pub fn is_empty(&self) -> bool {
         self.object_list.is_empty()
     }
@@ -441,61 +460,73 @@ impl<T: PointerFamily> Object<T> {
         }
     }
 
+    /// 读取 Object 元信息
     #[inline]
     pub fn base(&self) -> &ObjectBase<T> {
         &self.base
     }
 
+    /// 设置 Object 元信息
     #[inline]
     pub fn set_base(&mut self, base: ObjectBase<T>) {
         self.base = base;
     }
 
+    /// 读取最后修改时间
     #[inline]
     pub fn last_modified(&self) -> &DateTime<Utc> {
         &self.last_modified
     }
 
+    /// 设置最后修改时间
     #[inline]
     pub fn set_last_modified(&mut self, last_modified: DateTime<Utc>) {
         self.last_modified = last_modified;
     }
 
+    /// 读取 etag 信息
     #[inline]
     pub fn etag(&self) -> &String {
         &self.etag
     }
 
+    /// 设置 etag
     #[inline]
     pub fn set_etag(&mut self, etag: String) {
         self.etag = etag
     }
 
+    /// 读取 type
     #[inline]
     pub fn get_type(&self) -> &String {
         &self._type
     }
 
+    /// 设置 type
     #[inline]
     pub fn set_type(&mut self, _type: String) {
         self._type = _type;
     }
 
+    /// 读取文件 size
     #[inline]
     pub fn size(&self) -> u64 {
         self.size
     }
 
+    /// 设置文件 size
     #[inline]
     pub fn set_size(&mut self, size: u64) {
         self.size = size;
     }
 
+    /// 读取 storage_class
     #[inline]
     pub fn storage_class(&self) -> &String {
         &self.storage_class
     }
 
+    /// 设置 storage_class
     #[inline]
     pub fn set_storage_class(&mut self, storage_class: String) {
         self.storage_class = storage_class;
@@ -513,10 +544,12 @@ impl<T: PointerFamily> Object<T> {
         )
     }
 
+    /// 读取 文件路径
     pub fn path(&self) -> ObjectPath {
         self.base.path()
     }
 
+    #[doc(hidden)]
     pub fn path_string(&self) -> String {
         self.base.path().to_string()
     }
@@ -528,6 +561,7 @@ pub struct ObjectBuilder<T: PointerFamily = ArcPointer> {
 }
 
 impl<T: PointerFamily> ObjectBuilder<T> {
+    /// 初始化 Object 构建器
     /// TODO 有待进一步优化
     pub fn new<P: Into<ObjectPath>>(bucket: T::Bucket, key: P) -> Self {
         let base = ObjectBase::<T>::new2(bucket, key.into());
@@ -546,31 +580,37 @@ impl<T: PointerFamily> ObjectBuilder<T> {
         }
     }
 
+    /// 设置 last_modified
     pub fn last_modified(mut self, date: DateTime<Utc>) -> Self {
         self.object.last_modified = date;
         self
     }
 
+    /// 设置 etag
     pub fn etag(mut self, etag: String) -> Self {
         self.object.etag = etag;
         self
     }
 
+    /// 设置 type
     pub fn set_type(mut self, _type: String) -> Self {
         self.object._type = _type;
         self
     }
 
+    /// 设置 size
     pub fn size(mut self, size: u64) -> Self {
         self.object.size = size;
         self
     }
 
+    /// 设置 storage_class
     pub fn storage_class(mut self, storage_class: String) -> Self {
         self.object.storage_class = storage_class;
         self
     }
 
+    /// 返回 object
     pub fn build(self) -> Object<T> {
         self.object
     }
@@ -1007,6 +1047,7 @@ impl PartialEq<ObjectBase<ArcPointer>> for Object<ArcPointer> {
 
 /// 未来计划支持的功能
 #[derive(Default)]
+#[doc(hidden)]
 pub struct PutObject<'a> {
     pub forbid_overwrite: bool,
     pub server_side_encryption: Option<Encryption>,
@@ -1019,6 +1060,7 @@ pub struct PutObject<'a> {
 
 /// 未来计划支持的功能
 #[derive(Default)]
+#[doc(hidden)]
 pub enum Encryption {
     #[default]
     Aes256,
@@ -1028,6 +1070,7 @@ pub enum Encryption {
 
 /// 未来计划支持的功能
 #[derive(Default)]
+#[doc(hidden)]
 pub enum ObjectAcl {
     #[default]
     Default,
@@ -1038,6 +1081,7 @@ pub enum ObjectAcl {
 
 /// 未来计划支持的功能
 #[derive(Default)]
+#[doc(hidden)]
 pub enum StorageClass {
     #[default]
     Standard,
@@ -1048,6 +1092,7 @@ pub enum StorageClass {
 
 /// 未来计划支持的功能
 #[derive(Default)]
+#[doc(hidden)]
 pub struct CopyObject<'a> {
     pub forbid_overwrite: bool,
     pub copy_source: &'a str,
@@ -1066,6 +1111,7 @@ pub struct CopyObject<'a> {
 
 /// 未来计划支持的功能
 #[derive(Default)]
+#[doc(hidden)]
 pub enum CopyDirective {
     #[default]
     Copy,

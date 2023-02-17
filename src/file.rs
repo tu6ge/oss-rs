@@ -155,7 +155,10 @@ where
     Self::Path: Send + Sync,
     Self::Err: From<FileError>,
 {
+    /// 设定存放文件路径的类型
     type Path;
+
+    /// 设定 Error 信息
     type Err;
 
     /// # 默认的文件类型
@@ -341,11 +344,13 @@ impl<Item: RefineObject<E> + Send + Sync, E: From<quick_xml::Error> + Send + Syn
 
 use oss_derive::path_where;
 
+/// 文件名更便捷的输入方式的文件相关操作方法
 #[async_trait]
 pub trait FileAs: Files<Path = ObjectPath>
 where
     Self::Error: From<<Self as Files>::Err>,
 {
+    /// 返回的异常信息类型
     type Error;
 
     /// # 上传文件到 OSS
@@ -431,14 +436,22 @@ impl FileAs for Bucket {
     type Error = FileError;
 }
 
+/// 文件模块的 Error 集合
 #[derive(Debug)]
 pub enum FileError {
+    #[doc(hidden)]
     Path(InvalidObjectPath),
+    #[doc(hidden)]
     Io(std::io::Error),
+    #[doc(hidden)]
     ToStr(http::header::ToStrError),
+    #[doc(hidden)]
     HeaderValue(InvalidHeaderValue),
+    #[doc(hidden)]
     Build(BuilderError),
+    #[doc(hidden)]
     FileTypeNotFound,
+    #[doc(hidden)]
     EtagNotFound,
 }
 
@@ -503,6 +516,7 @@ impl Error for FileError {}
 /// [`Bucket`]: crate::bucket::Bucket
 /// [`ObjectList`]: crate::object::ObjectList
 pub trait AlignBuilder: Send + Sync {
+    /// 根据具体的 API 接口参数，返回请求的构建器（不带 headers）
     #[inline]
     fn builder(
         &self,
@@ -513,6 +527,7 @@ pub trait AlignBuilder: Send + Sync {
         self.builder_with_header(method, url, resource, [])
     }
 
+    /// 根据具体的 API 接口参数，返回请求的构建器
     fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
         &self,
         method: Method,
@@ -595,6 +610,7 @@ mod test_try {
 #[cfg(feature = "blocking")]
 pub use blocking::Files as BlockingFile;
 
+/// 同步的文件模块
 #[cfg(feature = "blocking")]
 pub mod blocking {
     use std::rc::Rc;
@@ -617,11 +633,16 @@ pub mod blocking {
     use infer::Infer;
     use reqwest::{blocking::Response, Url};
 
+    /// # 文件集合的相关操作
+    /// 在对文件执行相关操作的时候，需要指定文件路径
     pub trait Files: AlignBuilder
     where
         Self::Err: From<FileError>,
     {
+        /// 设定存放文件路径的类型
         type Path;
+
+        /// 设定 Error 信息
         type Err;
 
         /// # 默认的文件类型
@@ -751,6 +772,7 @@ pub mod blocking {
                 .into_bytes())
         }
 
+        /// # 删除 OSS 上的文件
         fn delete_object(&self, path: Self::Path) -> Result<(), Self::Err> {
             let (url, canonicalized) = self.get_url(path)?;
 
@@ -794,7 +816,9 @@ pub mod blocking {
         }
     }
 
+    /// 对 Client 中的请求构建器进行抽象
     pub trait AlignBuilder {
+        /// 根据具体的 API 接口参数，返回请求的构建器（不带 headers）
         #[inline]
         fn builder(
             &self,
@@ -805,6 +829,7 @@ pub mod blocking {
             self.builder_with_header(method, url, resource, [])
         }
 
+        /// 根据具体的 API 接口参数，返回请求的构建器
         fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
             &self,
             method: Method,

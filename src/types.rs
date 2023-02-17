@@ -14,6 +14,7 @@ use reqwest::Url;
 #[cfg(feature = "core")]
 use crate::config::BucketBase;
 
+/// 阿里云 OSS 的签名 key
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct KeyId(Cow<'static, str>);
 
@@ -62,6 +63,7 @@ impl KeyId {
 
 //===================================================================================================
 
+/// 阿里云 OSS 的签名 secret
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct KeySecret(Cow<'static, str>);
 
@@ -115,6 +117,7 @@ impl KeySecret {
         Self(Cow::Borrowed(secret))
     }
 
+    /// 转化成 bytes
     pub fn as_bytes(&self) -> &[u8] {
         self.as_ref().as_bytes()
     }
@@ -122,34 +125,45 @@ impl KeySecret {
 
 //===================================================================================================
 
-/// OSS 的可用区
+/// # OSS 的可用区
+/// [aliyun docs](https://help.aliyun.com/document_detail/31837.htm)
 #[cfg(feature = "core")]
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum EndPoint {
+    /// 杭州可用区
     #[default]
     CnHangzhou,
+    /// 上海可用区
     CnShanghai,
+    /// 青岛可用区
     CnQingdao,
+    /// 北京可用区
     CnBeijing,
+    /// 张家口可用区
     CnZhangjiakou, // 张家口 lenght=13
+    /// 香港
     CnHongkong,
+    /// 深圳
     CnShenzhen,
+    /// 美国西部
     UsWest1,
+    /// 美国东部
     UsEast1,
+    /// 新加坡
     ApSouthEast1,
 }
 
-pub const HANGZHOU: &str = "cn-hangzhou";
-pub const SHANGHAI: &str = "cn-shanghai";
-pub const QINGDAO: &str = "cn-qingdao";
-pub const BEIJING: &str = "cn-beijing";
-pub const ZHANGJIAKOU: &str = "cn-zhangjiakou";
-pub const HONGKONG: &str = "cn-hongkong";
-pub const SHENZHEN: &str = "cn-shenzhen";
-pub const US_WEST1: &str = "us-west1";
-pub const US_EAST1: &str = "us-east1";
-pub const AP_SOUTH_EAST1: &str = "ap-south-east1";
+const HANGZHOU: &str = "cn-hangzhou";
+const SHANGHAI: &str = "cn-shanghai";
+const QINGDAO: &str = "cn-qingdao";
+const BEIJING: &str = "cn-beijing";
+const ZHANGJIAKOU: &str = "cn-zhangjiakou";
+const HONGKONG: &str = "cn-hongkong";
+const SHENZHEN: &str = "cn-shenzhen";
+const US_WEST1: &str = "us-west1";
+const US_EAST1: &str = "us-east1";
+const AP_SOUTH_EAST1: &str = "ap-south-east1";
 
 #[cfg(feature = "core")]
 impl AsRef<str> for EndPoint {
@@ -195,13 +209,13 @@ impl Display for EndPoint {
     }
 }
 
-pub const HANGZHOU_L: &str = "hangzhou";
-pub const SHANGHAI_L: &str = "shanghai";
-pub const QINGDAO_L: &str = "qingdao";
-pub const BEIJING_L: &str = "beijing";
-pub const ZHANGJIAKOU_L: &str = "zhangjiakou";
-pub const HONGKONG_L: &str = "hongkong";
-pub const SHENZHEN_L: &str = "shenzhen";
+const HANGZHOU_L: &str = "hangzhou";
+const SHANGHAI_L: &str = "shanghai";
+const QINGDAO_L: &str = "qingdao";
+const BEIJING_L: &str = "beijing";
+const ZHANGJIAKOU_L: &str = "zhangjiakou";
+const HONGKONG_L: &str = "hongkong";
+const SHENZHEN_L: &str = "shenzhen";
 
 #[cfg(feature = "core")]
 impl TryFrom<String> for EndPoint {
@@ -243,9 +257,9 @@ impl FromStr for EndPoint {
     }
 }
 
-pub const OSS_DOMAIN_PREFIX: &str = "https://oss-";
-pub const OSS_INTERNAL: &str = "-internal";
-pub const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
+const OSS_DOMAIN_PREFIX: &str = "https://oss-";
+const OSS_INTERNAL: &str = "-internal";
+const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
 
 #[cfg(feature = "core")]
 impl<'a> EndPoint {
@@ -376,6 +390,7 @@ mod test_endpoint {
     }
 }
 
+/// 无效的可用区
 #[cfg(feature = "core")]
 #[derive(Debug)]
 #[non_exhaustive]
@@ -436,6 +451,7 @@ impl PartialEq<Url> for EndPoint {
 
 //===================================================================================================
 
+/// 存储 bucket 名字的类型
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BucketName(Cow<'static, str>);
 
@@ -606,6 +622,7 @@ impl PartialEq<BucketName> for &str {
     }
 }
 
+/// 无效的 bucket 名称
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct InvalidBucketName;
@@ -629,6 +646,7 @@ impl fmt::Display for InvalidBucketName {
 
 //===================================================================================================
 
+/// aliyun OSS 的配置 ContentMd5
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct ContentMd5(Cow<'static, str>);
 
@@ -686,6 +704,7 @@ impl ContentMd5 {
 
 //===================================================================================================
 
+/// aliyun OSS 的配置 ContentType
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct ContentType(Cow<'static, str>);
 
@@ -733,6 +752,7 @@ impl ContentType {
 
 //===================================================================================================
 
+/// 用于计算签名的 Date
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct Date(Cow<'static, str>);
 
@@ -825,8 +845,8 @@ impl Default for CanonicalizedResource {
     }
 }
 
-pub const CONTINUATION_TOKEN: &str = "continuation-token";
-pub const BUCKET_INFO: &str = "bucketInfo";
+pub(crate) const CONTINUATION_TOKEN: &str = "continuation-token";
+pub(crate) const BUCKET_INFO: &str = "bucketInfo";
 #[cfg(feature = "core")]
 const QUERY_KEYWORD: [&str; 2] = ["acl", BUCKET_INFO];
 
@@ -950,34 +970,45 @@ pub struct Query {
 }
 
 impl Query {
+    /// Creates an empty `Query`.
+    ///
+    /// The hash map is initially created with a capacity of 0, so it will not allocate until it
+    /// is first inserted into.
     pub fn new() -> Self {
         Self {
             inner: HashMap::new(),
         }
     }
 
+    /// Creates an empty `Query` with at least the specified capacity.
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             inner: HashMap::with_capacity(capacity),
         }
     }
 
+    /// Inserts a key-value pair into the map.
     pub fn insert(&mut self, key: impl Into<QueryKey>, value: impl Into<QueryValue>) {
         self.inner.insert(key.into(), value.into());
     }
 
+    /// Returns a reference to the value corresponding to the key.
     pub fn get(&self, key: impl Into<QueryKey>) -> Option<&QueryValue> {
         self.inner.get(&key.into())
     }
 
+    /// Returns the number of elements in the map.
     pub fn len(&self) -> usize {
         self.inner.len()
     }
 
+    /// Returns `true` if the map contains no elements.
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
 
+    /// Removes a key from the map, returning the value at the key if the key
+    /// was previously in the map.
     pub fn remove(&mut self, key: impl Into<QueryKey>) -> Option<QueryValue> {
         self.inner.remove(&key.into())
     }
@@ -1193,8 +1224,11 @@ impl PartialEq<Query> for Query {
 //     }
 // }
 
+/// 为 Url 拼接 [`Query`] 数据
+/// [`Query`]: crate::types::Query
 #[cfg(feature = "core")]
 pub trait UrlQuery {
+    /// 给 Url 结构体增加 `set_search_query` 方法
     fn set_search_query(&mut self, query: &Query);
 }
 
@@ -1219,15 +1253,47 @@ impl UrlQuery for Url {
     }
 }
 
+/// 查询条件的键
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum QueryKey {
+    /// 对Object名字进行分组的字符。所有Object名字包含指定的前缀，第一次出现delimiter字符之间的Object作为一组元素（即CommonPrefixes）
+    /// 示例值 `/`
     Delimiter,
+
+    /// 设定从start-after之后按字母排序开始返回Object。
+    /// start-after用来实现分页显示效果，参数的长度必须小于1024字节。
+    /// 做条件查询时，即使start-after在列表中不存在，也会从符合start-after字母排序的下一个开始打印。
     StartAfter,
+
+    /// 指定List操作需要从此token开始。您可从ListObjectsV2（GetBucketV2）结果中的NextContinuationToken获取此token。
+    /// 用于分页，返回下一页的数据
     ContinuationToken,
+
+    /// 指定返回Object的最大数。
+    /// 取值：大于0小于等于1000
     MaxKeys,
+
+    /// # 限定返回文件的Key必须以prefix作为前缀。
+    /// 如果把prefix设为某个文件夹名，则列举以此prefix开头的文件，即该文件夹下递归的所有文件和子文件夹。
+    ///
+    /// 在设置prefix的基础上，将delimiter设置为正斜线（/）时，返回值就只列举该文件夹下的文件，文件夹下的子文件夹名返回在CommonPrefixes中，
+    /// 子文件夹下递归的所有文件和文件夹不显示。
+    ///
+    /// 例如，一个Bucket中有三个Object，分别为fun/test.jpg、fun/movie/001.avi和fun/movie/007.avi。如果设定prefix为fun/，
+    /// 则返回三个Object；如果在prefix设置为fun/的基础上，将delimiter设置为正斜线（/），则返回fun/test.jpg和fun/movie/。
+    /// ## 要求
+    /// - 参数的长度必须小于1024字节。
+    /// - 设置prefix参数时，不能以正斜线（/）开头。如果prefix参数置空，则默认列举Bucket内的所有Object。
+    /// - 使用prefix查询时，返回的Key中仍会包含prefix。
     Prefix,
+
+    /// 对返回的内容进行编码并指定编码的类型。
     EncodingType,
+
+    /// 指定是否在返回结果中包含owner信息。
     FetchOwner,
+
+    /// 自定义
     Custom(Cow<'static, str>),
 }
 
@@ -1294,6 +1360,7 @@ impl FromStr for QueryKey {
     }
 }
 
+/// 异常的查询条件键
 #[derive(Debug)]
 pub struct InvalidQueryKey;
 
@@ -1395,6 +1462,7 @@ mod test_query_key {
     }
 }
 
+/// 查询条件的值
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct QueryValue(Cow<'static, str>);
 
@@ -1504,6 +1572,7 @@ impl FromStr for QueryValue {
     }
 }
 
+/// 异常的查询值
 #[derive(Debug)]
 pub struct InvalidQueryValue;
 
@@ -1529,6 +1598,7 @@ impl QueryValue {
 
 use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
 
+/// 用于指定返回内容的区域的 type
 pub struct ContentRange {
     start: Option<u32>,
     end: Option<u32>,

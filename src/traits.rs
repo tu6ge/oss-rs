@@ -94,6 +94,7 @@ use std::borrow::Cow;
 
 use quick_xml::{events::Event, Reader};
 
+/// 将一个 object 的数据写入到 rust 类型
 pub trait RefineObject<Error> {
     /// 提取 key
     fn set_key(&mut self, _key: &str) -> Result<(), Error> {
@@ -105,18 +106,22 @@ pub trait RefineObject<Error> {
         Ok(())
     }
 
+    /// 提取 etag
     fn set_etag(&mut self, _etag: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 type
     fn set_type(&mut self, _type: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 size
     fn set_size(&mut self, _size: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 storage_class
     fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Error> {
         Ok(())
     }
@@ -148,6 +153,7 @@ const ID: &[u8] = b"ID";
 const DISPLAY_NAME: &[u8] = b"DisplayName";
 const CONTENTS: &[u8] = b"Contents";
 
+/// 将 object 列表写入到 rust 类型
 pub trait RefineObjectList<T, Error>
 where
     T: RefineObject<Error>,
@@ -168,10 +174,12 @@ where
         Ok(())
     }
 
+    /// 提取 max_keys
     fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 key_count
     fn set_key_count(&mut self, _key_count: &str) -> Result<(), Error> {
         Ok(())
     }
@@ -295,34 +303,42 @@ where
     }
 }
 
+/// 将一个 bucket 的数据写入到 rust 类型
 pub trait RefineBucket<Error>
 where
     Error: From<quick_xml::Error>,
 {
+    /// 提取 bucket name
     fn set_name(&mut self, _name: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 bucket 创建时间
     fn set_creation_date(&mut self, _creation_date: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 location
     fn set_location(&mut self, _location: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 extranet_endpoint
     fn set_extranet_endpoint(&mut self, _extranet_endpoint: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 intranet_endpoint
     fn set_intranet_endpoint(&mut self, _intranet_endpoint: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 storage_class
     fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 解析 OSS 接口返回的 xml 数据
     fn decode(&mut self, xml: &str) -> Result<(), Error> {
         //println!("from_xml: {:#}", xml);
         let mut reader = Reader::from_str(xml);
@@ -364,42 +380,52 @@ where
 
 const TRUE: &str = "true";
 
+/// 将 bucket 列表的数据写入到 rust 类型
 pub trait RefineBucketList<T: RefineBucket<Error>, Error>
 where
     Error: From<quick_xml::Error>,
 {
+    /// 提取 prefix
     fn set_prefix(&mut self, _prefix: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 marker
     fn set_marker(&mut self, _marker: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 max_keys
     fn set_max_keys(&mut self, _max_keys: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 is_truncated
     fn set_is_truncated(&mut self, _is_truncated: bool) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 next_marker
     fn set_next_marker(&mut self, _next_marker: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 id
     fn set_id(&mut self, _id: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 display_name
     fn set_display_name(&mut self, _display_name: &str) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 提取 bucket 列表
     fn set_list(&mut self, _list: Vec<T>) -> Result<(), Error> {
         Ok(())
     }
 
+    /// 解析 OSS 接口返回的 xml 数据
     fn decode<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), Error>
     where
         F: FnMut() -> T,

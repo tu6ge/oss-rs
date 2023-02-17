@@ -11,21 +11,19 @@ use crate::errors::{OssError, OssResult};
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::object::{Object, ObjectList};
-use crate::types::{
-    CanonicalizedResource, InvalidEndPoint, Query, QueryKey, QueryValue, BUCKET_INFO,
-};
+use crate::types::{CanonicalizedResource, Query, QueryKey, QueryValue, BUCKET_INFO};
 use crate::{BucketName, EndPoint};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use http::Method;
 use oss_derive::oss_gen_rc;
-use std::error::Error;
 use std::fmt;
 use std::marker::PhantomData;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::sync::Arc;
 
+/// # 存储 Bucket 列表的 struct
 #[derive(Clone)]
 #[non_exhaustive]
 pub struct ListBuckets<
@@ -40,6 +38,7 @@ pub struct ListBuckets<
     next_marker: Option<String>,
     id: Option<String>,
     display_name: Option<String>,
+    /// 存放单个 bucket 类型的 vec 集合
     pub buckets: Vec<Item>,
     client: PointerSel::PointerType,
     ph_err: PhantomData<E>,
@@ -89,6 +88,7 @@ impl<Item: RefineBucket<E>, E: From<quick_xml::Error>> Default
     }
 }
 
+/// 内置的存放单个 bucket 的类型
 #[derive(Clone)]
 #[non_exhaustive]
 pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
@@ -149,9 +149,7 @@ impl<T: PointerFamily> RefineBucket<OssError> for Bucket<T> {
     }
 
     fn set_creation_date(&mut self, creation_date: &str) -> Result<(), OssError> {
-        self.creation_date = creation_date
-            .parse::<DateTime<Utc>>()
-            .map_err(|_| InvalidBucketValue)?;
+        self.creation_date = creation_date.parse::<DateTime<Utc>>()?;
         Ok(())
     }
 
@@ -172,25 +170,8 @@ impl<T: PointerFamily> RefineBucket<OssError> for Bucket<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct InvalidBucketValue;
-
-impl fmt::Display for InvalidBucketValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "faild parse to bucket value")
-    }
-}
-
-impl Error for InvalidBucketValue {}
-
-impl From<InvalidEndPoint> for InvalidBucketValue {
-    //TODO 待完善
-    fn from(_end: InvalidEndPoint) -> InvalidBucketValue {
-        InvalidBucketValue {}
-    }
-}
-
 impl<T: PointerFamily> Bucket<T> {
+    /// 初始化 Bucket
     pub fn new(
         base: BucketBase,
         creation_date: DateTime<Utc>,
@@ -210,10 +191,12 @@ impl<T: PointerFamily> Bucket<T> {
 
 #[oss_gen_rc]
 impl Bucket<ArcPointer> {
+    /// 为 Bucket struct 设置 Client
     pub fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
     }
 
+    /// 获取 Bucket 的 Client 信息
     pub fn client(&self) -> Arc<ClientArc> {
         Arc::clone(&self.client)
     }
@@ -367,6 +350,7 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: From<quick_xml::Error>> RefineB
 }
 
 impl ClientArc {
+    /// 从 OSS 获取 bucket 列表
     pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
         let client_arc = Arc::new(self);
 
@@ -387,6 +371,7 @@ impl ClientArc {
         Ok(bucket_list)
     }
 
+    /// 从 OSS 获取 bucket 列表，并存入自定义类型中
     #[inline]
     pub async fn base_bucket_list<List, Item, F, E>(
         &self,
@@ -414,6 +399,7 @@ impl ClientArc {
         Ok(())
     }
 
+    /// 从 OSS 上获取默认的 bucket 信息
     pub async fn get_bucket_info(self) -> OssResult<Bucket> {
         let name = self.get_bucket_name();
 
@@ -427,6 +413,7 @@ impl ClientArc {
         Ok(bucket)
     }
 
+    /// 从 OSS 上获取某一个 bucket 的信息，并存入自定义的类型中
     #[inline]
     pub async fn base_bucket_info<Bucket, Name: Into<BucketName>, E>(
         &self,
@@ -454,6 +441,7 @@ impl ClientArc {
 
 #[cfg(feature = "blocking")]
 impl ClientRc {
+    /// 获取 bucket 列表
     pub fn get_bucket_list(self) -> OssResult<ListBuckets<RcPointer>> {
         let client_arc = Rc::new(self);
 
@@ -471,6 +459,7 @@ impl ClientRc {
         Ok(bucket_list)
     }
 
+    /// 获取 bucket 列表，可存储为自定义的类型
     #[inline]
     pub fn base_bucket_list<List, Item, F, E>(
         &self,
@@ -495,6 +484,7 @@ impl ClientRc {
         Ok(())
     }
 
+    /// 获取当前的 bucket 的信息
     pub fn get_bucket_info(self) -> OssResult<Bucket<RcPointer>> {
         let name = self.get_bucket_name();
 
@@ -508,6 +498,7 @@ impl ClientRc {
         Ok(bucket)
     }
 
+    /// 获取某一个 bucket 的信息，并存储到自定义的类型
     #[inline]
     pub fn base_bucket_info<Bucket, Name: Into<BucketName>, E>(
         &self,
@@ -557,6 +548,7 @@ impl<T: PointerFamily> PartialEq<BucketBase> for Bucket<T> {
     }
 }
 
+#[doc(hidden)]
 #[derive(Default)]
 pub enum Grant {
     #[default]
@@ -565,6 +557,7 @@ pub enum Grant {
     PublicReadWrite,
 }
 
+#[doc(hidden)]
 #[derive(Clone, Debug, Default)]
 pub enum DataRedundancyType {
     #[default]
@@ -572,6 +565,7 @@ pub enum DataRedundancyType {
     ZRS,
 }
 
+#[doc(hidden)]
 #[derive(Default, Clone, Debug)]
 pub struct BucketListObjectParms<'a> {
     pub list_type: u8,
@@ -583,6 +577,7 @@ pub struct BucketListObjectParms<'a> {
     pub fetch_owner: bool,
 }
 
+#[doc(hidden)]
 #[derive(Default, Clone, Debug)]
 pub struct BucketListObject<'a> {
     //pub content:
@@ -609,6 +604,7 @@ pub struct BucketListObject<'a> {
     pub restore_info: Option<&'a str>,
 }
 
+#[doc(hidden)]
 #[derive(Clone, Debug)]
 pub enum Location {
     CnHangzhou,
@@ -623,6 +619,7 @@ pub enum Location {
     ApSouthEast1,
 }
 
+#[doc(hidden)]
 #[derive(Clone, Debug)]
 pub struct BucketStat {
     pub storage: u64,

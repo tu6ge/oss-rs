@@ -32,6 +32,7 @@ use mockall::automock;
 use std::convert::TryInto;
 use std::fmt::Display;
 
+/// 计算 OSS 签名的数据
 #[derive(Default, Clone)]
 pub struct Auth {
     access_key_id: KeyId,
@@ -437,6 +438,7 @@ impl TryInto<HeaderValue> for Sign<'_> {
     }
 }
 
+/// Auth 结构体的构建器
 #[derive(Default, Clone)]
 pub struct AuthBuilder {
     auth: Auth,
@@ -493,6 +495,7 @@ impl AuthBuilder {
         self.auth.set_canonicalized_resource(data.into());
     }
 
+    /// 给 Auth 附加新的 headers 信息
     #[inline]
     pub fn with_headers(&mut self, headers: Option<HeaderMap>) {
         if let Some(headers) = headers {
@@ -500,11 +503,13 @@ impl AuthBuilder {
         }
     }
 
+    /// 给 Auth 设置全新的 headers 信息
     #[inline]
     pub fn headers(&mut self, headers: HeaderMap) {
         self.auth.set_headers(headers);
     }
 
+    /// 给 Auth 附加新的 headers 信息
     #[inline]
     pub fn extend_headers(&mut self, headers: HeaderMap) {
         self.auth.extend_headers(headers);
@@ -536,10 +541,12 @@ impl AuthBuilder {
     }
 }
 
+/// 收集 Auth 模块的错误
 #[derive(Debug)]
 pub enum AuthError {
+    #[doc(hidden)]
     InvalidHeaderValue(http::header::InvalidHeaderValue),
-
+    #[doc(hidden)]
     InvalidLength(hmac::digest::crypto_common::InvalidLength),
 }
 

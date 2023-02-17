@@ -3,72 +3,87 @@ use std::fmt;
 use thiserror::Error;
 
 use crate::{
-    bucket::InvalidBucketValue,
     builder::BuilderError,
     config::{InvalidConfig, InvalidObjectDir, InvalidObjectPath},
     types::{InvalidBucketName, InvalidEndPoint},
 };
 
+/// 内置的 Error 集合
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum OssError {
+    #[doc(hidden)]
     #[error("reqwest error: {0}")]
     Request(#[from] reqwest::Error),
 
+    #[doc(hidden)]
     #[error("invalid header value msg: {0}")]
     InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
 
+    #[doc(hidden)]
     #[error("{0}")]
     #[cfg(test)]
     Dotenv(#[from] dotenv::Error),
 
+    #[doc(hidden)]
     #[error("var error: {0}")]
     VarError(#[from] std::env::VarError),
 
+    #[doc(hidden)]
     #[error("input error: {0}")]
     Input(String),
 
+    #[doc(hidden)]
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 
+    #[doc(hidden)]
     #[cfg(feature = "decode")]
     #[error("QuickXml error: {0}")]
     QuickXml(#[from] quick_xml::Error),
 
+    #[doc(hidden)]
     #[error("chrono error: {0}")]
     Chrono(#[from] chrono::ParseError),
 
+    #[doc(hidden)]
     #[error("{0}")]
     ToStrError(#[from] ToStrError),
 
+    #[doc(hidden)]
     #[error("ParseIntError: {0}")]
     ParseIntError(#[from] std::num::ParseIntError),
 
+    #[doc(hidden)]
     #[error("aliyun response error: {0}")]
     OssService(#[from] OssService),
 
+    #[doc(hidden)]
     #[error("{0}")]
     BuilderError(#[from] BuilderError),
 
+    #[doc(hidden)]
     #[error("{0}")]
     InvalidEndPoint(#[from] InvalidEndPoint),
 
-    #[error("{0}")]
-    InvalidBucketValue(#[from] InvalidBucketValue),
-
+    #[doc(hidden)]
     #[error("{0}")]
     InvalidBucketName(#[from] InvalidBucketName),
 
+    #[doc(hidden)]
     #[error("{0}")]
     InvalidConfig(#[from] InvalidConfig),
 
+    #[doc(hidden)]
     #[error("{0}")]
     InvalidObjectPath(#[from] InvalidObjectPath),
 
+    #[doc(hidden)]
     #[error("{0}")]
     InvalidObjectDir(#[from] InvalidObjectDir),
 
     /// 用于 Stream
+    #[doc(hidden)]
     #[error("Without More Content")]
     WithoutMore,
 }
@@ -89,9 +104,16 @@ impl OssError {
 /// 如果解析 xml 格式错误，则会返回默认值，默认值的 status = 200
 #[derive(Debug, Error, PartialEq, Eq)]
 pub struct OssService {
+    #[doc(hidden)]
     pub code: String,
+
+    #[doc(hidden)]
     pub status: StatusCode,
+
+    #[doc(hidden)]
     pub message: String,
+
+    #[doc(hidden)]
     pub request_id: String,
 }
 
@@ -146,6 +168,7 @@ impl<'a> OssService {
     }
 }
 
+/// 内置的 Result
 pub type OssResult<T> = Result<T, OssError>;
 
 #[cfg(test)]
