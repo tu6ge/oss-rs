@@ -1,9 +1,9 @@
 use std::env;
 
 use aliyun_oss_client::{
-    decode::{CustomItemError, CustomListError, RefineObject, RefineObjectList},
+    decode::{RefineObject, RefineObjectList},
     object::ExtractListError,
-    BucketName, Client,
+    BucketName, Client, CustomItemError, CustomListError,
 };
 use dotenv::dotenv;
 use thiserror::Error;
@@ -39,12 +39,9 @@ impl RefineObjectList<MyFile, MyError> for MyBucket {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, CustomItemError, CustomListError)]
 #[error("my error")]
 struct MyError {}
-
-impl CustomItemError for MyError {}
-impl CustomListError for MyError {}
 
 async fn get_with_client() -> Result<(), ExtractListError> {
     dotenv().ok();

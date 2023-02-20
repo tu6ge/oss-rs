@@ -1,4 +1,6 @@
 use array2query::{update_count, FormQuery, GetCount};
+use derive::impl_custom_item_error;
+use derive::impl_custom_list_error;
 use file::attr::Attribute;
 use file::impl_object;
 use file::FileTrait;
@@ -71,4 +73,28 @@ mod path_where;
 pub fn path_where(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let item = parse_macro_input!(input as path_where::GenWhere);
     TokenStream::from(quote!(#item))
+}
+
+mod derive;
+
+/// 用于实现 `#[derive(CustomItemError)]`
+#[proc_macro_derive(CustomItemError)]
+pub fn derive_custom_item_error(input: TokenStream) -> TokenStream {
+    // Construct a representation of Rust code as a syntax tree
+    // that we can manipulate
+    let ast = syn::parse(input).unwrap();
+
+    // Build the trait implementation
+    impl_custom_item_error(&ast)
+}
+
+/// 用于实现 `#[derive(CustomListError)]`
+#[proc_macro_derive(CustomListError)]
+pub fn derive_custom_list_error(input: TokenStream) -> TokenStream {
+    // Construct a representation of Rust code as a syntax tree
+    // that we can manipulate
+    let ast = syn::parse(input).unwrap();
+
+    // Build the trait implementation
+    impl_custom_list_error(&ast)
 }

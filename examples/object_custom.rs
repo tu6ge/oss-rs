@@ -3,9 +3,9 @@ use std::fmt::{self, Display};
 use aliyun_oss_client::{
     builder::ArcPointer,
     config::{InvalidObjectDir, ObjectDir, ObjectPath},
-    decode::{CustomItemError, RefineObject},
+    decode::RefineObject,
     object::ObjectList,
-    BucketName, Client,
+    BucketName, Client, CustomItemError,
 };
 use dotenv::dotenv;
 
@@ -28,6 +28,7 @@ impl RefineObject<MyError> for MyObject {
     }
 }
 
+#[derive(CustomItemError)]
 struct MyError(String);
 
 impl Display for MyError {
@@ -35,7 +36,6 @@ impl Display for MyError {
         f.write_fmt(format_args!("{}", self.0))
     }
 }
-impl CustomItemError for MyError {}
 
 impl From<InvalidObjectDir> for MyError {
     fn from(value: InvalidObjectDir) -> Self {

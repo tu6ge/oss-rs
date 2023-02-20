@@ -39,12 +39,11 @@
 //!     }
 //! }
 //!
-//! #[derive(Debug, Error)]
+//! use aliyun_oss_client::{CustomItemError, CustomListError};
+//!
+//! #[derive(Debug, Error, CustomItemError, CustomListError)]
 //! #[error("my error")]
 //! struct MyError {}
-//!
-//! impl aliyun_oss_client::decode::CustomItemError for MyError {}
-//! impl aliyun_oss_client::decode::CustomListError for MyError {}
 //!
 //! fn get_with_xml() -> Result<(), aliyun_oss_client::decode::ListError> {
 //!     // 这是阿里云接口返回的原始数据

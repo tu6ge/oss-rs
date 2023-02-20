@@ -264,6 +264,23 @@ pub mod builder;
 #[path = "traits.rs"]
 pub mod decode;
 
+/// 重新导出 derive 用于解析xml数据
+///
+/// ```rust
+/// # use aliyun_oss_client::{CustomItemError, CustomListError};
+/// # use std::fmt;
+/// #[derive(CustomItemError, CustomListError)]
+/// struct MyError {}
+///
+/// impl fmt::Display for MyError {
+///     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+///         write!(f, "demo")
+///     }
+/// }
+/// ```
+#[cfg(feature = "decode")]
+pub use oss_derive::{CustomItemError, CustomListError};
+
 /// 异常处理模块
 #[cfg(feature = "core")]
 pub mod errors;

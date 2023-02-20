@@ -57,7 +57,7 @@ required-features = ["sts"]
 
 [features]
 default = [
-  "blocking",
+  #"blocking",
   "core",
   "sts",
   "put_file",
@@ -79,7 +79,7 @@ blocking = ["core", "reqwest/blocking"]
 sts = ["core", "auth"]
 put_file = ["core", "infer"]
 auth = ["hmac", "sha1", "base64", "http", "chrono"]
-decode = ["quick-xml"]
+decode = ["quick-xml", "oss_derive"]
 # bench = []
 
 [dependencies]

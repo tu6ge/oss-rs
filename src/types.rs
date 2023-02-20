@@ -866,7 +866,9 @@ impl Default for CanonicalizedResource {
     }
 }
 
+#[cfg(feature = "core")]
 pub(crate) const CONTINUATION_TOKEN: &str = "continuation-token";
+#[cfg(feature = "core")]
 pub(crate) const BUCKET_INFO: &str = "bucketInfo";
 #[cfg(feature = "core")]
 const QUERY_KEYWORD: [&str; 2] = ["acl", BUCKET_INFO];
