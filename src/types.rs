@@ -274,8 +274,12 @@ impl FromStr for EndPoint {
     }
 }
 
+#[cfg(feature = "core")]
 const OSS_DOMAIN_PREFIX: &str = "https://oss-";
+#[cfg(feature = "core")]
+#[allow(dead_code)]
 const OSS_INTERNAL: &str = "-internal";
+#[cfg(feature = "core")]
 const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
 
 #[cfg(feature = "core")]

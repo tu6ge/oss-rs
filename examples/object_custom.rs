@@ -22,8 +22,7 @@ impl RefineObject<MyError> for MyObject {
         *self = match res {
             Ok(file) => MyObject::File(file),
             _ => {
-                let re = key.parse::<ObjectDir>();
-                MyObject::Dir(re.unwrap())
+                MyObject::Dir(key.parse()?)
             }
         };
 
