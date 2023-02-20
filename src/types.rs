@@ -154,15 +154,25 @@ pub enum EndPoint {
     ApSouthEast1,
 }
 
+#[cfg(feature = "core")]
 const HANGZHOU: &str = "cn-hangzhou";
+#[cfg(feature = "core")]
 const SHANGHAI: &str = "cn-shanghai";
+#[cfg(feature = "core")]
 const QINGDAO: &str = "cn-qingdao";
+#[cfg(feature = "core")]
 const BEIJING: &str = "cn-beijing";
+#[cfg(feature = "core")]
 const ZHANGJIAKOU: &str = "cn-zhangjiakou";
+#[cfg(feature = "core")]
 const HONGKONG: &str = "cn-hongkong";
+#[cfg(feature = "core")]
 const SHENZHEN: &str = "cn-shenzhen";
+#[cfg(feature = "core")]
 const US_WEST1: &str = "us-west1";
+#[cfg(feature = "core")]
 const US_EAST1: &str = "us-east1";
+#[cfg(feature = "core")]
 const AP_SOUTH_EAST1: &str = "ap-south-east1";
 
 #[cfg(feature = "core")]
@@ -209,12 +219,19 @@ impl Display for EndPoint {
     }
 }
 
+#[cfg(feature = "core")]
 const HANGZHOU_L: &str = "hangzhou";
+#[cfg(feature = "core")]
 const SHANGHAI_L: &str = "shanghai";
+#[cfg(feature = "core")]
 const QINGDAO_L: &str = "qingdao";
+#[cfg(feature = "core")]
 const BEIJING_L: &str = "beijing";
+#[cfg(feature = "core")]
 const ZHANGJIAKOU_L: &str = "zhangjiakou";
+#[cfg(feature = "core")]
 const HONGKONG_L: &str = "hongkong";
+#[cfg(feature = "core")]
 const SHENZHEN_L: &str = "shenzhen";
 
 #[cfg(feature = "core")]

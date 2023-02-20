@@ -2,7 +2,7 @@ use std::env;
 
 use aliyun_oss_client::{
     builder::BuilderError,
-    decode::{RefineObject, RefineObjectList},
+    decode::{CustomItemError, RefineObject, RefineObjectList},
     BucketName, Client,
 };
 use dotenv::dotenv;
@@ -46,7 +46,12 @@ enum MyError {
 
     #[error(transparent)]
     BuilderError(#[from] BuilderError),
+
+    #[error(transparent)]
+    Item(#[from] aliyun_oss_client::decode::ItemError),
 }
+
+impl CustomItemError for MyError {}
 
 async fn get_with_client() -> Result<(), MyError> {
     dotenv().ok();

@@ -1,7 +1,9 @@
+use std::fmt::{self, Display};
+
 use aliyun_oss_client::{
-    builder::{ArcPointer, BuilderError},
+    builder::ArcPointer,
     config::{InvalidObjectDir, ObjectDir, ObjectPath},
-    decode::RefineObject,
+    decode::{CustomItemError, RefineObject},
     object::ObjectList,
     BucketName, Client,
 };
@@ -31,23 +33,12 @@ impl RefineObject<MyError> for MyObject {
 
 struct MyError(String);
 
-impl From<quick_xml::Error> for MyError {
-    fn from(value: quick_xml::Error) -> Self {
-        Self(value.to_string())
+impl Display for MyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
     }
 }
-
-impl From<BuilderError> for MyError {
-    fn from(value: BuilderError) -> Self {
-        Self(value.to_string())
-    }
-}
-
-impl From<std::num::ParseIntError> for MyError {
-    fn from(value: std::num::ParseIntError) -> Self {
-        Self(value.to_string())
-    }
-}
+impl CustomItemError for MyError {}
 
 impl From<InvalidObjectDir> for MyError {
     fn from(value: InvalidObjectDir) -> Self {

@@ -86,6 +86,15 @@ pub enum OssError {
     #[doc(hidden)]
     #[error("Without More Content")]
     WithoutMore,
+
+    #[cfg(feature = "decode")]
+    #[doc(hidden)]
+    #[error("{0}")]
+    ItemError(#[from] crate::decode::ItemError),
+
+    #[doc(hidden)]
+    #[error("{0}")]
+    BuildInItemError(#[from] crate::object::BuildInItemError),
 }
 
 impl OssError {

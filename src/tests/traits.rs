@@ -2,13 +2,18 @@ static mut OBEJCT_ITEM_ID: i8 = 0;
 
 use thiserror::Error;
 
+use crate::decode::{CustomItemError, ItemError};
+
 #[derive(Debug, Error)]
 enum MyError {
     #[error(transparent)]
     QuickXml(#[from] quick_xml::Error),
-    // #[error(transparent)]
-    // BuilderError(#[from] BuilderError),
+    #[error(transparent)]
+    ItemError(#[from] ItemError),
 }
+
+impl CustomItemError for MyError {}
+
 mod object_list_xml {
     #[cfg(feature = "core")]
     use std::sync::Arc;
@@ -100,7 +105,7 @@ mod object_list_xml {
             }
         }
         struct ListB {}
-        impl RefineObjectList<ObjectA, MyError> for ListB {
+        impl RefineObjectList<ObjectA, MyError, MyError> for ListB {
             fn set_name(&mut self, name: &str) -> Result<(), MyError> {
                 assert_eq!(name, "foo_bucket");
                 Ok(())
@@ -382,7 +387,7 @@ mod object_list_xml {
         impl RefineObject<MyError> for ObjectA {}
 
         struct ListB {}
-        impl RefineObjectList<ObjectA, MyError> for ListB {
+        impl RefineObjectList<ObjectA, MyError, MyError> for ListB {
             fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), MyError> {
                 assert!(
                     matches!(token, Some(v) if v=="CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--")

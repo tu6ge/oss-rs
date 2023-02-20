@@ -79,7 +79,7 @@ use crate::{
     bucket::Bucket,
     builder::{ArcPointer, BuilderError, RequestBuilder},
     config::{InvalidObjectPath, ObjectBase, ObjectPath},
-    decode::RefineObject,
+    decode::{CustomItemError, RefineObject},
     object::{Object, ObjectList},
     types::{CanonicalizedResource, ContentRange},
     Client,
@@ -330,7 +330,7 @@ impl Files for Bucket {
 }
 
 /// 可将 `Object` 实例作为参数传递给各种操作方法
-impl<Item: RefineObject<E> + Send + Sync, E: From<quick_xml::Error> + Send + Sync> Files
+impl<Item: RefineObject<E> + Send + Sync, E: CustomItemError + Send + Sync> Files
     for ObjectList<ArcPointer, Item, E>
 {
     type Path = Object<ArcPointer>;
@@ -551,7 +551,7 @@ impl AlignBuilder for Bucket {
     }
 }
 
-impl<Item: RefineObject<E> + Send + Sync, E: From<quick_xml::Error> + Send + Sync> AlignBuilder
+impl<Item: RefineObject<E> + Send + Sync, E: CustomItemError + Send + Sync> AlignBuilder
     for ObjectList<ArcPointer, Item, E>
 {
     #[inline]

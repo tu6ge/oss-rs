@@ -43,7 +43,11 @@
 //! enum MyError {
 //!     #[error(transparent)]
 //!     QuickXml(#[from] quick_xml::Error),
+//!     #[error(transparent)]
+//!     Item(#[from] aliyun_oss_client::decode::ItemError),
 //! }
+//!
+//! impl aliyun_oss_client::decode::CustomItemError for MyError {}
 //!
 //! fn get_with_xml() -> Result<(), MyError> {
 //!     // 这是阿里云接口返回的原始数据
@@ -91,11 +95,20 @@
 //! ```
 
 use std::borrow::Cow;
+use std::fmt::Display;
+use std::num::ParseIntError;
 
 use quick_xml::{events::Event, Reader};
 
+#[cfg(feature = "core")]
+use crate::{
+    config::{InvalidObjectDir, InvalidObjectPath},
+    errors::OssError,
+    types::InvalidEndPoint,
+};
+
 /// 将一个 object 的数据写入到 rust 类型
-pub trait RefineObject<Error> {
+pub trait RefineObject<Error: CustomItemError> {
     /// 提取 key
     fn set_key(&mut self, _key: &str) -> Result<(), Error> {
         Ok(())
@@ -154,10 +167,11 @@ const DISPLAY_NAME: &[u8] = b"DisplayName";
 const CONTENTS: &[u8] = b"Contents";
 
 /// 将 object 列表写入到 rust 类型
-pub trait RefineObjectList<T, Error>
+pub trait RefineObjectList<T, Error, ItemErr = Error>
 where
-    T: RefineObject<Error>,
-    Error: From<quick_xml::Error>,
+    T: RefineObject<ItemErr>,
+    Error: From<quick_xml::Error> + From<ItemError>,
+    ItemErr: CustomItemError,
 {
     /// 提取 bucket 名
     fn set_name(&mut self, _name: &str) -> Result<(), Error> {
@@ -277,12 +291,16 @@ where
                     }
                     CONTENTS => {
                         let mut object = init_object();
-                        object.set_key(&key)?;
-                        object.set_last_modified(&last_modified)?;
-                        object.set_etag(&etag)?;
-                        object.set_type(&_type)?;
-                        object.set_size(&size)?;
-                        object.set_storage_class(&storage_class)?;
+                        object.set_key(&key).map_err(ItemError::from)?;
+                        object
+                            .set_last_modified(&last_modified)
+                            .map_err(ItemError::from)?;
+                        object.set_etag(&etag).map_err(ItemError::from)?;
+                        object.set_type(&_type).map_err(ItemError::from)?;
+                        object.set_size(&size).map_err(ItemError::from)?;
+                        object
+                            .set_storage_class(&storage_class)
+                            .map_err(ItemError::from)?;
                         result.push(object);
                     }
                     _ => (),
@@ -302,6 +320,50 @@ where
         Ok(())
     }
 }
+
+/// # Object 的 Error 中间层
+/// 当外部实现 [`RefineObject`] 时，所使用的 Error ,可先转换为这个，
+/// 变成一个已知的 Error 类型
+///
+/// [`RefineObject`]: crate::decode::RefineObject
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct ItemError(String);
+
+/// 当外部要实现 [`RefineObject`] 时，Error 类需要实现此 Trait
+///
+/// [`RefineObject`]: crate::decode::RefineObject
+pub trait CustomItemError: Display {}
+
+impl CustomItemError for quick_xml::Error {}
+impl CustomItemError for ParseIntError {}
+
+#[cfg(feature = "core")]
+impl CustomItemError for InvalidObjectPath {}
+#[cfg(feature = "core")]
+impl CustomItemError for InvalidObjectDir {}
+#[cfg(feature = "core")]
+impl CustomItemError for chrono::ParseError {}
+#[cfg(feature = "core")]
+impl CustomItemError for OssError {}
+#[cfg(feature = "core")]
+impl CustomItemError for InvalidEndPoint {}
+
+impl<T: CustomItemError> From<T> for ItemError {
+    fn from(err: T) -> Self {
+        Self(format!("{err}"))
+    }
+}
+
+impl Display for ItemError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        fmt.write_fmt(format_args!(
+            "decode object xml info error, info: {}",
+            self.0
+        ))
+    }
+}
+
+impl std::error::Error for ItemError {}
 
 /// 将一个 bucket 的数据写入到 rust 类型
 pub trait RefineBucket<Error>
@@ -501,21 +563,46 @@ where
 
 #[cfg(test)]
 mod tests {
+
+    use std::fmt;
+
     use super::*;
     #[test]
     fn test_common_prefixes() {
         struct ObjectA {}
-        impl RefineObject<quick_xml::Error> for ObjectA {}
+        impl RefineObject<MyError> for ObjectA {}
 
         struct ListA {}
 
-        impl RefineObjectList<ObjectA, quick_xml::Error> for ListA {
-            fn set_prefix(&mut self, prefix: &str) -> Result<(), quick_xml::Error> {
+        struct MyError {}
+
+        impl From<ItemError> for MyError {
+            fn from(_: ItemError) -> Self {
+                MyError {}
+            }
+        }
+
+        impl From<quick_xml::Error> for MyError {
+            fn from(_: quick_xml::Error) -> Self {
+                MyError {}
+            }
+        }
+
+        impl fmt::Display for MyError {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(f, "demo")
+            }
+        }
+
+        impl CustomItemError for MyError {}
+
+        impl RefineObjectList<ObjectA, MyError, MyError> for ListA {
+            fn set_prefix(&mut self, prefix: &str) -> Result<(), MyError> {
                 assert!(prefix == "bar");
                 Ok(())
             }
 
-            fn set_common_prefix(&mut self, list: &[Cow<'_, str>]) -> Result<(), quick_xml::Error> {
+            fn set_common_prefix(&mut self, list: &[Cow<'_, str>]) -> Result<(), MyError> {
                 assert!(list[0] == "foo1/");
                 assert!(list[1] == "foo2/");
                 Ok(())
