@@ -170,7 +170,7 @@ let client = aliyun_oss_client::Client::new("key1".into(), "secret1".into(), "qi
 > 如需使用，需要启用 `blocking` 特征
 
 ### 获取 client
-```ignore
+```rust,ignore
 // dotenv 是用于获取配置信息的，可以不使用
 extern crate dotenv;
 use dotenv::dotenv;
@@ -184,7 +184,7 @@ let client = aliyun_oss_client::ClientRc::new("key1".into(), "secret1".into(), "
 ```
 
 ### 查询所有的 bucket 信息
-```ignore
+```rust,ignore
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -196,7 +196,7 @@ println!("buckets list: {:?}", response);
 ```
 
 ### 获取 bucket 信息
-```ignore
+```rust,ignore
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -208,7 +208,7 @@ println!("bucket info: {:?}", response);
 ```
 
 ### 查询当前 bucket 中的 object 列表
-```ignore
+```rust,ignore
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -221,7 +221,7 @@ println!("objects list: {:?}", response);
 
 ### 也可以使用 bucket struct 查询 object 列表
 
-```ignore
+```rust,ignore
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -242,7 +242,7 @@ println!("next object list: {:?}", result.next());
 ```
 
 ### 上传文件
-```ignore
+```rust,ignore
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -267,7 +267,7 @@ client
 ```
 
 ### 删除文件
-```ignore
+```rust,ignore
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
