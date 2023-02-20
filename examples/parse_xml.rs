@@ -1,4 +1,6 @@
-use aliyun_oss_client::decode::{CustomItemError, RefineObject, RefineObjectList};
+use aliyun_oss_client::decode::{
+    CustomItemError, CustomListError, ListError, RefineObject, RefineObjectList,
+};
 use thiserror::Error;
 
 struct MyFile {
@@ -32,18 +34,13 @@ impl RefineObjectList<MyFile, MyError> for MyBucket {
 }
 
 #[derive(Debug, Error)]
-enum MyError {
-    #[error(transparent)]
-    QuickXml(#[from] quick_xml::Error),
-
-    /// TODO 这里是没有必要的，更好的方式是，不需要这个 From 限制
-    #[error(transparent)]
-    Item(#[from] aliyun_oss_client::decode::ItemError),
-}
+#[error("my error")]
+struct MyError {}
 
 impl CustomItemError for MyError {}
+impl CustomListError for MyError {}
 
-fn get_with_xml() -> Result<(), MyError> {
+fn get_with_xml() -> Result<(), ListError> {
     // 这是阿里云接口返回的原始数据
     let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
         <ListBucketResult>

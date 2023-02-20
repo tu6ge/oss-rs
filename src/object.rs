@@ -87,7 +87,7 @@ use crate::client::ClientRc;
 use crate::config::{
     BucketBase, CommonPrefixes, InvalidObjectPath, ObjectBase, ObjectDir, ObjectPath,
 };
-use crate::decode::{CustomItemError, ItemError, RefineObject, RefineObjectList};
+use crate::decode::{CustomItemError, CustomListError, ListError, RefineObject, RefineObjectList};
 use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
@@ -361,13 +361,14 @@ impl ObjectList<RcPointer> {
             object
         };
 
-        let result: Result<_, OssError> = client.base_object_list(
-            name.to_owned(),
-            self.search_query.clone(),
-            &mut list,
-            init_object,
-        );
-        result?;
+        client
+            .base_object_list(
+                name.to_owned(),
+                self.search_query.clone(),
+                &mut list,
+                init_object,
+            )
+            .map_err(OssError::from)?;
 
         Ok(list)
     }
@@ -754,13 +755,13 @@ impl Client {
         Ok(list)
     }
 
-    /// # 可将 object 列表导出到外部类型（不仅仅是 struct）
+    /// # 可将 object 列表导出到外部类型
     /// 可以参考下面示例，或者项目中的 `examples/custom.rs`
     /// ## 示例
     /// ```rust
     /// use aliyun_oss_client::{
-    ///     builder::BuilderError,
-    ///     decode::{RefineObject, RefineObjectList},
+    ///     decode::{CustomItemError, CustomListError, RefineObject, RefineObjectList},
+    ///     object::ExtractListError,
     ///     Client,
     /// };
     /// use dotenv::dotenv;
@@ -798,18 +799,13 @@ impl Client {
     /// }
     ///
     /// #[derive(Debug, Error)]
-    /// enum MyError {
-    ///     #[error(transparent)]
-    ///     QuickXml(#[from] quick_xml::Error),
-    ///     #[error(transparent)]
-    ///     BuilderError(#[from] BuilderError),
-    ///     #[error(transparent)]
-    ///     Item(#[from] aliyun_oss_client::decode::ItemError),
-    /// }
+    /// #[error("my error")]
+    /// enum MyError {}
     ///
-    /// impl aliyun_oss_client::decode::CustomItemError for MyError {}
+    /// impl CustomItemError for MyError {}
+    /// impl CustomListError for MyError {}
     ///
-    /// async fn run() -> Result<(), MyError> {
+    /// async fn run() -> Result<(), ExtractListError> {
     ///     dotenv().ok();
     ///     use aliyun_oss_client::BucketName;
     ///
@@ -826,25 +822,22 @@ impl Client {
     ///     //let bucket_name = env::var("ALIYUN_BUCKET").unwrap();
     ///     let bucket_name = "abc".parse::<BucketName>().unwrap();
     ///
-    ///     let res: Result<_, MyError> = client
+    ///     client
     ///         .base_object_list(bucket_name, [], &mut bucket, init_file)
-    ///         .await;
-    ///
-    ///     res?;
+    ///         .await?;
     ///
     ///     println!("bucket: {:?}", bucket);
     ///
     ///     Ok(())
     /// }
     /// ```
-    #[inline]
     pub async fn base_object_list<
         Name: Into<BucketName>,
         Q: IntoIterator<Item = (QueryKey, QueryValue)>,
         List,
         Item,
         F,
-        E,
+        E: CustomListError,
         ItemErr: CustomItemError,
     >(
         &self,
@@ -852,11 +845,10 @@ impl Client {
         query: Q,
         list: &mut List,
         init_object: F,
-    ) -> Result<(), E>
+    ) -> Result<(), ExtractListError>
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        E: From<BuilderError> + From<quick_xml::Error> + From<ItemError>,
         F: FnMut() -> Item,
     {
         let query = Query::from_iter(query);
@@ -864,16 +856,41 @@ impl Client {
         let (bucket_url, resource) =
             BucketBase::new(name.into(), self.get_endpoint().to_owned()).get_url_resource(&query);
 
-        let response = self.builder(Method::GET, bucket_url, resource)?;
-        let content = response.send_adjust_error().await?;
+        let response = self
+            .builder(Method::GET, bucket_url, resource)
+            .map_err(ExtractListError::from)?;
+        let content = response
+            .send_adjust_error()
+            .await
+            .map_err(ExtractListError::from)?;
 
         list.decode(
-            &content.text().await.map_err(BuilderError::from)?,
+            &content
+                .text()
+                .await
+                .map_err(BuilderError::from)
+                .map_err(ExtractListError::from)?,
             init_object,
-        )?;
+        )
+        .map_err(ExtractListError::from)?;
 
         Ok(())
     }
+}
+
+/// 为 [`base_object_list`] 方法，返回一个统一的 Error
+///
+/// [`base_object_list`]: crate::client::Client::base_object_list
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum ExtractListError {
+    #[doc(hidden)]
+    #[error(transparent)]
+    Builder(#[from] BuilderError),
+
+    #[doc(hidden)]
+    #[error(transparent)]
+    List(#[from] ListError),
 }
 
 #[cfg(feature = "blocking")]
@@ -922,7 +939,7 @@ impl ClientRc {
         List,
         Item,
         F,
-        E,
+        E: CustomListError,
         ItemErr: CustomItemError,
     >(
         &self,
@@ -930,11 +947,10 @@ impl ClientRc {
         query: Q,
         list: &mut List,
         init_object: F,
-    ) -> Result<(), E>
+    ) -> Result<(), ExtractListError>
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        E: From<BuilderError> + From<quick_xml::Error> + From<ItemError>,
         F: FnMut() -> Item,
     {
         let bucket = BucketBase::new(name.into(), self.get_endpoint().to_owned());
@@ -942,10 +958,21 @@ impl ClientRc {
         let query = Query::from_iter(query);
         let (bucket_url, resource) = bucket.get_url_resource(&query);
 
-        let response = self.builder(Method::GET, bucket_url, resource)?;
-        let content = response.send_adjust_error()?;
+        let response = self
+            .builder(Method::GET, bucket_url, resource)
+            .map_err(ExtractListError::from)?;
+        let content = response
+            .send_adjust_error()
+            .map_err(ExtractListError::from)?;
 
-        list.decode(&content.text().map_err(BuilderError::from)?, init_object)?;
+        list.decode(
+            &content
+                .text()
+                .map_err(BuilderError::from)
+                .map_err(ExtractListError::from)?,
+            init_object,
+        )
+        .map_err(ExtractListError::from)?;
 
         Ok(())
     }

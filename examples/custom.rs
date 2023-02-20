@@ -1,8 +1,8 @@
 use std::env;
 
 use aliyun_oss_client::{
-    builder::BuilderError,
-    decode::{CustomItemError, RefineObject, RefineObjectList},
+    decode::{CustomItemError, CustomListError, RefineObject, RefineObjectList},
+    object::ExtractListError,
     BucketName, Client,
 };
 use dotenv::dotenv;
@@ -40,20 +40,13 @@ impl RefineObjectList<MyFile, MyError> for MyBucket {
 }
 
 #[derive(Debug, Error)]
-enum MyError {
-    #[error(transparent)]
-    QuickXml(#[from] quick_xml::Error),
-
-    #[error(transparent)]
-    BuilderError(#[from] BuilderError),
-
-    #[error(transparent)]
-    Item(#[from] aliyun_oss_client::decode::ItemError),
-}
+#[error("my error")]
+struct MyError {}
 
 impl CustomItemError for MyError {}
+impl CustomListError for MyError {}
 
-async fn get_with_client() -> Result<(), MyError> {
+async fn get_with_client() -> Result<(), ExtractListError> {
     dotenv().ok();
 
     let client = Client::from_env().unwrap();
@@ -68,16 +61,14 @@ async fn get_with_client() -> Result<(), MyError> {
     };
     let bucket_name = env::var("ALIYUN_BUCKET").unwrap();
 
-    let res: Result<_, MyError> = client
+    client
         .base_object_list(
             bucket_name.parse::<BucketName>().unwrap(),
             [],
             &mut bucket,
             init_file,
         )
-        .await;
-
-    res?;
+        .await?;
 
     println!("bucket: {:?}", bucket);
 

@@ -5,6 +5,7 @@ use thiserror::Error;
 use crate::{
     builder::BuilderError,
     config::{InvalidConfig, InvalidObjectDir, InvalidObjectPath},
+    object::ExtractListError,
     types::{InvalidBucketName, InvalidEndPoint},
 };
 
@@ -95,6 +96,15 @@ pub enum OssError {
     #[doc(hidden)]
     #[error("{0}")]
     BuildInItemError(#[from] crate::object::BuildInItemError),
+
+    #[cfg(feature = "decode")]
+    #[doc(hidden)]
+    #[error("{0}")]
+    ListError(#[from] crate::decode::ListError),
+
+    #[doc(hidden)]
+    #[error(transparent)]
+    ExtractList(#[from] ExtractListError),
 }
 
 impl OssError {
