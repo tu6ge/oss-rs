@@ -3,6 +3,7 @@ use std::fmt;
 use thiserror::Error;
 
 use crate::{
+    bucket::ExtractItemError,
     builder::BuilderError,
     config::{InvalidConfig, InvalidObjectDir, InvalidObjectPath},
     object::ExtractListError,
@@ -103,8 +104,12 @@ pub enum OssError {
     ListError(#[from] crate::decode::ListError),
 
     #[doc(hidden)]
-    #[error(transparent)]
+    #[error("{0}")]
     ExtractList(#[from] ExtractListError),
+
+    #[doc(hidden)]
+    #[error("{0}")]
+    ExtractItem(#[from] ExtractItemError),
 }
 
 impl OssError {

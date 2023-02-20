@@ -5,12 +5,14 @@ use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::BucketBase;
-use crate::decode::{RefineBucket, RefineBucketList, RefineObjectList};
+use crate::decode::{
+    CustomItemError, CustomListError, ItemError, RefineBucket, RefineBucketList, RefineObjectList,
+};
 use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
-use crate::object::{Object, ObjectList};
+use crate::object::{ExtractListError, Object, ObjectList};
 use crate::types::{CanonicalizedResource, Query, QueryKey, QueryValue, BUCKET_INFO};
 use crate::{BucketName, EndPoint};
 
@@ -29,7 +31,7 @@ use std::sync::Arc;
 pub struct ListBuckets<
     PointerSel: PointerFamily = ArcPointer,
     Item: RefineBucket<E> = Bucket<PointerSel>,
-    E: From<quick_xml::Error> = OssError,
+    E: CustomItemError = OssError,
 > {
     prefix: Option<String>,
     marker: Option<String>,
@@ -44,8 +46,8 @@ pub struct ListBuckets<
     ph_err: PhantomData<E>,
 }
 
-impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: From<quick_xml::Error>>
-    fmt::Debug for ListBuckets<T, Item, E>
+impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: CustomItemError> fmt::Debug
+    for ListBuckets<T, Item, E>
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ListBuckets")
@@ -62,16 +64,14 @@ impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: From<quick_xm
 }
 
 #[oss_gen_rc]
-impl<Item: RefineBucket<E>, E: From<quick_xml::Error>> ListBuckets<ArcPointer, Item, E> {
+impl<Item: RefineBucket<E>, E: CustomItemError> ListBuckets<ArcPointer, Item, E> {
     pub(crate) fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = Arc::clone(&client);
     }
 }
 
 #[oss_gen_rc]
-impl<Item: RefineBucket<E>, E: From<quick_xml::Error>> Default
-    for ListBuckets<ArcPointer, Item, E>
-{
+impl<Item: RefineBucket<E>, E: CustomItemError> Default for ListBuckets<ArcPointer, Item, E> {
     fn default() -> Self {
         Self {
             prefix: None,
@@ -281,10 +281,10 @@ impl Bucket<RcPointer> {
     }
 }
 
-impl<T: PointerFamily, Item: RefineBucket<E>, E: From<quick_xml::Error>> RefineBucketList<Item, E>
-    for ListBuckets<T, Item, E>
+impl<T: PointerFamily, Item: RefineBucket<E>, E: CustomItemError>
+    RefineBucketList<Item, OssError, E> for ListBuckets<T, Item, E>
 {
-    fn set_prefix(&mut self, prefix: &str) -> Result<(), E> {
+    fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
         self.prefix = if !prefix.is_empty() {
             Some(prefix.to_owned())
         } else {
@@ -293,7 +293,7 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: From<quick_xml::Error>> RefineB
         Ok(())
     }
 
-    fn set_marker(&mut self, marker: &str) -> Result<(), E> {
+    fn set_marker(&mut self, marker: &str) -> Result<(), OssError> {
         self.marker = if !marker.is_empty() {
             Some(marker.to_owned())
         } else {
@@ -302,7 +302,7 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: From<quick_xml::Error>> RefineB
         Ok(())
     }
 
-    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), E> {
+    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
         self.max_keys = if !max_keys.is_empty() {
             Some(max_keys.to_owned())
         } else {
@@ -311,12 +311,12 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: From<quick_xml::Error>> RefineB
         Ok(())
     }
 
-    fn set_is_truncated(&mut self, is_truncated: bool) -> Result<(), E> {
+    fn set_is_truncated(&mut self, is_truncated: bool) -> Result<(), OssError> {
         self.is_truncated = is_truncated;
         Ok(())
     }
 
-    fn set_next_marker(&mut self, marker: &str) -> Result<(), E> {
+    fn set_next_marker(&mut self, marker: &str) -> Result<(), OssError> {
         self.next_marker = if marker.is_empty() {
             None
         } else {
@@ -325,7 +325,7 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: From<quick_xml::Error>> RefineB
         Ok(())
     }
 
-    fn set_id(&mut self, id: &str) -> Result<(), E> {
+    fn set_id(&mut self, id: &str) -> Result<(), OssError> {
         self.id = if id.is_empty() {
             None
         } else {
@@ -334,7 +334,7 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: From<quick_xml::Error>> RefineB
         Ok(())
     }
 
-    fn set_display_name(&mut self, display_name: &str) -> Result<(), E> {
+    fn set_display_name(&mut self, display_name: &str) -> Result<(), OssError> {
         self.display_name = if display_name.is_empty() {
             None
         } else {
@@ -343,7 +343,7 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: From<quick_xml::Error>> RefineB
         Ok(())
     }
 
-    fn set_list(&mut self, list: Vec<Item>) -> Result<(), E> {
+    fn set_list(&mut self, list: Vec<Item>) -> Result<(), OssError> {
         self.buckets = list;
         Ok(())
     }
@@ -361,10 +361,9 @@ impl ClientArc {
         };
 
         let mut bucket_list = ListBuckets::<ArcPointer>::default();
-        let res: Result<_, OssError> = client_arc
+        client_arc
             .base_bucket_list(&mut bucket_list, init_bucket)
-            .await;
-        res?;
+            .await?;
 
         bucket_list.set_client(client_arc.clone());
 
@@ -373,15 +372,16 @@ impl ClientArc {
 
     /// 从 OSS 获取 bucket 列表，并存入自定义类型中
     #[inline]
-    pub async fn base_bucket_list<List, Item, F, E>(
+    pub async fn base_bucket_list<List, Item, F, E, ItemErr>(
         &self,
         list: &mut List,
         init_bucket: F,
-    ) -> Result<(), E>
+    ) -> Result<(), ExtractListError>
     where
-        List: RefineBucketList<Item, E>,
-        Item: RefineBucket<E>,
-        E: From<BuilderError> + From<quick_xml::Error>,
+        List: RefineBucketList<Item, E, ItemErr>,
+        Item: RefineBucket<ItemErr>,
+        E: CustomListError,
+        ItemErr: CustomItemError,
         F: FnMut() -> Item,
     {
         let url = self.get_endpoint_url();
@@ -392,9 +392,14 @@ impl ClientArc {
         let content = response.send_adjust_error().await?;
 
         list.decode(
-            &content.text().await.map_err(BuilderError::from)?,
+            &content
+                .text()
+                .await
+                .map_err(BuilderError::from)
+                .map_err(ExtractListError::from)?,
             init_bucket,
-        )?;
+        )
+        .map_err(ExtractListError::from)?;
 
         Ok(())
     }
@@ -405,8 +410,7 @@ impl ClientArc {
 
         let mut bucket = Bucket::<ArcPointer>::default();
 
-        let res: Result<_, OssError> = self.base_bucket_info(name.to_owned(), &mut bucket).await;
-        res?;
+        self.base_bucket_info(name.to_owned(), &mut bucket).await?;
 
         bucket.set_client(Arc::new(self));
 
@@ -419,10 +423,10 @@ impl ClientArc {
         &self,
         name: Name,
         bucket: &mut Bucket,
-    ) -> Result<(), E>
+    ) -> Result<(), ExtractItemError>
     where
         Bucket: RefineBucket<E>,
-        E: From<BuilderError> + From<quick_xml::Error>,
+        E: CustomItemError,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some(BUCKET_INFO);
@@ -433,10 +437,27 @@ impl ClientArc {
         let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error().await?;
 
-        bucket.decode(&content.text().await.map_err(BuilderError::from)?)?;
+        bucket
+            .decode(&content.text().await.map_err(BuilderError::from)?)
+            .map_err(ExtractItemError::from)?;
 
         Ok(())
     }
+}
+
+/// 为 [`base_bucket_info`] 方法，返回一个统一的 Error
+///
+/// [`base_bucket_info`]: crate::client::Client::base_bucket_info
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum ExtractItemError {
+    #[doc(hidden)]
+    #[error("{0}")]
+    Builder(#[from] BuilderError),
+
+    #[doc(hidden)]
+    #[error("{0}")]
+    Item(#[from] ItemError),
 }
 
 #[cfg(feature = "blocking")]
@@ -452,8 +473,7 @@ impl ClientRc {
         };
 
         let mut bucket_list = ListBuckets::<RcPointer>::default();
-        let res: Result<_, OssError> = client_arc.base_bucket_list(&mut bucket_list, init_bucket);
-        res?;
+        client_arc.base_bucket_list(&mut bucket_list, init_bucket)?;
         bucket_list.set_client(client_arc.clone());
 
         Ok(bucket_list)
@@ -461,15 +481,16 @@ impl ClientRc {
 
     /// 获取 bucket 列表，可存储为自定义的类型
     #[inline]
-    pub fn base_bucket_list<List, Item, F, E>(
+    pub fn base_bucket_list<List, Item, F, E, ItemErr>(
         &self,
         list: &mut List,
         init_bucket: F,
-    ) -> Result<(), E>
+    ) -> Result<(), ExtractListError>
     where
-        List: RefineBucketList<Item, E>,
-        Item: RefineBucket<E>,
-        E: From<BuilderError> + From<quick_xml::Error>,
+        List: RefineBucketList<Item, E, ItemErr>,
+        Item: RefineBucket<ItemErr>,
+        E: CustomListError,
+        ItemErr: CustomItemError,
         F: FnMut() -> Item,
     {
         let url = self.get_endpoint_url();
@@ -479,7 +500,8 @@ impl ClientRc {
         let response = self.builder(Method::GET, url, canonicalized)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text().map_err(BuilderError::from)?, init_bucket)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_bucket)
+            .map_err(ExtractListError::from)?;
 
         Ok(())
     }
@@ -490,8 +512,7 @@ impl ClientRc {
 
         let mut bucket = Bucket::<RcPointer>::default();
 
-        let res: Result<_, OssError> = self.base_bucket_info(name.to_owned(), &mut bucket);
-        res?;
+        self.base_bucket_info(name.to_owned(), &mut bucket)?;
 
         bucket.set_client(Rc::new(self));
 
@@ -504,10 +525,10 @@ impl ClientRc {
         &self,
         name: Name,
         bucket: &mut Bucket,
-    ) -> Result<(), E>
+    ) -> Result<(), ExtractItemError>
     where
         Bucket: RefineBucket<E>,
-        E: From<BuilderError> + From<quick_xml::Error>,
+        E: CustomItemError,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some(BUCKET_INFO);
@@ -518,7 +539,9 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error()?;
 
-        bucket.decode(&content.text().map_err(BuilderError::from)?)?;
+        bucket
+            .decode(&content.text().map_err(BuilderError::from)?)
+            .map_err(ExtractItemError::from)?;
 
         Ok(())
     }

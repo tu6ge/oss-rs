@@ -430,10 +430,7 @@ impl Display for ListError {
 impl std::error::Error for ListError {}
 
 /// 将一个 bucket 的数据写入到 rust 类型
-pub trait RefineBucket<Error>
-where
-    Error: From<quick_xml::Error>,
-{
+pub trait RefineBucket<Error: CustomItemError> {
     /// 提取 bucket name
     fn set_name(&mut self, _name: &str) -> Result<(), Error> {
         Ok(())
@@ -465,7 +462,7 @@ where
     }
 
     /// 解析 OSS 接口返回的 xml 数据
-    fn decode(&mut self, xml: &str) -> Result<(), Error> {
+    fn decode(&mut self, xml: &str) -> Result<(), ItemError> {
         //println!("from_xml: {:#}", xml);
         let mut reader = Reader::from_str(xml);
         reader.trim_text(true);
@@ -494,7 +491,7 @@ where
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(Error::from(e));
+                    return Err(ItemError::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -507,9 +504,10 @@ where
 const TRUE: &str = "true";
 
 /// 将 bucket 列表的数据写入到 rust 类型
-pub trait RefineBucketList<T: RefineBucket<Error>, Error>
+pub trait RefineBucketList<T: RefineBucket<ItemErr>, Error, ItemErr = Error>
 where
-    Error: From<quick_xml::Error>,
+    Error: CustomListError,
+    ItemErr: CustomItemError,
 {
     /// 提取 prefix
     fn set_prefix(&mut self, _prefix: &str) -> Result<(), Error> {
@@ -552,7 +550,7 @@ where
     }
 
     /// 解析 OSS 接口返回的 xml 数据
-    fn decode<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), Error>
+    fn decode<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), ListError>
     where
         F: FnMut() -> T,
     {
@@ -602,12 +600,20 @@ where
                 },
                 Ok(Event::End(ref e)) if e.name().as_ref() == BUCKET => {
                     let mut bucket = init_bucket();
-                    bucket.set_name(&name)?;
-                    bucket.set_creation_date(&creation_date)?;
-                    bucket.set_location(&location)?;
-                    bucket.set_extranet_endpoint(&extranet_endpoint)?;
-                    bucket.set_intranet_endpoint(&intranet_endpoint)?;
-                    bucket.set_storage_class(&storage_class)?;
+                    bucket.set_name(&name).map_err(ItemError::from)?;
+                    bucket
+                        .set_creation_date(&creation_date)
+                        .map_err(ItemError::from)?;
+                    bucket.set_location(&location).map_err(ItemError::from)?;
+                    bucket
+                        .set_extranet_endpoint(&extranet_endpoint)
+                        .map_err(ItemError::from)?;
+                    bucket
+                        .set_intranet_endpoint(&intranet_endpoint)
+                        .map_err(ItemError::from)?;
+                    bucket
+                        .set_storage_class(&storage_class)
+                        .map_err(ItemError::from)?;
                     result.push(bucket);
                 }
                 Ok(Event::Eof) => {
@@ -615,7 +621,7 @@ where
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(Error::from(e));
+                    return Err(ListError::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }

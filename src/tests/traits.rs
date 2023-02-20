@@ -2,7 +2,7 @@ static mut OBEJCT_ITEM_ID: i8 = 0;
 
 use thiserror::Error;
 
-use crate::decode::{CustomItemError, CustomListError, ItemError};
+use crate::decode::{CustomItemError, CustomListError};
 
 #[derive(Debug, Error)]
 #[error("custom")]
@@ -10,14 +10,6 @@ struct MyError {}
 
 impl CustomItemError for MyError {}
 impl CustomListError for MyError {}
-
-#[derive(Debug, Error)]
-enum MyErrorTemp {
-    #[error(transparent)]
-    QuickXml(#[from] quick_xml::Error),
-    #[error(transparent)]
-    ItemError(#[from] ItemError),
-}
 
 mod object_list_xml {
     #[cfg(feature = "core")]
@@ -449,7 +441,7 @@ mod object_list_xml {
 }
 
 mod bucket_xml {
-    use super::MyErrorTemp as MyError;
+    use super::MyError;
 
     #[test]
     fn from_xml() {
@@ -523,7 +515,7 @@ mod bucket_xml {
 }
 static mut BUCKETS_ITEM_ID: i8 = 0;
 mod bucket_list_xml {
-    use super::MyErrorTemp as MyError;
+    use super::MyError;
 
     use super::BUCKETS_ITEM_ID;
 

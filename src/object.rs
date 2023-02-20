@@ -856,20 +856,11 @@ impl Client {
         let (bucket_url, resource) =
             BucketBase::new(name.into(), self.get_endpoint().to_owned()).get_url_resource(&query);
 
-        let response = self
-            .builder(Method::GET, bucket_url, resource)
-            .map_err(ExtractListError::from)?;
-        let content = response
-            .send_adjust_error()
-            .await
-            .map_err(ExtractListError::from)?;
+        let response = self.builder(Method::GET, bucket_url, resource)?;
+        let content = response.send_adjust_error().await?;
 
         list.decode(
-            &content
-                .text()
-                .await
-                .map_err(BuilderError::from)
-                .map_err(ExtractListError::from)?,
+            &content.text().await.map_err(BuilderError::from)?,
             init_object,
         )
         .map_err(ExtractListError::from)?;
@@ -885,11 +876,11 @@ impl Client {
 #[non_exhaustive]
 pub enum ExtractListError {
     #[doc(hidden)]
-    #[error(transparent)]
+    #[error("{0}")]
     Builder(#[from] BuilderError),
 
     #[doc(hidden)]
-    #[error(transparent)]
+    #[error("{0}")]
     List(#[from] ListError),
 }
 
@@ -958,21 +949,11 @@ impl ClientRc {
         let query = Query::from_iter(query);
         let (bucket_url, resource) = bucket.get_url_resource(&query);
 
-        let response = self
-            .builder(Method::GET, bucket_url, resource)
-            .map_err(ExtractListError::from)?;
-        let content = response
-            .send_adjust_error()
-            .map_err(ExtractListError::from)?;
+        let response = self.builder(Method::GET, bucket_url, resource)?;
+        let content = response.send_adjust_error()?;
 
-        list.decode(
-            &content
-                .text()
-                .map_err(BuilderError::from)
-                .map_err(ExtractListError::from)?,
-            init_object,
-        )
-        .map_err(ExtractListError::from)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_object)
+            .map_err(ExtractListError::from)?;
 
         Ok(())
     }
