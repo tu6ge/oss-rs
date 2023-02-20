@@ -4,6 +4,7 @@ use std::{
     borrow::Cow,
     env::{self, VarError},
     fmt::Display,
+    ops::{Add, AddAssign},
     path::Path,
     str::FromStr,
     sync::Arc,
@@ -844,6 +845,65 @@ impl PartialEq<ObjectDir<'_>> for String {
     #[inline]
     fn eq(&self, other: &ObjectDir) -> bool {
         self == &other.0.clone()
+    }
+}
+
+impl<'a, 'b> Add<ObjectDir<'b>> for ObjectDir<'a> {
+    type Output = ObjectDir<'a>;
+
+    /// # 支持 ObjectDir 相加运算
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectDir;
+    /// let dir1 = ObjectDir::new("dir1/").unwrap();
+    /// let dir2 = ObjectDir::new("dir2/").unwrap();
+    /// let full_dir = ObjectDir::new("dir1/dir2/").unwrap();
+    ///
+    /// assert_eq!(dir1 + dir2, full_dir);
+    /// ```
+    fn add(self, rhs: ObjectDir<'b>) -> Self::Output {
+        let mut string = self.as_ref().to_string();
+
+        string += rhs.as_ref();
+        ObjectDir(Cow::Owned(string))
+    }
+}
+
+impl<'a, 'b> AddAssign<ObjectDir<'b>> for ObjectDir<'a> {
+    /// # 支持 ObjectDir 相加运算
+    /// ```
+    /// # use aliyun_oss_client::config::ObjectDir;
+    /// let mut dir1 = ObjectDir::new("dir1/").unwrap();
+    /// let dir2 = ObjectDir::new("dir2/").unwrap();
+    /// let full_dir = ObjectDir::new("dir1/dir2/").unwrap();
+    ///
+    /// dir1 += dir2;
+    /// assert_eq!(dir1, full_dir);
+    /// ```
+    fn add_assign(&mut self, rhs: ObjectDir<'b>) {
+        let mut string = self.as_ref().to_string();
+
+        string += rhs.as_ref();
+        *self = ObjectDir(Cow::Owned(string));
+    }
+}
+
+impl<'a> Add<ObjectPath> for ObjectDir<'a> {
+    type Output = ObjectPath;
+
+    /// # 支持 ObjectDir 与 ObjectPath 相加运算
+    /// ```
+    /// # use aliyun_oss_client::config::{ObjectDir, ObjectPath};
+    /// let dir1 = ObjectDir::new("dir1/").unwrap();
+    /// let file1 = ObjectPath::new("img1.png").unwrap();
+    /// let full_file = ObjectPath::new("dir1/img1.png").unwrap();
+    ///
+    /// assert_eq!(dir1 + file1, full_file);
+    /// ```
+    fn add(self, rhs: ObjectPath) -> Self::Output {
+        let mut string = self.as_ref().to_string();
+
+        string += rhs.as_ref();
+        ObjectPath(Cow::Owned(string))
     }
 }
 
