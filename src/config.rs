@@ -553,23 +553,27 @@ impl From<InvalidEndPoint> for InvalidObjectBase {
 }
 
 /// OSS Object 存储对象的路径
-/// 不带前缀 `/`
+/// 不带前缀 `/` 需要附加生命周期参数
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ObjectPath(Cow<'static, str>);
+pub struct ObjectPathInner<'a>(Cow<'a, str>);
 
-impl AsRef<str> for ObjectPath {
+/// OSS Object 存储对象的路径
+/// 不带前缀 `/`
+pub type ObjectPath = ObjectPathInner<'static>;
+
+impl AsRef<str> for ObjectPathInner<'_> {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
 
-impl fmt::Display for ObjectPath {
+impl fmt::Display for ObjectPathInner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0.clone())
+        write!(f, "{}", self.0)
     }
 }
 
-impl Default for ObjectPath {
+impl Default for ObjectPathInner<'_> {
     /// 默认值
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
@@ -581,7 +585,7 @@ impl Default for ObjectPath {
     }
 }
 
-impl PartialEq<&str> for ObjectPath {
+impl PartialEq<&str> for ObjectPathInner<'_> {
     /// 相等比较
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
@@ -594,7 +598,7 @@ impl PartialEq<&str> for ObjectPath {
     }
 }
 
-impl PartialEq<ObjectPath> for &str {
+impl PartialEq<ObjectPathInner<'_>> for &str {
     /// 相等比较
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
@@ -602,12 +606,12 @@ impl PartialEq<ObjectPath> for &str {
     /// assert!("abc" == path);
     /// ```
     #[inline]
-    fn eq(&self, other: &ObjectPath) -> bool {
+    fn eq(&self, other: &ObjectPathInner) -> bool {
         self == &other.0
     }
 }
 
-impl PartialEq<String> for ObjectPath {
+impl PartialEq<String> for ObjectPathInner<'_> {
     /// 相等比较
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
@@ -616,11 +620,11 @@ impl PartialEq<String> for ObjectPath {
     /// ```
     #[inline]
     fn eq(&self, other: &String) -> bool {
-        &self.0.clone() == other
+        &self.0 == other
     }
 }
 
-impl PartialEq<ObjectPath> for String {
+impl PartialEq<ObjectPathInner<'_>> for String {
     /// 相等比较
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
@@ -628,12 +632,12 @@ impl PartialEq<ObjectPath> for String {
     /// assert!("abc".to_string() == path);
     /// ```
     #[inline]
-    fn eq(&self, other: &ObjectPath) -> bool {
-        self == &other.0.clone()
+    fn eq(&self, other: &ObjectPathInner) -> bool {
+        self == &other.0
     }
 }
 
-impl ObjectPath {
+impl<'a> ObjectPathInner<'a> {
     /// Creates a new `ObjectPath` from the given string.
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
@@ -646,7 +650,7 @@ impl ObjectPath {
     /// assert!(ObjectPath::new("../abc").is_err());
     /// assert!(ObjectPath::new(r"aaa\abc").is_err());
     /// ```
-    pub fn new(val: impl Into<Cow<'static, str>>) -> Result<Self, InvalidObjectPath> {
+    pub fn new(val: impl Into<Cow<'a, str>>) -> Result<Self, InvalidObjectPath> {
         let val = val.into();
         if val.starts_with('/') || val.starts_with('.') || val.ends_with('/') {
             return Err(InvalidObjectPath);
@@ -670,7 +674,7 @@ impl ObjectPath {
     }
 }
 
-impl TryFrom<String> for ObjectPath {
+impl TryFrom<String> for ObjectPathInner<'_> {
     type Error = InvalidObjectPath;
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
@@ -682,14 +686,14 @@ impl TryFrom<String> for ObjectPath {
     }
 }
 
-impl<'a> TryFrom<&'a str> for ObjectPath {
+impl<'a: 'b, 'b> TryFrom<&'a str> for ObjectPathInner<'b> {
     type Error = InvalidObjectPath;
     fn try_from(val: &'a str) -> Result<Self, Self::Error> {
-        Self::new(val.to_owned())
+        Self::new(val)
     }
 }
 
-impl FromStr for ObjectPath {
+impl FromStr for ObjectPathInner<'_> {
     type Err = InvalidObjectPath;
     /// ```
     /// # use aliyun_oss_client::config::ObjectPath;
@@ -717,7 +721,7 @@ impl FromStr for ObjectPath {
     }
 }
 
-impl TryFrom<&Path> for ObjectPath {
+impl TryFrom<&Path> for ObjectPathInner<'_> {
     type Error = InvalidObjectPath;
     fn try_from(value: &Path) -> Result<Self, Self::Error> {
         let val = value.to_str().ok_or(InvalidObjectPath)?;
@@ -729,7 +733,7 @@ impl TryFrom<&Path> for ObjectPath {
     }
 }
 
-impl<T: PointerFamily> From<Object<T>> for ObjectPath {
+impl<T: PointerFamily> From<Object<T>> for ObjectPathInner<'static> {
     #[inline]
     fn from(obj: Object<T>) -> Self {
         obj.base.path
@@ -843,8 +847,8 @@ impl PartialEq<ObjectDir<'_>> for String {
     }
 }
 
-impl<'a, 'b> Add<ObjectDir<'b>> for ObjectDir<'a> {
-    type Output = ObjectDir<'a>;
+impl<'dir1, 'dir2: 'dir1> Add<ObjectDir<'dir2>> for ObjectDir<'dir1> {
+    type Output = ObjectDir<'dir1>;
 
     /// # 支持 ObjectDir 相加运算
     /// ```
@@ -855,15 +859,15 @@ impl<'a, 'b> Add<ObjectDir<'b>> for ObjectDir<'a> {
     ///
     /// assert_eq!(dir1 + dir2, full_dir);
     /// ```
-    fn add(self, rhs: ObjectDir<'b>) -> Self::Output {
-        let mut string = self.as_ref().to_string();
+    fn add(self, rhs: ObjectDir<'dir2>) -> Self::Output {
+        let mut string = self.0;
 
-        string += rhs.as_ref();
-        ObjectDir(Cow::Owned(string))
+        string += rhs.0;
+        ObjectDir(string)
     }
 }
 
-impl<'a, 'b> AddAssign<ObjectDir<'b>> for ObjectDir<'a> {
+impl<'dir1, 'dir2: 'dir1> AddAssign<ObjectDir<'dir2>> for ObjectDir<'dir1> {
     /// # 支持 ObjectDir 相加运算
     /// ```
     /// # use aliyun_oss_client::config::ObjectDir;
@@ -874,16 +878,16 @@ impl<'a, 'b> AddAssign<ObjectDir<'b>> for ObjectDir<'a> {
     /// dir1 += dir2;
     /// assert_eq!(dir1, full_dir);
     /// ```
-    fn add_assign(&mut self, rhs: ObjectDir<'b>) {
-        let mut string = self.as_ref().to_string();
+    fn add_assign(&mut self, rhs: ObjectDir<'dir2>) {
+        let mut string = self.0.clone();
 
-        string += rhs.as_ref();
-        *self = ObjectDir(Cow::Owned(string));
+        string += rhs.0;
+        self.0 = string;
     }
 }
 
-impl<'a> Add<ObjectPath> for ObjectDir<'a> {
-    type Output = ObjectPath;
+impl<'file, 'dir: 'file> Add<ObjectPathInner<'file>> for ObjectDir<'dir> {
+    type Output = ObjectPathInner<'file>;
 
     /// # 支持 ObjectDir 与 ObjectPath 相加运算
     /// ```
@@ -894,11 +898,11 @@ impl<'a> Add<ObjectPath> for ObjectDir<'a> {
     ///
     /// assert_eq!(dir1 + file1, full_file);
     /// ```
-    fn add(self, rhs: ObjectPath) -> Self::Output {
-        let mut string = self.as_ref().to_string();
+    fn add(self, rhs: ObjectPathInner<'file>) -> Self::Output {
+        let mut string = self.0;
 
-        string += rhs.as_ref();
-        ObjectPath(Cow::Owned(string))
+        string += rhs.0;
+        ObjectPathInner(string)
     }
 }
 

@@ -611,7 +611,9 @@ impl<T: PointerFamily> ObjectBuilder<T> {
 impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
     #[inline]
     fn set_key(&mut self, key: &str) -> Result<(), BuildInItemError> {
-        self.base.set_path(key).map_err(BuildInItemError::from)
+        self.base
+            .set_path(key.to_owned())
+            .map_err(BuildInItemError::from)
     }
 
     #[inline]
