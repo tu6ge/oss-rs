@@ -39,13 +39,14 @@
 //!     }
 //! }
 //!
-//! use aliyun_oss_client::{CustomItemError, CustomListError};
+//! use aliyun_oss_client::{DecodeItemError, DecodeListError};
 //!
-//! #[derive(Debug, Error, CustomItemError, CustomListError)]
+//! // 自定义的 Error 需要实现这两个 Trait，用于内部解析方法在调用时，统一处理异常
+//! #[derive(Debug, Error, DecodeItemError, DecodeListError)]
 //! #[error("my error")]
 //! struct MyError {}
 //!
-//! fn get_with_xml() -> Result<(), aliyun_oss_client::decode::ListError> {
+//! fn get_with_xml() -> Result<(), aliyun_oss_client::decode::InnerListError> {
 //!     // 这是阿里云接口返回的原始数据
 //!     let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
 //!         <ListBucketResult>
@@ -104,7 +105,7 @@ use crate::{
 };
 
 /// 将一个 object 的数据写入到 rust 类型
-pub trait RefineObject<Error: CustomItemError> {
+pub trait RefineObject<Error: ItemError> {
     /// 提取 key
     fn set_key(&mut self, _key: &str) -> Result<(), Error> {
         Ok(())
@@ -166,8 +167,8 @@ const CONTENTS: &[u8] = b"Contents";
 pub trait RefineObjectList<T, Error, ItemErr = Error>
 where
     T: RefineObject<ItemErr>,
-    Error: CustomListError,
-    ItemErr: CustomItemError,
+    Error: ListError,
+    ItemErr: ItemError,
 {
     /// 提取 bucket 名
     fn set_name(&mut self, _name: &str) -> Result<(), Error> {
@@ -206,7 +207,7 @@ where
 
     /// # 由 xml 转 struct 的底层实现
     /// - `init_object` 用于初始化 object 结构体的方法
-    fn decode<F>(&mut self, xml: &str, mut init_object: F) -> Result<(), ListError>
+    fn decode<F>(&mut self, xml: &str, mut init_object: F) -> Result<(), InnerListError>
     where
         F: FnMut() -> T,
     {
@@ -287,16 +288,16 @@ where
                     }
                     CONTENTS => {
                         let mut object = init_object();
-                        object.set_key(&key).map_err(ItemError::from)?;
+                        object.set_key(&key).map_err(InnerItemError::from)?;
                         object
                             .set_last_modified(&last_modified)
-                            .map_err(ItemError::from)?;
-                        object.set_etag(&etag).map_err(ItemError::from)?;
-                        object.set_type(&_type).map_err(ItemError::from)?;
-                        object.set_size(&size).map_err(ItemError::from)?;
+                            .map_err(InnerItemError::from)?;
+                        object.set_etag(&etag).map_err(InnerItemError::from)?;
+                        object.set_type(&_type).map_err(InnerItemError::from)?;
+                        object.set_size(&size).map_err(InnerItemError::from)?;
                         object
                             .set_storage_class(&storage_class)
-                            .map_err(ItemError::from)?;
+                            .map_err(InnerItemError::from)?;
                         result.push(object);
                     }
                     _ => (),
@@ -306,7 +307,7 @@ where
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(ListError::from(e));
+                    return Err(InnerListError::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -320,21 +321,21 @@ where
 /// 当外部要实现 [`RefineObject`] 时，Error 类需要实现此 Trait
 ///
 /// [`RefineObject`]: crate::decode::RefineObject
-pub trait CustomItemError: Display {}
+pub trait ItemError: Display {}
 
-impl CustomItemError for quick_xml::Error {}
-impl CustomItemError for ParseIntError {}
+impl ItemError for quick_xml::Error {}
+impl ItemError for ParseIntError {}
 
 #[cfg(feature = "core")]
-impl CustomItemError for InvalidObjectPath {}
+impl ItemError for InvalidObjectPath {}
 #[cfg(feature = "core")]
-impl CustomItemError for InvalidObjectDir {}
+impl ItemError for InvalidObjectDir {}
 #[cfg(feature = "core")]
-impl CustomItemError for chrono::ParseError {}
+impl ItemError for chrono::ParseError {}
 #[cfg(feature = "core")]
-impl CustomItemError for OssError {}
+impl ItemError for OssError {}
 #[cfg(feature = "core")]
-impl CustomItemError for InvalidEndPoint {}
+impl ItemError for InvalidEndPoint {}
 
 /// # Object 的 Error 中间层
 /// 当外部实现 [`RefineObject`] 时，所使用的 Error ,可先转换为这个，
@@ -343,37 +344,37 @@ impl CustomItemError for InvalidEndPoint {}
 /// [`RefineObject`]: crate::decode::RefineObject
 #[derive(Debug, Eq, PartialEq, Hash)]
 #[doc(hidden)]
-pub struct ItemError(String);
+pub struct InnerItemError(String);
 
-impl<T: CustomItemError> From<T> for ItemError {
+impl<T: ItemError> From<T> for InnerItemError {
     fn from(err: T) -> Self {
         Self(format!("{err}"))
     }
 }
 
-impl Display for ItemError {
+impl Display for InnerItemError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(fmt, "decode xml to object has error, info: {}", self.0)
     }
 }
 
-impl std::error::Error for ItemError {}
+impl std::error::Error for InnerItemError {}
 
 /// 当外部要实现 [`RefineObjectList`] 时，Error 类需要实现此 Trait
 ///
 /// [`RefineObjectList`]: crate::decode::RefineObjectList
-pub trait CustomListError: Display {}
+pub trait ListError: Display {}
 
-impl CustomListError for ParseIntError {}
+impl ListError for ParseIntError {}
 
 #[cfg(feature = "core")]
-impl CustomListError for InvalidObjectPath {}
+impl ListError for InvalidObjectPath {}
 #[cfg(feature = "core")]
-impl CustomListError for InvalidObjectDir {}
+impl ListError for InvalidObjectDir {}
 #[cfg(feature = "core")]
-impl CustomListError for chrono::ParseError {}
+impl ListError for chrono::ParseError {}
 #[cfg(feature = "core")]
-impl CustomListError for OssError {}
+impl ListError for OssError {}
 
 /// # ObjectList 的 Error 中间层
 /// 当外部实现 [`RefineObjectList`] 时，所使用的 Error ,可先转换为这个，
@@ -382,54 +383,54 @@ impl CustomListError for OssError {}
 /// [`RefineObjectList`]: crate::decode::RefineObjectList
 #[doc(hidden)]
 #[derive(Debug)]
-pub enum ListError {
-    Item(ItemError),
+pub enum InnerListError {
+    Item(InnerItemError),
     Xml(quick_xml::Error),
     Custom(String),
 }
 
-impl<T: CustomListError> From<T> for ListError {
+impl<T: ListError> From<T> for InnerListError {
     fn from(err: T) -> Self {
         Self::Custom(format!("{err}"))
     }
 }
 
-impl From<ItemError> for ListError {
-    fn from(value: ItemError) -> Self {
+impl From<InnerItemError> for InnerListError {
+    fn from(value: InnerItemError) -> Self {
         Self::Item(value)
     }
 }
 
-impl From<quick_xml::Error> for ListError {
+impl From<quick_xml::Error> for InnerListError {
     fn from(value: quick_xml::Error) -> Self {
         Self::Xml(value)
     }
 }
 
-impl Display for ListError {
+impl Display for InnerListError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ListError::Item(item) => write!(
+            InnerListError::Item(item) => write!(
                 fmt,
                 "decode xml to object list has error, item info: {}",
                 item
             ),
-            ListError::Xml(info) => write!(
+            InnerListError::Xml(info) => write!(
                 fmt,
                 "decode xml to object list has error, xml info: {}",
                 info
             ),
-            ListError::Custom(str) => {
+            InnerListError::Custom(str) => {
                 write!(fmt, "decode xml to object list has error, info: {}", str)
             }
         }
     }
 }
 
-impl std::error::Error for ListError {}
+impl std::error::Error for InnerListError {}
 
 /// 将一个 bucket 的数据写入到 rust 类型
-pub trait RefineBucket<Error: CustomItemError> {
+pub trait RefineBucket<Error: ItemError> {
     /// 提取 bucket name
     fn set_name(&mut self, _name: &str) -> Result<(), Error> {
         Ok(())
@@ -461,7 +462,7 @@ pub trait RefineBucket<Error: CustomItemError> {
     }
 
     /// 解析 OSS 接口返回的 xml 数据
-    fn decode(&mut self, xml: &str) -> Result<(), ItemError> {
+    fn decode(&mut self, xml: &str) -> Result<(), InnerItemError> {
         //println!("from_xml: {:#}", xml);
         let mut reader = Reader::from_str(xml);
         reader.trim_text(true);
@@ -490,7 +491,7 @@ pub trait RefineBucket<Error: CustomItemError> {
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(ItemError::from(e));
+                    return Err(InnerItemError::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -505,8 +506,8 @@ const TRUE: &str = "true";
 /// 将 bucket 列表的数据写入到 rust 类型
 pub trait RefineBucketList<T: RefineBucket<ItemErr>, Error, ItemErr = Error>
 where
-    Error: CustomListError,
-    ItemErr: CustomItemError,
+    Error: ListError,
+    ItemErr: ItemError,
 {
     /// 提取 prefix
     fn set_prefix(&mut self, _prefix: &str) -> Result<(), Error> {
@@ -549,7 +550,7 @@ where
     }
 
     /// 解析 OSS 接口返回的 xml 数据
-    fn decode<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), ListError>
+    fn decode<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), InnerListError>
     where
         F: FnMut() -> T,
     {
@@ -599,20 +600,22 @@ where
                 },
                 Ok(Event::End(ref e)) if e.name().as_ref() == BUCKET => {
                     let mut bucket = init_bucket();
-                    bucket.set_name(&name).map_err(ItemError::from)?;
+                    bucket.set_name(&name).map_err(InnerItemError::from)?;
                     bucket
                         .set_creation_date(&creation_date)
-                        .map_err(ItemError::from)?;
-                    bucket.set_location(&location).map_err(ItemError::from)?;
+                        .map_err(InnerItemError::from)?;
+                    bucket
+                        .set_location(&location)
+                        .map_err(InnerItemError::from)?;
                     bucket
                         .set_extranet_endpoint(&extranet_endpoint)
-                        .map_err(ItemError::from)?;
+                        .map_err(InnerItemError::from)?;
                     bucket
                         .set_intranet_endpoint(&intranet_endpoint)
-                        .map_err(ItemError::from)?;
+                        .map_err(InnerItemError::from)?;
                     bucket
                         .set_storage_class(&storage_class)
-                        .map_err(ItemError::from)?;
+                        .map_err(InnerItemError::from)?;
                     result.push(bucket);
                 }
                 Ok(Event::Eof) => {
@@ -620,7 +623,7 @@ where
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(ListError::from(e));
+                    return Err(InnerListError::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -645,8 +648,8 @@ mod tests {
 
         struct MyError {}
 
-        impl From<ItemError> for MyError {
-            fn from(_: ItemError) -> Self {
+        impl From<InnerItemError> for MyError {
+            fn from(_: InnerItemError) -> Self {
                 MyError {}
             }
         }
@@ -663,8 +666,8 @@ mod tests {
             }
         }
 
-        impl CustomItemError for MyError {}
-        impl CustomListError for MyError {}
+        impl ItemError for MyError {}
+        impl ListError for MyError {}
 
         impl RefineObjectList<ObjectA, MyError, MyError> for ListA {
             fn set_prefix(&mut self, prefix: &str) -> Result<(), MyError> {

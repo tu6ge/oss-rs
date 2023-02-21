@@ -6,7 +6,7 @@ use crate::client::ClientArc;
 use crate::client::ClientRc;
 use crate::config::BucketBase;
 use crate::decode::{
-    CustomItemError, CustomListError, ItemError, RefineBucket, RefineBucketList, RefineObjectList,
+    InnerItemError, ItemError, ListError, RefineBucket, RefineBucketList, RefineObjectList,
 };
 use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
@@ -31,7 +31,7 @@ use std::sync::Arc;
 pub struct ListBuckets<
     PointerSel: PointerFamily = ArcPointer,
     Item: RefineBucket<E> = Bucket<PointerSel>,
-    E: CustomItemError = OssError,
+    E: ItemError = OssError,
 > {
     prefix: Option<String>,
     marker: Option<String>,
@@ -46,7 +46,7 @@ pub struct ListBuckets<
     ph_err: PhantomData<E>,
 }
 
-impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: CustomItemError> fmt::Debug
+impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: ItemError> fmt::Debug
     for ListBuckets<T, Item, E>
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -64,14 +64,14 @@ impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: CustomItemErr
 }
 
 #[oss_gen_rc]
-impl<Item: RefineBucket<E>, E: CustomItemError> ListBuckets<ArcPointer, Item, E> {
+impl<Item: RefineBucket<E>, E: ItemError> ListBuckets<ArcPointer, Item, E> {
     pub(crate) fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = Arc::clone(&client);
     }
 }
 
 #[oss_gen_rc]
-impl<Item: RefineBucket<E>, E: CustomItemError> Default for ListBuckets<ArcPointer, Item, E> {
+impl<Item: RefineBucket<E>, E: ItemError> Default for ListBuckets<ArcPointer, Item, E> {
     fn default() -> Self {
         Self {
             prefix: None,
@@ -281,8 +281,8 @@ impl Bucket<RcPointer> {
     }
 }
 
-impl<T: PointerFamily, Item: RefineBucket<E>, E: CustomItemError>
-    RefineBucketList<Item, OssError, E> for ListBuckets<T, Item, E>
+impl<T: PointerFamily, Item: RefineBucket<E>, E: ItemError> RefineBucketList<Item, OssError, E>
+    for ListBuckets<T, Item, E>
 {
     fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
         self.prefix = if !prefix.is_empty() {
@@ -380,8 +380,8 @@ impl ClientArc {
     where
         List: RefineBucketList<Item, E, ItemErr>,
         Item: RefineBucket<ItemErr>,
-        E: CustomListError,
-        ItemErr: CustomItemError,
+        E: ListError,
+        ItemErr: ItemError,
         F: FnMut() -> Item,
     {
         let url = self.get_endpoint_url();
@@ -426,7 +426,7 @@ impl ClientArc {
     ) -> Result<(), ExtractItemError>
     where
         Bucket: RefineBucket<E>,
-        E: CustomItemError,
+        E: ItemError,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some(BUCKET_INFO);
@@ -457,7 +457,7 @@ pub enum ExtractItemError {
 
     #[doc(hidden)]
     #[error("{0}")]
-    Item(#[from] ItemError),
+    Item(#[from] InnerItemError),
 }
 
 #[cfg(feature = "blocking")]
@@ -489,8 +489,8 @@ impl ClientRc {
     where
         List: RefineBucketList<Item, E, ItemErr>,
         Item: RefineBucket<ItemErr>,
-        E: CustomListError,
-        ItemErr: CustomItemError,
+        E: ListError,
+        ItemErr: ItemError,
         F: FnMut() -> Item,
     {
         let url = self.get_endpoint_url();
@@ -528,7 +528,7 @@ impl ClientRc {
     ) -> Result<(), ExtractItemError>
     where
         Bucket: RefineBucket<E>,
-        E: CustomItemError,
+        E: ItemError,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some(BUCKET_INFO);

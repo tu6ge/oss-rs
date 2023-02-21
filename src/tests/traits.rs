@@ -2,14 +2,14 @@ static mut OBEJCT_ITEM_ID: i8 = 0;
 
 use thiserror::Error;
 
-use crate::decode::{CustomItemError, CustomListError};
+use crate::decode::{ItemError, ListError};
 
 #[derive(Debug, Error)]
 #[error("custom")]
 struct MyError {}
 
-impl CustomItemError for MyError {}
-impl CustomListError for MyError {}
+impl ItemError for MyError {}
+impl ListError for MyError {}
 
 mod object_list_xml {
     #[cfg(feature = "core")]

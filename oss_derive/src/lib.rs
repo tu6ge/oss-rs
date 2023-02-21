@@ -77,9 +77,10 @@ pub fn path_where(_attr: TokenStream, input: TokenStream) -> TokenStream {
 
 mod derive;
 
-/// 用于实现 `#[derive(CustomItemError)]`
-#[proc_macro_derive(CustomItemError)]
-pub fn derive_custom_item_error(input: TokenStream) -> TokenStream {
+/// # 用于实现 `#[derive(CustomItemError)]`
+/// 为实现 `RefineObject`,`RefineBucket` 等解析 trait 的外部类型，提供便捷的 Error 实现方式
+#[proc_macro_derive(DecodeItemError)]
+pub fn derive_decode_item_error(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
     let ast = syn::parse(input).unwrap();
@@ -88,9 +89,10 @@ pub fn derive_custom_item_error(input: TokenStream) -> TokenStream {
     impl_custom_item_error(&ast)
 }
 
-/// 用于实现 `#[derive(CustomListError)]`
-#[proc_macro_derive(CustomListError)]
-pub fn derive_custom_list_error(input: TokenStream) -> TokenStream {
+/// # 用于实现 `#[derive(CustomListError)]`
+/// 为实现 `RefineObjectList`,`RefineBucketList` 等解析 trait 的外部类型，提供便捷的 Error 实现方式
+#[proc_macro_derive(DecodeListError)]
+pub fn derive_decode_list_error(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
     let ast = syn::parse(input).unwrap();

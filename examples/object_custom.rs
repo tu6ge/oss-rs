@@ -5,7 +5,7 @@ use aliyun_oss_client::{
     config::{InvalidObjectDir, ObjectDir, ObjectPath},
     decode::RefineObject,
     object::ObjectList,
-    BucketName, Client, CustomItemError,
+    BucketName, Client, DecodeItemError,
 };
 use dotenv::dotenv;
 
@@ -28,7 +28,7 @@ impl RefineObject<MyError> for MyObject {
     }
 }
 
-#[derive(CustomItemError)]
+#[derive(DecodeItemError)]
 struct MyError(String);
 
 impl Display for MyError {

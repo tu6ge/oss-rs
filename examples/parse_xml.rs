@@ -1,5 +1,5 @@
-use aliyun_oss_client::decode::{ListError, RefineObject, RefineObjectList};
-use aliyun_oss_client::{CustomItemError, CustomListError};
+use aliyun_oss_client::decode::{InnerListError, RefineObject, RefineObjectList};
+use aliyun_oss_client::{DecodeItemError, DecodeListError};
 use thiserror::Error;
 
 struct MyFile {
@@ -32,11 +32,11 @@ impl RefineObjectList<MyFile, MyError> for MyBucket {
     }
 }
 
-#[derive(Debug, Error, CustomItemError, CustomListError)]
+#[derive(Debug, Error, DecodeItemError, DecodeListError)]
 #[error("my error")]
 struct MyError {}
 
-fn get_with_xml() -> Result<(), ListError> {
+fn get_with_xml() -> Result<(), InnerListError> {
     // 这是阿里云接口返回的原始数据
     let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
         <ListBucketResult>

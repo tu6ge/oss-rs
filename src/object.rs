@@ -8,7 +8,7 @@
 //! use aliyun_oss_client::{
 //!     builder::{ArcPointer, BuilderError},
 //!     config::{InvalidObjectDir, ObjectDir, ObjectPath},
-//!     decode::{CustomItemError, RefineObject},
+//!     decode::{ItemError, RefineObject},
 //!     object::ObjectList,
 //!     BucketName, Client,
 //! };
@@ -45,7 +45,7 @@
 //!         f.write_fmt(format_args!("{}", self.0))
 //!     }
 //! }
-//! impl CustomItemError for MyError {}
+//! impl ItemError for MyError {}
 //!
 //! impl From<InvalidObjectDir> for MyError {
 //!     fn from(value: InvalidObjectDir) -> Self {
@@ -87,7 +87,7 @@ use crate::client::ClientRc;
 use crate::config::{
     BucketBase, CommonPrefixes, InvalidObjectPath, ObjectBase, ObjectDir, ObjectPath,
 };
-use crate::decode::{CustomItemError, CustomListError, ListError, RefineObject, RefineObjectList};
+use crate::decode::{InnerListError, ItemError, ListError, RefineObject, RefineObjectList};
 use crate::errors::{OssError, OssResult};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
@@ -117,7 +117,7 @@ use std::vec::IntoIter;
 pub struct ObjectList<
     P: PointerFamily = ArcPointer,
     Item: RefineObject<E> = Object<P>,
-    E: CustomItemError = BuildInItemError,
+    E: ItemError = BuildInItemError,
 > {
     pub(crate) bucket: BucketBase,
     prefix: String,
@@ -132,9 +132,7 @@ pub struct ObjectList<
     ph_err: PhantomData<E>,
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: CustomItemError> fmt::Debug
-    for ObjectList<T, Item, E>
-{
+impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> fmt::Debug for ObjectList<T, Item, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ObjectList")
             .field("bucket", &self.bucket)
@@ -148,8 +146,10 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: CustomItemError> fmt::Debug
     }
 }
 
+
+
 #[oss_gen_rc]
-impl<Item: RefineObject<E>, E: CustomItemError> Default for ObjectList<ArcPointer, Item, E> {
+impl<Item: RefineObject<E>, E: ItemError> Default for ObjectList<ArcPointer, Item, E> {
     fn default() -> Self {
         Self {
             bucket: BucketBase::default(),
@@ -166,7 +166,7 @@ impl<Item: RefineObject<E>, E: CustomItemError> Default for ObjectList<ArcPointe
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: CustomItemError> ObjectList<T, Item, E> {
+impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, E> {
     /// 文件列表的初始化方法
     #[allow(clippy::too_many_arguments)]
     pub fn new<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
@@ -256,7 +256,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: CustomItemError> ObjectList<T, 
 }
 
 #[oss_gen_rc]
-impl<Item: RefineObject<E>, E: CustomItemError> ObjectList<ArcPointer, Item, E> {
+impl<Item: RefineObject<E>, E: ItemError> ObjectList<ArcPointer, Item, E> {
     /// 设置 Client
     pub fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
@@ -374,7 +374,7 @@ impl ObjectList<RcPointer> {
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: CustomItemError> ObjectList<T, Item, E> {
+impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, E> {
     /// 设置查询条件
     #[inline]
     pub fn set_search_query(&mut self, search_query: Query) {
@@ -649,8 +649,8 @@ impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
     }
 }
 
-impl<P: PointerFamily, Item: RefineObject<E>, E: CustomItemError>
-    RefineObjectList<Item, OssError, E> for ObjectList<P, Item, E>
+impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError> RefineObjectList<Item, OssError, E>
+    for ObjectList<P, Item, E>
 {
     #[inline]
     fn set_key_count(&mut self, key_count: &str) -> Result<(), OssError> {
@@ -713,7 +713,7 @@ pub enum BuildInItemError {
     Xml(#[from] quick_xml::Error),
 }
 
-impl CustomItemError for BuildInItemError {}
+impl ItemError for BuildInItemError {}
 
 impl Client {
     /// 查询默认 bucket 的文件列表
@@ -762,7 +762,7 @@ impl Client {
     /// ## 示例
     /// ```rust
     /// use aliyun_oss_client::{
-    ///     decode::{CustomItemError, CustomListError, RefineObject, RefineObjectList},
+    ///     decode::{ItemError, ListError, RefineObject, RefineObjectList},
     ///     object::ExtractListError,
     ///     Client,
     /// };
@@ -804,8 +804,8 @@ impl Client {
     /// #[error("my error")]
     /// enum MyError {}
     ///
-    /// impl CustomItemError for MyError {}
-    /// impl CustomListError for MyError {}
+    /// impl ItemError for MyError {}
+    /// impl ListError for MyError {}
     ///
     /// async fn run() -> Result<(), ExtractListError> {
     ///     dotenv().ok();
@@ -839,8 +839,8 @@ impl Client {
         List,
         Item,
         F,
-        E: CustomListError,
-        ItemErr: CustomItemError,
+        E: ListError,
+        ItemErr: ItemError,
     >(
         &self,
         name: Name,
@@ -883,7 +883,7 @@ pub enum ExtractListError {
 
     #[doc(hidden)]
     #[error("{0}")]
-    List(#[from] ListError),
+    List(#[from] InnerListError),
 }
 
 #[cfg(feature = "blocking")]
@@ -932,8 +932,8 @@ impl ClientRc {
         List,
         Item,
         F,
-        E: CustomListError,
-        ItemErr: CustomItemError,
+        E: ListError,
+        ItemErr: ItemError,
     >(
         &self,
         name: Name,

@@ -3,7 +3,7 @@ use std::env;
 use aliyun_oss_client::{
     decode::{RefineObject, RefineObjectList},
     object::ExtractListError,
-    BucketName, Client, CustomItemError, CustomListError,
+    BucketName, Client, DecodeItemError, DecodeListError,
 };
 use dotenv::dotenv;
 use thiserror::Error;
@@ -39,7 +39,7 @@ impl RefineObjectList<MyFile, MyError> for MyBucket {
     }
 }
 
-#[derive(Debug, Error, CustomItemError, CustomListError)]
+#[derive(Debug, Error, DecodeItemError, DecodeListError)]
 #[error("my error")]
 struct MyError {}
 

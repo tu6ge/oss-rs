@@ -92,7 +92,7 @@ pub enum OssError {
     #[cfg(feature = "decode")]
     #[doc(hidden)]
     #[error("{0}")]
-    ItemError(#[from] crate::decode::ItemError),
+    InnerItemError(#[from] crate::decode::InnerItemError),
 
     #[doc(hidden)]
     #[error("{0}")]
@@ -101,7 +101,7 @@ pub enum OssError {
     #[cfg(feature = "decode")]
     #[doc(hidden)]
     #[error("{0}")]
-    ListError(#[from] crate::decode::ListError),
+    InnerListError(#[from] crate::decode::InnerListError),
 
     #[doc(hidden)]
     #[error("{0}")]
