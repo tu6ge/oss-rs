@@ -1282,11 +1282,11 @@ mod tests {
         let mut iter = object_list.object_iter();
         let first = iter.next();
         assert!(first.is_some());
-        assert_eq!(first.unwrap().base.path().to_str(), "key1");
+        assert_eq!(first.unwrap().base.path().as_ref(), "key1");
 
         let second = iter.next();
         assert!(second.is_some());
-        assert_eq!(second.unwrap().base.path().to_str(), "key2");
+        assert_eq!(second.unwrap().base.path().as_ref(), "key2");
 
         let third = iter.next();
         assert!(third.is_none());
@@ -1319,7 +1319,7 @@ mod tests {
             "foo5".into(),
         );
 
-        assert_eq!(object.base.path().to_str(), "foo2");
+        assert_eq!(object.base.path().as_ref(), "foo2");
         assert_eq!(object.last_modified.to_string(), "1970-01-02 10:10:00 UTC");
         assert_eq!(object.etag, "foo3");
         assert_eq!(object._type, "foo4");
@@ -1344,7 +1344,7 @@ mod tests {
             .storage_class("foo3".to_owned())
             .build();
 
-        assert_eq!(object.base.path().to_str(), "abc");
+        assert_eq!(object.base.path().as_ref(), "abc");
         assert_eq!(object.last_modified.to_string(), "1970-01-02 10:10:00 UTC");
         assert_eq!(object.etag, "foo1");
         assert_eq!(object._type, "foo2");

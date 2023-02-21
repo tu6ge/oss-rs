@@ -668,11 +668,6 @@ impl ObjectPath {
     pub const unsafe fn from_static(secret: &'static str) -> Self {
         Self(Cow::Borrowed(secret))
     }
-
-    #[doc(hidden)]
-    pub fn to_str(&self) -> &str {
-        &self.0
-    }
 }
 
 impl TryFrom<String> for ObjectPath {
@@ -940,11 +935,6 @@ impl<'a> ObjectDir<'a> {
     /// ```
     pub const unsafe fn from_static(secret: &'a str) -> Self {
         Self(Cow::Borrowed(secret))
-    }
-
-    #[doc(hidden)]
-    pub fn to_str(&self) -> &str {
-        &self.0
     }
 }
 
