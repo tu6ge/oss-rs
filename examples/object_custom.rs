@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 
 use aliyun_oss_client::{
     builder::ArcPointer,
-    config::{InvalidObjectDir, ObjectDir, ObjectPath},
+    config::{InvalidObjectDir, ObjectDir, ObjectPathInner},
     decode::RefineObject,
     object::ObjectList,
     BucketName, Client, DecodeItemError,
@@ -10,14 +10,14 @@ use aliyun_oss_client::{
 use dotenv::dotenv;
 
 #[derive(Debug)]
-enum MyObject {
-    File(ObjectPath),
-    Dir(ObjectDir<'static>),
+enum MyObject<'a> {
+    File(ObjectPathInner<'a>),
+    Dir(ObjectDir<'a>),
 }
 
-impl RefineObject<MyError> for MyObject {
+impl RefineObject<MyError> for MyObject<'_> {
     fn set_key(&mut self, key: &str) -> Result<(), MyError> {
-        let res = key.parse::<ObjectPath>();
+        let res = key.parse::<ObjectPathInner>();
 
         *self = match res {
             Ok(file) => MyObject::File(file),
@@ -43,7 +43,7 @@ impl From<InvalidObjectDir> for MyError {
     }
 }
 
-type MyList = ObjectList<ArcPointer, MyObject, MyError>;
+type MyList<'a> = ObjectList<ArcPointer, MyObject<'a>, MyError>;
 
 #[tokio::main]
 async fn main() {
@@ -53,7 +53,7 @@ async fn main() {
 
     let mut list = MyList::default();
 
-    let init_object = || MyObject::File(ObjectPath::default());
+    let init_object = || MyObject::File(ObjectPathInner::default());
 
     let _ = client
         .base_object_list(
