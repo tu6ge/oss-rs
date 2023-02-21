@@ -111,7 +111,7 @@ pub(crate) trait AuthToHeaderMap {
     fn get_header_key(&self) -> AuthResult<HeaderValue>;
     fn get_header_secret(&self) -> AuthResult<HeaderValue>;
     fn get_header_method(&self) -> AuthResult<HeaderValue>;
-    fn get_header_md5(&self) -> AuthResult<Option<HeaderValue>>;
+    fn get_header_md5(&self) -> Option<HeaderValue>;
     fn get_header_date(&self) -> AuthResult<HeaderValue>;
     fn get_header_resource(&self) -> AuthResult<HeaderValue>;
 }
@@ -121,44 +121,43 @@ impl AuthToHeaderMap for Auth {
         self.headers.clone()
     }
     fn get_header_key(&self) -> AuthResult<HeaderValue> {
-        let val: HeaderValue = self.access_key_id.as_ref().try_into()?;
-        Ok(val)
+        self.access_key_id
+            .as_ref()
+            .try_into()
+            .map_err(AuthError::from)
     }
     fn get_header_secret(&self) -> AuthResult<HeaderValue> {
-        let val: HeaderValue = self.access_key_secret.as_ref().try_into()?;
-        Ok(val)
+        self.access_key_secret
+            .as_ref()
+            .try_into()
+            .map_err(AuthError::from)
     }
     fn get_header_method(&self) -> AuthResult<HeaderValue> {
-        let val: HeaderValue = self.method.as_str().try_into()?;
-        Ok(val)
+        self.method.as_str().try_into().map_err(AuthError::from)
     }
-    fn get_header_md5(&self) -> AuthResult<Option<HeaderValue>> {
-        let res = match self.content_md5.clone() {
-            Some(val) => {
-                let val: HeaderValue = val.try_into()?;
-                Some(val)
-            }
-            None => None,
-        };
-        Ok(res)
+    fn get_header_md5(&self) -> Option<HeaderValue> {
+        self.content_md5
+            .as_ref()
+            .and_then(|val| TryInto::<HeaderValue>::try_into(val).ok())
     }
     fn get_header_date(&self) -> AuthResult<HeaderValue> {
-        let val: HeaderValue = self.date.as_ref().try_into()?;
-        Ok(val)
+        self.date.as_ref().try_into().map_err(AuthError::from)
     }
     fn get_header_resource(&self) -> AuthResult<HeaderValue> {
-        let val: HeaderValue = self.canonicalized_resource.as_ref().try_into()?;
-        Ok(val)
+        self.canonicalized_resource
+            .as_ref()
+            .try_into()
+            .map_err(AuthError::from)
     }
 }
 
 pub(crate) trait AuthToOssHeader {
-    fn to_oss_header(&self) -> AuthResult<OssHeader>;
+    fn to_oss_header(&self) -> OssHeader;
 }
 
 impl AuthToOssHeader for Auth {
     /// 转化成 OssHeader
-    fn to_oss_header(&self) -> AuthResult<OssHeader> {
+    fn to_oss_header(&self) -> OssHeader {
         //return Some("x-oss-copy-source:/honglei123/file1.txt");
         let mut header: Vec<_> = self
             .headers
@@ -166,20 +165,21 @@ impl AuthToOssHeader for Auth {
             .filter(|(k, _v)| k.as_str().starts_with("x-oss-"))
             .collect();
         if header.is_empty() {
-            return Ok(OssHeader(None));
+            return OssHeader(None);
         }
 
         header.sort_by(|(k1, _), (k2, _)| k1.as_str().cmp(k2.as_str()));
 
         let header_vec: Vec<_> = header
             .iter()
-            .filter_map(|(k, v)| match v.to_str() {
-                Ok(val) => Some(k.as_str().to_owned() + ":" + val),
-                _ => None,
+            .filter_map(|(k, v)| {
+                v.to_str()
+                    .ok()
+                    .map(|value| k.as_str().to_owned() + ":" + value)
             })
             .collect();
 
-        Ok(OssHeader(Some(header_vec.join(LINE_BREAK))))
+        OssHeader(Some(header_vec.join(LINE_BREAK)))
     }
 }
 
@@ -216,10 +216,11 @@ impl AuthSignString for Auth {
             &self.access_key_secret,
             &self.method,
             self.content_md5.clone().unwrap_or_default(),
-            match self.headers.get(CONTENT_TYPE) {
-                Some(ct) => ct.to_owned().try_into().unwrap(),
-                None => ContentType::default(),
-            },
+            self.headers
+                .get(CONTENT_TYPE)
+                .map_or(ContentType::default(), |ct| {
+                    ct.to_owned().try_into().unwrap()
+                }),
             &self.date,
             &self.canonicalized_resource,
         )
@@ -231,8 +232,8 @@ impl Auth {
     pub fn get_headers(&self) -> AuthResult<HeaderMap> {
         let mut map = HeaderMap::from_auth(self)?;
 
-        let oss_header = self.to_oss_header()?;
-        let sign_string = SignString::from_auth(self, oss_header)?;
+        let oss_header = self.to_oss_header();
+        let sign_string = SignString::from_auth(self, oss_header);
         map.append_sign(sign_string.to_sign()?)?;
 
         Ok(map)
@@ -265,9 +266,10 @@ impl AuthHeader for HeaderMap {
         map.insert(SECRET_ACCESS_KEY, auth.get_header_secret()?);
         map.insert(VERB_IDENT, auth.get_header_method()?);
 
-        if let Some(a) = auth.get_header_md5()? {
+        if let Some(a) = auth.get_header_md5() {
             map.insert(CONTENT_MD5, a);
         }
+
         map.insert(DATE, auth.get_header_date()?);
         map.insert(CANONICALIZED_RESOURCE, auth.get_header_resource()?);
 
@@ -301,10 +303,7 @@ impl OssHeader {
 
     #[inline]
     fn len(&self) -> usize {
-        match &self.0 {
-            Some(str) => str.len(),
-            None => 0,
-        }
+        self.0.as_ref().map_or(0_usize, |str| str.len())
     }
 }
 
@@ -341,10 +340,7 @@ impl<'a, 'b> SignString<'_> {
 }
 
 impl<'a> SignString<'a> {
-    pub(crate) fn from_auth(
-        auth: &impl AuthSignString,
-        header: OssHeader,
-    ) -> AuthResult<SignString> {
+    pub(crate) fn from_auth(auth: &impl AuthSignString, header: OssHeader) -> SignString {
         let (key, secret, verb, content_md5, content_type, date, canonicalized_resource) =
             auth.get_sign_info();
         let method = verb.to_string();
@@ -360,7 +356,7 @@ impl<'a> SignString<'a> {
             + &header.to_string()
             + canonicalized_resource.as_ref();
 
-        Ok(SignString { data, key, secret })
+        SignString { data, key, secret }
     }
 
     #[cfg(test)]

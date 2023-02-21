@@ -694,6 +694,13 @@ impl TryInto<HeaderValue> for ContentMd5 {
         HeaderValue::from_str(self.as_ref())
     }
 }
+
+impl TryInto<HeaderValue> for &ContentMd5 {
+    type Error = InvalidHeaderValue;
+    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+        HeaderValue::from_str(self.as_ref())
+    }
+}
 impl From<String> for ContentMd5 {
     /// ```
     /// # use aliyun_oss_client::types::ContentMd5;

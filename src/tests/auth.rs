@@ -17,15 +17,12 @@ mod to_oss_header {
     fn test_none() {
         let builder = AuthBuilder::default();
         let header = builder.build().to_oss_header();
-        assert!(header.is_ok());
-        let header = header.unwrap();
+
         assert!(header.is_none());
 
         let mut builder = AuthBuilder::default();
         builder.header_insert("abc", "def".try_into().unwrap());
         let header = builder.build().to_oss_header();
-        assert!(header.is_ok());
-        let header = header.unwrap();
         assert!(header.is_none());
     }
 
@@ -36,8 +33,6 @@ mod to_oss_header {
         builder.header_insert("x-oss-ffoo", "barbar".try_into().unwrap());
         builder.header_insert("fffoo", "aabb".try_into().unwrap());
         let header = builder.build().to_oss_header();
-        assert!(header.is_ok());
-        let header = header.unwrap();
         let header = header.to_string();
         assert_eq!(&header, "x-oss-ffoo:barbar\nx-oss-foo:bar\n");
     }
@@ -265,7 +260,7 @@ mod auth_to_header_map {
         assert_eq!(key, HeaderValue::from_bytes(b"foo1").unwrap());
         assert_eq!(secret, HeaderValue::from_bytes(b"foo2").unwrap());
         assert_eq!(verb, HeaderValue::from_bytes(b"POST").unwrap());
-        assert!(matches!(md5, Some(v) if v==HeaderValue::from_bytes(b"foo4").unwrap()));
+        assert_eq!(md5, HeaderValue::from_bytes(b"foo4").unwrap());
         assert_eq!(
             date,
             HeaderValue::from_bytes(b"Sat, 01 Jan 2022 18:01:01 GMT").unwrap()
@@ -288,9 +283,9 @@ mod auth_to_header_map {
 
         let auth = builder.build();
 
-        let md5 = auth.get_header_md5().unwrap();
+        let md5 = auth.get_header_md5();
 
-        assert!(matches!(md5, None));
+        assert!(md5.is_none());
     }
 }
 
@@ -312,7 +307,7 @@ fn header_map_from_auth() {
 
     auth.expect_get_header_md5().times(1).returning(|| {
         let val: HeaderValue = "foo4".parse().unwrap();
-        Ok(Some(val))
+        Some(val)
     });
     auth.expect_get_header_date()
         .times(1)
@@ -459,10 +454,8 @@ mod sign_string_struct {
 
         let header = OssHeader::new(Some("foo7".to_string()));
 
-        let res = SignString::from_auth(&bar, header);
+        let val = SignString::from_auth(&bar, header);
 
-        assert!(res.is_ok());
-        let val = res.unwrap();
         assert_eq!(val.data(), "GET\nfoo3\nfoo4\nfoo5\nfoo7\nfoo6");
         assert_eq!(val.key_string(), "foo1".to_string());
         assert_eq!(val.secret_string(), "foo2".to_string());
