@@ -779,7 +779,7 @@ impl AsRef<str> for ObjectDir<'_> {
 
 impl fmt::Display for ObjectDir<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0.clone())
+        write!(f, "{}", self.0)
     }
 }
 
@@ -830,7 +830,7 @@ impl PartialEq<String> for ObjectDir<'_> {
     /// ```
     #[inline]
     fn eq(&self, other: &String) -> bool {
-        &self.0.clone() == other
+        &self.0 == other
     }
 }
 
@@ -843,7 +843,7 @@ impl PartialEq<ObjectDir<'_>> for String {
     /// ```
     #[inline]
     fn eq(&self, other: &ObjectDir) -> bool {
-        self == &other.0.clone()
+        self == &other.0
     }
 }
 

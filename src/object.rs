@@ -146,8 +146,6 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> fmt::Debug for Objec
     }
 }
 
-
-
 #[oss_gen_rc]
 impl<Item: RefineObject<E>, E: ItemError> Default for ObjectList<ArcPointer, Item, E> {
     fn default() -> Self {
