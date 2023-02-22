@@ -8,7 +8,7 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
-#[cfg(feature = "core")]
+#[cfg(any(feature = "core", feature = "auth"))]
 use reqwest::Url;
 
 /// 阿里云 OSS 的签名 key
@@ -130,7 +130,7 @@ impl<'a> InnerKeySecret<'a> {
 
 /// # OSS 的可用区
 /// [aliyun docs](https://help.aliyun.com/document_detail/31837.htm)
-#[cfg(feature = "core")]
+#[cfg(any(feature = "core", feature = "auth"))]
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum EndPoint {
@@ -288,7 +288,7 @@ const OSS_INTERNAL: &str = "-internal";
 #[cfg(feature = "core")]
 const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
 
-#[cfg(feature = "core")]
+#[cfg(any(feature = "core", feature = "auth"))]
 impl<'a> EndPoint {
     /// 通过字符串字面值初始化 endpoint
     ///
@@ -381,6 +381,14 @@ impl<'a> EndPoint {
         }
     }
 
+    /// 从 oss 域名中提取 Endpoint 信息
+    pub(crate) fn from_host_piece(url: &'a str) -> Result<Self, InvalidEndPoint> {
+        if !url.starts_with("oss-") {
+            return Err(InvalidEndPoint);
+        }
+        Self::new(&url[4..])
+    }
+
     /// 转化成 Url
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
@@ -458,11 +466,25 @@ mod test_endpoint {
             Ok(EndPoint::ApSouthEast1)
         ));
     }
+
+    #[test]
+    fn test_from_host_piece() {
+        assert!(EndPoint::from_host_piece("qingdao").is_err());
+
+        assert_eq!(
+            EndPoint::from_host_piece("oss-cn-qingdao"),
+            Ok(EndPoint::CnQingdao)
+        );
+        assert_eq!(
+            EndPoint::from_host_piece("oss-qingdao"),
+            Ok(EndPoint::CnQingdao)
+        );
+    }
 }
 
 /// 无效的可用区
 #[cfg(feature = "core")]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct InvalidEndPoint;
 
@@ -934,7 +956,7 @@ impl Default for InnerCanonicalizedResource<'_> {
 
 #[cfg(feature = "core")]
 pub(crate) const CONTINUATION_TOKEN: &str = "continuation-token";
-#[cfg(feature = "core")]
+#[cfg(any(feature = "core", feature = "auth"))]
 pub(crate) const BUCKET_INFO: &str = "bucketInfo";
 #[cfg(feature = "core")]
 const QUERY_KEYWORD: [&str; 2] = ["acl", BUCKET_INFO];
@@ -943,6 +965,12 @@ impl<'a> InnerCanonicalizedResource<'a> {
     /// Creates a new `CanonicalizedResource` from the given string.
     pub fn new(val: impl Into<Cow<'a, str>>) -> Self {
         Self(val.into())
+    }
+
+    /// 只有 endpoint ，而没有 bucket 的时候
+    #[inline(always)]
+    pub fn from_endpoint() -> Self {
+        Self::default()
     }
 
     /// Const function that creates a new `CanonicalizedResource` from a static str.
@@ -968,6 +996,23 @@ impl<'a> InnerCanonicalizedResource<'a> {
     }
 
     /// 获取 bucket 的签名参数
+    #[cfg(feature = "auth")]
+    pub fn from_bucket_name(bucket: &BucketName, query: Option<&str>) -> Self {
+        match query {
+            Some(q) => {
+                for k in QUERY_KEYWORD.iter() {
+                    if *k == q {
+                        return Self::new(format!("/{}/?{}", bucket.as_ref(), q));
+                    }
+                }
+
+                Self::new(format!("/{}/", bucket.as_ref()))
+            }
+            None => Self::default(),
+        }
+    }
+
+    /// 获取 bucket 的签名参数
     /// 带查询条件的
     ///
     /// 如果查询条件中有翻页的话，则忽略掉其他字段
@@ -980,7 +1025,7 @@ impl<'a> InnerCanonicalizedResource<'a> {
     #[cfg(feature = "core")]
     #[doc(hidden)]
     pub fn from_bucket_query2(bucket: &BucketName, query: &Query) -> Self {
-        match query.get(CONTINUATION_TOKEN) {
+        match query.get(QueryKey::ContinuationToken) {
             Some(v) => Self::new(format!(
                 "/{}/?continuation-token={}",
                 bucket.as_ref(),
@@ -1040,15 +1085,29 @@ impl PartialEq<InnerCanonicalizedResource<'_>> for &str {
     }
 }
 
-// #[cfg(test)]
-// mod tests_canonicalized_resource {
+#[cfg(test)]
+mod tests_canonicalized_resource {
 
-//     #[cfg(feature = "core")]
-//     #[test]
-//     fn test_from_bucket() {
+    #[cfg(feature = "core")]
+    #[test]
+    fn test_from_bucket_query2() {
+        use crate::{types::CanonicalizedResource, BucketName, Query, QueryKey};
 
-//     }
-// }
+        let bucket = BucketName::new("abc").unwrap();
+        let query = Query::new();
+        let resource = CanonicalizedResource::from_bucket_query2(&bucket, &query);
+        assert_eq!(resource, CanonicalizedResource::new("/abc/"));
+
+        let mut query = Query::new();
+        query.insert("list-type", "2");
+        query.insert(QueryKey::ContinuationToken, "foo");
+        let resource = CanonicalizedResource::from_bucket_query2(&bucket, &query);
+        assert_eq!(
+            resource,
+            CanonicalizedResource::new("/abc/?continuation-token=foo")
+        );
+    }
+}
 
 //===================================================================================================
 /// 查询条件
@@ -1169,6 +1228,14 @@ impl Query {
             })
             .collect::<Vec<_>>()
             .join("&")
+    }
+}
+
+impl Index<QueryKey> for Query {
+    type Output = QueryValue;
+
+    fn index(&self, index: QueryKey) -> &Self::Output {
+        self.get(index).expect("no found query key")
     }
 }
 
@@ -1733,7 +1800,7 @@ impl<'a> InnerQueryValue<'a> {
     }
 }
 
-use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
+use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
 
 /// 用于指定返回内容的区域的 type
 pub struct ContentRange {
