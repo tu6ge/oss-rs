@@ -21,10 +21,15 @@
 //!     .headers(auth_builder.get_headers().unwrap());
 //! ```
 
-use crate::types::{
-    CanonicalizedResource, ContentMd5, ContentType, Date, InnerCanonicalizedResource,
-    InnerContentMd5, InnerDate, InnerKeyId, InnerKeySecret, KeyId, KeySecret,
+use crate::{
+    config::ObjectPathInner,
+    types::{
+        CanonicalizedResource, ContentMd5, ContentType, Date, InnerCanonicalizedResource,
+        InnerContentMd5, InnerDate, InnerKeyId, InnerKeySecret, KeyId, KeySecret,
+    },
+    BucketName, EndPoint, Query, QueryKey, QueryValue,
 };
+use chrono::Utc;
 #[cfg(test)]
 use http::header::AsHeaderName;
 use http::{
@@ -33,8 +38,9 @@ use http::{
 };
 #[cfg(test)]
 use mockall::automock;
-use std::convert::TryInto;
+use reqwest::{Request, Url};
 use std::fmt::Display;
+use std::{convert::TryInto, str::FromStr};
 
 /// 计算 OSS 签名的数据
 #[derive(Default, Clone)]
@@ -554,6 +560,177 @@ impl AuthBuilder {
     }
 }
 
+/// 将 OSS 签名信息附加到 Request 中
+pub trait RequestWithOSS {
+    /// 输入 key，secret，以及 Request 中的 method，header,url，query
+    /// 等信息，计算 OSS 签名
+    /// 并把签名后的 header 信息，传递给 self
+    fn with_oss(&mut self, key: KeyId, secret: KeySecret) -> AuthResult<()>;
+}
+
+impl RequestWithOSS for Request {
+    fn with_oss(&mut self, key: KeyId, secret: KeySecret) -> AuthResult<()> {
+        let mut auth = Auth::default();
+        auth.set_key(key);
+        auth.set_secret(secret);
+
+        auth.set_method(self.method().clone());
+        auth.set_date(Utc::now().into());
+        auth.set_canonicalized_resource(
+            self.url()
+                .canonicalized_resource()
+                .ok_or(AuthError::InvalidCanonicalizedResource)?,
+        );
+        auth.set_headers(self.headers().clone());
+
+        *self.headers_mut() = auth.get_headers()?;
+
+        Ok(())
+    }
+}
+/// 根据 Url 计算 [`CanonicalizedResource`]
+///
+/// [`CanonicalizedResource`]: crate::types::CanonicalizedResource
+pub trait GenCanonicalizedResource {
+    /// 计算并返回 [`CanonicalizedResource`]， 无法计算则返回 `None`
+    ///
+    /// [`CanonicalizedResource`]: crate::types::CanonicalizedResource
+    fn canonicalized_resource(&self) -> Option<CanonicalizedResource>;
+
+    /// 根据 Url 计算 bucket 名称和 Endpoint
+    fn oss_host(&self) -> OssHost;
+
+    /// 根据 Url 的 query 计算 [`Query`]
+    ///
+    /// [`Query`]: crate::types::Query
+    fn oss_query(&self) -> Query;
+
+    /// 根据 Url 的 path 计算当前使用的 [`ObjectPathInner`]
+    ///
+    /// [`ObjectPathInner`]: crate::config::ObjectPathInner
+    fn object_path(&self) -> Option<ObjectPathInner>;
+}
+
+/// Oss 域名的几种状态
+#[derive(PartialEq, Debug, Eq)]
+pub enum OssHost {
+    /// 有 bucket 的，包含 bucket 名字
+    Bucket(BucketName),
+    /// 只有 endpoint
+    EndPoint,
+    /// 其他
+    None,
+}
+
+const LIST_TYPE2: &str = "list-type=2";
+const LIST_TYPE2_AND: &str = "list-type=2&";
+const COM: &str = "com";
+const ALIYUNCS: &str = "aliyuncs";
+
+impl GenCanonicalizedResource for Url {
+    fn canonicalized_resource(&self) -> Option<CanonicalizedResource> {
+        use crate::types::BUCKET_INFO;
+
+        let bucket = match self.oss_host() {
+            OssHost::None => return None,
+            OssHost::EndPoint => return Some(CanonicalizedResource::from_endpoint()),
+            OssHost::Bucket(bucket) => bucket,
+        };
+
+        if self.path().is_empty() {
+            return None;
+        }
+
+        // 没有 object 的情况
+        if self.path() == "/" {
+            return match self.query() {
+                // 查询单个bucket 信息
+                Some(BUCKET_INFO) => Some(CanonicalizedResource::from_bucket_name(
+                    &bucket,
+                    Some(BUCKET_INFO),
+                )),
+                // 查 object_list
+                Some(q) if q.ends_with(LIST_TYPE2) || q.contains(LIST_TYPE2_AND) => Some(
+                    CanonicalizedResource::from_bucket_query2(&bucket, &self.oss_query()),
+                ),
+                // 其他情况待定
+                _ => todo!("Unable to obtain can information based on existing query information"),
+            };
+        }
+
+        // 获取 ObjectPath 失败，返回 None，否则根据 ObjectPath 计算 CanonicalizedResource
+        self.object_path()
+            .map(|path| CanonicalizedResource::from_object((bucket.as_ref(), path.as_ref()), []))
+    }
+
+    fn oss_host(&self) -> OssHost {
+        use url::Host;
+        let domain = match self.host() {
+            Some(Host::Domain(domain)) => domain,
+            _ => return OssHost::None,
+        };
+
+        let mut url_pieces = domain.rsplit('.');
+
+        match (url_pieces.next(), url_pieces.next()) {
+            (Some(COM), Some(ALIYUNCS)) => (),
+            _ => return OssHost::None,
+        }
+
+        match url_pieces.next() {
+            Some(endpoint) => match EndPoint::from_host_piece(endpoint) {
+                Ok(_) => (),
+                _ => return OssHost::None,
+            },
+            _ => return OssHost::None,
+        };
+
+        match url_pieces.next() {
+            Some(bucket) => {
+                if let Ok(b) = BucketName::from_static(bucket) {
+                    OssHost::Bucket(b)
+                } else {
+                    OssHost::None
+                }
+            }
+            None => OssHost::EndPoint,
+        }
+    }
+
+    #[allow(clippy::unwrap_used)]
+    fn oss_query(&self) -> Query {
+        self.query_pairs()
+            .filter(|(_, val)| !val.is_empty())
+            .map(|(key, val)| {
+                (
+                    QueryKey::from_str(key.as_ref()),
+                    QueryValue::from_str(val.as_ref()),
+                )
+            })
+            .filter(|(key, val)| key.is_ok() && val.is_ok())
+            .map(|(key, val)| (key.unwrap(), val.unwrap()))
+            .collect()
+    }
+
+    fn object_path(&self) -> Option<ObjectPathInner> {
+        use percent_encoding::percent_decode;
+
+        ObjectPathInner::new(
+            percent_decode({
+                if self.path().starts_with('/') {
+                    &self.path()[1..]
+                } else {
+                    self.path()
+                }
+                .as_bytes()
+            })
+            .decode_utf8()
+            .ok()?,
+        )
+        .ok()
+    }
+}
+
 /// 收集 Auth 模块的错误
 #[derive(Debug)]
 pub enum AuthError {
@@ -561,6 +738,8 @@ pub enum AuthError {
     InvalidHeaderValue(http::header::InvalidHeaderValue),
     #[doc(hidden)]
     InvalidLength(hmac::digest::crypto_common::InvalidLength),
+    #[doc(hidden)]
+    InvalidCanonicalizedResource,
 }
 
 impl std::error::Error for AuthError {}
@@ -588,6 +767,7 @@ impl Display for AuthError {
         match *self {
             Self::InvalidHeaderValue(_) => f.write_str("failed to parse header value"),
             Self::InvalidLength(_) => f.write_str("Invalid hmac Length"),
+            Self::InvalidCanonicalizedResource => f.write_str("Invalid CanonicalizedResource"),
         }
     }
 }
@@ -679,5 +859,116 @@ mod tests {
         let (key, ..) = auth.get_sign_info();
 
         assert_eq!(*key, KeyId::new("abc"))
+    }
+}
+
+#[cfg(test)]
+mod tests_canonicalized_resource {
+    use super::*;
+
+    #[test]
+    fn test_canonicalized_resource() {
+        let url: Url = "https://oss2.aliyuncs.com".parse().unwrap();
+        assert_eq!(url.canonicalized_resource(), None,);
+        let url: Url = "https://oss-cn-qingdao.aliyuncs.com".parse().unwrap();
+        assert_eq!(
+            url.canonicalized_resource(),
+            Some(CanonicalizedResource::default())
+        );
+
+        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com?bucketInfo"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            url.canonicalized_resource(),
+            Some(CanonicalizedResource::new("/abc/?bucketInfo"))
+        );
+
+        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com?list-type=2&continuation-token=foo"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            url.canonicalized_resource(),
+            Some(CanonicalizedResource::new("/abc/?continuation-token=foo"))
+        );
+
+        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com?continuation-token=foo&list-type=2"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            url.canonicalized_resource(),
+            Some(CanonicalizedResource::new("/abc/?continuation-token=foo"))
+        );
+
+        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com/path1"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            url.canonicalized_resource(),
+            Some(CanonicalizedResource::new("/abc/path1"))
+        );
+    }
+
+    #[test]
+    fn test_oss_host() {
+        let url: Url = "https://192.168.3.10/path1?delimiter=5".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::None);
+
+        let url: Url = "https://example.com/path1?delimiter=5".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::None);
+
+        let url: Url = "https://oss-cn-qingdao.aliyuncs.com".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::EndPoint);
+
+        let url: Url = "https://oss-abc.aliyuncs.com".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::EndPoint);
+
+        let url: Url = "https://abc.aliyuncs.com".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::None);
+
+        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com".parse().unwrap();
+        assert_eq!(
+            url.oss_host(),
+            OssHost::Bucket(BucketName::new("abc").unwrap())
+        );
+        let url: Url = "https://abc-.oss-cn-qingdao.aliyuncs.com".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::None);
+    }
+
+    #[test]
+    fn test_oss_query() {
+        let url: Url = "https://example.com/path1?delimiter=5".parse().unwrap();
+        let query = url.oss_query();
+        assert!(query[QueryKey::Delimiter] == QueryValue::new("5"));
+    }
+
+    #[test]
+    fn test_object_path() {
+        let url: Url = "https://example.com/path1".parse().unwrap();
+        assert_eq!(
+            url.object_path(),
+            Some(ObjectPathInner::new("path1").unwrap())
+        );
+
+        let url: Url = "https://example.com/path1/object2".parse().unwrap();
+        assert_eq!(
+            url.object_path(),
+            Some(ObjectPathInner::new("path1/object2").unwrap())
+        );
+
+        let url: Url = "https://example.com/路径/object2".parse().unwrap();
+        assert_eq!(
+            url.object_path(),
+            Some(ObjectPathInner::new("路径/object2").unwrap())
+        );
+
+        let url: Url = "https://example.com/path1/object2?foo=bar".parse().unwrap();
+        assert_eq!(
+            url.object_path(),
+            Some(ObjectPathInner::new("path1/object2").unwrap())
+        );
+
+        let url: Url = "https://example.com/path1/".parse().unwrap();
+        assert_eq!(url.object_path(), None);
     }
 }
