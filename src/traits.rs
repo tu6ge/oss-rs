@@ -337,6 +337,10 @@ impl ItemError for OssError {}
 #[cfg(feature = "core")]
 impl ItemError for InvalidEndPoint {}
 
+impl ItemError for String {}
+impl ItemError for str {}
+impl ItemError for &str {}
+
 /// # Object 的 Error 中间层
 /// 当外部实现 [`RefineObject`] 时，所使用的 Error ,可先转换为这个，
 /// 变成一个已知的 Error 类型
@@ -375,6 +379,10 @@ impl ListError for InvalidObjectDir {}
 impl ListError for chrono::ParseError {}
 #[cfg(feature = "core")]
 impl ListError for OssError {}
+
+impl ListError for String {}
+impl ListError for str {}
+impl ListError for &str {}
 
 /// # ObjectList 的 Error 中间层
 /// 当外部实现 [`RefineObjectList`] 时，所使用的 Error ,可先转换为这个，
