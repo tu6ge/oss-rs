@@ -193,7 +193,10 @@ impl BucketBase {
     /// use std::env::set_var;
     /// set_var("ALIYUN_ENDPOINT", "qingdao");
     /// set_var("ALIYUN_BUCKET", "foo1");
-    /// assert_eq!(*BucketBase::from_env().unwrap().get_name(), BucketName::new("foo1").unwrap());
+    /// assert_eq!(
+    ///     *BucketBase::from_env().unwrap().get_name(),
+    ///     BucketName::new("foo1").unwrap()
+    /// );
     /// ```
     #[inline]
     pub fn get_name(&self) -> &BucketName {
@@ -1007,7 +1010,10 @@ pub struct InvalidObjectDir;
 impl Display for InvalidObjectDir {
     /// ```
     /// # use aliyun_oss_client::config::InvalidObjectDir;
-    /// assert_eq!(format!("{}", InvalidObjectDir), "ObjectDir must end with `/`");
+    /// assert_eq!(
+    ///     format!("{}", InvalidObjectDir),
+    ///     "ObjectDir must end with `/`"
+    /// );
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ObjectDir must end with `/`")

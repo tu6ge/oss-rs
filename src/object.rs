@@ -23,7 +23,7 @@
 //! impl RefineObject<MyError> for MyObject {
 //!     fn set_key(&mut self, key: &str) -> Result<(), MyError> {
 //!         let res = key.parse::<ObjectPath>();
-//!     
+//!
 //!         *self = match res {
 //!             Ok(file) => MyObject::File(file),
 //!             _ => {
@@ -31,7 +31,7 @@
 //!                 MyObject::Dir(re.unwrap())
 //!             }
 //!         };
-//!     
+//!
 //!         Ok(())
 //!     }
 //! }
@@ -787,7 +787,6 @@ impl Client {
     /// }
     ///
     /// impl RefineObjectList<MyFile, MyError> for MyBucket {
-    ///
     ///     fn set_name(&mut self, name: &str) -> Result<(), MyError> {
     ///         self.name = name.to_string();
     ///         Ok(())

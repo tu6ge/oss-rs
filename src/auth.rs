@@ -4,8 +4,8 @@
 //! ## Examples
 //! ```rust
 //! # use aliyun_oss_client::auth::AuthBuilder;
-//! use http::Method;
 //! use chrono::Utc;
+//! use http::Method;
 //! let mut auth_builder = AuthBuilder::default();
 //! auth_builder.key("my_key");
 //! auth_builder.secret("my_secret");
@@ -13,11 +13,12 @@
 //! auth_builder.date(Utc::now());
 //! auth_builder.canonicalized_resource("/abc/?bucketInfo");
 //!
-//! let builder = reqwest::Client::default().request(
-//!     Method::GET,
-//!     "https://abc.oss-cn-shanghai.aliyuncs.com/?bucketInfo",
-//! )
-//! .headers(auth_builder.get_headers().unwrap());
+//! let builder = reqwest::Client::default()
+//!     .request(
+//!         Method::GET,
+//!         "https://abc.oss-cn-shanghai.aliyuncs.com/?bucketInfo",
+//!     )
+//!     .headers(auth_builder.get_headers().unwrap());
 //! ```
 
 use crate::types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret};
@@ -477,8 +478,7 @@ impl AuthBuilder {
     /// ## Example
     /// ```
     /// use chrono::Utc;
-    /// let builder =
-    ///     aliyun_oss_client::auth::AuthBuilder::default().date(Utc::now());
+    /// let builder = aliyun_oss_client::auth::AuthBuilder::default().date(Utc::now());
     /// ```
     #[inline]
     pub fn date<D: Into<Date>>(&mut self, date: D) {
@@ -555,8 +555,17 @@ impl Display for AuthError {
     /// # use http::header::HeaderValue;
     /// let val = HeaderValue::from_str("\n");
     /// let header_error = val.unwrap_err();
-    /// assert_eq!(format!("{}", AuthError::InvalidHeaderValue(header_error)), "failed to parse header value");
-    /// assert_eq!(format!("{}", AuthError::InvalidLength(hmac::digest::crypto_common::InvalidLength {})), "Invalid hmac Length");
+    /// assert_eq!(
+    ///     format!("{}", AuthError::InvalidHeaderValue(header_error)),
+    ///     "failed to parse header value"
+    /// );
+    /// assert_eq!(
+    ///     format!(
+    ///         "{}",
+    ///         AuthError::InvalidLength(hmac::digest::crypto_common::InvalidLength {})
+    ///     ),
+    ///     "Invalid hmac Length"
+    /// );
     /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {

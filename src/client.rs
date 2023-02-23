@@ -186,7 +186,9 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
     ///     dotenv().ok();
     ///     let client = Client::from_env().unwrap();
     ///
-    ///     let (url, resource) = client.get_object_base("9AB932LY.jpeg")?.get_url_resource([]);
+    ///     let (url, resource) = client
+    ///         .get_object_base("9AB932LY.jpeg")?
+    ///         .get_url_resource([]);
     ///
     ///     let headers = vec![(
     ///         "If-Unmodified-Since".parse().unwrap(),

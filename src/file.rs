@@ -220,7 +220,11 @@ where
     /// };
     /// let content: Vec<u8> = String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
     /// let res = client
-    ///     .put_content(content, "xxxxxx.msi.zip.sig".parse().unwrap(), get_content_type)
+    ///     .put_content(
+    ///         content,
+    ///         "xxxxxx.msi.zip.sig".parse().unwrap(),
+    ///         get_content_type,
+    ///     )
     ///     .await;
     /// assert!(res.is_ok());
     /// # }
@@ -696,7 +700,11 @@ pub mod blocking {
         ///     None => None,
         /// };
         /// let content: Vec<u8> = String::from("dW50cnVzdGVkIGNvbW1lbnQ6IHNpxxxxxxxxx").into_bytes();
-        /// let res = client.put_content(content, "xxxxxx.msi.zip.sig".parse().unwrap(), get_content_type);
+        /// let res = client.put_content(
+        ///     content,
+        ///     "xxxxxx.msi.zip.sig".parse().unwrap(),
+        ///     get_content_type,
+        /// );
         /// assert!(res.is_ok());
         /// # }
         /// ```
