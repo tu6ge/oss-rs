@@ -91,10 +91,9 @@ use infer::Infer;
 ///
 /// 包括 上传，下载，删除等功能
 #[async_trait]
-pub trait File<Err>
+pub trait File
 where
     Self::Client: Files<ObjectPath>,
-    Err: From<<Self::Client as Files<ObjectPath>>::Err>,
 {
     /// 用于发起 OSS 接口调用的客户端，如[`Client`]，[`Bucket`], [`ObjectList`] 等结构体
     ///
@@ -115,11 +114,10 @@ where
 
     /// 上传文件内容到 OSS 上面
     #[inline]
-    async fn put_oss(&self, content: Vec<u8>, content_type: &str) -> Result<Response, Err> {
+    async fn put_oss(&self, content: Vec<u8>, content_type: &str) -> Result<Response, FileError> {
         self.oss_client()
             .put_content_base(content, content_type, self.get_path())
             .await
-            .map_err(Err::from)
     }
 
     /// # 获取 OSS 上文件的部分或全部内容
@@ -127,20 +125,17 @@ where
     /// - `..` 获取文件的所有内容，常规大小的文件，使用这个即可
     /// - `..100`, `100..200`, `200..` 可用于获取文件的部分内容，一般用于大文件
     #[inline]
-    async fn get_oss<R: Into<ContentRange> + Send + Sync>(&self, range: R) -> Result<Vec<u8>, Err> {
-        self.oss_client()
-            .get_object(self.get_path(), range)
-            .await
-            .map_err(Err::from)
+    async fn get_oss<R: Into<ContentRange> + Send + Sync>(
+        &self,
+        range: R,
+    ) -> Result<Vec<u8>, FileError> {
+        self.oss_client().get_object(self.get_path(), range).await
     }
 
     /// # 从 OSS 中删除文件
     #[inline]
-    async fn delete_oss(&self) -> Result<(), Err> {
-        self.oss_client()
-            .delete_object(self.get_path())
-            .await
-            .map_err(Err::from)
+    async fn delete_oss(&self) -> Result<(), FileError> {
+        self.oss_client().delete_object(self.get_path()).await
     }
 }
 
@@ -222,12 +217,8 @@ impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync>
 #[async_trait]
 pub trait Files<Path>: AlignBuilder + GetUrlWithPath<Path>
 where
-    Self::Err: From<FileError>,
     Path: Send + Sync + 'static,
 {
-    /// 设定 Error 信息
-    type Err;
-
     /// # 默认的文件类型
     /// 在上传文件时，如果找不到合适的 mime 类型，可以使用
     const DEFAULT_CONTENT_TYPE: &'static str = "application/octet-stream";
@@ -244,8 +235,8 @@ where
         &self,
         file_name: P,
         path: Path,
-    ) -> Result<String, Self::Err> {
-        let file_content = std::fs::read(file_name).map_err(|e| e.into())?;
+    ) -> Result<String, FileError> {
+        let file_content = std::fs::read(file_name)?;
 
         let get_content_type =
             |content: &Vec<u8>| Infer::new().get(content).map(|con| con.mime_type());
@@ -298,7 +289,7 @@ where
         content: Vec<u8>,
         path: Path,
         get_content_type: F,
-    ) -> Result<String, Self::Err>
+    ) -> Result<String, FileError>
     where
         F: Fn(&Vec<u8>) -> Option<&'static str> + Send + Sync,
     {
@@ -322,7 +313,7 @@ where
         content: Vec<u8>,
         content_type: &str,
         path: Path,
-    ) -> Result<Response, Self::Err> {
+    ) -> Result<Response, FileError> {
         let (url, canonicalized) = self.get_url_path(path);
 
         let content_length = content.len().to_string();
@@ -347,7 +338,7 @@ where
         &self,
         path: Path,
         range: R,
-    ) -> Result<Vec<u8>, Self::Err> {
+    ) -> Result<Vec<u8>, FileError> {
         let (url, canonicalized) = self.get_url_path(path);
 
         let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
@@ -356,8 +347,7 @@ where
             .builder_with_header(Method::GET, url, canonicalized, list)
             .map_err(FileError::from)?
             .send_adjust_error()
-            .await
-            .map_err(|e| e.into())?
+            .await?
             .text()
             .await
             .map_err(FileError::from)?;
@@ -366,7 +356,7 @@ where
     }
 
     /// # 删除 OSS 上的文件
-    async fn delete_object(&self, path: Path) -> Result<(), Self::Err> {
+    async fn delete_object(&self, path: Path) -> Result<(), FileError> {
         let (url, canonicalized) = self.get_url_path(path);
 
         self.builder(Method::DELETE, url, canonicalized)
@@ -380,13 +370,9 @@ where
 }
 
 /// 为默认 bucket 上的文件进行操作
-impl<P: Into<ObjectPath> + Send + Sync + 'static> Files<P> for Client {
-    type Err = FileError;
-}
+impl<P: Into<ObjectPath> + Send + Sync + 'static> Files<P> for Client {}
 
-impl<P: Into<ObjectPath> + Send + Sync + 'static> Files<P> for Bucket {
-    type Err = FileError;
-}
+impl<P: Into<ObjectPath> + Send + Sync + 'static> Files<P> for Bucket {}
 
 // /// 可灵活指定 bucket,endpoint，进行文件操作
 // impl Files<ObjectBase> for Client {
@@ -398,9 +384,7 @@ impl<P: Into<ObjectPath> + Send + Sync + 'static> Files<P> for Bucket {
 // }
 
 /// 可将 `Object` 实例作为参数传递给各种操作方法
-impl Files<Object<ArcPointer>> for ObjectList<ArcPointer> {
-    type Err = FileError;
-}
+impl Files<Object<ArcPointer>> for ObjectList<ArcPointer> {}
 
 use oss_derive::path_where;
 
@@ -409,7 +393,7 @@ use oss_derive::path_where;
 pub trait FileAs<Path>: Files<Path>
 where
     Path: Send + Sync + 'static,
-    Self::Error: From<<Self as Files<Path>>::Err>,
+    Self::Error: From<FileError>,
 {
     /// 返回的异常信息类型
     type Error;

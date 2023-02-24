@@ -45,9 +45,7 @@ impl GetUrlWithPath<MyPath> for MyClient {
     }
 }
 
-impl Files<MyPath> for MyClient {
-    type Err = MyError;
-}
+impl Files<MyPath> for MyClient {}
 
 impl GetUrlWithPath<MyPath> for Client {
     fn get_url_path(&self, path: MyPath) -> (Url, CanonicalizedResource) {
@@ -61,9 +59,7 @@ impl GetUrlWithPath<MyPath> for Client {
     }
 }
 
-impl Files<MyPath> for Client {
-    type Err = MyError;
-}
+impl Files<MyPath> for Client {}
 
 #[tokio::main]
 async fn main() {

@@ -23,7 +23,7 @@ impl MyObject {
     }
 }
 
-impl File<FileError> for MyObject {
+impl File for MyObject {
     type Client = Client;
     fn get_path(&self) -> ObjectPath {
         self.path.clone().try_into().unwrap()
