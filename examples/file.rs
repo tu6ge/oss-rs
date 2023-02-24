@@ -2,12 +2,12 @@ use std::{fs, path::Path};
 
 use aliyun_oss_client::{
     config::ObjectPath,
-    file::{File, FileError, Files},
+    file::{File, FileError},
     BucketName, Client, EndPoint, KeyId, KeySecret,
 };
 
 struct MyObject {
-    path: ObjectPath,
+    path: String,
 }
 
 impl MyObject {
@@ -18,15 +18,15 @@ impl MyObject {
 
     fn new(path: &Path) -> Result<MyObject, FileError> {
         Ok(MyObject {
-            path: path.try_into()?,
+            path: path.to_str().unwrap().to_owned(),
         })
     }
 }
 
-impl File for MyObject {
+impl File<FileError> for MyObject {
     type Client = Client;
     fn get_path(&self) -> ObjectPath {
-        self.path.clone()
+        self.path.clone().try_into().unwrap()
     }
 
     fn oss_client(&self) -> Self::Client {
@@ -52,7 +52,7 @@ async fn main() -> Result<(), FileError> {
         let obj = MyObject::new(path)?;
         let content = fs::read(path)?;
 
-        let res = obj.put_oss(content, Client::DEFAULT_CONTENT_TYPE).await?;
+        let res = obj.put_oss(content, MyObject::DEFAULT_CONTENT_TYPE).await?;
 
         println!("result status: {}", res.status());
     }

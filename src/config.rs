@@ -301,6 +301,16 @@ impl BucketBase {
 
         (url, resource)
     }
+
+    /// 根据查询参数，获取当前 bucket 的接口请求参数（ url 和 CanonicalizedResource）
+    pub fn get_url_resource_with_path(&self, path: &ObjectPath) -> (Url, CanonicalizedResource) {
+        let mut url = self.to_url();
+        url.set_object_path(&path);
+
+        let resource = CanonicalizedResource::from_object((self.name(), path.as_ref()), []);
+
+        (url, resource)
+    }
 }
 
 /// Bucket 元信息的错误集

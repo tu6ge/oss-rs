@@ -1,7 +1,8 @@
 use std::fs;
 
 use aliyun_oss_client::builder::{BuilderError, RequestBuilder};
-use aliyun_oss_client::file::{AlignBuilder, FileError, Files};
+use aliyun_oss_client::config::{BucketBase, ObjectPath};
+use aliyun_oss_client::file::{AlignBuilder, FileError, Files, GetUrlWithPath};
 use aliyun_oss_client::types::CanonicalizedResource;
 use aliyun_oss_client::{BucketName, Client, EndPoint, HeaderName, HeaderValue, Method};
 use reqwest::Url;
@@ -32,28 +33,36 @@ impl AlignBuilder for MyClient {
     }
 }
 
-impl Files for MyClient {
-    type Err = MyError;
-    type Path = MyPath;
-    fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), Self::Err> {
-        use aliyun_oss_client::config::OssFullUrl;
-
-        dotenv::dotenv().ok();
+impl GetUrlWithPath<MyPath> for MyClient {
+    fn get_url_path(&self, path: MyPath) -> (Url, CanonicalizedResource) {
         let bucket = std::env::var("ALIYUN_BUCKET").unwrap();
 
         let end_point = EndPoint::CnShanghai;
         let bucket = BucketName::new(bucket).unwrap();
-
-        let resource = format!("/{}/{}", bucket, path.0);
-
-        let p = path
-            .0
-            .try_into()
-            .map_err(|_| MyError("路径格式错误".to_string()))?;
-        let url = Url::from_oss(&end_point, &bucket, &p);
-
-        Ok((url, CanonicalizedResource::new(resource)))
+        let base = BucketBase::new(bucket, end_point);
+        let obj_path = ObjectPath::try_from(path.0).unwrap();
+        base.get_url_resource_with_path(&obj_path)
     }
+}
+
+impl Files<MyPath> for MyClient {
+    type Err = MyError;
+}
+
+impl GetUrlWithPath<MyPath> for Client {
+    fn get_url_path(&self, path: MyPath) -> (Url, CanonicalizedResource) {
+        let bucket = std::env::var("ALIYUN_BUCKET").unwrap();
+
+        let end_point = EndPoint::CnShanghai;
+        let bucket = BucketName::new(bucket).unwrap();
+        let base = BucketBase::new(bucket, end_point);
+        let obj_path = ObjectPath::try_from(path.0).unwrap();
+        base.get_url_resource_with_path(&obj_path)
+    }
+}
+
+impl Files<MyPath> for Client {
+    type Err = MyError;
 }
 
 #[tokio::main]

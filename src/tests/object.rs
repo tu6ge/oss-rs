@@ -2,7 +2,7 @@ use crate::builder::ArcPointer;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 use crate::builder::{BuilderError, ClientWithMiddleware, PointerFamily};
-use crate::config::CommonPrefixes;
+use crate::config::{CommonPrefixes, ObjectPath};
 use crate::file::Files;
 use crate::object::ObjectList;
 use crate::{builder::Middleware, client::Client};
@@ -318,7 +318,11 @@ async fn test_put_content_base() {
     let content: Vec<u8> = content.into();
 
     let res = client
-        .put_content_base(content, "application/text", "abc.text".parse().unwrap())
+        .put_content_base(
+            content,
+            "application/text",
+            "abc.text".parse::<ObjectPath>().unwrap(),
+        )
         .await;
 
     //println!("{:?}", res);
@@ -384,6 +388,7 @@ mod get_object {
     use reqwest::{Request, Response};
 
     use crate::builder::{BuilderError, ClientWithMiddleware};
+    use crate::config::ObjectPath;
     use crate::file::Files;
     use crate::{builder::Middleware, client::Client};
     use async_trait::async_trait;
@@ -430,7 +435,9 @@ mod get_object {
         )
         .middleware(Arc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png".parse().unwrap(), ..).await;
+        let res = client
+            .get_object("foo.png".parse::<ObjectPath>().unwrap(), ..)
+            .await;
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -480,7 +487,9 @@ mod get_object {
         )
         .middleware(Arc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png".parse().unwrap(), 1..).await;
+        let res = client
+            .get_object("foo.png".parse::<ObjectPath>().unwrap(), 1..)
+            .await;
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -530,7 +539,9 @@ mod get_object {
         )
         .middleware(Arc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png".parse().unwrap(), ..10).await;
+        let res = client
+            .get_object("foo.png".parse::<ObjectPath>().unwrap(), ..10)
+            .await;
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -580,7 +591,9 @@ mod get_object {
         )
         .middleware(Arc::new(MyMiddleware {}));
 
-        let res = client.get_object("foo.png".parse().unwrap(), 2..10).await;
+        let res = client
+            .get_object("foo.png".parse::<ObjectPath>().unwrap(), 2..10)
+            .await;
 
         //println!("{:?}", res);
         assert!(res.is_ok());
@@ -839,7 +852,9 @@ async fn test_delete_object() {
     )
     .middleware(Arc::new(MyMiddleware {}));
 
-    let res = client.delete_object("abc.png".parse().unwrap()).await;
+    let res = client
+        .delete_object("abc.png".parse::<ObjectPath>().unwrap())
+        .await;
     //println!("{:?}", res);
     assert!(res.is_ok());
 }
