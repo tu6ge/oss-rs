@@ -11,10 +11,7 @@ async fn main() {
 
     let client = Client::<ClientWithMiddleware>::from_env().unwrap();
 
-    let response = client
-        .get_object("app-config.json".parse().unwrap(), 10..16)
-        .await
-        .unwrap();
+    let response = client.get_object("app-config.json", 10..16).await.unwrap();
     println!(
         "objects content: {:?}",
         String::from_utf8(response).unwrap()

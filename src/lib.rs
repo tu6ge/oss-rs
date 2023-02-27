@@ -132,17 +132,18 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
+    # use aliyun_oss_client::config::ObjectPath;
 
     use aliyun_oss_client::file::Files;
-    client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png".parse().unwrap()).await;
+    client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").await;
 
-    use aliyun_oss_client::file::FileAs;
-    client.put_file_as("examples/bg2015071010.png", "examples/bg2015071010.png").await;
+    let path: ObjectPath = "examples/bg2015071010.png".parse().unwrap();
+    client.put_file("examples/bg2015071010.png", path).await;
 
     // or 上传文件内容
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
     client
-        .put_content_as(file_content, "examples/bg2015071010.png", |_| {
+        .put_content(file_content, "examples/bg2015071010.png", |_| {
             Some("image/png")
         })
         .await;
@@ -150,7 +151,7 @@ let client = aliyun_oss_client::Client::new(
     // or 自定义上传文件 Content-Type
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
     client
-        .put_content_base_as(file_content, "image/png", "examples/bg2015071010.png")
+        .put_content_base(file_content, "image/png", "examples/bg2015071010.png")
         .await;
 # }
 ```
@@ -165,15 +166,17 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::file::FileAs;
+    # use aliyun_oss_client::config::ObjectPath;
+    use aliyun_oss_client::file::Files;
 
     // 获取完整文件
-    let content = client.get_object_as("bar.json", ..).await;
+    let content = client.get_object("bar.json", ..).await;
 
     // 获取文件一部分
-    let content = client.get_object_as("bar.json", ..100).await;
-    let content = client.get_object_as("bar.json", 100..).await;
-    let content = client.get_object_as("bar.json", 100..200).await;
+    let content = client.get_object("bar.json".to_string(), ..100).await;
+    let path: ObjectPath = "bar.json".parse().unwrap();
+    let content = client.get_object(path, 100..).await;
+    let content = client.get_object("bar.json", 100..200).await;
 # }
 ```
 
@@ -187,8 +190,8 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::file::FileAs;
-    client.delete_object_as("examples/bg2015071010.png").await;
+    use aliyun_oss_client::file::Files;
+    client.delete_object("examples/bg2015071010.png").await;
 # }
 ```
 */

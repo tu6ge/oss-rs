@@ -22,6 +22,15 @@ impl ToTokens for GenImpl {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         self.inner.to_tokens(tokens);
 
+        // quote!{
+        //     #[cfg(feature = "blocking")]
+        //     use aliyun_oss_client::builder::RcPointer;
+        //     #[cfg(feature = "blocking")]
+        //     use aliyun_oss_client::client::ClientRc;
+        //     #[cfg(feature = "blocking")]
+        //     use std::rc::Rc;
+        // }.to_tokens(tokens);
+
         self.extend_to_tokens(tokens);
     }
 }

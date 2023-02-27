@@ -99,7 +99,7 @@ let client = aliyun_oss_client::Client::new("key1".into(), "secret1".into(), "qi
 
 ### 也可以使用 bucket struct 查询 object 列表
 
-```ignore
+```rust,ignore
 # #[tokio::main]
 # async fn main(){
     # use std::env::set_var;
@@ -129,15 +129,15 @@ let client = aliyun_oss_client::Client::new("key1".into(), "secret1".into(), "qi
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::file::FileAs;
+    use aliyun_oss_client::file::Files;
     client
-        .put_file_as("examples/bg2015071010.png", "examples/bg2015071010.png")
+        .put_file("examples/bg2015071010.png", "examples/bg2015071010.png")
         .await;
 
     // or 上传文件内容
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
     client
-        .put_content_as(file_content, "examples/bg2015071010.png", |_| {
+        .put_content(file_content, "examples/bg2015071010.png", |_| {
             Some("image/png")
         })
         .await;
@@ -145,7 +145,7 @@ let client = aliyun_oss_client::Client::new("key1".into(), "secret1".into(), "qi
     // or 自定义上传文件 Content-Type
     let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
     client
-        .put_content_base_as(file_content, "image/png", "examples/bg2015071010.png")
+        .put_content_base(file_content, "image/png", "examples/bg2015071010.png")
         .await;
 # }
 ```
@@ -160,8 +160,8 @@ let client = aliyun_oss_client::Client::new("key1".into(), "secret1".into(), "qi
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    use aliyun_oss_client::file::FileAs;
-    client.delete_object_as("examples/bg2015071010.png").await;
+    use aliyun_oss_client::file::Files;
+    client.delete_object("examples/bg2015071010.png").await;
 # }
 ```
 
@@ -242,7 +242,7 @@ println!("next object list: {:?}", result.next());
 ```
 
 ### 上传文件
-```rust,ignore
+```rust,no_run
 # use std::env::set_var;
 # set_var("ALIYUN_KEY_ID", "foo1");
 # set_var("ALIYUN_KEY_SECRET", "foo2");
@@ -250,20 +250,22 @@ println!("next object list: {:?}", result.next());
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
 use aliyun_oss_client::file::blocking::Files;
+# use aliyun_oss_client::config::ObjectPath;
 client
-    .put_file("examples/bg2015071010.png", "examples/bg2015071010.png".parse().unwrap());
+    .put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
 // or 上传文件内容
 let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
 client
-    .put_content(file_content, "examples/bg2015071010.png".parse().unwrap(), |_| {
+    .put_content(file_content, "examples/bg2015071010.png", |_| {
         Some("image/png")
     });
 
 // or 自定义上传文件 Content-Type
 let file_content = std::fs::read("examples/bg2015071010.png").unwrap();
+let path: ObjectPath = "examples/bg2015071010.png".parse().unwrap();
 client
-    .put_content_base(file_content, "image/png", "examples/bg2015071010.png".parse().unwrap());
+    .put_content_base(file_content, "image/png", &path);
 ```
 
 ### 删除文件

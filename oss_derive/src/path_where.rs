@@ -32,9 +32,9 @@ impl VisitMut for AppendWhere {
 
     fn visit_where_clause_mut(&mut self, i: &mut WhereClause) {
         i.predicates
-            .push(parse_quote! {OP: TryInto<ObjectPath> + Send + Sync});
+            .push(parse_quote! {OP: TryInto<Path> + Send + Sync});
         i.predicates
-            .push(parse_quote! {<OP as TryInto<ObjectPath>>::Error: Into<Self::Error>});
+            .push(parse_quote! {<OP as TryInto<Path>>::Error: Into<Self::Error>});
 
         visit_mut::visit_where_clause_mut(self, i);
     }
