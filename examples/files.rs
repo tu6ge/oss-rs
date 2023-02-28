@@ -1,7 +1,8 @@
 use std::fs;
 
 use aliyun_oss_client::builder::{BuilderError, RequestBuilder};
-use aliyun_oss_client::file::{AlignBuilder, FileError, Files};
+use aliyun_oss_client::config::{BucketBase, ObjectPath};
+use aliyun_oss_client::file::{AlignBuilder, FileError, Files, GetStdWithPath};
 use aliyun_oss_client::types::CanonicalizedResource;
 use aliyun_oss_client::{BucketName, Client, EndPoint, HeaderName, HeaderValue, Method};
 use reqwest::Url;
@@ -32,27 +33,27 @@ impl AlignBuilder for MyClient {
     }
 }
 
-impl Files for MyClient {
-    type Err = MyError;
-    type Path = MyPath;
-    fn get_url(&self, path: Self::Path) -> Result<(Url, CanonicalizedResource), Self::Err> {
-        use aliyun_oss_client::config::OssFullUrl;
-
-        dotenv::dotenv().ok();
+impl GetStdWithPath<MyPath> for MyClient {
+    fn get_std_with_path(&self, path: MyPath) -> Option<(Url, CanonicalizedResource)> {
         let bucket = std::env::var("ALIYUN_BUCKET").unwrap();
 
         let end_point = EndPoint::CnShanghai;
         let bucket = BucketName::new(bucket).unwrap();
+        let base = BucketBase::new(bucket, end_point);
+        let obj_path = ObjectPath::try_from(path.0).unwrap();
+        Some(base.get_url_resource_with_path(&obj_path))
+    }
+}
 
-        let resource = format!("/{}/{}", bucket, path.0);
+impl GetStdWithPath<MyPath> for Client {
+    fn get_std_with_path(&self, path: MyPath) -> Option<(Url, CanonicalizedResource)> {
+        let bucket = std::env::var("ALIYUN_BUCKET").unwrap();
 
-        let p = path
-            .0
-            .try_into()
-            .map_err(|_| MyError("路径格式错误".to_string()))?;
-        let url = Url::from_oss(&end_point, &bucket, &p);
-
-        Ok((url, CanonicalizedResource::new(resource)))
+        let end_point = EndPoint::CnShanghai;
+        let bucket = BucketName::new(bucket).unwrap();
+        let base = BucketBase::new(bucket, end_point);
+        let obj_path = ObjectPath::try_from(path.0).unwrap();
+        Some(base.get_url_resource_with_path(&obj_path))
     }
 }
 

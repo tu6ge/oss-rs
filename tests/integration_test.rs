@@ -60,23 +60,25 @@ mod test_async {
     #[tokio::test]
     async fn test_put_get_and_delete_file() {
         dotenv().ok();
-        use aliyun_oss_client::file::FileAs;
+        use aliyun_oss_client::{config::ObjectPath, file::Files};
 
         let client = Client::from_env().unwrap();
 
         let object_list = client
-            .put_file_as("examples/bg2015071010.png", "examples/bg2015071010.png")
+            .put_file("examples/bg2015071010.png", "examples/bg2015071010.png")
             .await;
 
         assert_matches!(object_list, Ok(_));
 
-        let object = client
-            .get_object_as("examples/bg2015071010.png", ..10)
-            .await;
-
+        let object = client.get_object("examples/bg2015071010.png", ..10).await;
         assert_matches!(object, Ok(_));
 
-        let result = client.delete_object_as("examples/bg2015071010.png").await;
+        let object = client
+            .get_object(ObjectPath::new("examples/bg2015071010.png").unwrap(), ..10)
+            .await;
+        assert_matches!(object, Ok(_));
+
+        let result = client.delete_object("examples/bg2015071010.png").await;
 
         assert_matches!(result, Ok(_));
     }
@@ -172,26 +174,20 @@ mod test_blocking {
         let client = ClientRc::from_env().unwrap();
 
         // 第一种读取文件路径的方式
-        let object_list = client.put_file(
-            "examples/bg2015071010.png",
-            "examples/bg2015071010.png".parse().unwrap(),
-        );
+        let object_list = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
         assert_matches!(object_list, Ok(_));
 
-        let result = client.delete_object("examples/bg2015071010.png".parse().unwrap());
+        let result = client.delete_object("examples/bg2015071010.png");
 
         assert_matches!(result, Ok(_));
 
         // 第二种读取文件路径的方式
-        let object_list = client.put_file(
-            "examples/bg2015071010.png",
-            "examples/bg2015071010.png".parse().unwrap(),
-        );
+        let object_list = client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png");
 
         assert_matches!(object_list, Ok(_));
 
-        let result = client.delete_object("examples/bg2015071010.png".parse().unwrap());
+        let result = client.delete_object("examples/bg2015071010.png");
 
         assert_matches!(result, Ok(_));
     }

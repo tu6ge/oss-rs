@@ -66,8 +66,8 @@ mod path_where;
 ///
 /// ```rust,ignore
 /// where:
-///     OP: TryInto<ObjectPath> + Send + Sync,
-///     <OP as TryInto<ObjectPath>>::Error: Into<Self::Error>,
+///     OP: TryInto<Path> + Send + Sync,
+///     <OP as TryInto<Path>>::Error: Into<Self::Error>,
 /// ```
 #[proc_macro_attribute]
 pub fn path_where(_attr: TokenStream, input: TokenStream) -> TokenStream {
