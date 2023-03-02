@@ -969,9 +969,6 @@ impl Iterator for ObjectList<RcPointer> {
     }
 }
 
-// use futures::future::Pending;
-// use futures::FutureExt;
-// use reqwest::Response;
 // use std::task::Poll::{self, Ready};
 
 // impl Stream for ObjectList<ArcPointer> {
@@ -988,48 +985,37 @@ impl Iterator for ObjectList<RcPointer> {
 
 //                 let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
 
-//                 let builder = self.builder(VERB::GET, url, canonicalized);
+//                 let builder = self.builder(Method::GET, url, canonicalized);
 //                 match builder {
-//                     Err(err) => return Ready(None),
+//                     Err(err) => Ready(None),
 //                     Ok(builder) => {
-//                         let content = match builder.send_adjust_error().poll_unpin(cx) {
-//                             Ready(res) => res,
-//                             Poll::Pending => return Poll::Pending,
-//                         };
+//                         let waker = cx.waker().clone();
 
-//                         let response = match content {
-//                             Ok(res) => res,
-//                             Err(_) => return Ready(None),
-//                         };
+//                         std::thread::spawn(move || {
+//                             let response = builder.send_adjust_error();
 
-//                         let text = match response.text().poll_unpin(cx) {
-//                             Ready(res) => res,
-//                             Poll::Pending => return Poll::Pending,
-//                         };
+//                             let response = futures::executor::block_on(response);
+//                             let text = response.unwrap().text();
+//                             let text = futures::executor::block_on(text);
 
-//                         let text = match text {
-//                             Ok(res) => res,
-//                             Err(_) => return Ready(None),
-//                         };
+//                             let text = text.unwrap();
 
-//                         let list = ObjectList::<ArcPointer>::default()
-//                             .set_client(self.client().clone())
-//                             .set_bucket(self.bucket.clone());
+//                             let bucket_arc = Arc::new(self.bucket);
 
-//                         let result = list.decode(text, Arc::new(self.bucket.clone()));
+//                             let init_object = || {
+//                                 let object = Object::<ArcPointer>::default();
+//                                 object.base.set_bucket(bucket_arc.clone());
+//                                 object
+//                             };
 
-//                         let mut result = match result {
-//                             Ok(data) => data,
-//                             Err(_) => return Ready(None),
-//                         };
+//                             self.decode(&text, init_object).unwrap();
 
-//                         result.set_search_query(query);
+//                             self.set_search_query(query);
 
-//                         if result.len() == 0 {
-//                             Ready(None)
-//                         } else {
-//                             Ready(Some(result))
-//                         }
+//                             waker.wake();
+//                         });
+
+//                         Poll::Pending
 //                     }
 //                 }
 //             }
