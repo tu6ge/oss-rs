@@ -637,9 +637,9 @@ impl Error for FileError {}
 
 /// # 对齐 [`Client`]，[`Bucket`], [`ObjectList`] 等结构体的 trait
 ///
-/// 用于他们方便的实现 [`File`] trait
+/// 用于他们方便的实现 [`Files`] trait
 ///
-/// [`File`]: self::File
+/// [`Files`]: self::Files
 /// [`Client`]: crate::client::Client
 /// [`Bucket`]: crate::bucket::Bucket
 /// [`ObjectList`]: crate::object::ObjectList
