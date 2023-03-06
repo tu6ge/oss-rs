@@ -25,7 +25,7 @@ use crate::types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, 
 #[cfg(test)]
 use http::header::AsHeaderName;
 use http::{
-    header::{HeaderMap, HeaderValue, IntoHeaderName, CONTENT_TYPE},
+    header::{HeaderMap, HeaderValue, IntoHeaderName, InvalidHeaderValue, CONTENT_TYPE},
     Method,
 };
 #[cfg(test)]
@@ -109,46 +109,37 @@ impl Auth {
 #[cfg_attr(test, automock)]
 pub(crate) trait AuthToHeaderMap {
     fn get_original_header(&self) -> HeaderMap;
-    fn get_header_key(&self) -> AuthResult<HeaderValue>;
-    fn get_header_secret(&self) -> AuthResult<HeaderValue>;
-    fn get_header_method(&self) -> AuthResult<HeaderValue>;
+    fn get_header_key(&self) -> Result<HeaderValue, InvalidHeaderValue>;
+    fn get_header_secret(&self) -> Result<HeaderValue, InvalidHeaderValue>;
+    fn get_header_method(&self) -> Result<HeaderValue, InvalidHeaderValue>;
     fn get_header_md5(&self) -> Option<HeaderValue>;
-    fn get_header_date(&self) -> AuthResult<HeaderValue>;
-    fn get_header_resource(&self) -> AuthResult<HeaderValue>;
+    fn get_header_date(&self) -> Result<HeaderValue, InvalidHeaderValue>;
+    fn get_header_resource(&self) -> Result<HeaderValue, InvalidHeaderValue>;
 }
 
 impl AuthToHeaderMap for Auth {
     fn get_original_header(&self) -> HeaderMap {
         self.headers.clone()
     }
-    fn get_header_key(&self) -> AuthResult<HeaderValue> {
-        self.access_key_id
-            .as_ref()
-            .try_into()
-            .map_err(AuthError::from)
+    fn get_header_key(&self) -> Result<HeaderValue, InvalidHeaderValue> {
+        self.access_key_id.as_ref().try_into()
     }
-    fn get_header_secret(&self) -> AuthResult<HeaderValue> {
-        self.access_key_secret
-            .as_ref()
-            .try_into()
-            .map_err(AuthError::from)
+    fn get_header_secret(&self) -> Result<HeaderValue, InvalidHeaderValue> {
+        self.access_key_secret.as_ref().try_into()
     }
-    fn get_header_method(&self) -> AuthResult<HeaderValue> {
-        self.method.as_str().try_into().map_err(AuthError::from)
+    fn get_header_method(&self) -> Result<HeaderValue, InvalidHeaderValue> {
+        self.method.as_str().try_into()
     }
     fn get_header_md5(&self) -> Option<HeaderValue> {
         self.content_md5
             .as_ref()
             .and_then(|val| TryInto::<HeaderValue>::try_into(val).ok())
     }
-    fn get_header_date(&self) -> AuthResult<HeaderValue> {
-        self.date.as_ref().try_into().map_err(AuthError::from)
+    fn get_header_date(&self) -> Result<HeaderValue, InvalidHeaderValue> {
+        self.date.as_ref().try_into()
     }
-    fn get_header_resource(&self) -> AuthResult<HeaderValue> {
-        self.canonicalized_resource
-            .as_ref()
-            .try_into()
-            .map_err(AuthError::from)
+    fn get_header_resource(&self) -> Result<HeaderValue, InvalidHeaderValue> {
+        self.canonicalized_resource.as_ref().try_into()
     }
 }
 
@@ -235,20 +226,20 @@ impl Auth {
 
         let oss_header = self.to_oss_header();
         let sign_string = SignString::from_auth(self, oss_header);
-        map.append_sign(sign_string.to_sign()?)?;
+        map.append_sign(sign_string.to_sign().map_err(AuthError::from)?)?;
 
         Ok(map)
     }
 }
 
 pub(crate) trait AuthHeader {
-    fn from_auth(auth: &impl AuthToHeaderMap) -> AuthResult<Self>
+    fn from_auth(auth: &impl AuthToHeaderMap) -> Result<Self, InvalidHeaderValue>
     where
         Self: Sized;
-    fn append_sign<S: TryInto<HeaderValue, Error = AuthError>>(
+    fn append_sign<S: TryInto<HeaderValue, Error = InvalidHeaderValue>>(
         &mut self,
         sign: S,
-    ) -> AuthResult<Option<HeaderValue>>;
+    ) -> Result<Option<HeaderValue>, InvalidHeaderValue>;
 }
 
 const ACCESS_KEY_ID: &str = "AccessKeyId";
@@ -260,7 +251,7 @@ const CANONICALIZED_RESOURCE: &str = "CanonicalizedResource";
 const AUTHORIZATION: &str = "Authorization";
 
 impl AuthHeader for HeaderMap {
-    fn from_auth(auth: &impl AuthToHeaderMap) -> AuthResult<Self> {
+    fn from_auth(auth: &impl AuthToHeaderMap) -> Result<Self, InvalidHeaderValue> {
         let mut map = auth.get_original_header();
 
         map.insert(ACCESS_KEY_ID, auth.get_header_key()?);
@@ -277,10 +268,10 @@ impl AuthHeader for HeaderMap {
         //println!("header list: {:?}",map);
         Ok(map)
     }
-    fn append_sign<S: TryInto<HeaderValue, Error = AuthError>>(
+    fn append_sign<S: TryInto<HeaderValue, Error = InvalidHeaderValue>>(
         &mut self,
         sign: S,
-    ) -> AuthResult<Option<HeaderValue>> {
+    ) -> Result<Option<HeaderValue>, InvalidHeaderValue> {
         let res = self.insert(AUTHORIZATION, sign.try_into()?);
         Ok(res)
     }
@@ -377,7 +368,7 @@ impl<'a> SignString<'a> {
 
     // 转化成签名
     #[inline]
-    pub(crate) fn to_sign(&self) -> AuthResult<Sign<'a>> {
+    pub(crate) fn to_sign(&self) -> Result<Sign<'a>, hmac::digest::crypto_common::InvalidLength> {
         use base64::encode;
         use hmac::{Hmac, Mac};
         use sha1::Sha1;
@@ -426,12 +417,12 @@ impl Sign<'_> {
 }
 
 impl TryInto<HeaderValue> for Sign<'_> {
-    type Error = AuthError;
+    type Error = InvalidHeaderValue;
 
     /// 转化成 header 中需要的格式
-    fn try_into(self) -> AuthResult<HeaderValue> {
+    fn try_into(self) -> Result<HeaderValue, Self::Error> {
         let sign = format!("OSS {}:{}", self.key, self.data);
-        Ok(sign.parse()?)
+        sign.parse()
     }
 }
 

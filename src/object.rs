@@ -342,7 +342,7 @@ impl ObjectList<ArcPointer> {
 #[cfg(feature = "blocking")]
 impl ObjectList<RcPointer> {
     /// 从 OSS 获取 object 列表信息
-    pub fn get_object_list(&mut self) -> OssResult<Self> {
+    pub fn get_object_list(&mut self) -> Result<Self, ExtractListError> {
         let name = self.bucket.get_name();
 
         let client = self.client();
@@ -366,7 +366,7 @@ impl ObjectList<RcPointer> {
                 &mut list,
                 init_object,
             )
-            .map_err(OssError::from)?;
+            .map_err(ExtractListError::from)?;
 
         Ok(list)
     }
@@ -720,7 +720,7 @@ impl Client {
     pub async fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         self,
         query: Q,
-    ) -> OssResult<ObjectList> {
+    ) -> Result<ObjectList, ExtractListError> {
         let bucket = BucketBase::new(
             self.get_bucket_name().to_owned(),
             self.get_endpoint().to_owned(),
@@ -747,7 +747,7 @@ impl Client {
             &content.text().await.map_err(BuilderError::from)?,
             init_object,
         )
-        .map_err(OssError::from)?;
+        .map_err(ExtractListError::from)?;
 
         list.set_client(Arc::new(self));
         list.set_search_query(query);
@@ -891,7 +891,7 @@ impl ClientRc {
     pub fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         self,
         query: Q,
-    ) -> OssResult<ObjectList<RcPointer>> {
+    ) -> Result<ObjectList<RcPointer>, ExtractListError> {
         let name = self.get_bucket_name();
         let bucket = BucketBase::new(name.clone(), self.get_endpoint().to_owned());
 

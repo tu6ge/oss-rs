@@ -8,7 +8,7 @@ use crate::config::BucketBase;
 use crate::decode::{
     InnerItemError, ItemError, ListError, RefineBucket, RefineBucketList, RefineObjectList,
 };
-use crate::errors::{OssError, OssResult};
+use crate::errors::OssError;
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
@@ -215,7 +215,7 @@ impl Bucket {
     pub async fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         &self,
         query: Q,
-    ) -> OssResult<ObjectList> {
+    ) -> Result<ObjectList, ExtractListError> {
         let query = Query::from_iter(query);
 
         let bucket_arc = Arc::new(self.base.clone());
@@ -253,7 +253,7 @@ impl Bucket<RcPointer> {
     pub fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         &self,
         query: Q,
-    ) -> OssResult<ObjectList<RcPointer>> {
+    ) -> Result<ObjectList<RcPointer>, ExtractListError> {
         let query = Query::from_iter(query);
 
         let bucket_arc = Rc::new(self.base.clone());
@@ -351,7 +351,7 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: ItemError> RefineBucketList<Ite
 
 impl ClientArc {
     /// 从 OSS 获取 bucket 列表
-    pub async fn get_bucket_list(self) -> OssResult<ListBuckets> {
+    pub async fn get_bucket_list(self) -> Result<ListBuckets, ExtractListError> {
         let client_arc = Arc::new(self);
 
         let init_bucket = || {
@@ -405,7 +405,7 @@ impl ClientArc {
     }
 
     /// 从 OSS 上获取默认的 bucket 信息
-    pub async fn get_bucket_info(self) -> OssResult<Bucket> {
+    pub async fn get_bucket_info(self) -> Result<Bucket, ExtractItemError> {
         let name = self.get_bucket_name();
 
         let mut bucket = Bucket::<ArcPointer>::default();
@@ -463,7 +463,7 @@ pub enum ExtractItemError {
 #[cfg(feature = "blocking")]
 impl ClientRc {
     /// 获取 bucket 列表
-    pub fn get_bucket_list(self) -> OssResult<ListBuckets<RcPointer>> {
+    pub fn get_bucket_list(self) -> Result<ListBuckets<RcPointer>, ExtractListError> {
         let client_arc = Rc::new(self);
 
         let init_bucket = || {
@@ -507,7 +507,7 @@ impl ClientRc {
     }
 
     /// 获取当前的 bucket 的信息
-    pub fn get_bucket_info(self) -> OssResult<Bucket<RcPointer>> {
+    pub fn get_bucket_info(self) -> Result<Bucket<RcPointer>, ExtractItemError> {
         let name = self.get_bucket_name();
 
         let mut bucket = Bucket::<RcPointer>::default();

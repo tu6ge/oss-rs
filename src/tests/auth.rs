@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use http::header::{HeaderMap, HeaderValue};
+use http::header::{HeaderMap, HeaderValue, InvalidHeaderValue};
 use mockall::mock;
 
 use crate::{
@@ -333,16 +333,16 @@ fn test_append_sign() {
         BarStruct {}
 
         impl TryInto<HeaderValue> for BarStruct {
-            type Error = AuthError;
-            fn try_into(self) -> Result<HeaderValue, AuthError>;
+            type Error = InvalidHeaderValue;
+            fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue>;
         }
     }
 
     let mut myinto = MockBarStruct::new();
-    myinto.expect_try_into().times(1).returning(|| {
-        let val = HeaderValue::from_str("foo").unwrap();
-        Ok(val)
-    });
+    myinto
+        .expect_try_into()
+        .times(1)
+        .returning(|| HeaderValue::from_str("foo"));
 
     let mut map = HeaderMap::new();
     let res = map.append_sign(myinto);
