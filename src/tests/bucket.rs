@@ -106,7 +106,7 @@ fn test_get_blocking_bucket_list() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(ListBuckets { prefix: None, marker: None, max_keys: None, is_truncated: false, next_marker: None, id: None, display_name: None, buckets: [] })"#
+        r#"Ok(ListBuckets { prefix: None, marker: None, max_keys: 0, is_truncated: false, next_marker: None, id: None, display_name: None, buckets: [] })"#
     );
 }
 
@@ -272,7 +272,7 @@ fn test_get_blocking_bucket_info() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, location: "oss-cn-shanghai", storage_class: "Standard" })"#
+        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, storage_class: Standard })"#
     );
 }
 
