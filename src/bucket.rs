@@ -612,7 +612,7 @@ pub struct BucketListObject<'a> {
     pub id: &'a str,
     pub is_truncated: bool,
     pub key: &'a str,
-    pub last_modified: &'a str, // TODO 时间
+    pub last_modified: &'a str,
     pub list_bucket_result: Option<&'a str>,
     pub start_after: Option<&'a str>,
     pub max_keys: u32,

@@ -552,7 +552,6 @@ pub struct ObjectBuilder<T: PointerFamily = ArcPointer> {
 
 impl<T: PointerFamily> ObjectBuilder<T> {
     /// 初始化 Object 构建器
-    /// TODO 有待进一步优化
     pub fn new<P: Into<ObjectPath>>(bucket: T::Bucket, key: P) -> Self {
         let base = ObjectBase::<T>::new2(bucket, key.into());
         Self {

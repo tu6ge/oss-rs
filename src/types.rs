@@ -833,7 +833,7 @@ impl Date {
 
 //===================================================================================================
 
-/// 计算方式，参考 [aliyun 文档](https://help.aliyun.com/document_detail/31951.htm?spm=a2c4g.11186623.0.0.38d27d22mvQcxj#section-w2k-sw2-xdb)
+/// 计算方式，参考 [aliyun 文档](https://help.aliyun.com/document_detail/31951.htm)
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CanonicalizedResource(Cow<'static, str>);
 
@@ -1057,7 +1057,6 @@ impl Query {
 
     /// 转化成 url 参数的形式
     /// a=foo&b=bar
-    /// TODO 未进行 urlencode 转码
     pub fn to_url_query(&self) -> String {
         self.inner
             .iter()
@@ -1508,13 +1507,6 @@ impl Display for QueryValue {
     }
 }
 
-// TODO 需要的时候再开启
-// impl TryInto<HeaderValue> for QueryValue {
-//     type Error = InvalidHeaderValue;
-//     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-//         HeaderValue::from_str(self.as_ref())
-//     }
-// }
 impl From<String> for QueryValue {
     fn from(s: String) -> Self {
         Self(Cow::Owned(s))

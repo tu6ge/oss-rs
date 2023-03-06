@@ -41,7 +41,6 @@ pub struct Auth {
     method: Method,
     content_md5: Option<ContentMd5>,
     date: Date,
-    // pub canonicalized_oss_headers: &'a str, // TODO
     canonicalized_resource: CanonicalizedResource,
     headers: HeaderMap,
 }

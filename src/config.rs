@@ -475,9 +475,9 @@ impl ObjectBase<ArcPointer> {
         })
     }
 
-    /// TODO bucket name 可能会panic
     #[inline]
-    pub fn from_bucket_name<B, E, P>(
+    #[allow(dead_code)]
+    pub(crate) fn from_bucket_name<B, E, P>(
         bucket: B,
         endpoint: E,
         path: P,
