@@ -152,6 +152,8 @@ pub enum EndPoint {
     UsEast1,
     /// 新加坡
     ApSouthEast1,
+    /// 其他可用区 fuzhou，ap-southeast-6 等
+    Other(Cow<'static, str>),
 }
 
 #[cfg(feature = "core")]
@@ -193,7 +195,7 @@ impl AsRef<str> for EndPoint {
     /// ```
     fn as_ref(&self) -> &str {
         use EndPoint::*;
-        match *self {
+        match self {
             CnHangzhou => HANGZHOU,
             CnShanghai => SHANGHAI,
             CnQingdao => QINGDAO,
@@ -204,6 +206,7 @@ impl AsRef<str> for EndPoint {
             UsWest1 => US_WEST1,
             UsEast1 => US_EAST1,
             ApSouthEast1 => AP_SOUTH_EAST1,
+            Other(str) => &str,
         }
     }
 }
@@ -295,14 +298,31 @@ impl<'a> EndPoint {
         Self::new(url).unwrap_or_else(|_| panic!("Unknown Endpoint :{}", url))
     }
 
+    /// # Safety
+    /// 用于静态定义其他可用区
+    pub const unsafe fn from_static2(url: &'static str) -> Self {
+        EndPoint::Other(Cow::Borrowed(url))
+    }
+
     /// 初始化 endpoint enum
-    /// ```
+    /// ```rust
     /// # use aliyun_oss_client::types::EndPoint;
+    /// # use std::borrow::Cow;
     /// assert!(matches!(
     ///     EndPoint::new("shanghai"),
     ///     Ok(EndPoint::CnShanghai)
     /// ));
-    /// assert!(EndPoint::new("weifang").is_err());
+    ///
+    /// let weifang = "weifang".to_string();
+    /// assert!(matches!(
+    ///     EndPoint::new("weifang"),
+    ///     Ok(EndPoint::Other(Cow::Owned(weifang)))
+    /// ));
+    ///
+    /// assert!(EndPoint::new("abc-").is_err());
+    /// assert!(EndPoint::new("-abc").is_err());
+    /// assert!(EndPoint::new("abc-def234ab").is_ok());
+    /// assert!(EndPoint::new("abc-def*#$%^ab").is_err());
     /// ```
     pub fn new(url: &'a str) -> Result<Self, InvalidEndPoint> {
         use EndPoint::*;
@@ -328,7 +348,26 @@ impl<'a> EndPoint {
         } else if url.contains(AP_SOUTH_EAST1) {
             Ok(ApSouthEast1)
         } else {
-            Err(InvalidEndPoint)
+            fn valid_character(c: char) -> bool {
+                match c {
+                    _ if c.is_ascii_lowercase() => true,
+                    _ if c.is_numeric() => true,
+                    '-' => true,
+                    _ => false,
+                }
+            }
+            if !url.chars().all(valid_character) {
+                return Err(InvalidEndPoint);
+            }
+
+            if url.len() < 1 {
+                return Err(InvalidEndPoint);
+            }
+
+            if url.starts_with('-') || url.ends_with('-') {
+                return Err(InvalidEndPoint);
+            }
+            Ok(Other(Cow::Owned(url.to_owned())))
         }
     }
 
