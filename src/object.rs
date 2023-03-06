@@ -409,7 +409,7 @@ pub struct Object<PointerSel: PointerFamily = ArcPointer> {
     etag: String,
     _type: String,
     size: u64,
-    storage_class: String,
+    storage_class: StorageClass,
 }
 
 impl<T: PointerFamily> Default for Object<T> {
@@ -423,7 +423,7 @@ impl<T: PointerFamily> Default for Object<T> {
             etag: String::default(),
             _type: String::default(),
             size: 0,
-            storage_class: String::default(),
+            storage_class: StorageClass::default(),
         }
     }
 }
@@ -437,7 +437,7 @@ impl<T: PointerFamily> Object<T> {
         etag: String,
         _type: String,
         size: u64,
-        storage_class: String,
+        storage_class: StorageClass,
     ) -> Self {
         let base = ObjectBase::<T>::new2(bucket, path);
         Self {
@@ -488,13 +488,13 @@ impl<T: PointerFamily> Object<T> {
 
     /// 读取 type
     #[inline]
-    pub fn get_type(&self) -> &String {
+    pub fn get_type_string(&self) -> &String {
         &self._type
     }
 
     /// 设置 type
     #[inline]
-    pub fn set_type(&mut self, _type: String) {
+    pub fn set_type_string(&mut self, _type: String) {
         self._type = _type;
     }
 
@@ -512,18 +512,27 @@ impl<T: PointerFamily> Object<T> {
 
     /// 读取 storage_class
     #[inline]
-    pub fn storage_class(&self) -> &String {
+    pub fn storage_class(&self) -> &StorageClass {
         &self.storage_class
     }
 
     /// 设置 storage_class
     #[inline]
-    pub fn set_storage_class(&mut self, storage_class: String) {
+    pub fn set_storage_class(&mut self, storage_class: StorageClass) {
         self.storage_class = storage_class;
     }
 
     /// 获取一部分数据
-    pub fn pieces(self) -> (ObjectBase<T>, DateTime<Utc>, String, String, u64, String) {
+    pub fn pieces(
+        self,
+    ) -> (
+        ObjectBase<T>,
+        DateTime<Utc>,
+        String,
+        String,
+        u64,
+        StorageClass,
+    ) {
         (
             self.base,
             self.last_modified,
@@ -564,7 +573,7 @@ impl<T: PointerFamily> ObjectBuilder<T> {
                 etag: String::default(),
                 _type: String::default(),
                 size: 0,
-                storage_class: String::default(),
+                storage_class: StorageClass::default(),
             },
         }
     }
@@ -594,7 +603,7 @@ impl<T: PointerFamily> ObjectBuilder<T> {
     }
 
     /// 设置 storage_class
-    pub fn storage_class(mut self, storage_class: String) -> Self {
+    pub fn storage_class(mut self, storage_class: StorageClass) -> Self {
         self.object.storage_class = storage_class;
         self
     }
@@ -615,9 +624,7 @@ impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
 
     #[inline]
     fn set_last_modified(&mut self, value: &str) -> Result<(), BuildInItemError> {
-        self.last_modified = value
-            .parse::<DateTime<Utc>>()
-            .map_err(BuildInItemError::from)?;
+        self.last_modified = value.parse().map_err(BuildInItemError::from)?;
         Ok(())
     }
 
@@ -635,13 +642,24 @@ impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
 
     #[inline]
     fn set_size(&mut self, size: &str) -> Result<(), BuildInItemError> {
-        self.size = size.parse::<u64>().map_err(BuildInItemError::from)?;
+        self.size = size.parse().map_err(BuildInItemError::from)?;
         Ok(())
     }
 
     #[inline]
-    fn set_storage_class(&mut self, value: &str) -> Result<(), BuildInItemError> {
-        self.storage_class = value.to_string();
+    fn set_storage_class(&mut self, storage_class: &str) -> Result<(), BuildInItemError> {
+        let start_char = storage_class
+            .chars()
+            .next()
+            .ok_or(BuildInItemError::InvalidStorageClass)?;
+
+        match start_char {
+            'a' | 'A' => self.storage_class = StorageClass::Archive,
+            'i' | 'I' => self.storage_class = StorageClass::IA,
+            's' | 'S' => self.storage_class = StorageClass::Standard,
+            'c' | 'C' => self.storage_class = StorageClass::ColdArchive,
+            _ => return Err(BuildInItemError::InvalidStorageClass),
+        }
         Ok(())
     }
 }
@@ -651,7 +669,7 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError> RefineObjectList<Ite
 {
     #[inline]
     fn set_key_count(&mut self, key_count: &str) -> Result<(), OssError> {
-        self.key_count = key_count.parse::<u64>().map_err(OssError::from)?;
+        self.key_count = key_count.parse().map_err(OssError::from)?;
         Ok(())
     }
 
@@ -665,14 +683,14 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError> RefineObjectList<Ite
     fn set_common_prefix(&mut self, list: &[std::borrow::Cow<'_, str>]) -> Result<(), OssError> {
         for val in list.iter() {
             self.common_prefixes
-                .push(val.parse::<ObjectDir>().map_err(OssError::from)?);
+                .push(val.parse().map_err(OssError::from)?);
         }
         Ok(())
     }
 
     #[inline]
     fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
-        self.max_keys = max_keys.parse::<u32>().map_err(OssError::from)?;
+        self.max_keys = max_keys.parse().map_err(OssError::from)?;
         Ok(())
     }
 
@@ -708,6 +726,10 @@ pub enum BuildInItemError {
     /// 接收 Xml 转换时的错误
     #[error("{0}")]
     Xml(#[from] quick_xml::Error),
+
+    /// 非法的 StorageClass
+    #[error("invalid storage class")]
+    InvalidStorageClass,
 }
 
 impl ItemError for BuildInItemError {}
@@ -1092,14 +1114,17 @@ pub enum ObjectAcl {
     PublicReadWrite,
 }
 
-/// 未来计划支持的功能
-#[derive(Default)]
-#[doc(hidden)]
+/// 存储类型
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum StorageClass {
+    /// Standard 默认
     #[default]
     Standard,
+    /// IA
     IA,
+    /// Archive
     Archive,
+    /// ColdArchive
     ColdArchive,
 }
 
@@ -1137,7 +1162,7 @@ mod tests {
     use crate::{
         builder::ArcPointer,
         config::{BucketBase, ObjectPath},
-        object::{Object, ObjectBuilder},
+        object::{Object, ObjectBuilder, StorageClass},
         types::QueryValue,
         Client,
     };
@@ -1246,7 +1271,7 @@ mod tests {
                     "foo3".into(),
                     "foo4".into(),
                     100,
-                    "foo5".into(),
+                    StorageClass::IA,
                 ),
                 Object::new(
                     Arc::clone(&bucket),
@@ -1258,7 +1283,7 @@ mod tests {
                     "foo3".into(),
                     "foo4".into(),
                     100,
-                    "foo5".into(),
+                    StorageClass::IA,
                 ),
             ],
         );
@@ -1300,7 +1325,7 @@ mod tests {
             "foo3".into(),
             "foo4".into(),
             100,
-            "foo5".into(),
+            StorageClass::IA,
         );
 
         assert_eq!(object.base.path().as_ref(), "foo2");
@@ -1308,7 +1333,7 @@ mod tests {
         assert_eq!(object.etag, "foo3");
         assert_eq!(object._type, "foo4");
         assert_eq!(object.size, 100);
-        assert_eq!(object.storage_class, "foo5");
+        assert_eq!(object.storage_class, StorageClass::IA);
     }
 
     #[test]
@@ -1325,7 +1350,7 @@ mod tests {
             .etag("foo1".to_owned())
             .set_type("foo2".to_owned())
             .size(123)
-            .storage_class("foo3".to_owned())
+            .storage_class(StorageClass::IA)
             .build();
 
         assert_eq!(object.base.path().as_ref(), "abc");
@@ -1333,7 +1358,7 @@ mod tests {
         assert_eq!(object.etag, "foo1");
         assert_eq!(object._type, "foo2");
         assert_eq!(object.size, 123);
-        assert_eq!(object.storage_class, "foo3");
+        assert_eq!(object.storage_class, StorageClass::IA);
     }
 }
 
@@ -1346,7 +1371,7 @@ mod blocking_tests {
 
     use crate::builder::RcPointer;
 
-    use super::Object;
+    use super::{Object, StorageClass};
 
     fn init_object(
         bucket: &str,
@@ -1355,7 +1380,7 @@ mod blocking_tests {
         etag: &'static str,
         _type: &'static str,
         size: u64,
-        storage_class: &'static str,
+        storage_class: StorageClass,
     ) -> Object<RcPointer> {
         let bucket = Rc::new(bucket.parse().unwrap());
         Object::<RcPointer>::new(
@@ -1368,7 +1393,7 @@ mod blocking_tests {
             etag.into(),
             _type.into(),
             size,
-            storage_class.into(),
+            storage_class,
         )
     }
 
@@ -1381,7 +1406,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            "sc_foo",
+            StorageClass::Archive,
         );
 
         let object2 = init_object(
@@ -1391,7 +1416,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            "sc_foo",
+            StorageClass::Archive,
         );
 
         assert!(object1 == object2);
@@ -1403,7 +1428,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            "sc_foo",
+            StorageClass::Archive,
         );
 
         assert!(object1 != object3);
@@ -1415,7 +1440,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            "sc_foo",
+            StorageClass::Archive,
         );
         assert!(object1 != object3);
 
@@ -1426,7 +1451,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            "sc_foo",
+            StorageClass::Archive,
         );
         assert!(object1 != object3);
 
@@ -1437,7 +1462,7 @@ mod blocking_tests {
             "efoo2",
             "tyfoo1",
             12,
-            "sc_foo",
+            StorageClass::Archive,
         );
         assert!(object1 != object3);
 
@@ -1448,7 +1473,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo3",
             12,
-            "sc_foo",
+            StorageClass::Archive,
         );
         assert!(object1 != object3);
 
@@ -1459,7 +1484,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             256,
-            "sc_foo",
+            StorageClass::Archive,
         );
         assert!(object1 != object3);
 
@@ -1470,7 +1495,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            "sc_fo2323",
+            StorageClass::IA,
         );
         assert!(object1 != object3);
     }

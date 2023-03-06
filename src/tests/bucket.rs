@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::bucket::Bucket;
 use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware};
 use crate::config::CommonPrefixes;
+use crate::object::StorageClass;
 use crate::tests::object::assert_object_list;
 use crate::{EndPoint, Query, QueryKey};
 
@@ -55,7 +56,7 @@ async fn test_get_bucket_list() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(ListBuckets { prefix: None, marker: None, max_keys: None, is_truncated: false, next_marker: None, id: None, display_name: None, buckets: [] })"#
+        r#"Ok(ListBuckets { prefix: None, marker: None, max_keys: 0, is_truncated: false, next_marker: None, id: None, display_name: None, buckets: [] })"#
     );
 }
 
@@ -187,7 +188,7 @@ async fn test_get_bucket_info() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, location: "oss-cn-shanghai", storage_class: "Standard" })"#
+        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, storage_class: Standard })"#
     );
 }
 
@@ -337,8 +338,7 @@ async fn test_get_object_list() {
     let bucket = Bucket::<ArcPointer>::new(
         "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
         creation_date,
-        String::from("foo1"),
-        String::from("foo2"),
+        StorageClass::Archive,
         Arc::new(client),
     );
 
@@ -432,8 +432,7 @@ fn test_get_blocking_object_list() {
     let bucket = Bucket::<RcPointer>::new(
         "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
         creation_date,
-        String::from("foo1"),
-        String::from("foo2"),
+        StorageClass::Archive,
         Rc::new(client),
     );
 

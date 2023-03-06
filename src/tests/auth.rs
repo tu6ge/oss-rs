@@ -4,7 +4,7 @@ use http::header::{HeaderMap, HeaderValue, InvalidHeaderValue};
 use mockall::mock;
 
 use crate::{
-    auth::{AuthError, AuthHeader, MockAuthToHeaderMap, OssHeader, Sign},
+    auth::{AuthHeader, MockAuthToHeaderMap, OssHeader, Sign},
     types::KeyId,
 };
 

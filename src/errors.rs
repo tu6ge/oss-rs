@@ -110,6 +110,10 @@ pub enum OssError {
     #[doc(hidden)]
     #[error("{0}")]
     ExtractItem(#[from] ExtractItemError),
+
+    #[doc(hidden)]
+    #[error("invalid storage class")]
+    InvalidStorageClass,
 }
 
 impl OssError {

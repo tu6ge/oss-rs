@@ -12,7 +12,7 @@ use crate::errors::OssError;
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
-use crate::object::{ExtractListError, Object, ObjectList};
+use crate::object::{ExtractListError, Object, ObjectList, StorageClass};
 use crate::types::{CanonicalizedResource, Query, QueryKey, QueryValue, BUCKET_INFO};
 use crate::{BucketName, EndPoint};
 
@@ -35,7 +35,7 @@ pub struct ListBuckets<
 > {
     prefix: Option<String>,
     marker: Option<String>,
-    max_keys: Option<String>,
+    max_keys: u16,
     is_truncated: bool,
     next_marker: Option<String>,
     id: Option<String>,
@@ -76,7 +76,7 @@ impl<Item: RefineBucket<E>, E: ItemError> Default for ListBuckets<ArcPointer, It
         Self {
             prefix: None,
             marker: None,
-            max_keys: None,
+            max_keys: 0,
             is_truncated: false,
             next_marker: None,
             id: None,
@@ -97,12 +97,11 @@ pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
     // bucket: Option<Bucket<'c>>,
     creation_date: DateTime<Utc>,
     //pub extranet_endpoint: String,
-    location: String,
     // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
     // access_control_list;
     // pub grant: Grant,
     // pub data_redundancy_type: Option<DataRedundancyType>,
-    storage_class: String,
+    storage_class: StorageClass,
     // pub versioning: &'a str,
     // ServerSideEncryptionRule,
     // ApplyServerSideEncryptionByDefault,
@@ -119,7 +118,6 @@ impl<T: PointerFamily> fmt::Debug for Bucket<T> {
             .field("base", &self.base)
             .field("creation_date", &self.creation_date)
             //.field("extranet_endpoint", &self.extranet_endpoint)
-            .field("location", &self.location)
             .field("storage_class", &self.storage_class)
             .finish()
     }
@@ -135,8 +133,7 @@ impl Default for Bucket<ArcPointer> {
                 Utc,
             ),
             //extranet_endpoint: String::default(),
-            location: String::default(),
-            storage_class: String::default(),
+            storage_class: StorageClass::default(),
             client: Arc::default(),
         }
     }
@@ -148,24 +145,30 @@ impl<T: PointerFamily> RefineBucket<OssError> for Bucket<T> {
         Ok(())
     }
 
-    fn set_creation_date(&mut self, creation_date: &str) -> Result<(), OssError> {
-        self.creation_date = creation_date.parse::<DateTime<Utc>>()?;
-        Ok(())
-    }
-
     fn set_location(&mut self, location: &str) -> Result<(), OssError> {
-        self.location = location.to_string();
+        self.base.set_endpoint(location.parse::<EndPoint>()?);
         Ok(())
     }
 
-    fn set_extranet_endpoint(&mut self, extranet_endpoint: &str) -> Result<(), OssError> {
-        self.base
-            .set_endpoint(extranet_endpoint.parse::<EndPoint>()?);
+    fn set_creation_date(&mut self, creation_date: &str) -> Result<(), OssError> {
+        self.creation_date = creation_date.parse()?;
         Ok(())
     }
 
     fn set_storage_class(&mut self, storage_class: &str) -> Result<(), OssError> {
-        self.storage_class = storage_class.to_string();
+        let start_char = storage_class
+            .chars()
+            .next()
+            .ok_or(OssError::InvalidStorageClass)?;
+
+        match start_char {
+            'a' | 'A' => self.storage_class = StorageClass::Archive,
+            'i' | 'I' => self.storage_class = StorageClass::IA,
+            's' | 'S' => self.storage_class = StorageClass::Standard,
+            'c' | 'C' => self.storage_class = StorageClass::ColdArchive,
+            _ => return Err(OssError::InvalidStorageClass),
+        }
+
         Ok(())
     }
 }
@@ -175,14 +178,12 @@ impl<T: PointerFamily> Bucket<T> {
     pub fn new(
         base: BucketBase,
         creation_date: DateTime<Utc>,
-        location: String,
-        storage_class: String,
+        storage_class: StorageClass,
         client: T::PointerType,
     ) -> Self {
         Self {
             base,
             creation_date,
-            location,
             storage_class,
             client,
         }
@@ -303,11 +304,7 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: ItemError> RefineBucketList<Ite
     }
 
     fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
-        self.max_keys = if !max_keys.is_empty() {
-            Some(max_keys.to_owned())
-        } else {
-            None
-        };
+        self.max_keys = max_keys.parse()?;
         Ok(())
     }
 
@@ -552,7 +549,6 @@ impl<T: PointerFamily> PartialEq<Bucket<T>> for Bucket<T> {
     fn eq(&self, other: &Bucket<T>) -> bool {
         self.base == other.base
             && self.creation_date == other.creation_date
-            && self.location == other.location
             && self.storage_class == other.storage_class
     }
 }
@@ -625,21 +621,6 @@ pub struct BucketListObject<'a> {
     pub key_count: i32,
     pub next_continuation_token: Option<&'a str>,
     pub restore_info: Option<&'a str>,
-}
-
-#[doc(hidden)]
-#[derive(Clone, Debug)]
-pub enum Location {
-    CnHangzhou,
-    CnShanghai,
-    CnQingdao,
-    CnBeijing,
-    CnZhangjiakou, // 张家口 lenght=13
-    CnHongkong,
-    CnShenzhen,
-    UsWest1,
-    UsEast1,
-    ApSouthEast1,
 }
 
 #[doc(hidden)]

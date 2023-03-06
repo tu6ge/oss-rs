@@ -834,14 +834,14 @@ pub mod blocking {
         where
             F: Fn(&Vec<u8>) -> Option<&'static str>,
         {
-            let content_type = get_content_type(&content).unwrap_or("application/octet-stream");
+            let content_type = get_content_type(&content).unwrap_or(Self::DEFAULT_CONTENT_TYPE);
 
             let content = self.put_content_base(content, content_type, path)?;
 
             let result = content
                 .headers()
                 .get("ETag")
-                .ok_or_else(|| FileError::EtagNotFound)?
+                .ok_or(FileError::EtagNotFound)?
                 .to_str()
                 .map_err(FileError::from)?;
 
@@ -1010,7 +1010,7 @@ pub mod blocking {
             let result = content
                 .headers()
                 .get("ETag")
-                .ok_or_else(|| FileError::EtagNotFound)?
+                .ok_or(FileError::EtagNotFound)?
                 .to_str()
                 .map_err(FileError::from)?;
 
@@ -1079,7 +1079,11 @@ pub mod blocking {
     mod tests_macro {
         use chrono::{DateTime, NaiveDateTime, Utc};
 
-        use crate::{builder::RcPointer, object::Object, ClientRc};
+        use crate::{
+            builder::RcPointer,
+            object::{Object, StorageClass},
+            ClientRc,
+        };
         use std::rc::Rc;
 
         fn init_object() -> Object<RcPointer> {
@@ -1094,7 +1098,7 @@ pub mod blocking {
                 "foo3".into(),
                 "foo4".into(),
                 100,
-                "foo5".into(),
+                StorageClass::Archive,
             )
         }
 

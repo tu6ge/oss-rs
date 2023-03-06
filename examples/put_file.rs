@@ -16,7 +16,7 @@ fn main() {
     let response = client
         .put_file(
             PathBuf::from("examples/bg2015071010.png"),
-            "examples/bg2015071010.png".parse().unwrap(),
+            "examples/bg2015071010.png",
         )
         .unwrap();
     println!("put file result: {:?}", response);

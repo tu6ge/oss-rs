@@ -206,7 +206,7 @@ impl AsRef<str> for EndPoint {
             UsWest1 => US_WEST1,
             UsEast1 => US_EAST1,
             ApSouthEast1 => AP_SOUTH_EAST1,
-            Other(str) => &str,
+            Other(str) => str,
         }
     }
 }
@@ -360,7 +360,7 @@ impl<'a> EndPoint {
                 return Err(InvalidEndPoint);
             }
 
-            if url.len() < 1 {
+            if url.is_empty() {
                 return Err(InvalidEndPoint);
             }
 
@@ -410,7 +410,7 @@ mod test_endpoint {
     #[test]
     #[should_panic]
     fn test_endpoint_painc() {
-        EndPoint::from_static("weifang");
+        EndPoint::from_static("-weifang");
     }
 
     #[test]
@@ -604,7 +604,7 @@ impl<'a> BucketName {
             return Err(InvalidBucketName);
         }
 
-        if bucket.len() < 1 {
+        if bucket.is_empty() {
             return Err(InvalidBucketName);
         }
 
