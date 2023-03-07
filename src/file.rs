@@ -836,7 +836,7 @@ pub mod blocking {
         blocking::builder::RequestBuilder,
         bucket::Bucket,
         builder::{BuilderError, RcPointer},
-        object::{Object, ObjectList},
+        object::ObjectList,
         types::{CanonicalizedResource, ContentRange},
     };
     use http::{
