@@ -256,12 +256,12 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, 
 #[oss_gen_rc]
 impl<Item: RefineObject<E>, E: ItemError> ObjectList<ArcPointer, Item, E> {
     /// 设置 Client
-    pub fn set_client(&mut self, client: Arc<ClientArc>) {
+    pub(crate) fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
     }
 
     /// 获取 Client 引用
-    pub fn client(&self) -> Arc<ClientArc> {
+    pub(crate) fn client(&self) -> Arc<ClientArc> {
         Arc::clone(&self.client)
     }
 }
@@ -737,7 +737,9 @@ impl ItemError for BuildInItemError {}
 impl Client {
     /// 查询默认 bucket 的文件列表
     ///
-    /// 查询条件参数有多种方式，具体参考 [`get_object_list`](../bucket/struct.Bucket.html#method.get_object_list) 文档
+    /// 查询条件参数有多种方式，具体参考 [`get_object_list`] 文档
+    ///
+    /// [`get_object_list`]: crate::bucket::Bucket::get_object_list
     pub async fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         self,
         query: Q,

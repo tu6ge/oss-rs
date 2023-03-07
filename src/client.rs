@@ -22,7 +22,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 /// # 构造请求的客户端结构体
-/// Clone 特征不是必须的
 #[non_exhaustive]
 #[derive(Default, Clone)]
 pub struct Client<M = ClientWithMiddleware>
@@ -175,7 +174,7 @@ impl Client {
 
 impl AlignBuilder for Client<ClientWithMiddleware> {
     /// # 构造自定义的接口请求方法
-    /// 比如在上次完文件时，返回自己期望的数据，而不是 lib 封装的 etag 信息
+    /// 比如在上传完文件时，返回自己期望的数据，而不是仅返回 etag 信息
     ///
     /// ## 例子是一个获取 object 元信息的接口
     /// ```

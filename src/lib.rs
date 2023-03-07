@@ -60,6 +60,8 @@ let client = aliyun_oss_client::Client::new(
 
 ### 查询所有的 bucket 信息
 
+了解更多，请查看 [`get_bucket_list`]
+
 ```rust
 # #[tokio::main]
 # async fn main(){
@@ -74,6 +76,9 @@ let client = aliyun_oss_client::Client::new(
 ```
 
 ### 获取 bucket 信息
+
+了解更多，请查看 [`get_bucket_info`]
+
 ```rust
 # #[tokio::main]
 # async fn main(){
@@ -90,7 +95,9 @@ let client = aliyun_oss_client::Client::new(
 
 ### 查询当前 bucket 中的 object 列表
 
-查询条件参数有多种方式，具体参考 [`get_object_list`](./bucket/struct.Bucket.html#method.get_object_list) 文档
+了解更多，请查看 [`get_object_list`]
+
+查询条件参数有多种方式，具体参考 [`Bucket::get_object_list`] 文档
 ```rust
 # #[tokio::main]
 # async fn main(){
@@ -106,6 +113,8 @@ let client = aliyun_oss_client::Client::new(
 ```
 
 ### 也可以使用 bucket struct 查询 object 列表
+
+了解更多，请查看 [`Bucket::get_object_list`]
 ```rust,ignore
 # #[tokio::main]
 # async fn main(){
@@ -123,6 +132,8 @@ let client = aliyun_oss_client::Client::new(
 ```
 
 ### 上传文件
+
+了解更多，请查看 [`put_file`], [`put_content`], [`put_content_base`]
 ```rust
 # #[tokio::main]
 # async fn main(){
@@ -157,6 +168,8 @@ let client = aliyun_oss_client::Client::new(
 ```
 
 ### 下载文件
+
+了解更多，请查看 [`get_object`]
 ```rust
 # #[tokio::main]
 # async fn main(){
@@ -181,6 +194,8 @@ let client = aliyun_oss_client::Client::new(
 ```
 
 ### 删除文件
+
+了解更多，请查看 [`delete_object`]
 ```rust
 # #[tokio::main]
 # async fn main(){
@@ -194,6 +209,16 @@ let client = aliyun_oss_client::Client::new(
     client.delete_object("examples/bg2015071010.png").await;
 # }
 ```
+
+[`get_bucket_list`]: crate::client::Client::get_bucket_list
+[`get_bucket_info`]: crate::client::Client::get_bucket_info
+[`get_object_list`]: crate::client::Client::get_object_list
+[`Bucket::get_object_list`]: crate::bucket::Bucket::get_object_list
+[`put_file`]: crate::file::Files::put_file
+[`put_content`]: crate::file::Files::put_content
+[`put_content_base`]: crate::file::Files::put_content_base
+[`get_object`]: crate::file::Files::get_object
+[`delete_object`]: crate::file::Files::delete_object
 */
 
 #![cfg_attr(all(feature = "bench", test), feature(test))]
@@ -212,6 +237,8 @@ use builder::ClientWithMiddleware;
 #[cfg(feature = "core")]
 use config::Config;
 
+#[cfg(feature = "core")]
+pub use config::{ObjectDir, ObjectPath};
 /// 重新导出 http 库的一些方法，便于开发者调用 lib 未提供的 api
 #[cfg(feature = "core")]
 pub use http::{

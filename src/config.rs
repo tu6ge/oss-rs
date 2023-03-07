@@ -595,7 +595,7 @@ impl From<InvalidEndPoint> for InvalidObjectBase {
 }
 
 /// OSS Object 存储对象的路径
-/// 不带前缀 `/` 需要附加生命周期参数
+/// 不带前缀 `/`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectPathInner<'a>(Cow<'a, str>);
 
@@ -809,7 +809,7 @@ impl UrlObjectPath for Url {
 }
 
 /// OSS Object 对象路径的前缀目录
-/// 不带前缀 `/`, 必须以 `/` 结尾
+/// 不带前缀 `/`, 且必须以 `/` 结尾
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectDir<'a>(Cow<'a, str>);
 
@@ -1042,7 +1042,7 @@ impl TryFrom<&Path> for ObjectDir<'_> {
     }
 }
 
-/// 不合法的文件路径
+/// 不合法的文件目录路径
 #[derive(Debug, Error)]
 pub struct InvalidObjectDir;
 

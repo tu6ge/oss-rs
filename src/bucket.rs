@@ -193,12 +193,12 @@ impl<T: PointerFamily> Bucket<T> {
 #[oss_gen_rc]
 impl Bucket<ArcPointer> {
     /// 为 Bucket struct 设置 Client
-    pub fn set_client(&mut self, client: Arc<ClientArc>) {
+    fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
     }
 
     /// 获取 Bucket 的 Client 信息
-    pub fn client(&self) -> Arc<ClientArc> {
+    pub(crate) fn client(&self) -> Arc<ClientArc> {
         Arc::clone(&self.client)
     }
 }

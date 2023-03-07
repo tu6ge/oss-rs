@@ -178,7 +178,7 @@ where
 
 /// 获取请求 OSS 接口需要的信息
 pub trait GetStd {
-    /// 获取 Url 和 CanonicalizedResource
+    /// 获取 `Url` 和 `CanonicalizedResource`
     fn get_std(&self) -> Option<(Url, CanonicalizedResource)>;
 }
 
@@ -202,7 +202,7 @@ impl GetStd for &Object<ArcPointer> {
 
 /// 根据给定路径，获取请求 OSS 接口需要的信息
 pub trait GetStdWithPath<Path> {
-    /// 根据 path 获取 Url 和 CanonicalizedResource
+    /// 根据 path 获取 `Url` 和 `CanonicalizedResource`
     fn get_std_with_path(&self, _path: Path) -> Option<(Url, CanonicalizedResource)>;
 }
 
@@ -213,6 +213,11 @@ use crate::client::ClientRc;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 
+/// # 用于在 Client 上对文件进行操作
+///
+/// 文件路径可以是 `String` 类型
+///
+/// [`ObjectPath`]: crate::ObjectPath
 #[oss_gen_rc]
 impl GetStdWithPath<String> for ClientArc {
     fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
@@ -225,6 +230,11 @@ impl GetStdWithPath<String> for ClientArc {
     }
 }
 
+/// # 用于在 Client 上对文件进行操作
+///
+/// 文件路径可以是 `&str` 类型
+///
+/// [`ObjectPath`]: crate::ObjectPath
 #[oss_gen_rc]
 impl GetStdWithPath<&str> for ClientArc {
     fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
@@ -237,6 +247,11 @@ impl GetStdWithPath<&str> for ClientArc {
     }
 }
 
+/// # 用于在 Client 上对文件进行操作
+///
+/// 文件路径可以是 [`ObjectPath`] 类型
+///
+/// [`ObjectPath`]: crate::ObjectPath
 #[oss_gen_rc]
 impl GetStdWithPath<ObjectPath> for ClientArc {
     fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
@@ -248,6 +263,11 @@ impl GetStdWithPath<ObjectPath> for ClientArc {
     }
 }
 
+/// # 用于在 Client 上对文件进行操作
+///
+/// 文件路径可以是 [`&ObjectPath`] 类型
+///
+/// [`&ObjectPath`]: crate::ObjectPath
 #[oss_gen_rc]
 impl GetStdWithPath<&ObjectPath> for ClientArc {
     fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
@@ -259,6 +279,11 @@ impl GetStdWithPath<&ObjectPath> for ClientArc {
     }
 }
 
+/// # 用于在 Client 上对文件进行操作
+///
+/// 文件路径可以是 [`ObjectBase`] 类型
+///
+/// [`ObjectBase`]: crate::config::ObjectBase
 #[oss_gen_rc]
 impl GetStdWithPath<ObjectBase> for ClientArc {
     #[inline]
@@ -267,6 +292,11 @@ impl GetStdWithPath<ObjectBase> for ClientArc {
     }
 }
 
+/// # 用于在 Client 上对文件进行操作
+///
+/// 文件路径可以是 [`&ObjectBase`] 类型
+///
+/// [`&ObjectBase`]: crate::config::ObjectBase
 #[oss_gen_rc]
 impl GetStdWithPath<&ObjectBase> for ClientArc {
     #[inline]
@@ -275,6 +305,9 @@ impl GetStdWithPath<&ObjectBase> for ClientArc {
     }
 }
 
+/// # 用于在 Bucket 上对文件进行操作
+///
+/// 文件路径可以是 `String` 类型
 impl GetStdWithPath<String> for Bucket {
     fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
         let path = path.try_into().ok()?;
@@ -282,6 +315,9 @@ impl GetStdWithPath<String> for Bucket {
     }
 }
 
+/// # 用于在 Bucket 上对文件进行操作
+///
+/// 文件路径可以是 `&str` 类型
 impl GetStdWithPath<&str> for Bucket {
     fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
         let path = path.to_owned().try_into().ok()?;
@@ -289,6 +325,11 @@ impl GetStdWithPath<&str> for Bucket {
     }
 }
 
+/// # 用于在 Bucket 上对文件进行操作
+///
+/// 文件路径可以是 [`ObjectPath`] 类型
+///
+/// [`ObjectPath`]: crate::ObjectPath
 impl GetStdWithPath<ObjectPath> for Bucket {
     #[inline]
     fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
@@ -296,6 +337,11 @@ impl GetStdWithPath<ObjectPath> for Bucket {
     }
 }
 
+/// # 用于在 Bucket 上对文件进行操作
+///
+/// 文件路径可以是 [`&ObjectPath`] 类型
+///
+/// [`&ObjectPath`]: crate::ObjectPath
 impl GetStdWithPath<&ObjectPath> for Bucket {
     #[inline]
     fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
@@ -303,6 +349,11 @@ impl GetStdWithPath<&ObjectPath> for Bucket {
     }
 }
 
+/// # 用于在 Bucket 上对文件进行操作
+///
+/// 文件路径可以是 [`ObjectBase`] 类型
+///
+/// [`ObjectBase`]: crate::config::ObjectBase
 #[oss_gen_rc]
 impl GetStdWithPath<ObjectBase<ArcPointer>> for Bucket {
     #[inline]
@@ -314,6 +365,11 @@ impl GetStdWithPath<ObjectBase<ArcPointer>> for Bucket {
     }
 }
 
+/// # 用于在 Bucket 上对文件进行操作
+///
+/// 文件路径可以是 [`&ObjectBase`] 类型
+///
+/// [`&ObjectBase`]: crate::config::ObjectBase
 #[oss_gen_rc]
 impl GetStdWithPath<&ObjectBase<ArcPointer>> for Bucket {
     #[inline]
@@ -325,6 +381,11 @@ impl GetStdWithPath<&ObjectBase<ArcPointer>> for Bucket {
     }
 }
 
+/// # 用于在 ObjectList 上对文件进行操作
+///
+/// 文件路径可以是 `String` 类型
+///
+/// [`ObjectBase`]: crate::config::ObjectBase
 #[oss_gen_rc]
 impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<String>
     for ObjectList<ArcPointer, Item, E>
@@ -336,6 +397,11 @@ impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWith
     }
 }
 
+/// # 用于在 ObjectList 上对文件进行操作
+///
+/// 文件路径可以是 `&str` 类型
+///
+/// [`ObjectBase`]: crate::config::ObjectBase
 #[oss_gen_rc]
 impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<&str>
     for ObjectList<ArcPointer, Item, E>
@@ -349,6 +415,11 @@ impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWith
     }
 }
 
+/// # 用于在 ObjectList 上对文件进行操作
+///
+/// 文件路径可以是 [`ObjectPath`] 类型
+///
+/// [`ObjectPath`]: crate::ObjectPath
 #[oss_gen_rc]
 impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<ObjectPath>
     for ObjectList<ArcPointer, Item, E>
@@ -359,6 +430,11 @@ impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWith
     }
 }
 
+/// # 用于在 ObjectList 上对文件进行操作
+///
+/// 文件路径可以是 [`&ObjectPath`] 类型
+///
+/// [`&ObjectPath`]: crate::ObjectPath
 #[oss_gen_rc]
 impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<&ObjectPath>
     for ObjectList<ArcPointer, Item, E>
@@ -370,6 +446,11 @@ impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWith
     }
 }
 
+/// # 用于在 ObjectList 上对文件进行操作
+///
+/// 文件路径可以是实现 [`GetStd`] 特征的类型
+///
+/// [`GetStd`]: crate::file::GetStd
 impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync, U: GetStd> GetStdWithPath<U>
     for ObjectList<ArcPointer, Item, E>
 {
