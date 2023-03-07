@@ -135,6 +135,43 @@ pub trait RefineObject<Error: ItemError> {
     fn set_storage_class(&mut self, _storage_class: &str) -> Result<(), Error> {
         Ok(())
     }
+
+    /// 对单个 objcet 部分的 xml 内容进行解析
+    fn decode(&mut self, xml: &str) -> Result<(), InnerItemError> {
+        let mut reader = Reader::from_str(xml);
+        let mut buf = Vec::with_capacity(xml.len());
+        loop {
+            match reader.read_event_into(&mut buf) {
+                Ok(Event::Start(e)) => match e.name().as_ref() {
+                    KEY => self.set_key(&reader.read_text(e.to_end().name())?)?,
+                    LAST_MODIFIED => {
+                        self.set_last_modified(&reader.read_text(e.to_end().name())?)?
+                    }
+                    E_TAG => {
+                        let tag = reader.read_text(e.to_end().name())?;
+                        self.set_etag(tag.trim_matches('"'))?;
+                    }
+                    TYPE => self.set_type(&reader.read_text(e.to_end().name())?)?,
+                    SIZE => {
+                        self.set_size(&reader.read_text(e.to_end().name())?)?;
+                    }
+                    STORAGE_CLASS => {
+                        self.set_storage_class(&reader.read_text(e.to_end().name())?)?;
+                    }
+                    _ => (),
+                },
+                Ok(Event::Eof) => {
+                    break;
+                } // exits the loop when reaching end of file
+                Err(e) => {
+                    return Err(InnerItemError::from(e));
+                }
+                _ => (), //
+            }
+            buf.clear();
+        }
+        Ok(())
+    }
 }
 
 const PREFIX: &[u8] = b"Prefix";
@@ -217,13 +254,6 @@ where
         reader.trim_text(true);
         let mut buf = Vec::with_capacity(xml.len());
 
-        let mut key = Cow::from("");
-        let mut last_modified = Cow::from(String::with_capacity(20));
-        let mut _type = Cow::from("");
-        let mut etag = Cow::from(String::with_capacity(34));
-        let mut size = Cow::from("");
-        let mut storage_class = Cow::from(String::with_capacity(11));
-
         let mut is_common_pre = false;
         let mut prefix_vec = Vec::new();
 
@@ -258,25 +288,11 @@ where
                                 },
                             )?;
                         }
-                        // b"Contents" => {
-                        //     // key.clear();
-                        //     // last_modified.clear();
-                        //     // etag.clear();
-                        //     // //_type.clear();
-                        //     // storage_class.clear();
-                        // }
-                        KEY => key = reader.read_text(e.to_end().name())?,
-                        LAST_MODIFIED => last_modified = reader.read_text(e.to_end().name())?,
-                        E_TAG => {
-                            let tag = reader.read_text(e.to_end().name())?;
-                            etag = Cow::Owned((*tag.trim_matches('"')).to_owned());
-                        }
-                        TYPE => _type = reader.read_text(e.to_end().name())?,
-                        SIZE => {
-                            size = reader.read_text(e.to_end().name())?;
-                        }
-                        STORAGE_CLASS => {
-                            storage_class = reader.read_text(e.to_end().name())?;
+                        CONTENTS => {
+                            // <Contents></Contents> 标签内部的数据对应单个 object 信息
+                            let mut object = init_object();
+                            object.decode(&reader.read_text(e.to_end().name())?)?;
+                            result.push(object);
                         }
                         _ => (),
                     }
@@ -285,20 +301,6 @@ where
                     COMMON_PREFIX => {
                         self.set_common_prefix(&prefix_vec)?;
                         is_common_pre = false;
-                    }
-                    CONTENTS => {
-                        let mut object = init_object();
-                        object.set_key(&key).map_err(InnerItemError::from)?;
-                        object
-                            .set_last_modified(&last_modified)
-                            .map_err(InnerItemError::from)?;
-                        object.set_etag(&etag).map_err(InnerItemError::from)?;
-                        object.set_type(&_type).map_err(InnerItemError::from)?;
-                        object.set_size(&size).map_err(InnerItemError::from)?;
-                        object
-                            .set_storage_class(&storage_class)
-                            .map_err(InnerItemError::from)?;
-                        result.push(object);
                     }
                     _ => (),
                 },
@@ -567,17 +569,6 @@ where
         reader.trim_text(true);
         let mut buf = Vec::with_capacity(xml.len());
 
-        let mut name = Cow::from("");
-        let mut location = Cow::from("");
-        let mut creation_date = Cow::from(String::with_capacity(20));
-
-        // 目前最长的可用区 zhangjiakou 13 ，剩余部分总共 20
-        let mut extranet_endpoint = Cow::from(String::with_capacity(33));
-        // 上一个长度 + 9 （-internal）
-        let mut intranet_endpoint = Cow::from(String::with_capacity(42));
-        // 最长的值 ColdArchive 11
-        let mut storage_class = Cow::from(String::with_capacity(11));
-
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => match e.name().as_ref() {
@@ -590,42 +581,14 @@ where
                     NEXT_MARKER => self.set_next_marker(&reader.read_text(e.to_end().name())?)?,
                     ID => self.set_id(&reader.read_text(e.to_end().name())?)?,
                     DISPLAY_NAME => self.set_display_name(&reader.read_text(e.to_end().name())?)?,
-                    // b"Bucket" => {
-                    //     // name.clear();
-                    //     // location.clear();
-                    //     // creation_date.clear();
-                    //     // extranet_endpoint.clear();
-                    //     // intranet_endpoint.clear();
-                    //     // storage_class.clear();
-                    // }
-                    NAME => name = reader.read_text(e.to_end().name())?,
-                    CREATION_DATE => creation_date = reader.read_text(e.to_end().name())?,
-                    EXTRANET_ENDPOINT => extranet_endpoint = reader.read_text(e.to_end().name())?,
-                    INTRANET_ENDPOINT => intranet_endpoint = reader.read_text(e.to_end().name())?,
-                    LOCATION => location = reader.read_text(e.to_end().name())?,
-                    STORAGE_CLASS => storage_class = reader.read_text(e.to_end().name())?,
+                    BUCKET => {
+                        // <Bucket></Bucket> 标签内部的数据对应单个 bucket 信息
+                        let mut bucket = init_bucket();
+                        bucket.decode(&reader.read_text(e.to_end().name())?)?;
+                        result.push(bucket);
+                    }
                     _ => (),
                 },
-                Ok(Event::End(ref e)) if e.name().as_ref() == BUCKET => {
-                    let mut bucket = init_bucket();
-                    bucket.set_name(&name).map_err(InnerItemError::from)?;
-                    bucket
-                        .set_creation_date(&creation_date)
-                        .map_err(InnerItemError::from)?;
-                    bucket
-                        .set_location(&location)
-                        .map_err(InnerItemError::from)?;
-                    bucket
-                        .set_extranet_endpoint(&extranet_endpoint)
-                        .map_err(InnerItemError::from)?;
-                    bucket
-                        .set_intranet_endpoint(&intranet_endpoint)
-                        .map_err(InnerItemError::from)?;
-                    bucket
-                        .set_storage_class(&storage_class)
-                        .map_err(InnerItemError::from)?;
-                    result.push(bucket);
-                }
                 Ok(Event::Eof) => {
                     self.set_list(result)?;
                     break;
