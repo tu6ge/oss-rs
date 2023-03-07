@@ -23,3 +23,17 @@ cargo test --lib --all-features tests
 ```
 cargo t -q --all-features
 ```
+
+## 注意事项
+
+- 请保持 commit 信息的整洁，每次 commit 只做一件事
+- commit 信息，请遵守 Angular 规范
+- 一次 Pull Request 可以包含多个 commit
+- 新增特性时，提供必要的单元测试，也欢迎为现有的代码补充单测
+- 新增特性时，请补充必要的文档，预览文档命令：
+
+```
+cargo doc --open --no-deps
+```
+
+## 感谢您的贡献
