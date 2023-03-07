@@ -251,7 +251,7 @@ where
                         NEXT_CONTINUATION_TOKEN => {
                             let next_continuation_token = reader.read_text(e.to_end().name())?;
                             self.set_next_continuation_token(
-                                if next_continuation_token.len() > 0 {
+                                if !next_continuation_token.is_empty() {
                                     Some(&next_continuation_token)
                                 } else {
                                     None
