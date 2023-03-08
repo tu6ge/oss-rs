@@ -242,6 +242,34 @@ where
         Ok(())
     }
 
+    /// 用于解析 common prefix
+    fn decode_common_prefix(&mut self, xml: &str) -> Result<(), InnerListError> {
+        let mut reader = Reader::from_str(xml);
+        let mut buf = Vec::with_capacity(xml.len());
+        let mut prefix_vec = Vec::new();
+
+        loop {
+            match reader.read_event_into(&mut buf) {
+                Ok(Event::Start(e)) => {
+                    if e.name().as_ref() == PREFIX {
+                        prefix_vec.push(reader.read_text(e.to_end().name())?);
+                    }
+                }
+                Ok(Event::Eof) => {
+                    break;
+                } // exits the loop when reaching end of file
+                Err(e) => {
+                    return Err(InnerListError::from(e));
+                }
+                _ => (), // There are several other `Event`s we do not consider here
+            }
+            buf.clear();
+        }
+        self.set_common_prefix(&prefix_vec)?;
+
+        Ok(())
+    }
+
     /// # 由 xml 转 struct 的底层实现
     /// - `init_object` 用于初始化 object 结构体的方法
     fn decode<F>(&mut self, xml: &str, mut init_object: F) -> Result<(), InnerListError>
@@ -254,23 +282,15 @@ where
         reader.trim_text(true);
         let mut buf = Vec::with_capacity(xml.len());
 
-        let mut is_common_pre = false;
-        let mut prefix_vec = Vec::new();
-
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => {
                     match e.name().as_ref() {
                         COMMON_PREFIX => {
-                            is_common_pre = true;
-                            prefix_vec = Vec::new();
+                            self.decode_common_prefix(&reader.read_text(e.to_end().name())?)?;
                         }
                         PREFIX => {
-                            if is_common_pre {
-                                prefix_vec.push(reader.read_text(e.to_end().name())?);
-                            } else {
-                                self.set_prefix(&reader.read_text(e.to_end().name())?)?;
-                            }
+                            self.set_prefix(&reader.read_text(e.to_end().name())?)?;
                         }
                         NAME => self.set_name(&reader.read_text(e.to_end().name())?)?,
                         MAX_KEYS => self.set_max_keys(&reader.read_text(e.to_end().name())?)?,
@@ -297,13 +317,6 @@ where
                         _ => (),
                     }
                 }
-                Ok(Event::End(ref e)) => match e.name().as_ref() {
-                    COMMON_PREFIX => {
-                        self.set_common_prefix(&prefix_vec)?;
-                        is_common_pre = false;
-                    }
-                    _ => (),
-                },
                 Ok(Event::Eof) => {
                     self.set_list(result)?;
                     break;
