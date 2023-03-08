@@ -70,8 +70,6 @@
 //! ```
 //! [`File`]: crate::file::File
 
-use std::{error::Error, fmt::Display, sync::Arc};
-
 use async_trait::async_trait;
 use http::{
     header::{HeaderName, InvalidHeaderValue, CONTENT_LENGTH, CONTENT_TYPE},
@@ -82,15 +80,13 @@ use reqwest::{Response, Url};
 use crate::{
     bucket::Bucket,
     builder::{ArcPointer, BuilderError, RequestBuilder},
-    client::ClientArc,
-    config::{get_url_resource, InvalidObjectPath, ObjectBase, ObjectPath},
+    config::{InvalidObjectPath, ObjectBase, ObjectPath},
     decode::{ItemError, RefineObject},
     object::{Object, ObjectList},
     types::{CanonicalizedResource, ContentRange},
 };
 #[cfg(feature = "put_file")]
 use infer::Infer;
-use oss_derive::oss_gen_rc;
 
 /// # 文件的相关操作
 ///
@@ -206,257 +202,278 @@ pub trait GetStdWithPath<Path> {
     fn get_std_with_path(&self, _path: Path) -> Option<(Url, CanonicalizedResource)>;
 }
 
-#[cfg(feature = "blocking")]
-use crate::builder::RcPointer;
-#[cfg(feature = "blocking")]
-use crate::client::ClientRc;
-#[cfg(feature = "blocking")]
-use std::rc::Rc;
+mod std_path_impl {
 
-/// # 用于在 Client 上对文件进行操作
-///
-/// 文件路径可以是 `String` 类型
-///
-/// [`ObjectPath`]: crate::ObjectPath
-#[oss_gen_rc]
-impl GetStdWithPath<String> for ClientArc {
-    fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
-        let object_path = path.try_into().ok()?;
-        Some(get_url_resource(
-            self.get_endpoint(),
-            self.get_bucket_name(),
-            &object_path,
-        ))
+    #[cfg(feature = "blocking")]
+    use crate::builder::RcPointer;
+    #[cfg(feature = "blocking")]
+    use crate::client::ClientRc;
+    #[cfg(feature = "blocking")]
+    use std::rc::Rc;
+
+    use super::{GetStd, GetStdWithPath};
+    use crate::{
+        bucket::Bucket,
+        builder::ArcPointer,
+        client::ClientArc,
+        config::{get_url_resource, ObjectBase},
+        decode::{ItemError, RefineObject},
+        object::ObjectList,
+        types::CanonicalizedResource,
+        ObjectPath,
+    };
+    use oss_derive::oss_gen_rc;
+    use reqwest::Url;
+    use std::sync::Arc;
+
+    /// # 用于在 Client 上对文件进行操作
+    ///
+    /// 文件路径可以是 `String` 类型
+    ///
+    /// [`ObjectPath`]: crate::ObjectPath
+    #[oss_gen_rc]
+    impl GetStdWithPath<String> for ClientArc {
+        fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
+            let object_path = path.try_into().ok()?;
+            Some(get_url_resource(
+                self.get_endpoint(),
+                self.get_bucket_name(),
+                &object_path,
+            ))
+        }
     }
-}
 
-/// # 用于在 Client 上对文件进行操作
-///
-/// 文件路径可以是 `&str` 类型
-///
-/// [`ObjectPath`]: crate::ObjectPath
-#[oss_gen_rc]
-impl GetStdWithPath<&str> for ClientArc {
-    fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
-        let object_path = path.to_owned().try_into().ok()?;
-        Some(get_url_resource(
-            self.get_endpoint(),
-            self.get_bucket_name(),
-            &object_path,
-        ))
+    /// # 用于在 Client 上对文件进行操作
+    ///
+    /// 文件路径可以是 `&str` 类型
+    ///
+    /// [`ObjectPath`]: crate::ObjectPath
+    #[oss_gen_rc]
+    impl GetStdWithPath<&str> for ClientArc {
+        fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
+            let object_path = path.to_owned().try_into().ok()?;
+            Some(get_url_resource(
+                self.get_endpoint(),
+                self.get_bucket_name(),
+                &object_path,
+            ))
+        }
     }
-}
 
-/// # 用于在 Client 上对文件进行操作
-///
-/// 文件路径可以是 [`ObjectPath`] 类型
-///
-/// [`ObjectPath`]: crate::ObjectPath
-#[oss_gen_rc]
-impl GetStdWithPath<ObjectPath> for ClientArc {
-    fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-        Some(get_url_resource(
-            self.get_endpoint(),
-            self.get_bucket_name(),
-            &path,
-        ))
+    /// # 用于在 Client 上对文件进行操作
+    ///
+    /// 文件路径可以是 [`ObjectPath`] 类型
+    ///
+    /// [`ObjectPath`]: crate::ObjectPath
+    #[oss_gen_rc]
+    impl GetStdWithPath<ObjectPath> for ClientArc {
+        fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
+            Some(get_url_resource(
+                self.get_endpoint(),
+                self.get_bucket_name(),
+                &path,
+            ))
+        }
     }
-}
 
-/// # 用于在 Client 上对文件进行操作
-///
-/// 文件路径可以是 [`&ObjectPath`] 类型
-///
-/// [`&ObjectPath`]: crate::ObjectPath
-#[oss_gen_rc]
-impl GetStdWithPath<&ObjectPath> for ClientArc {
-    fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-        Some(get_url_resource(
-            self.get_endpoint(),
-            self.get_bucket_name(),
-            path,
-        ))
+    /// # 用于在 Client 上对文件进行操作
+    ///
+    /// 文件路径可以是 [`&ObjectPath`] 类型
+    ///
+    /// [`&ObjectPath`]: crate::ObjectPath
+    #[oss_gen_rc]
+    impl GetStdWithPath<&ObjectPath> for ClientArc {
+        fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
+            Some(get_url_resource(
+                self.get_endpoint(),
+                self.get_bucket_name(),
+                path,
+            ))
+        }
     }
-}
 
-/// # 用于在 Client 上对文件进行操作
-///
-/// 文件路径可以是 [`ObjectBase`] 类型
-///
-/// [`ObjectBase`]: crate::config::ObjectBase
-#[oss_gen_rc]
-impl GetStdWithPath<ObjectBase> for ClientArc {
-    #[inline]
-    fn get_std_with_path(&self, base: ObjectBase) -> Option<(Url, CanonicalizedResource)> {
-        Some(base.get_url_resource([]))
+    /// # 用于在 Client 上对文件进行操作
+    ///
+    /// 文件路径可以是 [`ObjectBase`] 类型
+    ///
+    /// [`ObjectBase`]: crate::config::ObjectBase
+    #[oss_gen_rc]
+    impl GetStdWithPath<ObjectBase> for ClientArc {
+        #[inline]
+        fn get_std_with_path(&self, base: ObjectBase) -> Option<(Url, CanonicalizedResource)> {
+            Some(base.get_url_resource([]))
+        }
     }
-}
 
-/// # 用于在 Client 上对文件进行操作
-///
-/// 文件路径可以是 [`&ObjectBase`] 类型
-///
-/// [`&ObjectBase`]: crate::config::ObjectBase
-#[oss_gen_rc]
-impl GetStdWithPath<&ObjectBase> for ClientArc {
-    #[inline]
-    fn get_std_with_path(&self, base: &ObjectBase) -> Option<(Url, CanonicalizedResource)> {
-        Some(base.get_url_resource([]))
+    /// # 用于在 Client 上对文件进行操作
+    ///
+    /// 文件路径可以是 [`&ObjectBase`] 类型
+    ///
+    /// [`&ObjectBase`]: crate::config::ObjectBase
+    #[oss_gen_rc]
+    impl GetStdWithPath<&ObjectBase> for ClientArc {
+        #[inline]
+        fn get_std_with_path(&self, base: &ObjectBase) -> Option<(Url, CanonicalizedResource)> {
+            Some(base.get_url_resource([]))
+        }
     }
-}
 
-/// # 用于在 Bucket 上对文件进行操作
-///
-/// 文件路径可以是 `String` 类型
-impl GetStdWithPath<String> for Bucket {
-    fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
-        let path = path.try_into().ok()?;
-        Some(self.base.get_url_resource_with_path(&path))
+    /// # 用于在 Bucket 上对文件进行操作
+    ///
+    /// 文件路径可以是 `String` 类型
+    impl GetStdWithPath<String> for Bucket {
+        fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
+            let path = path.try_into().ok()?;
+            Some(self.base.get_url_resource_with_path(&path))
+        }
     }
-}
 
-/// # 用于在 Bucket 上对文件进行操作
-///
-/// 文件路径可以是 `&str` 类型
-impl GetStdWithPath<&str> for Bucket {
-    fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
-        let path = path.to_owned().try_into().ok()?;
-        Some(self.base.get_url_resource_with_path(&path))
+    /// # 用于在 Bucket 上对文件进行操作
+    ///
+    /// 文件路径可以是 `&str` 类型
+    impl GetStdWithPath<&str> for Bucket {
+        fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
+            let path = path.to_owned().try_into().ok()?;
+            Some(self.base.get_url_resource_with_path(&path))
+        }
     }
-}
 
-/// # 用于在 Bucket 上对文件进行操作
-///
-/// 文件路径可以是 [`ObjectPath`] 类型
-///
-/// [`ObjectPath`]: crate::ObjectPath
-impl GetStdWithPath<ObjectPath> for Bucket {
-    #[inline]
-    fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-        Some(self.base.get_url_resource_with_path(&path))
+    /// # 用于在 Bucket 上对文件进行操作
+    ///
+    /// 文件路径可以是 [`ObjectPath`] 类型
+    ///
+    /// [`ObjectPath`]: crate::ObjectPath
+    impl GetStdWithPath<ObjectPath> for Bucket {
+        #[inline]
+        fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
+            Some(self.base.get_url_resource_with_path(&path))
+        }
     }
-}
 
-/// # 用于在 Bucket 上对文件进行操作
-///
-/// 文件路径可以是 [`&ObjectPath`] 类型
-///
-/// [`&ObjectPath`]: crate::ObjectPath
-impl GetStdWithPath<&ObjectPath> for Bucket {
-    #[inline]
-    fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-        Some(self.base.get_url_resource_with_path(path))
+    /// # 用于在 Bucket 上对文件进行操作
+    ///
+    /// 文件路径可以是 [`&ObjectPath`] 类型
+    ///
+    /// [`&ObjectPath`]: crate::ObjectPath
+    impl GetStdWithPath<&ObjectPath> for Bucket {
+        #[inline]
+        fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
+            Some(self.base.get_url_resource_with_path(path))
+        }
     }
-}
 
-/// # 用于在 Bucket 上对文件进行操作
-///
-/// 文件路径可以是 [`ObjectBase`] 类型
-///
-/// [`ObjectBase`]: crate::config::ObjectBase
-#[oss_gen_rc]
-impl GetStdWithPath<ObjectBase<ArcPointer>> for Bucket {
-    #[inline]
-    fn get_std_with_path(
-        &self,
-        base: ObjectBase<ArcPointer>,
-    ) -> Option<(Url, CanonicalizedResource)> {
-        Some(base.get_url_resource([]))
+    /// # 用于在 Bucket 上对文件进行操作
+    ///
+    /// 文件路径可以是 [`ObjectBase`] 类型
+    ///
+    /// [`ObjectBase`]: crate::config::ObjectBase
+    #[oss_gen_rc]
+    impl GetStdWithPath<ObjectBase<ArcPointer>> for Bucket {
+        #[inline]
+        fn get_std_with_path(
+            &self,
+            base: ObjectBase<ArcPointer>,
+        ) -> Option<(Url, CanonicalizedResource)> {
+            Some(base.get_url_resource([]))
+        }
     }
-}
 
-/// # 用于在 Bucket 上对文件进行操作
-///
-/// 文件路径可以是 [`&ObjectBase`] 类型
-///
-/// [`&ObjectBase`]: crate::config::ObjectBase
-#[oss_gen_rc]
-impl GetStdWithPath<&ObjectBase<ArcPointer>> for Bucket {
-    #[inline]
-    fn get_std_with_path(
-        &self,
-        base: &ObjectBase<ArcPointer>,
-    ) -> Option<(Url, CanonicalizedResource)> {
-        Some(base.get_url_resource([]))
+    /// # 用于在 Bucket 上对文件进行操作
+    ///
+    /// 文件路径可以是 [`&ObjectBase`] 类型
+    ///
+    /// [`&ObjectBase`]: crate::config::ObjectBase
+    #[oss_gen_rc]
+    impl GetStdWithPath<&ObjectBase<ArcPointer>> for Bucket {
+        #[inline]
+        fn get_std_with_path(
+            &self,
+            base: &ObjectBase<ArcPointer>,
+        ) -> Option<(Url, CanonicalizedResource)> {
+            Some(base.get_url_resource([]))
+        }
     }
-}
 
-/// # 用于在 ObjectList 上对文件进行操作
-///
-/// 文件路径可以是 `String` 类型
-///
-/// [`ObjectBase`]: crate::config::ObjectBase
-#[oss_gen_rc]
-impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<String>
-    for ObjectList<ArcPointer, Item, E>
-{
-    fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
-        let object_base =
-            ObjectBase::<ArcPointer>::new2(Arc::new(self.bucket.to_owned()), path.try_into().ok()?);
-        Some(object_base.get_url_resource([]))
+    /// # 用于在 ObjectList 上对文件进行操作
+    ///
+    /// 文件路径可以是 `String` 类型
+    ///
+    /// [`ObjectBase`]: crate::config::ObjectBase
+    #[oss_gen_rc]
+    impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<String>
+        for ObjectList<ArcPointer, Item, E>
+    {
+        fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
+            let object_base = ObjectBase::<ArcPointer>::new2(
+                Arc::new(self.bucket.to_owned()),
+                path.try_into().ok()?,
+            );
+            Some(object_base.get_url_resource([]))
+        }
     }
-}
 
-/// # 用于在 ObjectList 上对文件进行操作
-///
-/// 文件路径可以是 `&str` 类型
-///
-/// [`ObjectBase`]: crate::config::ObjectBase
-#[oss_gen_rc]
-impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<&str>
-    for ObjectList<ArcPointer, Item, E>
-{
-    fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
-        let object_base = ObjectBase::<ArcPointer>::new2(
-            Arc::new(self.bucket.to_owned()),
-            path.to_owned().try_into().ok()?,
-        );
-        Some(object_base.get_url_resource([]))
+    /// # 用于在 ObjectList 上对文件进行操作
+    ///
+    /// 文件路径可以是 `&str` 类型
+    ///
+    /// [`ObjectBase`]: crate::config::ObjectBase
+    #[oss_gen_rc]
+    impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<&str>
+        for ObjectList<ArcPointer, Item, E>
+    {
+        fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
+            let object_base = ObjectBase::<ArcPointer>::new2(
+                Arc::new(self.bucket.to_owned()),
+                path.to_owned().try_into().ok()?,
+            );
+            Some(object_base.get_url_resource([]))
+        }
     }
-}
 
-/// # 用于在 ObjectList 上对文件进行操作
-///
-/// 文件路径可以是 [`ObjectPath`] 类型
-///
-/// [`ObjectPath`]: crate::ObjectPath
-#[oss_gen_rc]
-impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<ObjectPath>
-    for ObjectList<ArcPointer, Item, E>
-{
-    fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-        let object_base = ObjectBase::<ArcPointer>::new2(Arc::new(self.bucket.to_owned()), path);
-        Some(object_base.get_url_resource([]))
+    /// # 用于在 ObjectList 上对文件进行操作
+    ///
+    /// 文件路径可以是 [`ObjectPath`] 类型
+    ///
+    /// [`ObjectPath`]: crate::ObjectPath
+    #[oss_gen_rc]
+    impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<ObjectPath>
+        for ObjectList<ArcPointer, Item, E>
+    {
+        fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
+            let object_base =
+                ObjectBase::<ArcPointer>::new2(Arc::new(self.bucket.to_owned()), path);
+            Some(object_base.get_url_resource([]))
+        }
     }
-}
 
-/// # 用于在 ObjectList 上对文件进行操作
-///
-/// 文件路径可以是 [`&ObjectPath`] 类型
-///
-/// [`&ObjectPath`]: crate::ObjectPath
-#[oss_gen_rc]
-impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<&ObjectPath>
-    for ObjectList<ArcPointer, Item, E>
-{
-    fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-        let object_base =
-            ObjectBase::<ArcPointer>::new2(Arc::new(self.bucket.to_owned()), path.to_owned());
-        Some(object_base.get_url_resource([]))
+    /// # 用于在 ObjectList 上对文件进行操作
+    ///
+    /// 文件路径可以是 [`&ObjectPath`] 类型
+    ///
+    /// [`&ObjectPath`]: crate::ObjectPath
+    #[oss_gen_rc]
+    impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync>
+        GetStdWithPath<&ObjectPath> for ObjectList<ArcPointer, Item, E>
+    {
+        fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
+            let object_base =
+                ObjectBase::<ArcPointer>::new2(Arc::new(self.bucket.to_owned()), path.to_owned());
+            Some(object_base.get_url_resource([]))
+        }
     }
-}
 
-/// # 用于在 ObjectList 上对文件进行操作
-///
-/// 文件路径可以是实现 [`GetStd`] 特征的类型
-///
-/// [`GetStd`]: crate::file::GetStd
-impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync, U: GetStd> GetStdWithPath<U>
-    for ObjectList<ArcPointer, Item, E>
-{
-    #[inline]
-    fn get_std_with_path(&self, path: U) -> Option<(Url, CanonicalizedResource)> {
-        path.get_std()
+    /// # 用于在 ObjectList 上对文件进行操作
+    ///
+    /// 文件路径可以是实现 [`GetStd`] 特征的类型
+    ///
+    /// [`GetStd`]: crate::file::GetStd
+    impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync, U: GetStd>
+        GetStdWithPath<U> for ObjectList<ArcPointer, Item, E>
+    {
+        #[inline]
+        fn get_std_with_path(&self, path: U) -> Option<(Url, CanonicalizedResource)> {
+            path.get_std()
+        }
     }
 }
 
@@ -663,58 +680,68 @@ pub enum FileError {
     NotFoundCanonicalizedResource,
 }
 
-impl Display for FileError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Path(p) => write!(f, "{p}"),
-            Self::Io(p) => write!(f, "{p}"),
-            Self::ToStr(to) => write!(f, "{to}"),
-            Self::HeaderValue(to) => write!(f, "{to}"),
-            Self::Build(to) => write!(f, "{to}"),
-            Self::FileTypeNotFound => write!(f, "Failed to get file type"),
-            Self::EtagNotFound => write!(f, "Failed to get etag"),
-            Self::NotFoundCanonicalizedResource => write!(f, "Not found CanonicalizedResource"),
+mod error_impl {
+    use std::{error::Error, fmt::Display};
+
+    use http::header::InvalidHeaderValue;
+
+    use crate::{builder::BuilderError, config::InvalidObjectPath};
+
+    use super::FileError;
+
+    impl Display for FileError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Self::Path(p) => write!(f, "{p}"),
+                Self::Io(p) => write!(f, "{p}"),
+                Self::ToStr(to) => write!(f, "{to}"),
+                Self::HeaderValue(to) => write!(f, "{to}"),
+                Self::Build(to) => write!(f, "{to}"),
+                Self::FileTypeNotFound => write!(f, "Failed to get file type"),
+                Self::EtagNotFound => write!(f, "Failed to get etag"),
+                Self::NotFoundCanonicalizedResource => write!(f, "Not found CanonicalizedResource"),
+            }
         }
     }
-}
 
-impl From<InvalidObjectPath> for FileError {
-    fn from(value: InvalidObjectPath) -> Self {
-        Self::Path(value)
+    impl From<InvalidObjectPath> for FileError {
+        fn from(value: InvalidObjectPath) -> Self {
+            Self::Path(value)
+        }
     }
-}
 
-impl From<std::io::Error> for FileError {
-    fn from(value: std::io::Error) -> Self {
-        Self::Io(value)
+    impl From<std::io::Error> for FileError {
+        fn from(value: std::io::Error) -> Self {
+            Self::Io(value)
+        }
     }
-}
 
-impl From<http::header::ToStrError> for FileError {
-    fn from(value: http::header::ToStrError) -> Self {
-        Self::ToStr(value)
+    impl From<http::header::ToStrError> for FileError {
+        fn from(value: http::header::ToStrError) -> Self {
+            Self::ToStr(value)
+        }
     }
-}
 
-impl From<InvalidHeaderValue> for FileError {
-    fn from(value: InvalidHeaderValue) -> Self {
-        Self::HeaderValue(value)
+    impl From<InvalidHeaderValue> for FileError {
+        fn from(value: InvalidHeaderValue) -> Self {
+            Self::HeaderValue(value)
+        }
     }
-}
 
-impl From<BuilderError> for FileError {
-    fn from(value: BuilderError) -> Self {
-        Self::Build(value)
+    impl From<BuilderError> for FileError {
+        fn from(value: BuilderError) -> Self {
+            Self::Build(value)
+        }
     }
-}
 
-impl From<reqwest::Error> for FileError {
-    fn from(value: reqwest::Error) -> Self {
-        Self::Build(value.into())
+    impl From<reqwest::Error> for FileError {
+        fn from(value: reqwest::Error) -> Self {
+            Self::Build(value.into())
+        }
     }
-}
 
-impl Error for FileError {}
+    impl Error for FileError {}
+}
 
 /// # 对齐 [`Client`]，[`Bucket`], [`ObjectList`] 等结构体的 trait
 ///
