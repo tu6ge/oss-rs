@@ -3,7 +3,7 @@
 
 ## 使用方法
 
-1. 在自己的项目里添加如下依赖项
+1. 在 `cargo.toml` 中添加如下依赖项
 
 ```toml
 [dependencies]
