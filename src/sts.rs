@@ -13,46 +13,61 @@
 //!     "EVd6dXew6xxxxxxxxxxxxxxxxxxxxxxxxxxx".into(), // KeySecret
 //!     EndPoint::CnShanghai,
 //!     BucketName::new("yyyyyy").unwrap(),
-//!     "CAIS4gF1q6Ft5Bxxxxxxxxxxx".to_string(), // STS Token
-//! );
+//!     "CAIS4gF1q6Ft5Bxxxxxxxxxxx".to_string(), // STS Token, type should be string, &str or more
+//! ).unwrap();
 //!
 //! let builder = client.get_bucket_list().await;
 //! println!("{:?}", builder);
 //! # }
 //! ```
 
+use http::{header::InvalidHeaderValue, HeaderValue};
+
 use crate::{auth::AuthBuilder, client::Client, BucketName, EndPoint, KeyId, KeySecret};
 
 /// 给 Client 增加 STS 能力
-pub trait STS {
+pub trait STS
+where
+    Self: Sized,
+{
     /// 用 STS 配置信息初始化 [`Client`]
     ///
     /// [`Client`]: crate::client::Client
-    fn new_with_sts(
+    fn new_with_sts<ST>(
         access_key_id: KeyId,
         access_key_secret: KeySecret,
         endpoint: EndPoint,
         bucket: BucketName,
-        security_token: String,
-    ) -> Self;
+        security_token: ST,
+    ) -> Result<Self, InvalidHeaderValue>
+    where
+        ST: TryInto<HeaderValue>,
+        <ST as TryInto<HeaderValue>>::Error: Into<InvalidHeaderValue>;
 }
 
 const SECURITY_TOKEN: &str = "x-oss-security-token";
 
 impl<M: Default + Clone> STS for Client<M> {
-    fn new_with_sts(
+    fn new_with_sts<ST>(
         access_key_id: KeyId,
         access_key_secret: KeySecret,
         endpoint: EndPoint,
         bucket: BucketName,
-        security_token: String,
-    ) -> Self {
+        security_token: ST,
+    ) -> Result<Self, InvalidHeaderValue>
+    where
+        ST: TryInto<HeaderValue>,
+        <ST as TryInto<HeaderValue>>::Error: Into<InvalidHeaderValue>,
+    {
         let mut auth_builder = AuthBuilder::default();
         auth_builder.key(access_key_id);
         auth_builder.secret(access_key_secret);
-        auth_builder.header_insert(SECURITY_TOKEN, security_token.try_into().unwrap());
+        auth_builder.header_insert(
+            SECURITY_TOKEN,
+            security_token.try_into().map_err(|e| e.into())?,
+        );
 
-        Self::from_builder(auth_builder, endpoint, bucket)
+        Ok(Self::from_builder(auth_builder, endpoint, bucket))
     }
 }
 
@@ -71,8 +86,9 @@ mod tests {
             "foo2".into(),
             EndPoint::CnShanghai,
             BucketName::new("abc").unwrap(),
-            "bar".to_string(),
-        );
+            "bar",
+        )
+        .unwrap();
 
         let builder = client
             .builder(
