@@ -348,6 +348,13 @@ impl<'a> EndPoint {
         } else if url.contains(AP_SOUTH_EAST1) {
             Ok(ApSouthEast1)
         } else {
+            if url.is_empty() {
+                return Err(InvalidEndPoint);
+            }
+
+            if url.starts_with('-') || url.ends_with('-') {
+                return Err(InvalidEndPoint);
+            }
             fn valid_character(c: char) -> bool {
                 match c {
                     _ if c.is_ascii_lowercase() => true,
@@ -360,13 +367,6 @@ impl<'a> EndPoint {
                 return Err(InvalidEndPoint);
             }
 
-            if url.is_empty() {
-                return Err(InvalidEndPoint);
-            }
-
-            if url.starts_with('-') || url.ends_with('-') {
-                return Err(InvalidEndPoint);
-            }
             Ok(Other(Cow::Owned(url.to_owned())))
         }
     }
@@ -592,6 +592,14 @@ impl<'a> BucketName {
     pub fn new(bucket: impl Into<Cow<'static, str>>) -> Result<Self, InvalidBucketName> {
         let bucket = bucket.into();
 
+        if bucket.is_empty() {
+            return Err(InvalidBucketName);
+        }
+
+        if bucket.starts_with('-') || bucket.ends_with('-') {
+            return Err(InvalidBucketName);
+        }
+
         fn valid_character(c: char) -> bool {
             match c {
                 _ if c.is_ascii_lowercase() => true,
@@ -601,14 +609,6 @@ impl<'a> BucketName {
             }
         }
         if !bucket.chars().all(valid_character) {
-            return Err(InvalidBucketName);
-        }
-
-        if bucket.is_empty() {
-            return Err(InvalidBucketName);
-        }
-
-        if bucket.starts_with('-') || bucket.ends_with('-') {
             return Err(InvalidBucketName);
         }
 
@@ -627,6 +627,14 @@ impl<'a> BucketName {
     /// assert!(BucketName::from_static("abc-def*#$%^ab").is_err());
     /// ```
     pub fn from_static(bucket: &'a str) -> Result<Self, InvalidBucketName> {
+        if bucket.is_empty() {
+            return Err(InvalidBucketName);
+        }
+
+        if bucket.starts_with('-') || bucket.ends_with('-') {
+            return Err(InvalidBucketName);
+        }
+
         fn valid_character(c: char) -> bool {
             match c {
                 _ if c.is_ascii_lowercase() => true,
@@ -636,14 +644,6 @@ impl<'a> BucketName {
             }
         }
         if !bucket.chars().all(valid_character) {
-            return Err(InvalidBucketName);
-        }
-
-        if bucket.is_empty() {
-            return Err(InvalidBucketName);
-        }
-
-        if bucket.starts_with('-') || bucket.ends_with('-') {
             return Err(InvalidBucketName);
         }
 
