@@ -1,5 +1,44 @@
-#  (2022-12-10)
+#  (2023-03-09)
 
+
+
+# [0.11.0](https://github.com/tu6ge/oss-rs/compare/0.10.1...0.11.0) (2023-03-09)
+
+
+### Features
+
+* **auth:** AuthBuilder method 参数签名更改 ([b0c5182](https://github.com/tu6ge/oss-rs/commit/b0c5182ef99e231f29cbea092f2535edef15a6cd))
+* **bucket:** 读取列表和详情内部的信息 ([c006da4](https://github.com/tu6ge/oss-rs/commit/c006da4afe08bb63c2132160b089a72c6d9f6693))
+* **bucket:** 更改 BucketList 内部字段类型 ([03edbd3](https://github.com/tu6ge/oss-rs/commit/03edbd37f7cd7ebf6ca652776be0d9b9a5153566))
+* **bucket:** BucketList Add Item generic ([0e85c82](https://github.com/tu6ge/oss-rs/commit/0e85c82bc9105afbaf1550db3752dbaa73df501a))
+* **bucket:** remove Option wrapper in ListBuckets ([f9e2a3d](https://github.com/tu6ge/oss-rs/commit/f9e2a3d9f9e78e00035068a2694604332948ae15))
+* **builder:** 更改方法的可见性 ([5fe7326](https://github.com/tu6ge/oss-rs/commit/5fe7326fa02a35409423172a7dfa63c0470f9cb0))
+* **config:** 增加内部类型 ObjectPathInner ([de94aee](https://github.com/tu6ge/oss-rs/commit/de94aee58c313b0b020683cd53285f7ab381d182))
+* **config:** Add ObjectDir type ([84a89cd](https://github.com/tu6ge/oss-rs/commit/84a89cdc265be74116af4c6d2479ceb31c3ea4ea)), closes [#12](https://github.com/tu6ge/oss-rs/issues/12)
+* **config:** ObjectDir Support + operator ([b95faed](https://github.com/tu6ge/oss-rs/commit/b95faedc977671bcfc3d9a71165d7debdd8c6be9))
+* **config:** remove repeat method ([f740008](https://github.com/tu6ge/oss-rs/commit/f7400086ff0dde35c82d7452751e69c99a2f9cf1))
+* **config:** update ObjectDir new method ([2d8f842](https://github.com/tu6ge/oss-rs/commit/2d8f842afad4171957ef7d829a1ec1ddec14243b))
+* **decode:** 对导出的 trait 改名 ([dc9c20c](https://github.com/tu6ge/oss-rs/commit/dc9c20ca55f8e8e0db3fdf93cf5dd7f8fe7ae639))
+* **decode:** 减少对自定义类型的限制条件 ([2c6e445](https://github.com/tu6ge/oss-rs/commit/2c6e44596d9508dba58ad8c6cb9d0b5eadc0f984))
+* **decode:** 减少对自定义类型的限制条件 ([8d8a639](https://github.com/tu6ge/oss-rs/commit/8d8a6396af8e215ad74e036e92efc80ad35e4309))
+* **decode:** 减少对自定义类型的限制条件 ([4fe2441](https://github.com/tu6ge/oss-rs/commit/4fe2441a634e3f0c745f30d497240cccb032412c)), closes [#12](https://github.com/tu6ge/oss-rs/issues/12)
+* **decode:** 内部 trait 增加默认实现 ([7acaec3](https://github.com/tu6ge/oss-rs/commit/7acaec37396a28dce53c88c39e3b7bd737056806))
+* **decode:** traits change to decode ([a9b3a8d](https://github.com/tu6ge/oss-rs/commit/a9b3a8d61237a01387c5692a928cb7d1291e10f1))
+* **file:** 对文件操作改为更加灵活的方式 ([f8cf9ea](https://github.com/tu6ge/oss-rs/commit/f8cf9ea739e210354b402bc452447750b37c0225))
+* **file:** 将 blocking 的 File trait 改名为 Files ([977db3f](https://github.com/tu6ge/oss-rs/commit/977db3f7ea0638154bf0f556722cdf44bc33ab5a))
+* **file:** 将 File trait 改名为 Files,另外新增 File trait ([023c320](https://github.com/tu6ge/oss-rs/commit/023c320626b495320eddeb81119dea494c85dd4e))
+* **file:** remove put_file and more method ([5a95a8f](https://github.com/tu6ge/oss-rs/commit/5a95a8f1692c72e547acc04396a3ec7ccdf37cd6))
+* **lib:** remove traits mod name ([35c1773](https://github.com/tu6ge/oss-rs/commit/35c177348b6db696da7ed339e28a9eefb28832bc))
+* **macro:** add derive with decode ([f51865d](https://github.com/tu6ge/oss-rs/commit/f51865d69de76743e0b1df1fac8109da3e0bde55))
+* **objcet:** change ObjectList prefix type ([9f07f34](https://github.com/tu6ge/oss-rs/commit/9f07f34bb800312dbe058553c9a28fdc1b08cefa))
+* **object:** add get_next_base method ([c77b379](https://github.com/tu6ge/oss-rs/commit/c77b379a456908ad9428fea1b5b182c0debcd9c2))
+* **object:** ObjectList Add Item generic ([63d85e2](https://github.com/tu6ge/oss-rs/commit/63d85e295bdae7f07ca13a04a5cef707426564a2)), closes [#12](https://github.com/tu6ge/oss-rs/issues/12)
+* **object:** Support CommonPrefix ([c3e54c1](https://github.com/tu6ge/oss-rs/commit/c3e54c1aa665617b9a2ef7fec083b4ba4da14bf3)), closes [#9](https://github.com/tu6ge/oss-rs/issues/9)
+* **sts:** STS 秘钥支持更多类型 ([f2e1531](https://github.com/tu6ge/oss-rs/commit/f2e153120c4601c62864d07261babb8c212bda63))
+* **type:** 支持更多的可用区 ([8e65f01](https://github.com/tu6ge/oss-rs/commit/8e65f01bf67e0241ebc7b306f4819d2630d15bb0))
+* **types:** 提升 BucketName EndPoint 等类型的安全性 ([895e373](https://github.com/tu6ge/oss-rs/commit/895e373f71f78eb4dc2ec25289c46cbc2bc24398))
+* **types:** Support FromStr for more buildin type ([e56afe8](https://github.com/tu6ge/oss-rs/commit/e56afe83d700d037092b27fe8b8a5f5cfb4f9bd0))
+* **types:** unwrap changed to expect ([066813b](https://github.com/tu6ge/oss-rs/commit/066813b4dfd095d4cbbd3babde578e0385b36318))
 
 
 # [0.10.0](https://github.com/tu6ge/oss-rs/compare/0.9.7...0.10.0) (2022-12-10)
