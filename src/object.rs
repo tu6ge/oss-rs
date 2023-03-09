@@ -339,6 +339,27 @@ impl ObjectList<ArcPointer> {
     }
 }
 
+impl<Item: RefineObject<E>, E: ItemError> ObjectList<ArcPointer, Item, E> {
+    /// 自定义 Item 时，获取下一页数据
+    pub async fn get_next_base<F>(&self, f: F) -> OssResult<Self>
+    where
+        F: FnMut() -> Item,
+    {
+        match self.next_query() {
+            None => Err(OssError::WithoutMore),
+            Some(query) => {
+                let mut list = Self::default();
+                let name = self.bucket.get_name().clone();
+                self.client()
+                    .base_object_list(name, query, &mut list, f)
+                    .await?;
+
+                Ok(list)
+            }
+        }
+    }
+}
+
 #[cfg(feature = "blocking")]
 impl ObjectList<RcPointer> {
     /// 从 OSS 获取 object 列表信息
