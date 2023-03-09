@@ -56,7 +56,7 @@ async fn test_get_bucket_list() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(ListBuckets { prefix: None, marker: None, max_keys: 0, is_truncated: false, next_marker: None, id: None, display_name: None, buckets: [] })"#
+        r#"Ok(ListBuckets { prefix: "", marker: "", max_keys: 0, is_truncated: false, next_marker: "", id: "", display_name: "", buckets: [] })"#
     );
 }
 
@@ -106,7 +106,7 @@ fn test_get_blocking_bucket_list() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(ListBuckets { prefix: None, marker: None, max_keys: 0, is_truncated: false, next_marker: None, id: None, display_name: None, buckets: [] })"#
+        r#"Ok(ListBuckets { prefix: "", marker: "", max_keys: 0, is_truncated: false, next_marker: "", id: "", display_name: "", buckets: [] })"#
     );
 }
 

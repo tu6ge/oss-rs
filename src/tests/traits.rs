@@ -108,7 +108,7 @@ mod object_list_xml {
                 Ok(())
             }
             fn set_prefix(&mut self, prefix: &str) -> Result<(), MyError> {
-                assert_eq!(prefix, "");
+                assert_eq!(prefix, "foo_prefix");
                 Ok(())
             }
             fn set_max_keys(&mut self, max_keys: &str) -> Result<(), MyError> {
@@ -131,7 +131,7 @@ mod object_list_xml {
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
         <ListBucketResult>
           <Name>foo_bucket</Name>
-          <Prefix></Prefix>
+          <Prefix>foo_prefix</Prefix>
           <MaxKeys>100</MaxKeys>
           <Delimiter></Delimiter>
           <IsTruncated>false</IsTruncated>

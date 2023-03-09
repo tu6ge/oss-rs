@@ -65,7 +65,7 @@ fn object_list_get_object_list() {
                     r#"<?xml version="1.0" encoding="UTF-8"?>
                 <ListBucketResult>
                   <Name>barname</Name>
-                  <Prefix></Prefix>
+                  <Prefix>foo2</Prefix>
                   <MaxKeys>100</MaxKeys>
                   <Delimiter></Delimiter>
                   <IsTruncated>false</IsTruncated>
@@ -96,7 +96,7 @@ fn object_list_get_object_list() {
 
     let mut object_list = ObjectList::<RcPointer>::new(
         "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
-        String::from("foo2"),
+        Some("foo2/".parse().unwrap()),
         100,
         200,
         Vec::new(),
@@ -113,7 +113,7 @@ fn object_list_get_object_list() {
         list,
         EndPoint::CnShanghai,
         "abc".parse().unwrap(),
-        "".to_string(),
+        Some("foo2/".parse().unwrap()),
         100,
         23,
         None,
