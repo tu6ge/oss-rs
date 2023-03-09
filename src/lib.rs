@@ -223,6 +223,7 @@ let client = aliyun_oss_client::Client::new(
 
 #![cfg_attr(all(feature = "bench", test), feature(test))]
 #![warn(missing_docs)]
+#![warn(clippy::unwrap_used)]
 
 // #![doc(html_playground_url = "https://play.rust-lang.org/")]
 

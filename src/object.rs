@@ -438,6 +438,7 @@ impl<T: PointerFamily> Default for Object<T> {
         Object {
             base: ObjectBase::<T>::default(),
             last_modified: DateTime::<Utc>::from_utc(
+                #[allow(clippy::unwrap_used)]
                 NaiveDateTime::from_timestamp_opt(61, 0).unwrap(),
                 Utc,
             ),
@@ -588,6 +589,7 @@ impl<T: PointerFamily> ObjectBuilder<T> {
             object: Object {
                 base,
                 last_modified: DateTime::<Utc>::from_utc(
+                    #[allow(clippy::unwrap_used)]
                     NaiveDateTime::from_timestamp_opt(61, 0).unwrap(),
                     Utc,
                 ),

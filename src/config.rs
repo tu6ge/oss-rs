@@ -288,7 +288,7 @@ impl BucketBase {
         name.push('.');
 
         let url = url.replace(HTTPS, &name);
-        Url::parse(&url).unwrap()
+        Url::parse(&url).unwrap_or_else(|_| panic!("covert to url failed, url string: {}", url))
     }
 
     /// 根据查询参数，获取当前 bucket 的接口请求参数（ url 和 CanonicalizedResource）
@@ -324,7 +324,9 @@ impl BuildFromBucket for Url {
             bucket.as_ref(),
             endpoint.as_ref()
         );
-        url.parse().unwrap()
+        url.parse().unwrap_or_else(|_| {
+            panic!("covert to url failed, bucket: {bucket}, endpoint: {endpoint}")
+        })
     }
 }
 
@@ -1078,7 +1080,9 @@ impl OssFullUrl for Url {
             &*name_str
         });
         // 因为 endpoint 都是已知字符组成，bucket 也有格式要求，所以 unwrap 是安全的
-        end_url.set_host(new_host).unwrap();
+        end_url
+            .set_host(new_host)
+            .unwrap_or_else(|_| panic!("set host failed: host: {}", new_host.unwrap_or("none")));
 
         end_url.set_object_path(path);
 

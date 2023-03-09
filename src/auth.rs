@@ -210,7 +210,9 @@ impl AuthSignString for Auth {
             self.headers
                 .get(CONTENT_TYPE)
                 .map_or(ContentType::default(), |ct| {
-                    ct.to_owned().try_into().unwrap()
+                    ct.to_owned().try_into().unwrap_or_else(|_| {
+                        unreachable!("HeaderValue always is a rightful ContentType")
+                    })
                 }),
             &self.date,
             &self.canonicalized_resource,

@@ -111,12 +111,7 @@ where
                 CONTENT_LENGTH,
                 HeaderValue::from_str(&content_length).map_err(FileError::from)?,
             ),
-            (
-                CONTENT_TYPE,
-                content_type
-                    .parse()
-                    .unwrap_or_else(|_| Client::DEFAULT_CONTENT_TYPE.parse().unwrap()),
-            ),
+            (CONTENT_TYPE, content_type.parse().map_err(FileError::from)?),
         ];
 
         self.oss_client()
@@ -140,6 +135,7 @@ where
             .get_std()
             .ok_or(FileError::NotFoundCanonicalizedResource)?;
 
+        #[allow(clippy::unwrap_used)]
         let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
 
         let content = self
@@ -618,6 +614,7 @@ where
             .get_std_with_path(path)
             .ok_or(FileError::NotFoundCanonicalizedResource)?;
 
+        #[allow(clippy::unwrap_used)]
         let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
 
         let content = self
@@ -994,6 +991,7 @@ pub mod blocking {
                 .get_std_with_path(path)
                 .ok_or(FileError::NotFoundCanonicalizedResource)?;
 
+            #[allow(clippy::unwrap_used)]
             let headers: Vec<(_, HeaderValue)> =
                 vec![("Range".parse().unwrap(), range.into().into())];
 

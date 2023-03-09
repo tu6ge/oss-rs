@@ -399,7 +399,7 @@ impl<'a> EndPoint {
         }
 
         url.push_str(OSS_DOMAIN_MAIN);
-        Url::parse(&url).unwrap()
+        Url::parse(&url).unwrap_or_else(|_| panic!("covert to url failed, endpoint: {}", url))
     }
 }
 
@@ -528,6 +528,7 @@ impl Display for BucketName {
 }
 
 impl Default for BucketName {
+    #![allow(clippy::unwrap_used)]
     fn default() -> BucketName {
         BucketName::new("a").unwrap()
     }
@@ -1157,9 +1158,12 @@ impl<'a> FromIterator<(&'a str, &'a str)> for Query {
     where
         I: IntoIterator<Item = (&'a str, &'a str)>,
     {
-        let inner = iter
-            .into_iter()
-            .map(|(k, v)| (k.parse().unwrap(), v.parse().unwrap()));
+        let inner = iter.into_iter().map(|(k, v)| {
+            (
+                k.parse().expect("invalid QueryKey"),
+                v.parse().expect("invalid QueryValue"),
+            )
+        });
 
         let mut map = Query::default();
         map.inner.extend(inner);
@@ -1182,7 +1186,7 @@ impl<'a> FromIterator<(&'a str, u8)> for Query {
     {
         let inner = iter
             .into_iter()
-            .map(|(k, v)| (k.parse().unwrap(), v.into()));
+            .map(|(k, v)| (k.parse().expect("invalid QueryKey"), v.into()));
 
         let mut map = Query::default();
         map.inner.extend(inner);
@@ -1205,7 +1209,7 @@ impl<'a> FromIterator<(&'a str, u16)> for Query {
     {
         let inner = iter
             .into_iter()
-            .map(|(k, v)| (k.parse().unwrap(), v.into()));
+            .map(|(k, v)| (k.parse().expect("invalid QueryKey"), v.into()));
 
         let mut map = Query::default();
         map.inner.extend(inner);
@@ -1226,7 +1230,9 @@ impl<'a> FromIterator<(QueryKey, &'a str)> for Query {
     where
         I: IntoIterator<Item = (QueryKey, &'a str)>,
     {
-        let inner = iter.into_iter().map(|(k, v)| (k, v.parse().unwrap()));
+        let inner = iter
+            .into_iter()
+            .map(|(k, v)| (k, v.parse().expect("invalid QueryValue")));
 
         let mut map = Query::default();
         map.inner.extend(inner);
