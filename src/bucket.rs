@@ -33,13 +33,13 @@ pub struct ListBuckets<
     Item: RefineBucket<E> = Bucket<PointerSel>,
     E: ItemError = OssError,
 > {
-    prefix: Option<String>,
-    marker: Option<String>,
+    prefix: String,
+    marker: String,
     max_keys: u16,
     is_truncated: bool,
-    next_marker: Option<String>,
-    id: Option<String>,
-    display_name: Option<String>,
+    next_marker: String,
+    id: String,
+    display_name: String,
     /// 存放单个 bucket 类型的 vec 集合
     pub buckets: Vec<Item>,
     client: PointerSel::PointerType,
@@ -74,13 +74,13 @@ impl<Item: RefineBucket<E>, E: ItemError> ListBuckets<ArcPointer, Item, E> {
 impl<Item: RefineBucket<E>, E: ItemError> Default for ListBuckets<ArcPointer, Item, E> {
     fn default() -> Self {
         Self {
-            prefix: None,
-            marker: None,
+            prefix: String::default(),
+            marker: String::default(),
             max_keys: 0,
             is_truncated: false,
-            next_marker: None,
-            id: None,
-            display_name: None,
+            next_marker: String::default(),
+            id: String::default(),
+            display_name: String::default(),
             buckets: Vec::default(),
             client: Arc::default(),
             ph_err: PhantomData,
@@ -287,20 +287,12 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: ItemError> RefineBucketList<Ite
     for ListBuckets<T, Item, E>
 {
     fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
-        self.prefix = if !prefix.is_empty() {
-            Some(prefix.to_owned())
-        } else {
-            None
-        };
+        self.prefix = prefix.to_owned();
         Ok(())
     }
 
     fn set_marker(&mut self, marker: &str) -> Result<(), OssError> {
-        self.marker = if !marker.is_empty() {
-            Some(marker.to_owned())
-        } else {
-            None
-        };
+        self.marker = marker.to_owned();
         Ok(())
     }
 
@@ -315,29 +307,17 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: ItemError> RefineBucketList<Ite
     }
 
     fn set_next_marker(&mut self, marker: &str) -> Result<(), OssError> {
-        self.next_marker = if marker.is_empty() {
-            None
-        } else {
-            Some(marker.to_owned())
-        };
+        self.next_marker = marker.to_owned();
         Ok(())
     }
 
     fn set_id(&mut self, id: &str) -> Result<(), OssError> {
-        self.id = if id.is_empty() {
-            None
-        } else {
-            Some(id.to_owned())
-        };
+        self.id = id.to_owned();
         Ok(())
     }
 
     fn set_display_name(&mut self, display_name: &str) -> Result<(), OssError> {
-        self.display_name = if display_name.is_empty() {
-            None
-        } else {
-            Some(display_name.to_owned())
-        };
+        self.display_name = display_name.to_owned();
         Ok(())
     }
 
