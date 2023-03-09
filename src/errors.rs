@@ -84,11 +84,6 @@ pub enum OssError {
     #[error("{0}")]
     InvalidObjectDir(#[from] InvalidObjectDir),
 
-    /// 用于 Stream
-    #[doc(hidden)]
-    #[error("Without More Content")]
-    WithoutMore,
-
     #[cfg(feature = "decode")]
     #[doc(hidden)]
     #[error("{0}")]

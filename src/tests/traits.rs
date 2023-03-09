@@ -312,7 +312,7 @@ mod object_list_xml {
 
         let object_list = ObjectList::<ArcPointer>::new(
             "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
-            String::from("foo2"),
+            Some("foo2/".parse().unwrap()),
             100,
             200,
             list,

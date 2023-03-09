@@ -88,7 +88,7 @@ use crate::config::{
     BucketBase, CommonPrefixes, InvalidObjectPath, ObjectBase, ObjectDir, ObjectPath,
 };
 use crate::decode::{InnerListError, ItemError, ListError, RefineObject, RefineObjectList};
-use crate::errors::{OssError, OssResult};
+use crate::errors::OssError;
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
@@ -120,7 +120,7 @@ pub struct ObjectList<
     E: ItemError = BuildInItemError,
 > {
     pub(crate) bucket: BucketBase,
-    prefix: String,
+    prefix: Option<ObjectDir<'static>>,
     max_keys: u32,
     key_count: u64,
     /// 存放单个文件对象的 Vec 集合
@@ -151,7 +151,7 @@ impl<Item: RefineObject<E>, E: ItemError> Default for ObjectList<ArcPointer, Ite
     fn default() -> Self {
         Self {
             bucket: BucketBase::default(),
-            prefix: String::default(),
+            prefix: Option::default(),
             max_keys: u32::default(),
             key_count: u64::default(),
             object_list: Vec::new(),
@@ -169,7 +169,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, 
     #[allow(clippy::too_many_arguments)]
     pub fn new<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         bucket: BucketBase,
-        prefix: String,
+        prefix: Option<ObjectDir<'static>>,
         max_keys: u32,
         key_count: u64,
         object_list: Vec<Item>,
@@ -197,7 +197,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, 
     }
 
     /// 返回 prefix 的引用
-    pub fn prefix(&self) -> &String {
+    pub fn prefix(&self) -> &Option<ObjectDir<'static>> {
         &self.prefix
     }
 
@@ -268,9 +268,9 @@ impl<Item: RefineObject<E>, E: ItemError> ObjectList<ArcPointer, Item, E> {
 
 impl ObjectList<ArcPointer> {
     /// 异步获取下一页的数据
-    pub async fn get_next_list(&self) -> OssResult<ObjectList<ArcPointer>> {
+    pub async fn get_next_list(&self) -> Result<ObjectList<ArcPointer>, ExtractListError> {
         match self.next_query() {
-            None => Err(OssError::WithoutMore),
+            None => Err(ExtractListError::WithoutMore),
             Some(query) => {
                 let mut url = self.bucket.to_url();
                 url.set_search_query(&query);
@@ -292,7 +292,13 @@ impl ObjectList<ArcPointer> {
                     object
                 };
 
-                list.decode(&content.text().await?, init_object)?;
+                list.decode(
+                    &content.text().await.map_err(|e| {
+                        let builder_err: BuilderError = e.into();
+                        ExtractListError::from(builder_err)
+                    })?,
+                    init_object,
+                )?;
 
                 list.set_search_query(query);
                 Ok(list)
@@ -331,7 +337,7 @@ impl ObjectList<ArcPointer> {
     /// println!("third_list: {:?}", third_list);
     /// # }
     /// ```
-    pub fn into_stream(self) -> impl Stream<Item = OssResult<Self>> {
+    pub fn into_stream(self) -> impl Stream<Item = Result<Self, ExtractListError>> {
         try_stream! {
             let result = self.get_next_list().await?;
             yield result;
@@ -341,12 +347,12 @@ impl ObjectList<ArcPointer> {
 
 impl<Item: RefineObject<E>, E: ItemError> ObjectList<ArcPointer, Item, E> {
     /// 自定义 Item 时，获取下一页数据
-    pub async fn get_next_base<F>(&self, f: F) -> OssResult<Self>
+    pub async fn get_next_base<F>(&self, f: F) -> Result<Self, ExtractListError>
     where
         F: FnMut() -> Item,
     {
         match self.next_query() {
-            None => Err(OssError::WithoutMore),
+            None => Err(ExtractListError::WithoutMore),
             Some(query) => {
                 let mut list = Self::default();
                 let name = self.bucket.get_name().clone();
@@ -698,7 +704,13 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError> RefineObjectList<Ite
 
     #[inline]
     fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
-        self.prefix = prefix.to_owned();
+        if prefix.is_empty() {
+            self.prefix = None;
+        } else {
+            let mut string = String::from(prefix);
+            string += "/";
+            self.prefix = string.parse().ok()
+        }
         Ok(())
     }
 
@@ -927,6 +939,11 @@ pub enum ExtractListError {
     #[doc(hidden)]
     #[error("{0}")]
     List(#[from] InnerListError),
+
+    /// 用于 Stream
+    #[doc(hidden)]
+    #[error("Without More Content")]
+    WithoutMore,
 }
 
 #[cfg(feature = "blocking")]
@@ -1204,7 +1221,7 @@ mod tests {
 
         let object_list = ObjectList::<ArcPointer>::new(
             "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
-            String::from("foo2"),
+            Some("foo2/".parse().unwrap()),
             100,
             200,
             list,
@@ -1233,8 +1250,7 @@ mod tests {
 
         assert_eq!(bucket.name(), "abc");
 
-        assert!(object_list.prefix() == "foo2");
-        assert_eq!(object_list.prefix(), "foo2");
+        assert!(object_list.prefix() == &Some("foo2/".parse().unwrap()));
 
         assert!(object_list.max_keys() == &100u32);
         assert_eq!(object_list.max_keys().to_owned(), 100u32);
