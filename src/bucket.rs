@@ -88,6 +88,28 @@ impl<Item: RefineBucket<E>, E: ItemError> Default for ListBuckets<ArcPointer, It
     }
 }
 
+impl<Item: RefineBucket<E>, E: ItemError> ListBuckets<ArcPointer, Item, E> {
+    /// 获取 prefix
+    pub fn prefix_string(&self) -> &String {
+        &self.prefix
+    }
+
+    /// 获取 marker
+    pub fn marker_string(&self) -> &String {
+        &self.marker
+    }
+
+    /// 获取 next_marker
+    pub fn next_marker_string(&self) -> &String {
+        &self.next_marker
+    }
+
+    /// 获取 id 和 display_name
+    pub fn info_string(&self) -> (&String, &String) {
+        (&self.id, &self.display_name)
+    }
+}
+
 /// 内置的存放单个 bucket 的类型
 #[derive(Clone)]
 #[non_exhaustive]
@@ -188,6 +210,21 @@ impl<T: PointerFamily> Bucket<T> {
             storage_class,
             client,
         }
+    }
+
+    /// 获取 bucket 创建时间
+    pub fn creation_date(&self) -> &DateTime<Utc> {
+        &self.creation_date
+    }
+
+    /// 获取 storage_class
+    pub fn storage_class(&self) -> &StorageClass {
+        &self.storage_class
+    }
+
+    /// 读取 bucket 基本信息
+    pub fn base(&self) -> &BucketBase {
+        &self.base
     }
 }
 
@@ -349,7 +386,6 @@ impl ClientArc {
     }
 
     /// 从 OSS 获取 bucket 列表，并存入自定义类型中
-    #[inline]
     pub async fn base_bucket_list<List, Item, F, E, ItemErr>(
         &self,
         list: &mut List,
@@ -396,7 +432,6 @@ impl ClientArc {
     }
 
     /// 从 OSS 上获取某一个 bucket 的信息，并存入自定义的类型中
-    #[inline]
     pub async fn base_bucket_info<Bucket, Name: Into<BucketName>, E>(
         &self,
         name: Name,

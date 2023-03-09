@@ -8,7 +8,8 @@ async fn main() {
         EndPoint::CnShanghai,
         BucketName::new("yyyyyy").unwrap(),
         "CAIS4gF1q6Ft5Bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".to_string(),
-    ).unwrap();
+    )
+    .unwrap();
 
     let builder = client.get_bucket_list().await.unwrap();
     println!("{:?}", builder);
