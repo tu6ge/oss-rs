@@ -43,9 +43,9 @@ impl From<String> for KeyId {
     }
 }
 
-impl From<&'static str> for KeyId {
-    fn from(key_id: &'static str) -> Self {
-        Self::from_static(key_id)
+impl<'a> From<&'a str> for KeyId {
+    fn from(key_id: &'a str) -> Self {
+        Self::new(key_id.to_owned())
     }
 }
 
@@ -100,9 +100,9 @@ impl From<String> for KeySecret {
     }
 }
 
-impl From<&'static str> for KeySecret {
-    fn from(secret: &'static str) -> Self {
-        Self::from_static(secret)
+impl<'a> From<&'a str> for KeySecret {
+    fn from(secret: &'a str) -> Self {
+        Self::new(secret.to_owned())
     }
 }
 
@@ -754,7 +754,7 @@ impl From<String> for ContentMd5 {
 
 impl<'a> From<&'a str> for ContentMd5 {
     fn from(value: &'a str) -> Self {
-        Self(Cow::Owned(value.to_owned()))
+        Self::new(value.to_owned())
     }
 }
 
@@ -847,9 +847,9 @@ impl From<String> for Date {
         Self(Cow::Owned(s))
     }
 }
-impl From<&'static str> for Date {
-    fn from(date: &'static str) -> Self {
-        Self::from_static(date)
+impl<'a> From<&'a str> for Date {
+    fn from(date: &'a str) -> Self {
+        Self::new(date.to_owned())
     }
 }
 
@@ -1415,9 +1415,9 @@ impl From<String> for QueryKey {
         Self::new(s)
     }
 }
-impl From<&'static str> for QueryKey {
-    fn from(date: &'static str) -> Self {
-        Self::from_static(date)
+impl<'a> From<&'a str> for QueryKey {
+    fn from(date: &'a str) -> Self {
+        Self::new(date.to_owned())
     }
 }
 
@@ -1557,9 +1557,9 @@ impl From<String> for QueryValue {
         Self(Cow::Owned(s))
     }
 }
-impl From<&'static str> for QueryValue {
-    fn from(date: &'static str) -> Self {
-        Self::from_static(date)
+impl<'a> From<&'a str> for QueryValue {
+    fn from(date: &'a str) -> Self {
+        Self::new(date.to_owned())
     }
 }
 
