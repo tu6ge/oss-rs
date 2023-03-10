@@ -1,3 +1,17 @@
+#  (2023-03-10)
+
+
+
+## [0.11.1](https://github.com/tu6ge/oss-rs/compare/0.11.0...0.11.1) (2023-03-10)
+
+
+### Features
+
+* **types:** Custom endpoint deny `oss` prefix ([4aa7bbc](https://github.com/tu6ge/oss-rs/commit/4aa7bbc6d3e4b18a59d87d87a8096b9905cb66ad))
+* **types:** From<&'static str> change to From<&'a str> ([848f149](https://github.com/tu6ge/oss-rs/commit/848f1499b00daa4bfaf66bf5e453d56fd9f2e028))
+
+
+
 #  (2023-03-09)
 
 

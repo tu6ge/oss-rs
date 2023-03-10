@@ -25,7 +25,7 @@ rustup run nightly cargo bench
 ## 生成 Changelog
 
 ```bash
-conventional-changelog -p angular -i Changelog.md -s
+conventional-changelog -p angular -i Changelog.md -s -r=2
 ```
 
 ## 贡献代码
