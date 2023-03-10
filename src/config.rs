@@ -125,9 +125,18 @@ impl FromStr for BucketBase {
     /// ```
     /// # use aliyun_oss_client::config::BucketBase;
     /// # use aliyun_oss_client::types::EndPoint;
+    /// # use std::borrow::Cow;
     /// let bucket: BucketBase = "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap();
     /// assert_eq!(bucket.name(), "abc");
     /// assert_eq!(bucket.endpoint(), EndPoint::CnShanghai);
+    ///
+    /// let bucket: BucketBase = "abc.oss-cn-jinan.aliyuncs.com".parse().unwrap();
+    /// assert_eq!(bucket.name(), "abc");
+    /// assert_eq!(bucket.endpoint(), EndPoint::Other(Cow::Borrowed("cn-jinan")));
+    ///
+    /// let bucket: BucketBase = "abc.oss-cn-jinan".parse().unwrap();
+    /// assert_eq!(bucket.name(), "abc");
+    /// assert_eq!(bucket.endpoint(), EndPoint::Other(Cow::Borrowed("cn-jinan")));
     ///
     /// assert!("abc*#!".parse::<BucketBase>().is_err());
     /// assert!("abc".parse::<BucketBase>().is_err());
@@ -147,10 +156,14 @@ impl FromStr for BucketBase {
         }
 
         let (bucket, endpoint) = domain.split_once('.').ok_or(InvalidBucketBase::Tacitly)?;
+        let endpoint = match endpoint.find('.') {
+            Some(s) => &endpoint[0..s],
+            None => endpoint,
+        };
 
         Ok(Self {
             name: BucketName::from_static(bucket)?,
-            endpoint: EndPoint::new(endpoint)?,
+            endpoint: EndPoint::new(endpoint.trim_start_matches("oss-"))?,
         })
     }
 }

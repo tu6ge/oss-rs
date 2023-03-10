@@ -323,6 +323,8 @@ impl<'a> EndPoint {
     /// assert!(EndPoint::new("-abc").is_err());
     /// assert!(EndPoint::new("abc-def234ab").is_ok());
     /// assert!(EndPoint::new("abc-def*#$%^ab").is_err());
+    /// assert!(EndPoint::new("cn-jinan").is_ok());
+    /// assert!(EndPoint::new("oss-cn-jinan").is_err());
     /// ```
     pub fn new(url: &'a str) -> Result<Self, InvalidEndPoint> {
         use EndPoint::*;
@@ -355,6 +357,11 @@ impl<'a> EndPoint {
             if url.starts_with('-') || url.ends_with('-') {
                 return Err(InvalidEndPoint);
             }
+
+            if url.starts_with("oss") {
+                return Err(InvalidEndPoint);
+            }
+
             fn valid_character(c: char) -> bool {
                 match c {
                     _ if c.is_ascii_lowercase() => true,
@@ -462,7 +469,10 @@ impl Error for InvalidEndPoint {}
 #[cfg(feature = "core")]
 impl fmt::Display for InvalidEndPoint {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "endpoint must like with https://xxx.aliyuncs.com")
+        write!(
+            f,
+            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
+        )
     }
 }
 
