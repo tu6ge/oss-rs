@@ -315,6 +315,8 @@ pub use oss_derive::{DecodeItemError, DecodeListError};
 /// 异常处理模块
 #[cfg(feature = "core")]
 pub mod errors;
+#[cfg(feature = "core")]
+pub use errors::{OssError as Error, OssResult as Result};
 
 /// 临时访问权限管理服务
 #[cfg(feature = "sts")]
