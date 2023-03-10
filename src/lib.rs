@@ -7,7 +7,7 @@
 
 ```toml
 [dependencies]
-aliyun-oss-client = "^0.8"
+aliyun-oss-client = "^0.11"
 ```
 
 2. 初始化配置信息
