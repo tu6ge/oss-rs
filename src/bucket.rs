@@ -162,6 +162,24 @@ impl Default for Bucket<ArcPointer> {
     }
 }
 
+impl<T: PointerFamily> AsRef<BucketBase> for Bucket<T> {
+    fn as_ref(&self) -> &BucketBase {
+        &self.base
+    }
+}
+
+impl<T: PointerFamily> AsRef<BucketName> for Bucket<T> {
+    fn as_ref(&self) -> &BucketName {
+        self.base.as_ref()
+    }
+}
+
+impl<T: PointerFamily> AsRef<EndPoint> for Bucket<T> {
+    fn as_ref(&self) -> &EndPoint {
+        self.base.as_ref()
+    }
+}
+
 impl<T: PointerFamily> RefineBucket<OssError> for Bucket<T> {
     fn set_name(&mut self, name: &str) -> Result<(), OssError> {
         self.base.set_name(name.parse::<BucketName>()?);

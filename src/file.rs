@@ -212,7 +212,7 @@ mod std_path_impl {
         bucket::Bucket,
         builder::ArcPointer,
         client::ClientArc,
-        config::{get_url_resource, ObjectBase},
+        config::{get_url_resource2 as get_url_resource, ObjectBase},
         decode::{ItemError, RefineObject},
         object::ObjectList,
         types::CanonicalizedResource,
@@ -220,7 +220,6 @@ mod std_path_impl {
     };
     use oss_derive::oss_gen_rc;
     use reqwest::Url;
-    use std::sync::Arc;
 
     /// # 用于在 Client 上对文件进行操作
     ///
@@ -231,11 +230,7 @@ mod std_path_impl {
     impl GetStdWithPath<String> for ClientArc {
         fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
             let object_path = path.try_into().ok()?;
-            Some(get_url_resource(
-                self.get_endpoint(),
-                self.get_bucket_name(),
-                &object_path,
-            ))
+            Some(get_url_resource(self, self, &object_path))
         }
     }
 
@@ -247,12 +242,8 @@ mod std_path_impl {
     #[oss_gen_rc]
     impl GetStdWithPath<&str> for ClientArc {
         fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
-            let object_path = path.to_owned().try_into().ok()?;
-            Some(get_url_resource(
-                self.get_endpoint(),
-                self.get_bucket_name(),
-                &object_path,
-            ))
+            let object_path = path.try_into().ok()?;
+            Some(get_url_resource(self, self, &object_path))
         }
     }
 
@@ -264,11 +255,7 @@ mod std_path_impl {
     #[oss_gen_rc]
     impl GetStdWithPath<ObjectPath> for ClientArc {
         fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            Some(get_url_resource(
-                self.get_endpoint(),
-                self.get_bucket_name(),
-                &path,
-            ))
+            Some(get_url_resource(self, self, &path))
         }
     }
 
@@ -280,11 +267,7 @@ mod std_path_impl {
     #[oss_gen_rc]
     impl GetStdWithPath<&ObjectPath> for ClientArc {
         fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            Some(get_url_resource(
-                self.get_endpoint(),
-                self.get_bucket_name(),
-                path,
-            ))
+            Some(get_url_resource(self, self, path))
         }
     }
 
@@ -329,7 +312,7 @@ mod std_path_impl {
     /// 文件路径可以是 `&str` 类型
     impl GetStdWithPath<&str> for Bucket {
         fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
-            let path = path.to_owned().try_into().ok()?;
+            let path = path.try_into().ok()?;
             Some(self.base.get_url_resource_with_path(&path))
         }
     }
@@ -399,12 +382,10 @@ mod std_path_impl {
     impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<String>
         for ObjectList<ArcPointer, Item, E>
     {
+        #[inline]
         fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
-            let object_base = ObjectBase::<ArcPointer>::new2(
-                Arc::new(self.bucket.to_owned()),
-                path.try_into().ok()?,
-            );
-            Some(object_base.get_url_resource([]))
+            let object_path = path.try_into().ok()?;
+            Some(get_url_resource(self, self, &object_path))
         }
     }
 
@@ -417,12 +398,10 @@ mod std_path_impl {
     impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<&str>
         for ObjectList<ArcPointer, Item, E>
     {
+        #[inline]
         fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
-            let object_base = ObjectBase::<ArcPointer>::new2(
-                Arc::new(self.bucket.to_owned()),
-                path.to_owned().try_into().ok()?,
-            );
-            Some(object_base.get_url_resource([]))
+            let object_path = path.try_into().ok()?;
+            Some(get_url_resource(self, self, &object_path))
         }
     }
 
@@ -435,10 +414,9 @@ mod std_path_impl {
     impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<ObjectPath>
         for ObjectList<ArcPointer, Item, E>
     {
+        #[inline]
         fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            let object_base =
-                ObjectBase::<ArcPointer>::new2(Arc::new(self.bucket.to_owned()), path);
-            Some(object_base.get_url_resource([]))
+            Some(get_url_resource(self, self, &path))
         }
     }
 
@@ -451,10 +429,9 @@ mod std_path_impl {
     impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync>
         GetStdWithPath<&ObjectPath> for ObjectList<ArcPointer, Item, E>
     {
+        #[inline]
         fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            let object_base =
-                ObjectBase::<ArcPointer>::new2(Arc::new(self.bucket.to_owned()), path.to_owned());
-            Some(object_base.get_url_resource([]))
+            Some(get_url_resource(self, self, path))
         }
     }
 

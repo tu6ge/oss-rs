@@ -35,6 +35,23 @@ where
     timeout: Option<Duration>,
 }
 
+impl<M: Default + Clone> AsMut<Option<Duration>> for Client<M> {
+    fn as_mut(&mut self) -> &mut Option<Duration> {
+        &mut self.timeout
+    }
+}
+
+impl<M: Default + Clone> AsRef<EndPoint> for Client<M> {
+    fn as_ref(&self) -> &EndPoint {
+        &self.endpoint
+    }
+}
+impl<M: Default + Clone> AsRef<BucketName> for Client<M> {
+    fn as_ref(&self) -> &BucketName {
+        &self.bucket
+    }
+}
+
 impl<M: Default + Clone> Client<M> {
     /// 使用基本配置信息初始化 Client
     pub fn new(

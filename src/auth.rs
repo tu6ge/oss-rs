@@ -390,9 +390,7 @@ impl<'a> SignString<'a> {
 
     // 转化成签名
     #[inline]
-    pub(crate) fn to_sign<'b>(
-        &'b self,
-    ) -> Result<Sign<'b>, hmac::digest::crypto_common::InvalidLength> {
+    pub(crate) fn to_sign(&self) -> Result<Sign, hmac::digest::crypto_common::InvalidLength> {
         use base64::encode;
         use hmac::{Hmac, Mac};
         use sha1::Sha1;

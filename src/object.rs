@@ -95,7 +95,7 @@ use crate::file::AlignBuilder;
 use crate::types::{
     CanonicalizedResource, Query, QueryKey, QueryValue, UrlQuery, CONTINUATION_TOKEN,
 };
-use crate::{BucketName, Client};
+use crate::{BucketName, Client, EndPoint};
 use async_stream::try_stream;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use futures_core::stream::Stream;
@@ -161,6 +161,38 @@ impl<Item: RefineObject<E>, E: ItemError> Default for ObjectList<ArcPointer, Ite
             search_query: Query::default(),
             ph_err: PhantomData,
         }
+    }
+}
+
+impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> AsMut<Query>
+    for ObjectList<T, Item, E>
+{
+    fn as_mut(&mut self) -> &mut Query {
+        &mut self.search_query
+    }
+}
+
+impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> AsRef<BucketBase>
+    for ObjectList<T, Item, E>
+{
+    fn as_ref(&self) -> &BucketBase {
+        &self.bucket
+    }
+}
+
+impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> AsRef<BucketName>
+    for ObjectList<T, Item, E>
+{
+    fn as_ref(&self) -> &BucketName {
+        self.bucket.as_ref()
+    }
+}
+
+impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> AsRef<EndPoint>
+    for ObjectList<T, Item, E>
+{
+    fn as_ref(&self) -> &EndPoint {
+        self.bucket.as_ref()
     }
 }
 
@@ -453,6 +485,24 @@ impl<T: PointerFamily> Default for Object<T> {
             size: 0,
             storage_class: StorageClass::default(),
         }
+    }
+}
+
+impl<T: PointerFamily> AsRef<ObjectPath> for Object<T> {
+    fn as_ref(&self) -> &ObjectPath {
+        self.base.as_ref()
+    }
+}
+
+impl<T: PointerFamily> AsRef<DateTime<Utc>> for Object<T> {
+    fn as_ref(&self) -> &DateTime<Utc> {
+        &self.last_modified
+    }
+}
+
+impl<T: PointerFamily> AsRef<StorageClass> for Object<T> {
+    fn as_ref(&self) -> &StorageClass {
+        &self.storage_class
     }
 }
 

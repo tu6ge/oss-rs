@@ -36,6 +36,30 @@ pub struct Config {
     bucket: BucketName,
 }
 
+impl AsRef<KeyId> for Config {
+    fn as_ref(&self) -> &KeyId {
+        &self.key
+    }
+}
+
+impl AsRef<KeySecret> for Config {
+    fn as_ref(&self) -> &KeySecret {
+        &self.secret
+    }
+}
+
+impl AsRef<EndPoint> for Config {
+    fn as_ref(&self) -> &EndPoint {
+        &self.endpoint
+    }
+}
+
+impl AsRef<BucketName> for Config {
+    fn as_ref(&self) -> &BucketName {
+        &self.bucket
+    }
+}
+
 impl Config {
     /// 初始化 OSS 配置信息
     pub fn new<ID, S, E, B>(key: ID, secret: S, endpoint: E, bucket: B) -> Config
@@ -114,6 +138,30 @@ pub enum InvalidConfig {
 pub struct BucketBase {
     endpoint: EndPoint,
     name: BucketName,
+}
+
+impl AsMut<EndPoint> for BucketBase {
+    fn as_mut(&mut self) -> &mut EndPoint {
+        &mut self.endpoint
+    }
+}
+
+impl AsMut<BucketName> for BucketBase {
+    fn as_mut(&mut self) -> &mut BucketName {
+        &mut self.name
+    }
+}
+
+impl AsRef<EndPoint> for BucketBase {
+    fn as_ref(&self) -> &EndPoint {
+        &self.endpoint
+    }
+}
+
+impl AsRef<BucketName> for BucketBase {
+    fn as_ref(&self) -> &BucketName {
+        &self.name
+    }
 }
 
 const HTTPS: &str = "https://";
@@ -316,7 +364,10 @@ impl BucketBase {
     }
 
     /// 根据查询参数，获取当前 bucket 的接口请求参数（ url 和 CanonicalizedResource）
-    pub fn get_url_resource_with_path(&self, path: &ObjectPath) -> (Url, CanonicalizedResource) {
+    pub fn get_url_resource_with_path(
+        &self,
+        path: &ObjectPathInner,
+    ) -> (Url, CanonicalizedResource) {
         let mut url = self.to_url();
         url.set_object_path(path);
 
@@ -347,7 +398,7 @@ impl BuildFromBucket for Url {
 pub fn get_url_resource(
     endpoint: &EndPoint,
     bucket: &BucketName,
-    path: &ObjectPath,
+    path: &ObjectPathInner,
 ) -> (Url, CanonicalizedResource) {
     let mut url = Url::from_bucket(endpoint, bucket);
     url.set_object_path(path);
@@ -355,6 +406,15 @@ pub fn get_url_resource(
     let resource = CanonicalizedResource::from_object((bucket.as_ref(), path.as_ref()), []);
 
     (url, resource)
+}
+
+/// 根据 endpoint， bucket， path 获取接口信息
+pub fn get_url_resource2<E: AsRef<EndPoint>, B: AsRef<BucketName>>(
+    endpoint: E,
+    bucket: B,
+    path: &ObjectPathInner,
+) -> (Url, CanonicalizedResource) {
+    get_url_resource(endpoint.as_ref(), bucket.as_ref(), path)
 }
 
 /// Bucket 元信息的错误集
@@ -405,6 +465,12 @@ impl<T: PointerFamily> Default for ObjectBase<T> {
             bucket: T::Bucket::default(),
             path: ObjectPath::default(),
         }
+    }
+}
+
+impl<T: PointerFamily> AsRef<ObjectPath> for ObjectBase<T> {
+    fn as_ref(&self) -> &ObjectPath {
+        &self.path
     }
 }
 
@@ -814,11 +880,11 @@ impl Display for InvalidObjectPath {
 /// 将 object 的路径拼接到 Url 上去
 pub trait UrlObjectPath {
     /// 为 Url 添加方法
-    fn set_object_path(&mut self, path: &ObjectPath);
+    fn set_object_path(&mut self, path: &ObjectPathInner);
 }
 
 impl UrlObjectPath for Url {
-    fn set_object_path(&mut self, path: &ObjectPath) {
+    fn set_object_path(&mut self, path: &ObjectPathInner) {
         self.set_path(path.as_ref());
     }
 }

@@ -11,9 +11,6 @@ use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
 #[cfg(feature = "core")]
 use reqwest::Url;
 
-#[cfg(feature = "core")]
-use crate::config::BucketBase;
-
 /// 阿里云 OSS 的签名 key
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct InnerKeyId<'a>(Cow<'a, str>);
@@ -955,16 +952,16 @@ impl<'a> InnerCanonicalizedResource<'a> {
 
     /// 获取 bucket 的签名参数
     #[cfg(feature = "core")]
-    pub fn from_bucket(bucket: &BucketBase, query: Option<&str>) -> Self {
+    pub fn from_bucket<B: AsRef<BucketName>>(bucket: B, query: Option<&str>) -> Self {
         match query {
             Some(q) => {
                 for k in QUERY_KEYWORD.iter() {
                     if *k == q {
-                        return Self::new(format!("/{}/?{}", bucket.name(), q));
+                        return Self::new(format!("/{}/?{}", bucket.as_ref().as_ref(), q));
                     }
                 }
 
-                Self::new(format!("/{}/", bucket.name()))
+                Self::new(format!("/{}/", bucket.as_ref().as_ref()))
             }
             None => Self::default(),
         }
@@ -975,28 +972,37 @@ impl<'a> InnerCanonicalizedResource<'a> {
     ///
     /// 如果查询条件中有翻页的话，则忽略掉其他字段
     #[cfg(feature = "core")]
-    pub fn from_bucket_query(bucket: &BucketBase, query: &Query) -> Self {
+    pub fn from_bucket_query<B: AsRef<BucketName>>(bucket: B, query: &Query) -> Self {
         match query.get(CONTINUATION_TOKEN) {
             Some(v) => Self::new(format!(
                 "/{}/?continuation-token={}",
-                bucket.name(),
+                bucket.as_ref().as_ref(),
                 v.as_ref()
             )),
-            None => Self::new(format!("/{}/", bucket.name())),
+            None => Self::new(format!("/{}/", bucket.as_ref().as_ref())),
         }
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
     #[cfg(feature = "core")]
-    pub(crate) fn from_object<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
-        (bucket, path): (&str, &str),
+    pub(crate) fn from_object<
+        Q: IntoIterator<Item = (QueryKey, QueryValue)>,
+        B: AsRef<str>,
+        P: AsRef<str>,
+    >(
+        (bucket, path): (B, P),
         query: Q,
     ) -> Self {
         let query = Query::from_iter(query);
         if query.is_empty() {
-            Self::new(format!("/{}/{}", bucket, path))
+            Self::new(format!("/{}/{}", bucket.as_ref(), path.as_ref()))
         } else {
-            Self::new(format!("/{}/{}?{}", bucket, path, query.to_url_query()))
+            Self::new(format!(
+                "/{}/{}?{}",
+                bucket.as_ref(),
+                path.as_ref(),
+                query.to_url_query()
+            ))
         }
     }
 }
