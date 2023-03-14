@@ -16,21 +16,24 @@ use crate::config::BucketBase;
 
 /// 阿里云 OSS 的签名 key
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct KeyId(Cow<'static, str>);
+pub struct InnerKeyId<'a>(Cow<'a, str>);
 
-impl AsRef<str> for KeyId {
+/// 静态作用域的 InnerKeyId
+pub type KeyId = InnerKeyId<'static>;
+
+impl AsRef<str> for InnerKeyId<'_> {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
 
-impl Display for KeyId {
+impl Display for InnerKeyId<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl TryInto<HeaderValue> for KeyId {
+impl TryInto<HeaderValue> for InnerKeyId<'_> {
     type Error = InvalidHeaderValue;
     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
         HeaderValue::from_str(self.as_ref())
@@ -39,19 +42,19 @@ impl TryInto<HeaderValue> for KeyId {
 
 impl From<String> for KeyId {
     fn from(s: String) -> KeyId {
-        KeyId(Cow::Owned(s))
+        Self(Cow::Owned(s))
     }
 }
 
-impl<'a> From<&'a str> for KeyId {
+impl<'a: 'b, 'b> From<&'a str> for InnerKeyId<'b> {
     fn from(key_id: &'a str) -> Self {
-        Self::new(key_id.to_owned())
+        Self(Cow::Borrowed(key_id))
     }
 }
 
-impl KeyId {
+impl<'a> InnerKeyId<'a> {
     /// Creates a new `KeyId` from the given string.
-    pub fn new(key_id: impl Into<Cow<'static, str>>) -> Self {
+    pub fn new(key_id: impl Into<Cow<'a, str>>) -> Self {
         Self(key_id.into())
     }
 
@@ -65,21 +68,24 @@ impl KeyId {
 
 /// 阿里云 OSS 的签名 secret
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct KeySecret(Cow<'static, str>);
+pub struct InnerKeySecret<'a>(Cow<'a, str>);
 
-impl AsRef<str> for KeySecret {
+/// 静态作用域的 InnerKeySecret
+pub type KeySecret = InnerKeySecret<'static>;
+
+impl AsRef<str> for InnerKeySecret<'_> {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
 
-impl Display for KeySecret {
+impl Display for InnerKeySecret<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl TryInto<HeaderValue> for KeySecret {
+impl TryInto<HeaderValue> for InnerKeySecret<'_> {
     type Error = InvalidHeaderValue;
 
     /// ```
@@ -100,15 +106,15 @@ impl From<String> for KeySecret {
     }
 }
 
-impl<'a> From<&'a str> for KeySecret {
+impl<'a: 'b, 'b> From<&'a str> for InnerKeySecret<'b> {
     fn from(secret: &'a str) -> Self {
-        Self::new(secret.to_owned())
+        Self(Cow::Borrowed(secret))
     }
 }
 
-impl KeySecret {
+impl<'a> InnerKeySecret<'a> {
     /// Creates a new `KeySecret` from the given string.
-    pub fn new(secret: impl Into<Cow<'static, str>>) -> Self {
+    pub fn new(secret: impl Into<Cow<'a, str>>) -> Self {
         Self(secret.into())
     }
 
@@ -719,15 +725,17 @@ impl fmt::Display for InvalidBucketName {
 
 /// aliyun OSS 的配置 ContentMd5
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct ContentMd5(Cow<'static, str>);
+pub struct InnerContentMd5<'a>(Cow<'a, str>);
+/// 静态作用域的 InnerContentMd5
+pub type ContentMd5 = InnerContentMd5<'static>;
 
-impl AsRef<str> for ContentMd5 {
+impl AsRef<str> for InnerContentMd5<'_> {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
 
-impl Display for ContentMd5 {
+impl Display for InnerContentMd5<'_> {
     /// ```
     /// # use aliyun_oss_client::types::ContentMd5;
     /// let md5 = ContentMd5::new("abc");
@@ -738,14 +746,14 @@ impl Display for ContentMd5 {
     }
 }
 
-impl TryInto<HeaderValue> for ContentMd5 {
+impl TryInto<HeaderValue> for InnerContentMd5<'_> {
     type Error = InvalidHeaderValue;
     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
         HeaderValue::from_str(self.as_ref())
     }
 }
 
-impl TryInto<HeaderValue> for &ContentMd5 {
+impl TryInto<HeaderValue> for &InnerContentMd5<'_> {
     type Error = InvalidHeaderValue;
     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
         HeaderValue::from_str(self.as_ref())
@@ -762,15 +770,15 @@ impl From<String> for ContentMd5 {
     }
 }
 
-impl<'a> From<&'a str> for ContentMd5 {
+impl<'a: 'b, 'b> From<&'a str> for InnerContentMd5<'b> {
     fn from(value: &'a str) -> Self {
-        Self::new(value.to_owned())
+        Self(Cow::Borrowed(value))
     }
 }
 
-impl ContentMd5 {
+impl<'a> InnerContentMd5<'a> {
     /// Creates a new `ContentMd5` from the given string.
-    pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
+    pub fn new(val: impl Into<Cow<'a, str>>) -> Self {
         Self(val.into())
     }
 
@@ -832,34 +840,36 @@ impl ContentType {
 
 /// 用于计算签名的 Date
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct Date(Cow<'static, str>);
+pub struct InnerDate<'a>(Cow<'a, str>);
+/// 静态作用域的 InnerDate
+pub type Date = InnerDate<'static>;
 
-impl AsRef<str> for Date {
+impl AsRef<str> for InnerDate<'_> {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
 
-impl Display for Date {
+impl Display for InnerDate<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl TryInto<HeaderValue> for Date {
+impl TryInto<HeaderValue> for InnerDate<'_> {
     type Error = InvalidHeaderValue;
     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
         HeaderValue::from_str(self.as_ref())
     }
 }
-impl From<String> for Date {
+impl From<String> for InnerDate<'_> {
     fn from(s: String) -> Self {
         Self(Cow::Owned(s))
     }
 }
-impl<'a> From<&'a str> for Date {
+impl<'a: 'b, 'b> From<&'a str> for InnerDate<'b> {
     fn from(date: &'a str) -> Self {
-        Self::new(date.to_owned())
+        Self::new(date)
     }
 }
 
@@ -869,9 +879,9 @@ impl From<DateTime<Utc>> for Date {
     }
 }
 
-impl Date {
+impl<'a> InnerDate<'a> {
     /// Creates a new `Date` from the given string.
-    pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
+    pub fn new(val: impl Into<Cow<'a, str>>) -> Self {
         Self(val.into())
     }
 
@@ -885,21 +895,23 @@ impl Date {
 
 /// 计算方式，参考 [aliyun 文档](https://help.aliyun.com/document_detail/31951.htm)
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CanonicalizedResource(Cow<'static, str>);
+pub struct InnerCanonicalizedResource<'a>(Cow<'a, str>);
+/// 静态作用域的 InnerCanonicalizedResource
+pub type CanonicalizedResource = InnerCanonicalizedResource<'static>;
 
-impl AsRef<str> for CanonicalizedResource {
+impl AsRef<str> for InnerCanonicalizedResource<'_> {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
 
-impl Display for CanonicalizedResource {
+impl Display for InnerCanonicalizedResource<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl TryInto<HeaderValue> for CanonicalizedResource {
+impl TryInto<HeaderValue> for InnerCanonicalizedResource<'_> {
     type Error = InvalidHeaderValue;
     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
         HeaderValue::from_str(self.as_ref())
@@ -911,15 +923,15 @@ impl From<String> for CanonicalizedResource {
     }
 }
 
-impl<'a> From<&'a str> for CanonicalizedResource {
+impl<'a: 'b, 'b> From<&'a str> for InnerCanonicalizedResource<'b> {
     fn from(value: &'a str) -> Self {
-        Self(Cow::Owned(value.to_owned()))
+        Self(Cow::Borrowed(value))
     }
 }
 
-impl Default for CanonicalizedResource {
+impl Default for InnerCanonicalizedResource<'_> {
     fn default() -> Self {
-        Self::new("/")
+        InnerCanonicalizedResource(Cow::Owned("/".to_owned()))
     }
 }
 
@@ -930,9 +942,9 @@ pub(crate) const BUCKET_INFO: &str = "bucketInfo";
 #[cfg(feature = "core")]
 const QUERY_KEYWORD: [&str; 2] = ["acl", BUCKET_INFO];
 
-impl CanonicalizedResource {
+impl<'a> InnerCanonicalizedResource<'a> {
     /// Creates a new `CanonicalizedResource` from the given string.
-    pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
+    pub fn new(val: impl Into<Cow<'a, str>>) -> Self {
         Self(val.into())
     }
 
@@ -948,11 +960,11 @@ impl CanonicalizedResource {
             Some(q) => {
                 for k in QUERY_KEYWORD.iter() {
                     if *k == q {
-                        return Self::from(format!("/{}/?{}", bucket.name(), q));
+                        return Self::new(format!("/{}/?{}", bucket.name(), q));
                     }
                 }
 
-                Self::from(format!("/{}/", bucket.name()))
+                Self::new(format!("/{}/", bucket.name()))
             }
             None => Self::default(),
         }
@@ -965,12 +977,12 @@ impl CanonicalizedResource {
     #[cfg(feature = "core")]
     pub fn from_bucket_query(bucket: &BucketBase, query: &Query) -> Self {
         match query.get(CONTINUATION_TOKEN) {
-            Some(v) => Self::from(format!(
+            Some(v) => Self::new(format!(
                 "/{}/?continuation-token={}",
                 bucket.name(),
                 v.as_ref()
             )),
-            None => Self::from(format!("/{}/", bucket.name())),
+            None => Self::new(format!("/{}/", bucket.name())),
         }
     }
 
@@ -982,14 +994,14 @@ impl CanonicalizedResource {
     ) -> Self {
         let query = Query::from_iter(query);
         if query.is_empty() {
-            Self::from(format!("/{}/{}", bucket, path))
+            Self::new(format!("/{}/{}", bucket, path))
         } else {
-            Self::from(format!("/{}/{}?{}", bucket, path, query.to_url_query()))
+            Self::new(format!("/{}/{}?{}", bucket, path, query.to_url_query()))
         }
     }
 }
 
-impl PartialEq<&str> for CanonicalizedResource {
+impl PartialEq<&str> for InnerCanonicalizedResource<'_> {
     /// # 相等比较
     /// ```
     /// # use aliyun_oss_client::types::CanonicalizedResource;
@@ -1002,7 +1014,7 @@ impl PartialEq<&str> for CanonicalizedResource {
     }
 }
 
-impl PartialEq<CanonicalizedResource> for &str {
+impl PartialEq<InnerCanonicalizedResource<'_>> for &str {
     /// # 相等比较
     /// ```
     /// # use aliyun_oss_client::types::CanonicalizedResource;
@@ -1010,7 +1022,7 @@ impl PartialEq<CanonicalizedResource> for &str {
     /// assert!("abc" == res);
     /// ```
     #[inline]
-    fn eq(&self, other: &CanonicalizedResource) -> bool {
+    fn eq(&self, other: &InnerCanonicalizedResource<'_>) -> bool {
         self == &other.0
     }
 }

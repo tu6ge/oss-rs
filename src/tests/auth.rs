@@ -465,7 +465,7 @@ mod sign_string_struct {
     fn test_to_sign() {
         let key = KeyId::from("foo1");
         let secret = KeySecret::from("foo2");
-        let sign_string = SignString::new("bar", &key, &secret);
+        let sign_string = SignString::new("bar", key, secret);
 
         let res = sign_string.to_sign();
         assert!(res.is_ok());
@@ -478,7 +478,7 @@ mod sign_string_struct {
 #[test]
 fn test_sign_to_headervalue() {
     let key = KeyId::from("bar");
-    let sign = Sign::new("foo", &key);
+    let sign = Sign::new("foo", key);
 
     let val: HeaderValue = sign.try_into().unwrap();
     assert_eq!(val.to_str().unwrap(), "OSS bar:foo");

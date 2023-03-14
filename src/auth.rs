@@ -21,7 +21,10 @@
 //!     .headers(auth_builder.get_headers().unwrap());
 //! ```
 
-use crate::types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret};
+use crate::types::{
+    CanonicalizedResource, ContentMd5, ContentType, Date, InnerCanonicalizedResource,
+    InnerContentMd5, InnerDate, InnerKeyId, InnerKeySecret, KeyId, KeySecret,
+};
 #[cfg(test)]
 use http::header::AsHeaderName;
 use http::{
@@ -35,23 +38,25 @@ use std::fmt::Display;
 
 /// 计算 OSS 签名的数据
 #[derive(Default, Clone)]
-pub struct Auth {
-    access_key_id: KeyId,
-    access_key_secret: KeySecret,
+pub struct InnerAuth<'a> {
+    access_key_id: InnerKeyId<'a>,
+    access_key_secret: InnerKeySecret<'a>,
     method: Method,
-    content_md5: Option<ContentMd5>,
-    date: Date,
-    canonicalized_resource: CanonicalizedResource,
+    content_md5: Option<InnerContentMd5<'a>>,
+    date: InnerDate<'a>,
+    canonicalized_resource: InnerCanonicalizedResource<'a>,
     headers: HeaderMap,
 }
+/// 静态作用域的 InnerAuth
+pub type Auth = InnerAuth<'static>;
 
-impl Auth {
-    fn set_key(&mut self, access_key_id: KeyId) {
+impl<'a> InnerAuth<'a> {
+    fn set_key(&mut self, access_key_id: InnerKeyId<'a>) {
         self.access_key_id = access_key_id;
     }
 
     #[cfg(test)]
-    pub(crate) fn get_key(self) -> KeyId {
+    pub(crate) fn get_key(self) -> InnerKeyId<'a> {
         self.access_key_id
     }
 
@@ -116,7 +121,7 @@ pub(crate) trait AuthToHeaderMap {
     fn get_header_resource(&self) -> Result<HeaderValue, InvalidHeaderValue>;
 }
 
-impl AuthToHeaderMap for Auth {
+impl AuthToHeaderMap for InnerAuth<'_> {
     fn get_original_header(&self) -> HeaderMap {
         self.headers.clone()
     }
@@ -146,7 +151,7 @@ pub(crate) trait AuthToOssHeader {
     fn to_oss_header(&self) -> OssHeader;
 }
 
-impl AuthToOssHeader for Auth {
+impl AuthToOssHeader for InnerAuth<'_> {
     /// 转化成 OssHeader
     fn to_oss_header(&self) -> OssHeader {
         //return Some("x-oss-copy-source:/honglei123/file1.txt");
@@ -179,28 +184,28 @@ pub(crate) trait AuthSignString {
     fn get_sign_info(
         &self,
     ) -> (
-        &KeyId,
-        &KeySecret,
+        &InnerKeyId,
+        &InnerKeySecret,
         &Method,
-        ContentMd5,
+        InnerContentMd5,
         ContentType,
-        &Date,
-        &CanonicalizedResource,
+        &InnerDate,
+        &InnerCanonicalizedResource,
     );
 }
 
-impl AuthSignString for Auth {
+impl AuthSignString for InnerAuth<'_> {
     #[inline]
     fn get_sign_info(
         &self,
     ) -> (
-        &KeyId,
-        &KeySecret,
+        &InnerKeyId,
+        &InnerKeySecret,
         &Method,
-        ContentMd5,
+        InnerContentMd5,
         ContentType,
-        &Date,
-        &CanonicalizedResource,
+        &InnerDate,
+        &InnerCanonicalizedResource,
     ) {
         (
             &self.access_key_id,
@@ -220,7 +225,7 @@ impl AuthSignString for Auth {
     }
 }
 
-impl Auth {
+impl InnerAuth<'_> {
     /// 返回携带了签名信息的 headers
     pub fn get_headers(&self) -> AuthResult<HeaderMap> {
         let mut map = HeaderMap::from_auth(self)?;
@@ -303,7 +308,14 @@ impl OssHeader {
 impl Display for OssHeader {
     /// 转化成 SignString 需要的格式
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut content = String::with_capacity(self.len() + 2);
+        let mut content = String::with_capacity({
+            let len = self.len();
+            if len > 0 {
+                len + 2
+            } else {
+                0
+            }
+        });
         if let Some(str) = &self.0 {
             content.push_str(str);
             content.push_str(LINE_BREAK);
@@ -315,15 +327,20 @@ impl Display for OssHeader {
 /// 待签名的数据
 pub(crate) struct SignString<'a> {
     data: String,
-    key: &'a KeyId,
-    secret: &'a KeySecret,
+    key: InnerKeyId<'a>,
+    secret: InnerKeySecret<'a>,
 }
 
 const LINE_BREAK: &str = "\n";
 
 impl<'a, 'b> SignString<'_> {
     #[allow(dead_code)]
-    pub(crate) fn new(data: &'b str, key: &'a KeyId, secret: &'a KeySecret) -> SignString<'a> {
+    #[inline]
+    pub(crate) fn new(
+        data: &'b str,
+        key: InnerKeyId<'a>,
+        secret: InnerKeySecret<'a>,
+    ) -> SignString<'a> {
         SignString {
             data: data.to_owned(),
             key,
@@ -333,7 +350,7 @@ impl<'a, 'b> SignString<'_> {
 }
 
 impl<'a> SignString<'a> {
-    pub(crate) fn from_auth(auth: &impl AuthSignString, header: OssHeader) -> SignString {
+    pub(crate) fn from_auth(auth: &'a impl AuthSignString, header: OssHeader) -> SignString {
         let (key, secret, verb, content_md5, content_type, date, canonicalized_resource) =
             auth.get_sign_info();
         let method = verb.to_string();
@@ -349,7 +366,11 @@ impl<'a> SignString<'a> {
             + &header.to_string()
             + canonicalized_resource.as_ref();
 
-        SignString { data, key, secret }
+        SignString {
+            data,
+            key: key.clone(),
+            secret: secret.clone(),
+        }
     }
 
     #[cfg(test)]
@@ -359,23 +380,25 @@ impl<'a> SignString<'a> {
 
     #[cfg(test)]
     pub(crate) fn key_string(&self) -> String {
-        self.key.to_string()
+        self.key.as_ref().to_string()
     }
 
     #[cfg(test)]
     pub(crate) fn secret_string(&self) -> String {
-        self.secret.to_string()
+        self.secret.as_ref().to_string()
     }
 
     // 转化成签名
     #[inline]
-    pub(crate) fn to_sign(&self) -> Result<Sign<'a>, hmac::digest::crypto_common::InvalidLength> {
+    pub(crate) fn to_sign<'b>(
+        &'b self,
+    ) -> Result<Sign<'b>, hmac::digest::crypto_common::InvalidLength> {
         use base64::encode;
         use hmac::{Hmac, Mac};
         use sha1::Sha1;
         type HmacSha1 = Hmac<Sha1>;
 
-        let secret = self.secret.as_bytes();
+        let secret = self.secret.as_ref().as_bytes();
         let data_u8 = self.data.as_bytes();
 
         let mut mac = HmacSha1::new_from_slice(secret)?;
@@ -386,7 +409,7 @@ impl<'a> SignString<'a> {
 
         Ok(Sign {
             data: encode(sha1),
-            key: self.key,
+            key: self.key.clone(),
         })
     }
 }
@@ -394,12 +417,12 @@ impl<'a> SignString<'a> {
 /// header 中的签名
 pub(crate) struct Sign<'a> {
     data: String,
-    key: &'a KeyId,
+    key: InnerKeyId<'a>,
 }
 
 impl Sign<'_> {
     #[cfg(test)]
-    pub(crate) fn new<'a, 'b>(data: &'b str, key: &'a KeyId) -> Sign<'a> {
+    pub(crate) fn new<'a, 'b>(data: &'b str, key: InnerKeyId<'a>) -> Sign<'a> {
         Sign {
             data: data.to_owned(),
             key,
@@ -413,7 +436,7 @@ impl Sign<'_> {
 
     #[cfg(test)]
     pub fn key_string(&self) -> String {
-        self.key.clone().to_string()
+        self.key.as_ref().to_string()
     }
 }
 
@@ -422,7 +445,7 @@ impl TryInto<HeaderValue> for Sign<'_> {
 
     /// 转化成 header 中需要的格式
     fn try_into(self) -> Result<HeaderValue, Self::Error> {
-        let sign = format!("OSS {}:{}", self.key, self.data);
+        let sign = format!("OSS {}:{}", self.key.as_ref(), self.data);
         sign.parse()
     }
 }
