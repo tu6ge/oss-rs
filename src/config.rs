@@ -900,6 +900,12 @@ impl AsRef<str> for ObjectDir<'_> {
     }
 }
 
+impl AsMut<String> for ObjectDir<'_> {
+    fn as_mut(&mut self) -> &mut String {
+        self.0.to_mut()
+    }
+}
+
 impl fmt::Display for ObjectDir<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -1002,10 +1008,7 @@ impl<'dir1, 'dir2: 'dir1> AddAssign<ObjectDir<'dir2>> for ObjectDir<'dir1> {
     /// assert_eq!(dir1, full_dir);
     /// ```
     fn add_assign(&mut self, rhs: ObjectDir<'dir2>) {
-        let mut string = self.0.clone();
-
-        string += rhs.0;
-        self.0 = string;
+        *self.as_mut() += rhs.as_ref();
     }
 }
 
