@@ -1,3 +1,23 @@
+#  (2023-03-24)
+
+
+
+## [0.11.2](https://github.com/tu6ge/oss-rs/compare/0.11.1...0.11.2) (2023-03-24)
+
+
+### Bug Fixes
+
+* **types:** 解决 Endpoint 匹配错误 ([0a65ad2](https://github.com/tu6ge/oss-rs/commit/0a65ad2d581efef14d9b9b697f7e79d6c4e34247)), closes [#15](https://github.com/tu6ge/oss-rs/issues/15)
+
+
+### Features
+
+* **config:** Add AsMut of ObjectDir ([499de79](https://github.com/tu6ge/oss-rs/commit/499de79393324e161486b642030618529614f5e5))
+* **core:** Add AsRef in some type ([2b72ba0](https://github.com/tu6ge/oss-rs/commit/2b72ba07ea8ac18feaa88396b7dddd241dcb2c31))
+* re-export Error Result ([f1cdae3](https://github.com/tu6ge/oss-rs/commit/f1cdae3668909cb4c4a50e1c402d4ba2ee4c523a))
+
+
+
 #  (2023-03-10)
 
 
