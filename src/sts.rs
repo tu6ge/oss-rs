@@ -14,7 +14,8 @@
 //!     EndPoint::CnShanghai,
 //!     BucketName::new("yyyyyy").unwrap(),
 //!     "CAIS4gF1q6Ft5Bxxxxxxxxxxx".to_string(), // STS Token, type should be string, &str or more
-//! ).unwrap();
+//! )
+//! .unwrap();
 //!
 //! let builder = client.get_bucket_list().await;
 //! println!("{:?}", builder);

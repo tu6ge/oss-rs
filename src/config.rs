@@ -180,11 +180,17 @@ impl FromStr for BucketBase {
     ///
     /// let bucket: BucketBase = "abc.oss-cn-jinan.aliyuncs.com".parse().unwrap();
     /// assert_eq!(bucket.name(), "abc");
-    /// assert_eq!(bucket.endpoint(), EndPoint::Other(Cow::Borrowed("cn-jinan")));
+    /// assert_eq!(
+    ///     bucket.endpoint(),
+    ///     EndPoint::Other(Cow::Borrowed("cn-jinan"))
+    /// );
     ///
     /// let bucket: BucketBase = "abc.oss-cn-jinan".parse().unwrap();
     /// assert_eq!(bucket.name(), "abc");
-    /// assert_eq!(bucket.endpoint(), EndPoint::Other(Cow::Borrowed("cn-jinan")));
+    /// assert_eq!(
+    ///     bucket.endpoint(),
+    ///     EndPoint::Other(Cow::Borrowed("cn-jinan"))
+    /// );
     ///
     /// assert!("abc*#!".parse::<BucketBase>().is_err());
     /// assert!("abc".parse::<BucketBase>().is_err());
