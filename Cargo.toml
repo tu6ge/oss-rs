@@ -85,14 +85,14 @@ decode = ["quick-xml", "oss_derive"]
 [dependencies]
 async-stream = {version = "^0.3", optional = true}
 async-trait = {version = "^0.1", optional = true}
-base64 = {version = "^0.20", optional = true}
+base64 = {version = "^0.21", optional = true}
 chrono = {version = "^0.4", optional = true}
 futures = {version = "^0.3", optional = true}
 futures-core = {version = "^0.3", optional = true}
 hmac = {version = "^0.12", optional = true}
 http= {version = "^0.2", optional = true}
-infer = {version = "^0.11", optional = true}
-quick-xml = {version = "^0.27", optional = true}
+infer = {version = "^0.13", optional = true}
+quick-xml = {version = "^0.28", optional = true}
 reqwest = {version ="^0.11", optional = true}
 sha1 = {version = "^0.10", optional = true}
 thiserror = {version = "^1", optional = true}

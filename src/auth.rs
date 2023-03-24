@@ -391,7 +391,8 @@ impl<'a> SignString<'a> {
     // 转化成签名
     #[inline]
     pub(crate) fn to_sign(&self) -> Result<Sign, hmac::digest::crypto_common::InvalidLength> {
-        use base64::encode;
+        use base64::engine::general_purpose::STANDARD;
+        use base64::Engine;
         use hmac::{Hmac, Mac};
         use sha1::Sha1;
         type HmacSha1 = Hmac<Sha1>;
@@ -406,7 +407,7 @@ impl<'a> SignString<'a> {
         let sha1 = mac.finalize().into_bytes();
 
         Ok(Sign {
-            data: encode(sha1),
+            data: STANDARD.encode(sha1),
             key: self.key.clone(),
         })
     }
