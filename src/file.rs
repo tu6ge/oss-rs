@@ -204,8 +204,6 @@ mod std_path_impl {
     use crate::builder::RcPointer;
     #[cfg(feature = "blocking")]
     use crate::client::ClientRc;
-    #[cfg(feature = "blocking")]
-    use std::rc::Rc;
 
     use super::{GetStd, GetStdWithPath};
     use crate::{

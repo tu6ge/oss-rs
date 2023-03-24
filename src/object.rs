@@ -269,14 +269,11 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, 
     /// 如果有下一页，返回 Some(Query)
     /// 如果没有下一页，则返回 None
     pub fn next_query(&self) -> Option<Query> {
-        match &self.next_continuation_token {
-            Some(token) => {
-                let mut search_query = self.search_query.clone();
-                search_query.insert(CONTINUATION_TOKEN, token.to_owned());
-                Some(search_query)
-            }
-            None => None,
-        }
+        self.next_continuation_token.as_ref().map(|token| {
+            let mut search_query = self.search_query.clone();
+            search_query.insert(CONTINUATION_TOKEN, token.to_owned());
+            search_query
+        })
     }
 
     /// 将 object 列表转化为迭代器
@@ -1288,7 +1285,7 @@ mod tests {
         let object_list = init_object_list(Some(String::from("foo3")), vec![]);
         assert_eq!(
             format!("{object_list:?}"),
-            "ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName(\"abc\") }, prefix: Some(ObjectDir(\"foo2/\")), max_keys: 100, key_count: 200, next_continuation_token: Some(\"foo3\"), common_prefixes: [], search_query: Query { inner: {Custom(\"key1\"): QueryValue(\"value1\")} } }"
+            "ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName(\"abc\") }, prefix: Some(ObjectDir(\"foo2/\")), max_keys: 100, key_count: 200, next_continuation_token: Some(\"foo3\"), common_prefixes: [], search_query: Query { inner: {Custom(\"key1\"): InnerQueryValue(\"value1\")} } }"
         );
     }
 

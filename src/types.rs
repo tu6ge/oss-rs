@@ -1067,6 +1067,18 @@ pub struct Query {
     inner: HashMap<QueryKey, QueryValue>,
 }
 
+impl AsMut<HashMap<QueryKey, QueryValue>> for Query {
+    fn as_mut(&mut self) -> &mut HashMap<QueryKey, QueryValue> {
+        &mut self.inner
+    }
+}
+
+impl AsRef<HashMap<QueryKey, QueryValue>> for Query {
+    fn as_ref(&self) -> &HashMap<QueryKey, QueryValue> {
+        &self.inner
+    }
+}
+
 impl Query {
     /// Creates an empty `Query`.
     ///
@@ -1357,7 +1369,7 @@ impl UrlQuery for Url {
 
 /// 查询条件的键
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum QueryKey {
+pub enum InnerQueryKey<'a> {
     /// 对Object名字进行分组的字符。所有Object名字包含指定的前缀，第一次出现delimiter字符之间的Object作为一组元素（即CommonPrefixes）
     /// 示例值 `/`
     Delimiter,
@@ -1396,10 +1408,13 @@ pub enum QueryKey {
     FetchOwner,
 
     /// 自定义
-    Custom(Cow<'static, str>),
+    Custom(Cow<'a, str>),
 }
 
-impl AsRef<str> for QueryKey {
+/// 查询条件的键
+pub type QueryKey = InnerQueryKey<'static>;
+
+impl AsRef<str> for InnerQueryKey<'_> {
     /// ```
     /// # use aliyun_oss_client::QueryKey;
     /// # use std::borrow::Cow;
@@ -1412,9 +1427,9 @@ impl AsRef<str> for QueryKey {
     /// assert_eq!(QueryKey::Custom(Cow::Borrowed("abc")).as_ref(), "abc");
     /// ```
     fn as_ref(&self) -> &str {
-        use QueryKey::*;
+        use InnerQueryKey::*;
 
-        match *self {
+        match self {
             Delimiter => "delimiter",
             StartAfter => "start-after",
             ContinuationToken => "continuation-token",
@@ -1423,12 +1438,12 @@ impl AsRef<str> for QueryKey {
             EncodingType => "encoding-type",
             // TODO
             FetchOwner => unimplemented!("parse xml not support fetch owner"),
-            Custom(ref str) => str,
+            Custom(str) => str.as_ref(),
         }
     }
 }
 
-impl Display for QueryKey {
+impl Display for InnerQueryKey<'_> {
     /// ```
     /// # use aliyun_oss_client::QueryKey;
     /// assert_eq!(format!("{}", QueryKey::Delimiter), "delimiter");
@@ -1438,14 +1453,14 @@ impl Display for QueryKey {
     }
 }
 
-impl From<String> for QueryKey {
+impl From<String> for InnerQueryKey<'_> {
     fn from(s: String) -> Self {
         Self::new(s)
     }
 }
-impl<'a> From<&'a str> for QueryKey {
+impl<'a: 'b, 'b> From<&'a str> for InnerQueryKey<'b> {
     fn from(date: &'a str) -> Self {
-        Self::new(date.to_owned())
+        Self::new(date)
     }
 }
 
@@ -1457,8 +1472,8 @@ impl FromStr for QueryKey {
     /// let value: QueryKey = "abc".into();
     /// assert!(value == QueryKey::from_static("abc"));
     /// ```
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::new(s.to_owned()))
+    fn from_str(s: &str) -> Result<Self, InvalidQueryKey> {
+        Ok(Self::from_static(s))
     }
 }
 
@@ -1474,7 +1489,7 @@ impl Display for InvalidQueryKey {
     }
 }
 
-impl QueryKey {
+impl<'a> InnerQueryKey<'a> {
     /// # Examples
     /// ```
     /// # use aliyun_oss_client::QueryKey;
@@ -1491,8 +1506,8 @@ impl QueryKey {
     /// assert_matches!(key, QueryKey::Custom(_));
     /// ```
     /// *`fetch-owner` 功能未实现，特殊说明*
-    pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
-        use QueryKey::*;
+    pub fn new(val: impl Into<Cow<'a, str>>) -> Self {
+        use InnerQueryKey::*;
 
         let val = val.into();
         if val.contains("delimiter") {
@@ -1530,8 +1545,8 @@ impl QueryKey {
     /// assert_matches!(key, QueryKey::Custom(_));
     /// ```
     /// *`fetch-owner` 功能未实现，特殊说明*
-    pub fn from_static(val: &'static str) -> Self {
-        use QueryKey::*;
+    pub fn from_static<'b>(val: &'b str) -> Self {
+        use InnerQueryKey::*;
 
         if val.contains("delimiter") {
             Delimiter
@@ -1548,7 +1563,7 @@ impl QueryKey {
         } else if val.contains("fetch-owner") {
             unimplemented!("parse xml not support fetch owner");
         } else {
-            Custom(Cow::Borrowed(val))
+            Custom(Cow::Owned(val.to_owned()))
         }
     }
 }
@@ -1566,39 +1581,41 @@ mod test_query_key {
 
 /// 查询条件的值
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct QueryValue(Cow<'static, str>);
+pub struct InnerQueryValue<'a>(Cow<'a, str>);
+/// 查询条件的值
+pub type QueryValue = InnerQueryValue<'static>;
 
-impl AsRef<str> for QueryValue {
+impl AsRef<str> for InnerQueryValue<'_> {
     fn as_ref(&self) -> &str {
         &self.0
     }
 }
 
-impl Display for QueryValue {
+impl Display for InnerQueryValue<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl From<String> for QueryValue {
+impl From<String> for InnerQueryValue<'_> {
     fn from(s: String) -> Self {
         Self(Cow::Owned(s))
     }
 }
-impl<'a> From<&'a str> for QueryValue {
+impl<'a: 'b, 'b> From<&'a str> for InnerQueryValue<'b> {
     fn from(date: &'a str) -> Self {
-        Self::new(date.to_owned())
+        Self::new(date)
     }
 }
 
-impl PartialEq<&str> for QueryValue {
+impl PartialEq<&str> for InnerQueryValue<'_> {
     #[inline]
     fn eq(&self, other: &&str) -> bool {
         &self.0 == other
     }
 }
 
-impl From<u8> for QueryValue {
+impl From<u8> for InnerQueryValue<'_> {
     /// 数字转 Query 值
     ///
     /// ```
@@ -1612,14 +1629,14 @@ impl From<u8> for QueryValue {
     }
 }
 
-impl PartialEq<u8> for QueryValue {
+impl PartialEq<u8> for InnerQueryValue<'_> {
     #[inline]
     fn eq(&self, other: &u8) -> bool {
         self.to_string() == other.to_string()
     }
 }
 
-impl From<u16> for QueryValue {
+impl From<u16> for InnerQueryValue<'_> {
     /// 数字转 Query 值
     ///
     /// ```
@@ -1631,7 +1648,7 @@ impl From<u16> for QueryValue {
     }
 }
 
-impl PartialEq<u16> for QueryValue {
+impl PartialEq<u16> for InnerQueryValue<'_> {
     #[inline]
     fn eq(&self, other: &u16) -> bool {
         self.to_string() == other.to_string()
@@ -1654,7 +1671,7 @@ impl From<bool> for QueryValue {
     }
 }
 
-impl FromStr for QueryValue {
+impl FromStr for InnerQueryValue<'_> {
     type Err = InvalidQueryValue;
     /// 示例
     /// ```
@@ -1663,7 +1680,7 @@ impl FromStr for QueryValue {
     /// assert!(value == "abc");
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(Cow::Owned(s.to_owned())))
+        Ok(Self::from_static2(s))
     }
 }
 
@@ -1679,15 +1696,20 @@ impl Display for InvalidQueryValue {
     }
 }
 
-impl QueryValue {
+impl<'a> InnerQueryValue<'a> {
     /// Creates a new `QueryValue` from the given string.
-    pub fn new(val: impl Into<Cow<'static, str>>) -> Self {
+    pub fn new(val: impl Into<Cow<'a, str>>) -> Self {
         Self(val.into())
     }
 
     /// Const function that creates a new `QueryValue` from a static str.
     pub const fn from_static(val: &'static str) -> Self {
         Self(Cow::Borrowed(val))
+    }
+
+    /// Const function that creates a new `QueryValue` from a static str.
+    pub fn from_static2<'b>(val: &'b str) -> Self {
+        Self(Cow::Owned(val.to_owned()))
     }
 }
 
