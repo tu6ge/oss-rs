@@ -4,10 +4,6 @@ use crate::errors::{OssError, OssService};
 
 #[test]
 fn test_message() {
-    let err1 = OssError::Input("bar".to_string());
-
-    assert_eq!(err1.message(), "input error: bar".to_string());
-
     let oss_err = OssError::OssService(OssService {
         code: "OSS_TEST_CODE".to_string(),
         status: StatusCode::default(),

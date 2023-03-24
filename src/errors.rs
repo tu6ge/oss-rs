@@ -32,10 +32,6 @@ pub enum OssError {
     VarError(#[from] std::env::VarError),
 
     #[doc(hidden)]
-    #[error("input error: {0}")]
-    Input(String),
-
-    #[doc(hidden)]
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 
