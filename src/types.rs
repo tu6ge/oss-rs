@@ -174,11 +174,11 @@ const HONGKONG: &str = "cn-hongkong";
 #[cfg(feature = "core")]
 const SHENZHEN: &str = "cn-shenzhen";
 #[cfg(feature = "core")]
-const US_WEST1: &str = "us-west1";
+const US_WEST1: &str = "us-west-1";
 #[cfg(feature = "core")]
-const US_EAST1: &str = "us-east1";
+const US_EAST1: &str = "us-east-1";
 #[cfg(feature = "core")]
-const AP_SOUTH_EAST1: &str = "ap-south-east1";
+const AP_SOUTH_EAST1: &str = "ap-southeast-1";
 
 #[cfg(feature = "core")]
 impl AsRef<str> for EndPoint {
@@ -192,9 +192,9 @@ impl AsRef<str> for EndPoint {
     /// assert_eq!(CnZhangjiakou.as_ref(), "cn-zhangjiakou");
     /// assert_eq!(CnHongkong.as_ref(), "cn-hongkong");
     /// assert_eq!(CnShenzhen.as_ref(), "cn-shenzhen");
-    /// assert_eq!(UsWest1.as_ref(), "us-west1");
-    /// assert_eq!(UsEast1.as_ref(), "us-east1");
-    /// assert_eq!(ApSouthEast1.as_ref(), "ap-south-east1");
+    /// assert_eq!(UsWest1.as_ref(), "us-west-1");
+    /// assert_eq!(UsEast1.as_ref(), "us-east-1");
+    /// assert_eq!(ApSouthEast1.as_ref(), "ap-southeast-1");
     /// ```
     fn as_ref(&self) -> &str {
         use EndPoint::*;
@@ -449,12 +449,12 @@ mod test_endpoint {
             Ok(EndPoint::CnShenzhen)
         ));
 
-        assert!(matches!(EndPoint::new("us-west1"), Ok(EndPoint::UsWest1)));
+        assert!(matches!(EndPoint::new("us-west-1"), Ok(EndPoint::UsWest1)));
 
-        assert!(matches!(EndPoint::new("us-east1"), Ok(EndPoint::UsEast1)));
+        assert!(matches!(EndPoint::new("us-east-1"), Ok(EndPoint::UsEast1)));
 
         assert!(matches!(
-            EndPoint::new("ap-south-east1"),
+            EndPoint::new("ap-southeast-1"),
             Ok(EndPoint::ApSouthEast1)
         ));
     }
