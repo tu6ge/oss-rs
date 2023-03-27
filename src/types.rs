@@ -1098,35 +1098,48 @@ impl Query {
     }
 
     /// Inserts a key-value pair into the map.
-    pub fn insert(&mut self, key: impl Into<QueryKey>, value: impl Into<QueryValue>) {
-        self.inner.insert(key.into(), value.into());
+    pub fn insert(
+        &mut self,
+        key: impl Into<QueryKey>,
+        value: impl Into<QueryValue>,
+    ) -> Option<QueryValue> {
+        self.as_mut().insert(key.into(), value.into())
+    }
+
+    /// Insert max_keys, value must be safe value (0-1000)
+    pub fn insert_max_keys(&mut self, value: u16) -> Option<QueryValue> {
+        if value > 0 && value <= 1000 {
+            self.insert(QueryKey::MaxKeys, value)
+        } else {
+            None
+        }
     }
 
     /// Returns a reference to the value corresponding to the key.
     pub fn get(&self, key: impl Into<QueryKey>) -> Option<&QueryValue> {
-        self.inner.get(&key.into())
+        self.as_ref().get(&key.into())
     }
 
     /// Returns the number of elements in the map.
     pub fn len(&self) -> usize {
-        self.inner.len()
+        self.as_ref().len()
     }
 
     /// Returns `true` if the map contains no elements.
     pub fn is_empty(&self) -> bool {
-        self.inner.is_empty()
+        self.as_ref().is_empty()
     }
 
     /// Removes a key from the map, returning the value at the key if the key
     /// was previously in the map.
     pub fn remove(&mut self, key: impl Into<QueryKey>) -> Option<QueryValue> {
-        self.inner.remove(&key.into())
+        self.as_mut().remove(&key.into())
     }
 
     /// 将查询参数拼成 aliyun 接口需要的格式
     pub fn to_oss_string(&self) -> String {
         let mut query_str = String::from("list-type=2");
-        for (key, value) in self.inner.iter() {
+        for (key, value) in self.as_ref().iter() {
             query_str += "&";
             query_str += key.as_ref();
             query_str += "=";
@@ -1138,7 +1151,7 @@ impl Query {
     /// 转化成 url 参数的形式
     /// a=foo&b=bar
     pub fn to_url_query(&self) -> String {
-        self.inner
+        self.as_ref()
             .iter()
             .map(|(k, v)| {
                 let mut res = String::with_capacity(k.as_ref().len() + v.as_ref().len() + 1);
@@ -1180,7 +1193,7 @@ impl FromIterator<(QueryKey, QueryValue)> for Query {
         I: IntoIterator<Item = (QueryKey, QueryValue)>,
     {
         let mut map = Query::default();
-        map.inner.extend(iter);
+        map.as_mut().extend(iter);
         map
     }
 }
@@ -1206,7 +1219,7 @@ impl<'a> FromIterator<(&'a str, &'a str)> for Query {
         });
 
         let mut map = Query::default();
-        map.inner.extend(inner);
+        map.as_mut().extend(inner);
         map
     }
 }
@@ -1229,7 +1242,7 @@ impl<'a> FromIterator<(&'a str, u8)> for Query {
             .map(|(k, v)| (k.parse().expect("invalid QueryKey"), v.into()));
 
         let mut map = Query::default();
-        map.inner.extend(inner);
+        map.as_mut().extend(inner);
         map
     }
 }
@@ -1252,7 +1265,7 @@ impl<'a> FromIterator<(&'a str, u16)> for Query {
             .map(|(k, v)| (k.parse().expect("invalid QueryKey"), v.into()));
 
         let mut map = Query::default();
-        map.inner.extend(inner);
+        map.as_mut().extend(inner);
         map
     }
 }
@@ -1275,7 +1288,7 @@ impl<'a> FromIterator<(QueryKey, &'a str)> for Query {
             .map(|(k, v)| (k, v.parse().expect("invalid QueryValue")));
 
         let mut map = Query::default();
-        map.inner.extend(inner);
+        map.as_mut().extend(inner);
         map
     }
 }
@@ -1296,7 +1309,7 @@ impl FromIterator<(QueryKey, u8)> for Query {
         let inner = iter.into_iter().map(|(k, v)| (k, v.into()));
 
         let mut map = Query::default();
-        map.inner.extend(inner);
+        map.as_mut().extend(inner);
         map
     }
 }
@@ -1317,14 +1330,14 @@ impl FromIterator<(QueryKey, u16)> for Query {
         let inner = iter.into_iter().map(|(k, v)| (k, v.into()));
 
         let mut map = Query::default();
-        map.inner.extend(inner);
+        map.as_mut().extend(inner);
         map
     }
 }
 
 impl PartialEq<Query> for Query {
     fn eq(&self, other: &Query) -> bool {
-        self.inner == other.inner
+        self.as_ref() == other.as_ref()
     }
 }
 
