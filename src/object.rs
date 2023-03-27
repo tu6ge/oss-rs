@@ -255,6 +255,10 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, 
 
     /// # 返回下一个 continuation_token
     /// 用于翻页使用
+    #[deprecated(
+        since = "0.12.0",
+        note = "Option is redundant, replace with next_continuation_token_str"
+    )]
     pub fn next_continuation_token(&self) -> &Option<String> {
         &self.next_continuation_token
     }
