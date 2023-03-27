@@ -123,6 +123,10 @@ mod object_list_xml {
                 assert!(matches!(token, None));
                 Ok(())
             }
+            fn set_next_continuation_token_str(&mut self, token: &str) -> Result<(), MyError> {
+                assert!(token.is_empty());
+                Ok(())
+            }
             // fn set_list(self, list: Vec<T>) -> Result<Self, InvalidObjectListValue>{
             //     Ok(self)
             // }
@@ -216,24 +220,6 @@ mod object_list_xml {
         struct ListB {}
         impl RefineObjectList<ObjectA> for ListB {
             type Error = OssError;
-            fn set_name(&mut self, name: &str) -> Result<(), OssError> {
-                Ok(())
-            }
-            fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
-                Ok(())
-            }
-            fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
-                Ok(())
-            }
-            fn set_key_count(&mut self, key_count: &str) -> Result<(), OssError> {
-                Ok(())
-            }
-            fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), OssError> {
-                Ok(())
-            }
-            // fn set_list(self, list: Vec<T>) -> Result<Self, InvalidObjectListValue>{
-            //     Ok(self)
-            // }
         }
 
         let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -388,6 +374,12 @@ mod object_list_xml {
             fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), MyError> {
                 assert!(
                     matches!(token, Some(v) if v=="CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--")
+                );
+                Ok(())
+            }
+            fn set_next_continuation_token_str(&mut self, token: &str) -> Result<(), MyError> {
+                assert!(
+                    token == "CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--"
                 );
                 Ok(())
             }

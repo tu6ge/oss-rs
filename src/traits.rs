@@ -233,7 +233,16 @@ where
     }
 
     /// 提取翻页信息，有下一页，返回 Some, 否则返回 None
+    #[deprecated(
+        since = "0.12.0",
+        note = "Option is redundant, replace with set_next_continuation_token_str"
+    )]
     fn set_next_continuation_token(&mut self, _token: Option<&str>) -> Result<(), Error> {
+        Ok(())
+    }
+
+    /// 提取翻页信息 token
+    fn set_next_continuation_token_str(&mut self, _token: &str) -> Result<(), Error> {
         Ok(())
     }
 
@@ -300,6 +309,7 @@ where
                         }
                         NEXT_CONTINUATION_TOKEN => {
                             let next_continuation_token = reader.read_text(e.to_end().name())?;
+                            self.set_next_continuation_token_str(&next_continuation_token)?;
                             self.set_next_continuation_token(
                                 if !next_continuation_token.is_empty() {
                                     Some(&next_continuation_token)
@@ -623,6 +633,69 @@ mod tests {
     use std::fmt;
 
     use super::*;
+
+    #[test]
+    fn test_one_object_decode() {
+        struct ObjectA {}
+        impl RefineObject<MyError> for ObjectA {
+            fn set_key(&mut self, key: &str) -> Result<(), MyError> {
+                assert!(key == "LICENSE");
+                Ok(())
+            }
+            fn set_last_modified(&mut self, last_modified: &str) -> Result<(), MyError> {
+                assert!(last_modified == "2022-06-12T06:11:06.000Z");
+                Ok(())
+            }
+            fn set_etag(&mut self, etag: &str) -> Result<(), MyError> {
+                assert!(etag == "2CBAB10A50CC6905EA2D7CCCEF31A6C9");
+                Ok(())
+            }
+            fn set_type(&mut self, _type: &str) -> Result<(), MyError> {
+                assert!(_type == "Normal");
+                Ok(())
+            }
+            fn set_size(&mut self, size: &str) -> Result<(), MyError> {
+                assert!(size == "1065");
+                Ok(())
+            }
+            fn set_storage_class(&mut self, storage_class: &str) -> Result<(), MyError> {
+                assert!(storage_class == "Standard");
+                Ok(())
+            }
+        }
+
+        struct MyError {}
+
+        impl From<InnerItemError> for MyError {
+            fn from(_: InnerItemError) -> Self {
+                MyError {}
+            }
+        }
+
+        impl From<quick_xml::Error> for MyError {
+            fn from(_: quick_xml::Error) -> Self {
+                MyError {}
+            }
+        }
+
+        impl fmt::Display for MyError {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(f, "demo")
+            }
+        }
+        impl ItemError for MyError {}
+
+        let xml = r#"<Key>LICENSE</Key>
+            <LastModified>2022-06-12T06:11:06.000Z</LastModified>
+            <ETag>"2CBAB10A50CC6905EA2D7CCCEF31A6C9"</ETag>
+            <Type>Normal</Type>
+            <Size>1065</Size>
+            <StorageClass>Standard</StorageClass>"#;
+
+        let mut object = ObjectA {};
+        let _ = object.decode(xml);
+    }
+
     #[test]
     fn test_common_prefixes() {
         struct ObjectA {}

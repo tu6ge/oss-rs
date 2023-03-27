@@ -125,7 +125,7 @@ pub struct ObjectList<
     key_count: u64,
     /// 存放单个文件对象的 Vec 集合
     pub object_list: Vec<Item>,
-    next_continuation_token: Option<String>,
+    next_continuation_token: String,
     common_prefixes: CommonPrefixes,
     client: P::PointerType,
     search_query: Query,
@@ -155,7 +155,7 @@ impl<Item: RefineObject<E>, E: ItemError> Default for ObjectList<ArcPointer, Ite
             max_keys: u32::default(),
             key_count: u64::default(),
             object_list: Vec::new(),
-            next_continuation_token: None,
+            next_continuation_token: String::default(),
             common_prefixes: CommonPrefixes::default(),
             client: Arc::new(ClientArc::default()),
             search_query: Query::default(),
@@ -215,7 +215,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, 
             max_keys,
             key_count,
             object_list,
-            next_continuation_token,
+            next_continuation_token: next_continuation_token.unwrap_or_default(),
             common_prefixes: CommonPrefixes::default(),
             client,
             search_query: Query::from_iter(search_query),
@@ -255,7 +255,21 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, 
 
     /// # 返回下一个 continuation_token
     /// 用于翻页使用
-    pub fn next_continuation_token(&self) -> &Option<String> {
+    #[deprecated(
+        since = "0.12.0",
+        note = "Please use next_continuation_token_str replace"
+    )]
+    pub fn next_continuation_token(&self) -> Option<String> {
+        if !self.next_continuation_token.is_empty() {
+            Some(self.next_continuation_token.clone())
+        } else {
+            None
+        }
+    }
+
+    /// # 返回下一个 continuation_token
+    /// 用于翻页使用
+    pub fn next_continuation_token_str(&self) -> &String {
         &self.next_continuation_token
     }
 
@@ -269,11 +283,13 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, 
     /// 如果有下一页，返回 Some(Query)
     /// 如果没有下一页，则返回 None
     pub fn next_query(&self) -> Option<Query> {
-        self.next_continuation_token.as_ref().map(|token| {
+        if !self.next_continuation_token.is_empty() {
             let mut search_query = self.search_query.clone();
-            search_query.insert(CONTINUATION_TOKEN, token.to_owned());
-            search_query
-        })
+            search_query.insert(CONTINUATION_TOKEN, self.next_continuation_token.to_owned());
+            Some(search_query)
+        } else {
+            None
+        }
     }
 
     /// 将 object 列表转化为迭代器
@@ -376,7 +392,7 @@ impl ObjectList<ArcPointer> {
 
 impl<Item: RefineObject<E>, E: ItemError> ObjectList<ArcPointer, Item, E> {
     /// 自定义 Item 时，获取下一页数据
-    pub async fn get_next_base<F>(&self, f: F) -> Result<Self, ExtractListError>
+    pub async fn get_next_base<F>(&self, init_object: F) -> Result<Self, ExtractListError>
     where
         F: FnMut() -> Item,
     {
@@ -386,7 +402,7 @@ impl<Item: RefineObject<E>, E: ItemError> ObjectList<ArcPointer, Item, E> {
                 let mut list = Self::default();
                 let name = self.bucket.get_name().clone();
                 self.client()
-                    .base_object_list(name, query, &mut list, f)
+                    .base_object_list(name, query, &mut list, init_object)
                     .await?;
 
                 Ok(list)
@@ -777,8 +793,8 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError> RefineObjectList<Ite
     }
 
     #[inline]
-    fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), OssError> {
-        self.next_continuation_token = token.map(|t| t.to_owned());
+    fn set_next_continuation_token_str(&mut self, token: &str) -> Result<(), OssError> {
+        self.next_continuation_token = token.to_owned();
         Ok(())
     }
 
@@ -1072,10 +1088,13 @@ impl ClientRc {
 impl Iterator for ObjectList<RcPointer> {
     type Item = ObjectList<RcPointer>;
     fn next(&mut self) -> Option<Self> {
-        self.next_continuation_token.clone().and_then(|token| {
-            self.search_query.insert(CONTINUATION_TOKEN, token);
+        if !self.next_continuation_token.is_empty() {
+            self.search_query
+                .insert(CONTINUATION_TOKEN, self.next_continuation_token.to_owned());
             self.get_object_list().ok()
-        })
+        } else {
+            None
+        }
     }
 }
 
@@ -1285,7 +1304,7 @@ mod tests {
         let object_list = init_object_list(Some(String::from("foo3")), vec![]);
         assert_eq!(
             format!("{object_list:?}"),
-            "ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName(\"abc\") }, prefix: Some(ObjectDir(\"foo2/\")), max_keys: 100, key_count: 200, next_continuation_token: Some(\"foo3\"), common_prefixes: [], search_query: Query { inner: {Custom(\"key1\"): InnerQueryValue(\"value1\")} } }"
+            "ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName(\"abc\") }, prefix: Some(ObjectDir(\"foo2/\")), max_keys: 100, key_count: 200, next_continuation_token: \"foo3\", common_prefixes: [], search_query: Query { inner: {Custom(\"key1\"): InnerQueryValue(\"value1\")} } }"
         );
     }
 

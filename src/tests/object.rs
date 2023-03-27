@@ -28,7 +28,7 @@ pub(super) fn assert_object_list<T: PointerFamily>(
     assert!(*list.prefix() == prefix);
     assert!(*list.max_keys() == max_keys);
     assert!(*list.key_count() == key_count);
-    assert!(*list.next_continuation_token() == next_continuation_token);
+    assert!(list.next_continuation_token() == next_continuation_token);
     assert!(*list.common_prefixes() == common_prefixes);
     assert!(*list.search_query() == search_query);
 }
