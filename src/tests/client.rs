@@ -8,8 +8,8 @@ use crate::{client::Client, types::CanonicalizedResource, EndPoint};
 #[test]
 fn test_get_bucket_url() {
     let client = Client::<ClientWithMiddleware>::new(
-        "foo1".to_owned().into(),
-        "foo2".to_owned().into(),
+        "foo1".into(),
+        "foo2".into(),
         EndPoint::CnQingdao,
         "foo4".parse().unwrap(),
     );
