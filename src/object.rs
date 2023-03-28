@@ -85,7 +85,8 @@ use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::{
-    BucketBase, CommonPrefixes, InvalidObjectPath, ObjectBase, ObjectDir, ObjectPath,
+    get_url_resource_with_bucket, BucketBase, CommonPrefixes, InvalidObjectPath, ObjectBase,
+    ObjectDir, ObjectPath,
 };
 use crate::decode::{InnerListError, ItemError, ListError, RefineObject, RefineObjectList};
 use crate::errors::OssError;
@@ -876,7 +877,7 @@ impl Client {
         Ok(list)
     }
 
-    /// # 可将 object 列表导出到外部类型
+    /// # 可将 object 列表导出到外部类型（关注便捷性）
     /// 可以参考下面示例，或者项目中的 `examples/custom.rs`
     /// ## 示例
     /// ```rust
@@ -951,6 +952,7 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
+    #[inline(always)]
     pub async fn base_object_list<
         Name: Into<BucketName>,
         Q: IntoIterator<Item = (QueryKey, QueryValue)>,
@@ -972,9 +974,26 @@ impl Client {
         F: FnMut() -> Item,
     {
         let query = Query::from_iter(query);
+        let name = name.into();
 
-        let (bucket_url, resource) =
-            BucketBase::new(name.into(), self.get_endpoint().to_owned()).get_url_resource(&query);
+        self.base_object_list2(&name, &query, list, init_object)
+            .await
+    }
+
+    /// # 可将 object 列表导出到外部类型（关注性能）
+    pub async fn base_object_list2<List, Item, F, E: ListError, ItemErr: ItemError>(
+        &self,
+        name: &BucketName,
+        query: &Query,
+        list: &mut List,
+        init_object: F,
+    ) -> Result<(), ExtractListError>
+    where
+        List: RefineObjectList<Item, E, ItemErr>,
+        Item: RefineObject<ItemErr>,
+        F: FnMut() -> Item,
+    {
+        let (bucket_url, resource) = get_url_resource_with_bucket(self.as_ref(), name, query);
 
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;

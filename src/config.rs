@@ -423,6 +423,29 @@ pub fn get_url_resource2<E: AsRef<EndPoint>, B: AsRef<BucketName>>(
     get_url_resource(endpoint.as_ref(), bucket.as_ref(), path)
 }
 
+#[doc(hidden)]
+pub(crate) fn get_url_resource_with_bucket(
+    endpoint: &EndPoint,
+    bucket: &BucketName,
+    query: &Query,
+) -> (Url, CanonicalizedResource) {
+    let url = Url::from_bucket(endpoint, bucket);
+
+    let resource = CanonicalizedResource::from_bucket_query2(bucket, query);
+
+    (url, resource)
+}
+
+#[doc(hidden)]
+#[allow(dead_code)]
+pub(crate) fn get_url_resource_with_bucket2<E: AsRef<EndPoint>, B: AsRef<BucketName>>(
+    endpoint: E,
+    bucket: B,
+    query: &Query,
+) -> (Url, CanonicalizedResource) {
+    get_url_resource_with_bucket(endpoint.as_ref(), bucket.as_ref(), query)
+}
+
 /// Bucket 元信息的错误集
 #[derive(Error, Debug)]
 #[non_exhaustive]

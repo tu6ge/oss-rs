@@ -972,14 +972,21 @@ impl<'a> InnerCanonicalizedResource<'a> {
     ///
     /// 如果查询条件中有翻页的话，则忽略掉其他字段
     #[cfg(feature = "core")]
+    #[inline(always)]
     pub fn from_bucket_query<B: AsRef<BucketName>>(bucket: B, query: &Query) -> Self {
+        Self::from_bucket_query2(bucket.as_ref(), query)
+    }
+
+    #[cfg(feature = "core")]
+    #[doc(hidden)]
+    pub fn from_bucket_query2(bucket: &BucketName, query: &Query) -> Self {
         match query.get(CONTINUATION_TOKEN) {
             Some(v) => Self::new(format!(
                 "/{}/?continuation-token={}",
-                bucket.as_ref().as_ref(),
+                bucket.as_ref(),
                 v.as_ref()
             )),
-            None => Self::new(format!("/{}/", bucket.as_ref().as_ref())),
+            None => Self::new(format!("/{}/", bucket.as_ref())),
         }
     }
 
