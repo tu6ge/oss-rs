@@ -123,7 +123,10 @@ pub(crate) trait AuthToHeaderMap {
 
 impl AuthToHeaderMap for InnerAuth<'_> {
     fn get_original_header(&self) -> HeaderMap {
-        self.headers.clone()
+        // 7 = 6 + 1
+        let mut header = HeaderMap::with_capacity(7 + self.headers.len());
+        header.extend(self.headers.clone());
+        header
     }
     fn get_header_key(&self) -> Result<HeaderValue, InvalidHeaderValue> {
         self.access_key_id.as_ref().try_into()
