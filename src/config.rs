@@ -90,9 +90,9 @@ impl Config {
         ID: Into<KeyId>,
         S: Into<KeySecret>,
         E: TryInto<EndPoint>,
-        <E as TryInto<EndPoint>>::Error: Into<InvalidConfig>,
+        E::Error: Into<InvalidConfig>,
         B: TryInto<BucketName>,
-        <B as TryInto<BucketName>>::Error: Into<InvalidConfig>,
+        B::Error: Into<InvalidConfig>,
     {
         Ok(Config {
             key: key.into(),
@@ -508,7 +508,7 @@ impl<T: PointerFamily> ObjectBase<T> {
     pub fn new<P>(bucket: T::Bucket, path: P) -> Result<Self, InvalidObjectPath>
     where
         P: TryInto<ObjectPath>,
-        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
+        P::Error: Into<InvalidObjectPath>,
     {
         let path = path.try_into().map_err(|e| e.into())?;
 
@@ -529,7 +529,7 @@ impl<T: PointerFamily> ObjectBase<T> {
     pub fn set_path<P>(&mut self, path: P) -> Result<(), InvalidObjectPath>
     where
         P: TryInto<ObjectPath>,
-        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
+        P::Error: Into<InvalidObjectPath>,
     {
         self.path = path.try_into().map_err(|e| e.into())?;
 
@@ -549,7 +549,7 @@ impl ObjectBase<ArcPointer> {
     pub fn from_bucket<P>(bucket: BucketBase, path: P) -> Result<Self, InvalidObjectPath>
     where
         P: TryInto<ObjectPath>,
-        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
+        P::Error: Into<InvalidObjectPath>,
     {
         Ok(Self {
             bucket: Arc::new(bucket),
@@ -563,8 +563,8 @@ impl ObjectBase<ArcPointer> {
     where
         B: TryInto<BucketBase>,
         P: TryInto<ObjectPath>,
-        <B as TryInto<BucketBase>>::Error: Into<InvalidObjectBase>,
-        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectBase>,
+        B::Error: Into<InvalidObjectBase>,
+        P::Error: Into<InvalidObjectBase>,
     {
         Ok(Self {
             bucket: Arc::new(bucket.try_into().map_err(|e| e.into())?),
@@ -577,7 +577,7 @@ impl ObjectBase<ArcPointer> {
     pub fn from_ref_bucket<P>(bucket: Arc<BucketBase>, path: P) -> Result<Self, InvalidObjectPath>
     where
         P: TryInto<ObjectPath>,
-        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
+        P::Error: Into<InvalidObjectPath>,
     {
         Ok(Self {
             bucket,
@@ -594,11 +594,11 @@ impl ObjectBase<ArcPointer> {
     ) -> Result<Self, InvalidObjectBase>
     where
         B: TryInto<BucketName>,
-        <B as TryInto<BucketName>>::Error: Into<InvalidObjectBase>,
+        B::Error: Into<InvalidObjectBase>,
         E: TryInto<EndPoint>,
-        <E as TryInto<EndPoint>>::Error: Into<InvalidObjectBase>,
+        E::Error: Into<InvalidObjectBase>,
         P: TryInto<ObjectPath>,
-        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
+        P::Error: Into<InvalidObjectPath>,
     {
         let bucket = BucketBase::new(
             bucket.try_into().map_err(|e| e.into())?,

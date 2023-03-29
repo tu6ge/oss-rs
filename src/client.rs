@@ -183,7 +183,7 @@ impl Client {
     pub fn get_object_base<P>(&self, path: P) -> Result<ObjectBase, InvalidObjectPath>
     where
         P: TryInto<ObjectPath>,
-        <P as TryInto<ObjectPath>>::Error: Into<InvalidObjectPath>,
+        P::Error: Into<InvalidObjectPath>,
     {
         ObjectBase::<ArcPointer>::from_bucket(self.get_bucket_base(), path)
     }

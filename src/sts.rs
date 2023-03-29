@@ -43,7 +43,7 @@ where
     ) -> Result<Self, InvalidHeaderValue>
     where
         ST: TryInto<HeaderValue>,
-        <ST as TryInto<HeaderValue>>::Error: Into<InvalidHeaderValue>;
+        ST::Error: Into<InvalidHeaderValue>;
 }
 
 const SECURITY_TOKEN: &str = "x-oss-security-token";
@@ -58,7 +58,7 @@ impl<M: Default + Clone> STS for Client<M> {
     ) -> Result<Self, InvalidHeaderValue>
     where
         ST: TryInto<HeaderValue>,
-        <ST as TryInto<HeaderValue>>::Error: Into<InvalidHeaderValue>,
+        ST::Error: Into<InvalidHeaderValue>,
     {
         let mut auth_builder = AuthBuilder::default();
         auth_builder.key(access_key_id);
