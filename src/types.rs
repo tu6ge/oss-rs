@@ -972,7 +972,7 @@ impl<'a> InnerCanonicalizedResource<'a> {
     ///
     /// 如果查询条件中有翻页的话，则忽略掉其他字段
     #[cfg(feature = "core")]
-    #[inline(always)]
+    #[inline]
     pub fn from_bucket_query<B: AsRef<BucketName>>(bucket: B, query: &Query) -> Self {
         Self::from_bucket_query2(bucket.as_ref(), query)
     }

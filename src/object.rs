@@ -973,7 +973,7 @@ impl Client {
     ///     Ok(())
     /// }
     /// ```
-    #[inline(always)]
+    #[inline]
     pub async fn base_object_list<
         Name: Into<BucketName>,
         Q: IntoIterator<Item = (QueryKey, QueryValue)>,
