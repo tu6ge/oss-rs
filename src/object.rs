@@ -761,7 +761,9 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError>
 {
     #[inline]
     fn set_key_count(&mut self, key_count: &str) -> Result<(), ObjectListError> {
-        self.key_count = key_count.parse().map_err(|_| ObjectListError::KeyCount)?;
+        self.key_count = key_count
+            .parse()
+            .map_err(|_| ObjectListError::KeyCount(key_count.to_owned()))?;
         Ok(())
     }
 
@@ -783,15 +785,19 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError>
         list: &[std::borrow::Cow<'_, str>],
     ) -> Result<(), ObjectListError> {
         for val in list.iter() {
-            self.common_prefixes
-                .push(val.parse().map_err(|_| ObjectListError::CommonPrefix)?);
+            self.common_prefixes.push(
+                val.parse()
+                    .map_err(|_| ObjectListError::CommonPrefix(val.to_string()))?,
+            );
         }
         Ok(())
     }
 
     #[inline]
     fn set_max_keys(&mut self, max_keys: &str) -> Result<(), ObjectListError> {
-        self.max_keys = max_keys.parse().map_err(|_| ObjectListError::MaxKeys)?;
+        self.max_keys = max_keys
+            .parse()
+            .map_err(|_| ObjectListError::MaxKeys(max_keys.to_string()))?;
         Ok(())
     }
 
@@ -813,16 +819,16 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError>
 #[non_exhaustive]
 pub enum ObjectListError {
     /// when covert key_count failed ,return this error
-    #[error("covert key_count failed")]
-    KeyCount,
+    #[error("covert key_count failed, source str: {0}")]
+    KeyCount(String),
 
     /// when covert common_prefixes failed ,return this error
-    #[error("covert common_prefixes failed")]
-    CommonPrefix,
+    #[error("covert common_prefixes failed, source str: {0}")]
+    CommonPrefix(String),
 
     /// when covert max_keys failed ,return this error
-    #[error("covert max_keys failed")]
-    MaxKeys,
+    #[error("covert max_keys failed, source str: {0}")]
+    MaxKeys(String),
 }
 
 impl ListError for ObjectListError {}

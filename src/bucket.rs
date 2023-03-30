@@ -185,17 +185,26 @@ impl<T: PointerFamily> AsRef<EndPoint> for Bucket<T> {
 
 impl<T: PointerFamily> RefineBucket<BucketError> for Bucket<T> {
     fn set_name(&mut self, name: &str) -> Result<(), BucketError> {
-        self.base.set_name(name.parse::<BucketName>()?);
+        self.base.set_name(
+            name.parse::<BucketName>()
+                .map_err(|e| BucketError::BucketName(e, name.to_string()))?,
+        );
         Ok(())
     }
 
     fn set_location(&mut self, location: &str) -> Result<(), BucketError> {
-        self.base.set_endpoint(location.parse::<EndPoint>()?);
+        self.base.set_endpoint(
+            location
+                .parse::<EndPoint>()
+                .map_err(|e| BucketError::EndPoint(e, location.to_string()))?,
+        );
         Ok(())
     }
 
     fn set_creation_date(&mut self, creation_date: &str) -> Result<(), BucketError> {
-        self.creation_date = creation_date.parse()?;
+        self.creation_date = creation_date
+            .parse()
+            .map_err(|e| BucketError::Chrono(e, creation_date.to_string()))?;
         Ok(())
     }
 
@@ -203,14 +212,14 @@ impl<T: PointerFamily> RefineBucket<BucketError> for Bucket<T> {
         let start_char = storage_class
             .chars()
             .next()
-            .ok_or(BucketError::InvalidStorageClass)?;
+            .ok_or(BucketError::InvalidStorageClass(storage_class.to_string()))?;
 
         match start_char {
             'a' | 'A' => self.storage_class = StorageClass::Archive,
             'i' | 'I' => self.storage_class = StorageClass::IA,
             's' | 'S' => self.storage_class = StorageClass::Standard,
             'c' | 'C' => self.storage_class = StorageClass::ColdArchive,
-            _ => return Err(BucketError::InvalidStorageClass),
+            _ => return Err(BucketError::InvalidStorageClass(storage_class.to_string())),
         }
 
         Ok(())
@@ -222,20 +231,20 @@ impl<T: PointerFamily> RefineBucket<BucketError> for Bucket<T> {
 #[non_exhaustive]
 pub enum BucketError {
     /// when covert bucket name failed ,return this error
-    #[error("covert bucket name failed")]
-    BucketName(#[from] InvalidBucketName),
+    #[error("covert bucket name failed, {0}, source str: {1}")]
+    BucketName(InvalidBucketName, String),
 
     /// when covert endpoint failed ,return this error
-    #[error("convert endpoint failed")]
-    EndPoint(#[from] InvalidEndPoint),
+    #[error("convert endpoint failed, {0}, source str: {1}")]
+    EndPoint(InvalidEndPoint, String),
 
     /// when covert creation_date failed ,return this error
-    #[error("covert creation_date failed: {0}")]
-    Chrono(#[from] chrono::ParseError),
+    #[error("covert creation_date failed: {0}, source str: {1}")]
+    Chrono(chrono::ParseError, String),
 
     /// when failed to get storage_class, return this error
-    #[error("invalid storage class")]
-    InvalidStorageClass,
+    #[error("invalid storage class, source str: {0}")]
+    InvalidStorageClass(String),
 }
 
 impl ItemError for BucketError {}
@@ -247,14 +256,14 @@ mod test_bucket_error {
     fn assert_impl<T: ItemError>() {}
     #[test]
     fn display() {
-        let error = BucketError::BucketName(InvalidBucketName {});
-        assert_eq!(error.to_string(), "covert bucket name failed");
+        let error = BucketError::BucketName(InvalidBucketName {}, "abc".to_string());
+        assert_eq!(error.to_string(), "covert bucket name failed, bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾, source str: abc");
 
-        let error = BucketError::EndPoint(InvalidEndPoint {});
-        assert_eq!(error.to_string(), "convert endpoint failed");
+        let error = BucketError::EndPoint(InvalidEndPoint {}, "abc".to_string());
+        assert_eq!(error.to_string(), "convert endpoint failed, endpoint must not with `-` prefix or `-` suffix or `oss-` prefix, source str: abc");
 
-        let error = BucketError::InvalidStorageClass;
-        assert_eq!(error.to_string(), "invalid storage class");
+        let error = BucketError::InvalidStorageClass("abc".to_string());
+        assert_eq!(error.to_string(), "invalid storage class, source str: abc");
 
         assert_impl::<BucketError>();
     }
