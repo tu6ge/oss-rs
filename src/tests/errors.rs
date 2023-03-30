@@ -1,18 +1,6 @@
 use http::StatusCode;
 
-use crate::errors::{OssError, OssService};
-
-#[test]
-fn test_message() {
-    let oss_err = OssError::OssService(OssService {
-        code: "OSS_TEST_CODE".to_string(),
-        status: StatusCode::default(),
-        message: "foo_msg".to_string(),
-        request_id: "foo_req_id".to_string(),
-    });
-
-    assert_eq!(oss_err.message(), "foo_msg".to_string());
-}
+use crate::errors::OssService;
 
 #[test]
 fn test_oss_service_fmt() {

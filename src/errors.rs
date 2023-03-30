@@ -1,4 +1,4 @@
-use http::{header::ToStrError, StatusCode};
+use http::StatusCode;
 use std::fmt;
 use thiserror::Error;
 
@@ -15,46 +15,9 @@ use crate::{
 #[non_exhaustive]
 pub enum OssError {
     #[doc(hidden)]
-    #[error("reqwest error: {0}")]
-    Request(#[from] reqwest::Error),
-
-    #[doc(hidden)]
-    #[error("invalid header value msg: {0}")]
-    InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
-
-    #[doc(hidden)]
     #[error("{0}")]
     #[cfg(test)]
     Dotenv(#[from] dotenv::Error),
-
-    #[doc(hidden)]
-    #[error("var error: {0}")]
-    VarError(#[from] std::env::VarError),
-
-    #[doc(hidden)]
-    #[error("io error: {0}")]
-    Io(#[from] std::io::Error),
-
-    #[doc(hidden)]
-    #[cfg(feature = "decode")]
-    #[error("QuickXml error: {0}")]
-    QuickXml(#[from] quick_xml::Error),
-
-    #[doc(hidden)]
-    #[error("chrono error: {0}")]
-    Chrono(#[from] chrono::ParseError),
-
-    #[doc(hidden)]
-    #[error("{0}")]
-    ToStrError(#[from] ToStrError),
-
-    #[doc(hidden)]
-    #[error("ParseIntError: {0}")]
-    ParseIntError(#[from] std::num::ParseIntError),
-
-    #[doc(hidden)]
-    #[error("aliyun response error: {0}")]
-    OssService(#[from] OssService),
 
     #[doc(hidden)]
     #[error("{0}")]
@@ -101,20 +64,6 @@ pub enum OssError {
     #[doc(hidden)]
     #[error("{0}")]
     ExtractItem(#[from] ExtractItemError),
-
-    #[doc(hidden)]
-    #[error("invalid storage class")]
-    InvalidStorageClass,
-}
-
-impl OssError {
-    /// 返回 oss 服务端的错误信息
-    pub fn message(self) -> String {
-        match self {
-            OssError::OssService(e) => e.message,
-            _ => self.to_string(),
-        }
-    }
 }
 
 /// # 保存并返回 OSS 服务端返回是数据

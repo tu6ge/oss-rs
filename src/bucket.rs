@@ -8,12 +8,14 @@ use crate::config::BucketBase;
 use crate::decode::{
     InnerItemError, ItemError, ListError, RefineBucket, RefineBucketList, RefineObjectList,
 };
-use crate::errors::OssError;
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::object::{ExtractListError, Object, ObjectList, StorageClass};
-use crate::types::{CanonicalizedResource, Query, QueryKey, QueryValue, BUCKET_INFO};
+use crate::types::{
+    CanonicalizedResource, InvalidBucketName, InvalidEndPoint, Query, QueryKey, QueryValue,
+    BUCKET_INFO,
+};
 use crate::{BucketName, EndPoint};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -21,6 +23,7 @@ use http::Method;
 use oss_derive::oss_gen_rc;
 use std::fmt;
 use std::marker::PhantomData;
+use std::num::ParseIntError;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::sync::Arc;
@@ -31,7 +34,7 @@ use std::sync::Arc;
 pub struct ListBuckets<
     PointerSel: PointerFamily = ArcPointer,
     Item: RefineBucket<E> = Bucket<PointerSel>,
-    E: ItemError = OssError,
+    E: ItemError = BucketError,
 > {
     prefix: String,
     marker: String,
@@ -180,37 +183,102 @@ impl<T: PointerFamily> AsRef<EndPoint> for Bucket<T> {
     }
 }
 
-impl<T: PointerFamily> RefineBucket<OssError> for Bucket<T> {
-    fn set_name(&mut self, name: &str) -> Result<(), OssError> {
+impl<T: PointerFamily> RefineBucket<BucketError> for Bucket<T> {
+    fn set_name(&mut self, name: &str) -> Result<(), BucketError> {
         self.base.set_name(name.parse::<BucketName>()?);
         Ok(())
     }
 
-    fn set_location(&mut self, location: &str) -> Result<(), OssError> {
+    fn set_location(&mut self, location: &str) -> Result<(), BucketError> {
         self.base.set_endpoint(location.parse::<EndPoint>()?);
         Ok(())
     }
 
-    fn set_creation_date(&mut self, creation_date: &str) -> Result<(), OssError> {
+    fn set_creation_date(&mut self, creation_date: &str) -> Result<(), BucketError> {
         self.creation_date = creation_date.parse()?;
         Ok(())
     }
 
-    fn set_storage_class(&mut self, storage_class: &str) -> Result<(), OssError> {
+    fn set_storage_class(&mut self, storage_class: &str) -> Result<(), BucketError> {
         let start_char = storage_class
             .chars()
             .next()
-            .ok_or(OssError::InvalidStorageClass)?;
+            .ok_or(BucketError::InvalidStorageClass)?;
 
         match start_char {
             'a' | 'A' => self.storage_class = StorageClass::Archive,
             'i' | 'I' => self.storage_class = StorageClass::IA,
             's' | 'S' => self.storage_class = StorageClass::Standard,
             'c' | 'C' => self.storage_class = StorageClass::ColdArchive,
-            _ => return Err(OssError::InvalidStorageClass),
+            _ => return Err(BucketError::InvalidStorageClass),
         }
 
         Ok(())
+    }
+}
+
+/// decode xml to bucket error collection
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum BucketError {
+    /// when covert bucket name failed ,return this error
+    #[error("covert bucket name failed")]
+    BucketName(#[from] InvalidBucketName),
+
+    /// when covert endpoint failed ,return this error
+    #[error("convert endpoint failed")]
+    EndPoint(#[from] InvalidEndPoint),
+
+    /// when covert creation_date failed ,return this error
+    #[error("covert creation_date failed: {0}")]
+    Chrono(#[from] chrono::ParseError),
+
+    /// when failed to get storage_class, return this error
+    #[error("invalid storage class")]
+    InvalidStorageClass,
+}
+
+impl ItemError for BucketError {}
+
+#[cfg(test)]
+mod test_bucket_error {
+
+    use super::*;
+    fn assert_impl<T: ItemError>() {}
+    #[test]
+    fn display() {
+        let error = BucketError::BucketName(InvalidBucketName {});
+        assert_eq!(error.to_string(), "covert bucket name failed");
+
+        let error = BucketError::EndPoint(InvalidEndPoint {});
+        assert_eq!(error.to_string(), "convert endpoint failed");
+
+        let error = BucketError::InvalidStorageClass;
+        assert_eq!(error.to_string(), "invalid storage class");
+
+        assert_impl::<BucketError>();
+    }
+}
+
+/// decode xml to bucket list error collection
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+enum BucketListError {
+    /// it has only parse max_keys
+    #[error("covert max_keys failed")]
+    ParseInt(#[from] ParseIntError),
+}
+impl ListError for BucketListError {}
+
+#[cfg(test)]
+mod test_bucket_list_error {
+    use super::*;
+
+    fn assert_impl<T: ListError>() {}
+
+    #[test]
+    fn test_bucket_list_error() {
+        assert_impl::<BucketListError>();
     }
 }
 
@@ -338,45 +406,45 @@ impl Bucket<RcPointer> {
     }
 }
 
-impl<T: PointerFamily, Item: RefineBucket<E>, E: ItemError> RefineBucketList<Item, OssError, E>
-    for ListBuckets<T, Item, E>
+impl<T: PointerFamily, Item: RefineBucket<E>, E: ItemError>
+    RefineBucketList<Item, BucketListError, E> for ListBuckets<T, Item, E>
 {
-    fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
+    fn set_prefix(&mut self, prefix: &str) -> Result<(), BucketListError> {
         self.prefix = prefix.to_owned();
         Ok(())
     }
 
-    fn set_marker(&mut self, marker: &str) -> Result<(), OssError> {
+    fn set_marker(&mut self, marker: &str) -> Result<(), BucketListError> {
         self.marker = marker.to_owned();
         Ok(())
     }
 
-    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
+    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), BucketListError> {
         self.max_keys = max_keys.parse()?;
         Ok(())
     }
 
-    fn set_is_truncated(&mut self, is_truncated: bool) -> Result<(), OssError> {
+    fn set_is_truncated(&mut self, is_truncated: bool) -> Result<(), BucketListError> {
         self.is_truncated = is_truncated;
         Ok(())
     }
 
-    fn set_next_marker(&mut self, marker: &str) -> Result<(), OssError> {
+    fn set_next_marker(&mut self, marker: &str) -> Result<(), BucketListError> {
         self.next_marker = marker.to_owned();
         Ok(())
     }
 
-    fn set_id(&mut self, id: &str) -> Result<(), OssError> {
+    fn set_id(&mut self, id: &str) -> Result<(), BucketListError> {
         self.id = id.to_owned();
         Ok(())
     }
 
-    fn set_display_name(&mut self, display_name: &str) -> Result<(), OssError> {
+    fn set_display_name(&mut self, display_name: &str) -> Result<(), BucketListError> {
         self.display_name = display_name.to_owned();
         Ok(())
     }
 
-    fn set_list(&mut self, list: Vec<Item>) -> Result<(), OssError> {
+    fn set_list(&mut self, list: Vec<Item>) -> Result<(), BucketListError> {
         self.buckets = list;
         Ok(())
     }

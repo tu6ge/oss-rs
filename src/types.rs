@@ -1565,7 +1565,7 @@ impl<'a> InnerQueryKey<'a> {
     /// assert_matches!(key, QueryKey::Custom(_));
     /// ```
     /// *`fetch-owner` 功能未实现，特殊说明*
-    pub fn from_static<'b>(val: &'b str) -> Self {
+    pub fn from_static(val: &str) -> Self {
         use InnerQueryKey::*;
 
         if val.contains("delimiter") {
@@ -1728,7 +1728,7 @@ impl<'a> InnerQueryValue<'a> {
     }
 
     /// Const function that creates a new `QueryValue` from a static str.
-    pub fn from_static2<'b>(val: &'b str) -> Self {
+    pub fn from_static2(val: &str) -> Self {
         Self(Cow::Owned(val.to_owned()))
     }
 }

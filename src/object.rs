@@ -89,7 +89,6 @@ use crate::config::{
     ObjectDir, ObjectPath,
 };
 use crate::decode::{InnerListError, ItemError, ListError, RefineObject, RefineObjectList};
-use crate::errors::OssError;
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
@@ -757,17 +756,17 @@ impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
     }
 }
 
-impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError> RefineObjectList<Item, OssError, E>
-    for ObjectList<P, Item, E>
+impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError>
+    RefineObjectList<Item, ObjectListError, E> for ObjectList<P, Item, E>
 {
     #[inline]
-    fn set_key_count(&mut self, key_count: &str) -> Result<(), OssError> {
-        self.key_count = key_count.parse().map_err(OssError::from)?;
+    fn set_key_count(&mut self, key_count: &str) -> Result<(), ObjectListError> {
+        self.key_count = key_count.parse().map_err(|_| ObjectListError::KeyCount)?;
         Ok(())
     }
 
     #[inline]
-    fn set_prefix(&mut self, prefix: &str) -> Result<(), OssError> {
+    fn set_prefix(&mut self, prefix: &str) -> Result<(), ObjectListError> {
         if prefix.is_empty() {
             self.prefix = None;
         } else {
@@ -779,32 +778,54 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError> RefineObjectList<Ite
     }
 
     #[inline]
-    fn set_common_prefix(&mut self, list: &[std::borrow::Cow<'_, str>]) -> Result<(), OssError> {
+    fn set_common_prefix(
+        &mut self,
+        list: &[std::borrow::Cow<'_, str>],
+    ) -> Result<(), ObjectListError> {
         for val in list.iter() {
             self.common_prefixes
-                .push(val.parse().map_err(OssError::from)?);
+                .push(val.parse().map_err(|_| ObjectListError::CommonPrefix)?);
         }
         Ok(())
     }
 
     #[inline]
-    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), OssError> {
-        self.max_keys = max_keys.parse().map_err(OssError::from)?;
+    fn set_max_keys(&mut self, max_keys: &str) -> Result<(), ObjectListError> {
+        self.max_keys = max_keys.parse().map_err(|_| ObjectListError::MaxKeys)?;
         Ok(())
     }
 
     #[inline]
-    fn set_next_continuation_token_str(&mut self, token: &str) -> Result<(), OssError> {
+    fn set_next_continuation_token_str(&mut self, token: &str) -> Result<(), ObjectListError> {
         self.next_continuation_token = token.to_owned();
         Ok(())
     }
 
     #[inline]
-    fn set_list(&mut self, list: Vec<Item>) -> Result<(), OssError> {
+    fn set_list(&mut self, list: Vec<Item>) -> Result<(), ObjectListError> {
         self.object_list = list;
         Ok(())
     }
 }
+
+/// decode xml to object list error collection
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum ObjectListError {
+    /// when covert key_count failed ,return this error
+    #[error("covert key_count failed")]
+    KeyCount,
+
+    /// when covert common_prefixes failed ,return this error
+    #[error("covert common_prefixes failed")]
+    CommonPrefix,
+
+    /// when covert max_keys failed ,return this error
+    #[error("covert max_keys failed")]
+    MaxKeys,
+}
+
+impl ListError for ObjectListError {}
 
 /// Xml 转化为内置 Object 时的错误集合
 #[derive(Debug, thiserror::Error)]
