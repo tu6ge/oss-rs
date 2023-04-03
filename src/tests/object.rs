@@ -2,9 +2,9 @@ use crate::builder::ArcPointer;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 use crate::builder::{BuilderError, ClientWithMiddleware, PointerFamily};
-use crate::config::{CommonPrefixes, ObjectPath};
 use crate::file::Files;
 use crate::object::ObjectList;
+use crate::types::object::{CommonPrefixes, ObjectPath};
 use crate::{builder::Middleware, client::Client};
 use crate::{BucketName, EndPoint, Query, QueryKey};
 use async_trait::async_trait;
@@ -388,8 +388,8 @@ mod get_object {
     use reqwest::{Request, Response};
 
     use crate::builder::{BuilderError, ClientWithMiddleware};
-    use crate::config::ObjectPath;
     use crate::file::Files;
+    use crate::types::object::ObjectPath;
     use crate::{builder::Middleware, client::Client};
     use async_trait::async_trait;
 

@@ -143,7 +143,7 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    # use aliyun_oss_client::config::ObjectPath;
+    # use aliyun_oss_client::types::object::ObjectPath;
 
     use aliyun_oss_client::file::Files;
     client.put_file("examples/bg2015071010.png", "examples/bg2015071010.png").await;
@@ -179,7 +179,7 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    # use aliyun_oss_client::config::ObjectPath;
+    # use aliyun_oss_client::types::object::ObjectPath;
     use aliyun_oss_client::file::Files;
 
     // 获取完整文件
@@ -238,14 +238,14 @@ use builder::ClientWithMiddleware;
 #[cfg(feature = "core")]
 use config::Config;
 
-#[cfg(feature = "core")]
-pub use config::{ObjectDir, ObjectPath};
 /// 重新导出 http 库的一些方法，便于开发者调用 lib 未提供的 api
 #[cfg(feature = "core")]
 pub use http::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Method,
 };
+#[cfg(feature = "core")]
+pub use types::object::{ObjectDir, ObjectPath};
 #[cfg(feature = "core")]
 pub use types::{BucketName, EndPoint, KeyId, KeySecret, Query, QueryKey, QueryValue};
 

@@ -5,9 +5,12 @@ use thiserror::Error;
 use crate::{
     bucket::ExtractItemError,
     builder::BuilderError,
-    config::{InvalidConfig, InvalidObjectDir, InvalidObjectPath},
+    config::InvalidConfig,
     object::ExtractListError,
-    types::{InvalidBucketName, InvalidEndPoint},
+    types::{
+        object::{InvalidObjectDir, InvalidObjectPath},
+        InvalidBucketName, InvalidEndPoint,
+    },
 };
 
 /// 内置的 Error 集合

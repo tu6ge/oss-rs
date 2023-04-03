@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use crate::bucket::Bucket;
 use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware};
-use crate::config::CommonPrefixes;
 use crate::object::StorageClass;
 use crate::tests::object::assert_object_list;
+use crate::types::object::CommonPrefixes;
 use crate::{EndPoint, Query, QueryKey};
 
 use async_trait::async_trait;

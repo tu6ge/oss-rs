@@ -7,7 +7,7 @@
 //! ```rust,no_run
 //! use aliyun_oss_client::{
 //!     builder::{ArcPointer, BuilderError},
-//!     config::{InvalidObjectDir, ObjectDir, ObjectPath},
+//!     types::object::{InvalidObjectDir, ObjectDir, ObjectPath},
 //!     decode::{ItemError, RefineObject},
 //!     object::ObjectList,
 //!     BucketName, Client,
@@ -84,15 +84,13 @@ use crate::builder::{ArcPointer, BuilderError, PointerFamily};
 use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
-use crate::config::{
-    get_url_resource_with_bucket, BucketBase, CommonPrefixes, InvalidObjectPath, ObjectBase,
-    ObjectDir, ObjectPath,
-};
+use crate::config::{get_url_resource_with_bucket, BucketBase};
 use crate::decode::{InnerListError, ItemError, ListError, RefineObject, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::types::{
+    object::{CommonPrefixes, InvalidObjectPath, ObjectBase, ObjectDir, ObjectPath},
     CanonicalizedResource, Query, QueryKey, QueryValue, UrlQuery, CONTINUATION_TOKEN,
 };
 use crate::{BucketName, Client, EndPoint};
@@ -1315,9 +1313,9 @@ mod tests {
     use super::ObjectList;
     use crate::{
         builder::ArcPointer,
-        config::{BucketBase, ObjectPath},
+        config::BucketBase,
         object::{Object, ObjectBuilder, StorageClass},
-        types::QueryValue,
+        types::{object::ObjectPath, QueryValue},
         Client,
     };
     use chrono::{DateTime, NaiveDateTime, Utc};

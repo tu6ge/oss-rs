@@ -99,8 +99,8 @@ use quick_xml::{events::Event, Reader};
 
 #[cfg(feature = "core")]
 use crate::{
-    config::{InvalidObjectDir, InvalidObjectPath},
     errors::OssError,
+    types::object::{InvalidObjectDir, InvalidObjectPath},
     types::InvalidEndPoint,
 };
 

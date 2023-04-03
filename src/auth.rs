@@ -22,10 +22,10 @@
 //! ```
 
 use crate::{
-    config::ObjectPathInner,
     types::{
-        CanonicalizedResource, ContentMd5, ContentType, Date, InnerCanonicalizedResource,
-        InnerContentMd5, InnerDate, InnerKeyId, InnerKeySecret, KeyId, KeySecret,
+        object::ObjectPathInner, CanonicalizedResource, ContentMd5, ContentType, Date,
+        InnerCanonicalizedResource, InnerContentMd5, InnerDate, InnerKeyId, InnerKeySecret, KeyId,
+        KeySecret,
     },
     BucketName, EndPoint, Query, QueryKey, QueryValue,
 };

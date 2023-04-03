@@ -11,6 +11,9 @@ use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
 #[cfg(any(feature = "core", feature = "auth"))]
 use reqwest::Url;
 
+/// object 相关的类型
+pub mod object;
+
 /// 阿里云 OSS 的签名 key
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct InnerKeyId<'a>(Cow<'a, str>);
