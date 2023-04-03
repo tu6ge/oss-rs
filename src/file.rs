@@ -80,9 +80,9 @@ use reqwest::{Response, Url};
 use crate::{
     bucket::Bucket,
     builder::{ArcPointer, BuilderError, RequestBuilder},
-    config::{InvalidObjectPath, ObjectBase, ObjectPath},
     decode::{ItemError, RefineObject},
     object::{Object, ObjectList},
+    types::object::{InvalidObjectPath, ObjectBase, ObjectPath},
     types::{CanonicalizedResource, ContentRange},
 };
 #[cfg(feature = "put_file")]
@@ -210,10 +210,10 @@ mod std_path_impl {
         bucket::Bucket,
         builder::ArcPointer,
         client::ClientArc,
-        config::{get_url_resource2 as get_url_resource, ObjectBase},
+        config::get_url_resource2 as get_url_resource,
         decode::{ItemError, RefineObject},
         object::ObjectList,
-        types::CanonicalizedResource,
+        types::{object::ObjectBase, CanonicalizedResource},
         ObjectPath,
     };
     use oss_derive::oss_gen_rc;
@@ -653,7 +653,7 @@ mod error_impl {
 
     use http::header::InvalidHeaderValue;
 
-    use crate::{builder::BuilderError, config::InvalidObjectPath};
+    use crate::{builder::BuilderError, types::object::InvalidObjectPath};
 
     use super::FileError;
 
@@ -776,8 +776,8 @@ mod test_try {
     use std::sync::Arc;
 
     use crate::builder::ArcPointer;
-    use crate::config::{ObjectBase, ObjectPath};
     use crate::file::{FileError, Files};
+    use crate::types::object::{ObjectBase, ObjectPath};
     use crate::Client;
 
     fn init_client() -> Client {

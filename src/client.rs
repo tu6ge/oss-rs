@@ -4,9 +4,12 @@ use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddlewa
 #[cfg(test)]
 use crate::builder::Middleware;
 use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware, RequestBuilder};
-use crate::config::{BucketBase, Config, InvalidConfig, InvalidObjectPath, ObjectBase, ObjectPath};
+use crate::config::{BucketBase, Config, InvalidConfig};
 use crate::file::AlignBuilder;
-use crate::types::{BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret};
+use crate::types::{
+    object::{InvalidObjectPath, ObjectBase, ObjectPath},
+    BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret,
+};
 
 use chrono::{DateTime, Utc};
 use http::{
@@ -330,7 +333,8 @@ mod tests {
     use super::ClientArc;
     use crate::{
         builder::ArcPointer,
-        config::{BucketBase, Config, ObjectBase},
+        config::{BucketBase, Config},
+        types::object::ObjectBase,
         BucketName,
     };
 

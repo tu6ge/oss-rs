@@ -2,9 +2,9 @@ use std::fmt::{self, Display};
 
 use aliyun_oss_client::{
     builder::ArcPointer,
-    config::{InvalidObjectDir, ObjectDir, ObjectPathInner},
     decode::RefineObject,
     object::ObjectList,
+    types::object::{InvalidObjectDir, ObjectDir, ObjectPathInner},
     BucketName, Client, DecodeItemError,
 };
 use dotenv::dotenv;

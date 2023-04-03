@@ -60,7 +60,7 @@ mod test_async {
     #[tokio::test]
     async fn test_put_get_and_delete_file() {
         dotenv().ok();
-        use aliyun_oss_client::{config::ObjectPath, file::Files};
+        use aliyun_oss_client::{file::Files, types::object::ObjectPath};
 
         let client = Client::from_env().unwrap();
 
