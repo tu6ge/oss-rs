@@ -20,6 +20,11 @@ use crate::{
 
 use super::{CanonicalizedResource, InvalidBucketName, InvalidEndPoint};
 
+#[cfg(feature = "blocking")]
+use crate::builder::RcPointer;
+#[cfg(feature = "blocking")]
+use std::rc::Rc;
+
 /// # Object 元信息
 /// 包含所属 bucket endpoint 以及文件路径
 #[derive(Debug, Clone)]

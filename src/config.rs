@@ -1,15 +1,3 @@
-#[cfg(feature = "blocking")]
-use std::rc::Rc;
-use std::{
-    env::{self, VarError},
-    str::FromStr,
-};
-
-use reqwest::Url;
-use thiserror::Error;
-
-#[cfg(feature = "blocking")]
-use crate::builder::RcPointer;
 use crate::{
     types::{
         object::{ObjectPathInner, UrlObjectPath},
@@ -18,6 +6,12 @@ use crate::{
     },
     Query,
 };
+use reqwest::Url;
+use std::{
+    env::{self, VarError},
+    str::FromStr,
+};
+use thiserror::Error;
 
 /// OSS 配置信息
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
