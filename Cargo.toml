@@ -78,7 +78,7 @@ core = [
 blocking = ["core", "reqwest/blocking"]
 sts = ["core", "auth"]
 put_file = ["core", "infer"]
-auth = ["hmac", "sha1", "base64", "http", "chrono", "url", "percent-encoding"]
+auth = ["hmac", "sha1", "base64", "http", "chrono", "url", "reqwest", "percent-encoding"]
 decode = ["quick-xml", "oss_derive"]
 # bench = []
 

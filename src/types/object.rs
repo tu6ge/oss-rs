@@ -1,24 +1,26 @@
+#[cfg(feature = "core")]
+use oss_derive::oss_gen_rc;
+#[cfg(feature = "core")]
+use std::sync::Arc;
 use std::{
     borrow::Cow,
     fmt::{self, Display},
     ops::{Add, AddAssign},
     path::Path,
     str::FromStr,
-    sync::Arc,
 };
+use url::Url;
 
-use oss_derive::oss_gen_rc;
-use reqwest::Url;
-use thiserror::Error;
-
+#[cfg(feature = "core")]
+use super::{CanonicalizedResource, InvalidBucketName, InvalidEndPoint};
+#[cfg(feature = "core")]
+use crate::builder::{ArcPointer, PointerFamily};
+#[cfg(feature = "core")]
 use crate::{
-    builder::{ArcPointer, PointerFamily},
     config::{BucketBase, InvalidBucketBase},
     object::Object,
     BucketName, EndPoint, QueryKey, QueryValue,
 };
-
-use super::{CanonicalizedResource, InvalidBucketName, InvalidEndPoint};
 
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
@@ -27,12 +29,14 @@ use std::rc::Rc;
 
 /// # Object 元信息
 /// 包含所属 bucket endpoint 以及文件路径
+#[cfg(feature = "core")]
 #[derive(Debug, Clone)]
 pub struct ObjectBase<PointerSel: PointerFamily = ArcPointer> {
     bucket: PointerSel::Bucket,
     path: ObjectPath,
 }
 
+#[cfg(feature = "core")]
 impl<T: PointerFamily> Default for ObjectBase<T> {
     fn default() -> Self {
         Self {
@@ -42,12 +46,14 @@ impl<T: PointerFamily> Default for ObjectBase<T> {
     }
 }
 
+#[cfg(feature = "core")]
 impl<T: PointerFamily> AsRef<ObjectPath> for ObjectBase<T> {
     fn as_ref(&self) -> &ObjectPath {
         &self.path
     }
 }
 
+#[cfg(feature = "core")]
 impl<T: PointerFamily> ObjectBase<T> {
     /// 初始化 Object 元信息
     pub fn new<P>(bucket: T::Bucket, path: P) -> Result<Self, InvalidObjectPath>
@@ -87,6 +93,7 @@ impl<T: PointerFamily> ObjectBase<T> {
     }
 }
 
+#[cfg(feature = "core")]
 #[oss_gen_rc]
 impl ObjectBase<ArcPointer> {
     #[doc(hidden)]
@@ -174,6 +181,7 @@ impl ObjectBase<ArcPointer> {
     }
 }
 
+#[cfg(feature = "core")]
 #[oss_gen_rc]
 impl PartialEq<ObjectBase<ArcPointer>> for ObjectBase<ArcPointer> {
     #[inline]
@@ -182,6 +190,7 @@ impl PartialEq<ObjectBase<ArcPointer>> for ObjectBase<ArcPointer> {
     }
 }
 
+#[cfg(feature = "core")]
 impl<T: PointerFamily> PartialEq<&str> for ObjectBase<T> {
     /// 相等比较
     /// ```
@@ -208,6 +217,7 @@ impl<T: PointerFamily> PartialEq<&str> for ObjectBase<T> {
 
 /// Object 元信息的错误集
 #[derive(Debug)]
+#[cfg(feature = "core")]
 pub enum InvalidObjectBase {
     #[doc(hidden)]
     Bucket(InvalidBucketBase),
@@ -215,6 +225,7 @@ pub enum InvalidObjectBase {
     Path(InvalidObjectPath),
 }
 
+#[cfg(feature = "core")]
 impl Display for InvalidObjectBase {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use InvalidObjectBase::*;
@@ -225,24 +236,28 @@ impl Display for InvalidObjectBase {
     }
 }
 
+#[cfg(feature = "core")]
 impl From<InvalidBucketBase> for InvalidObjectBase {
     fn from(value: InvalidBucketBase) -> Self {
         Self::Bucket(value)
     }
 }
 
+#[cfg(feature = "core")]
 impl From<InvalidObjectPath> for InvalidObjectBase {
     fn from(value: InvalidObjectPath) -> Self {
         Self::Path(value)
     }
 }
 
+#[cfg(feature = "core")]
 impl From<InvalidBucketName> for InvalidObjectBase {
     fn from(value: InvalidBucketName) -> Self {
         Self::Bucket(value.into())
     }
 }
 
+#[cfg(feature = "core")]
 impl From<InvalidEndPoint> for InvalidObjectBase {
     fn from(value: InvalidEndPoint) -> Self {
         Self::Bucket(value.into())
@@ -430,6 +445,7 @@ impl TryFrom<&Path> for ObjectPathInner<'_> {
     }
 }
 
+#[cfg(feature = "core")]
 impl<T: PointerFamily> From<Object<T>> for ObjectPathInner<'static> {
     #[inline]
     fn from(obj: Object<T>) -> Self {
@@ -438,7 +454,7 @@ impl<T: PointerFamily> From<Object<T>> for ObjectPathInner<'static> {
 }
 
 /// 不合法的文件路径
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub struct InvalidObjectPath;
 
 impl Display for InvalidObjectPath {
@@ -450,6 +466,8 @@ impl Display for InvalidObjectPath {
         write!(f, "invalid object path")
     }
 }
+
+impl std::error::Error for InvalidObjectPath {}
 
 /// 将 object 的路径拼接到 Url 上去
 pub trait UrlObjectPath {
@@ -701,7 +719,7 @@ impl TryFrom<&Path> for ObjectDir<'_> {
 }
 
 /// 不合法的文件目录路径
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub struct InvalidObjectDir;
 
 impl Display for InvalidObjectDir {
@@ -717,12 +735,16 @@ impl Display for InvalidObjectDir {
     }
 }
 
+impl std::error::Error for InvalidObjectDir {}
+
 /// 给 Url 设置一个初始化方法，根据 OSS 的配置信息，返回文件的完整 OSS Url
+#[cfg(feature = "core")]
 pub trait OssFullUrl {
     /// 根据配置信息，计算完整的 Url
     fn from_oss(endpoint: &EndPoint, bucket: &BucketName, path: &ObjectPath) -> Self;
 }
 
+#[cfg(feature = "core")]
 impl OssFullUrl for Url {
     fn from_oss(endpoint: &EndPoint, bucket: &BucketName, path: &ObjectPath) -> Self {
         let mut end_url = endpoint.to_url();
@@ -749,7 +771,7 @@ impl OssFullUrl for Url {
 /// 文件夹下的子文件夹名，子文件夹下递归的所有文件和文件夹不包含在这里。
 pub type CommonPrefixes = Vec<ObjectDir<'static>>;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "core"))]
 mod tests {
     use super::*;
 

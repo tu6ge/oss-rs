@@ -38,9 +38,8 @@ use http::{
 };
 #[cfg(test)]
 use mockall::automock;
-use reqwest::{Request, Url};
+use std::convert::TryInto;
 use std::fmt::Display;
-use std::{convert::TryInto, str::FromStr};
 
 /// 计算 OSS 签名的数据
 #[derive(Default, Clone)]
@@ -568,6 +567,8 @@ pub trait RequestWithOSS {
     fn with_oss(&mut self, key: KeyId, secret: KeySecret) -> AuthResult<()>;
 }
 
+use reqwest::{Request, Url};
+
 impl RequestWithOSS for Request {
     fn with_oss(&mut self, key: KeyId, secret: KeySecret) -> AuthResult<()> {
         let mut auth = Auth::default();
@@ -699,6 +700,7 @@ impl GenCanonicalizedResource for Url {
 
     #[allow(clippy::unwrap_used)]
     fn oss_query(&self) -> Query {
+        use std::str::FromStr;
         self.query_pairs()
             .filter(|(_, val)| !val.is_empty())
             .map(|(key, val)| {
