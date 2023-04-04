@@ -246,7 +246,7 @@ pub use http::{
 };
 #[cfg(feature = "core")]
 pub use types::object::{ObjectDir, ObjectPath};
-#[cfg(feature = "core")]
+#[cfg(any(feature = "core", feature = "auth"))]
 pub use types::{BucketName, EndPoint, KeyId, KeySecret, Query, QueryKey, QueryValue};
 
 /// # 验证模块

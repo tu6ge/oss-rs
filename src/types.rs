@@ -1,7 +1,5 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
-#[cfg(feature = "core")]
-use std::env;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
@@ -9,7 +7,7 @@ use std::str::FromStr;
 use chrono::{DateTime, Utc};
 use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
 #[cfg(any(feature = "core", feature = "auth"))]
-use reqwest::Url;
+use url::Url;
 
 /// object 相关的类型
 pub mod object;
@@ -162,28 +160,17 @@ pub enum EndPoint {
     Other(Cow<'static, str>),
 }
 
-#[cfg(feature = "core")]
 const HANGZHOU: &str = "cn-hangzhou";
-#[cfg(feature = "core")]
 const SHANGHAI: &str = "cn-shanghai";
-#[cfg(feature = "core")]
 const QINGDAO: &str = "cn-qingdao";
-#[cfg(feature = "core")]
 const BEIJING: &str = "cn-beijing";
-#[cfg(feature = "core")]
 const ZHANGJIAKOU: &str = "cn-zhangjiakou";
-#[cfg(feature = "core")]
 const HONGKONG: &str = "cn-hongkong";
-#[cfg(feature = "core")]
 const SHENZHEN: &str = "cn-shenzhen";
-#[cfg(feature = "core")]
 const US_WEST1: &str = "us-west-1";
-#[cfg(feature = "core")]
 const US_EAST1: &str = "us-east-1";
-#[cfg(feature = "core")]
 const AP_SOUTH_EAST1: &str = "ap-southeast-1";
 
-#[cfg(feature = "core")]
 impl AsRef<str> for EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint::*;
@@ -217,7 +204,6 @@ impl AsRef<str> for EndPoint {
     }
 }
 
-#[cfg(feature = "core")]
 impl Display for EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint::*;
@@ -228,22 +214,14 @@ impl Display for EndPoint {
     }
 }
 
-#[cfg(feature = "core")]
 const HANGZHOU_L: &str = "hangzhou";
-#[cfg(feature = "core")]
 const SHANGHAI_L: &str = "shanghai";
-#[cfg(feature = "core")]
 const QINGDAO_L: &str = "qingdao";
-#[cfg(feature = "core")]
 const BEIJING_L: &str = "beijing";
-#[cfg(feature = "core")]
 const ZHANGJIAKOU_L: &str = "zhangjiakou";
-#[cfg(feature = "core")]
 const HONGKONG_L: &str = "hongkong";
-#[cfg(feature = "core")]
 const SHENZHEN_L: &str = "shenzhen";
 
-#[cfg(feature = "core")]
 impl TryFrom<String> for EndPoint {
     type Error = InvalidEndPoint;
     /// 字符串转 endpoint
@@ -259,7 +237,6 @@ impl TryFrom<String> for EndPoint {
     }
 }
 
-#[cfg(feature = "core")]
 impl<'a> TryFrom<&'a str> for EndPoint {
     type Error = InvalidEndPoint;
     /// 字符串字面量转 endpoint
@@ -275,7 +252,6 @@ impl<'a> TryFrom<&'a str> for EndPoint {
     }
 }
 
-#[cfg(feature = "core")]
 impl FromStr for EndPoint {
     type Err = InvalidEndPoint;
     fn from_str(url: &str) -> Result<Self, Self::Err> {
@@ -283,15 +259,11 @@ impl FromStr for EndPoint {
     }
 }
 
-#[cfg(feature = "core")]
 const OSS_DOMAIN_PREFIX: &str = "https://oss-";
-#[cfg(feature = "core")]
 #[allow(dead_code)]
 const OSS_INTERNAL: &str = "-internal";
-#[cfg(feature = "core")]
 const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
 
-#[cfg(any(feature = "core", feature = "auth"))]
 impl<'a> EndPoint {
     /// 通过字符串字面值初始化 endpoint
     ///
@@ -411,6 +383,7 @@ impl<'a> EndPoint {
     /// );
     /// ```
     pub fn to_url(&self) -> Url {
+        use std::env;
         let mut url = String::from(OSS_DOMAIN_PREFIX);
         url.push_str(self.as_ref());
 
@@ -424,7 +397,7 @@ impl<'a> EndPoint {
     }
 }
 
-#[cfg(all(test, feature = "core"))]
+#[cfg(all(test, any(feature = "core", feature = "auth")))]
 mod test_endpoint {
     use super::*;
 
@@ -486,15 +459,12 @@ mod test_endpoint {
 }
 
 /// 无效的可用区
-#[cfg(feature = "core")]
 #[derive(Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct InvalidEndPoint;
 
-#[cfg(feature = "core")]
 impl Error for InvalidEndPoint {}
 
-#[cfg(feature = "core")]
 impl fmt::Display for InvalidEndPoint {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -504,7 +474,6 @@ impl fmt::Display for InvalidEndPoint {
     }
 }
 
-#[cfg(feature = "core")]
 impl PartialEq<&str> for EndPoint {
     /// # 相等比较
     /// ```
@@ -518,7 +487,6 @@ impl PartialEq<&str> for EndPoint {
     }
 }
 
-#[cfg(feature = "core")]
 impl PartialEq<EndPoint> for &str {
     /// # 相等比较
     /// ```
@@ -532,7 +500,6 @@ impl PartialEq<EndPoint> for &str {
     }
 }
 
-#[cfg(feature = "core")]
 impl PartialEq<Url> for EndPoint {
     /// # 相等比较
     /// ```
@@ -961,7 +928,7 @@ impl Default for InnerCanonicalizedResource<'_> {
 pub(crate) const CONTINUATION_TOKEN: &str = "continuation-token";
 #[cfg(any(feature = "core", feature = "auth"))]
 pub(crate) const BUCKET_INFO: &str = "bucketInfo";
-#[cfg(feature = "core")]
+#[cfg(any(feature = "core", feature = "auth"))]
 const QUERY_KEYWORD: [&str; 2] = ["acl", BUCKET_INFO];
 
 impl<'a> InnerCanonicalizedResource<'a> {
@@ -1019,13 +986,13 @@ impl<'a> InnerCanonicalizedResource<'a> {
     /// 带查询条件的
     ///
     /// 如果查询条件中有翻页的话，则忽略掉其他字段
-    #[cfg(feature = "core")]
+    #[cfg(any(feature = "core", feature = "auth"))]
     #[inline]
     pub fn from_bucket_query<B: AsRef<BucketName>>(bucket: B, query: &Query) -> Self {
         Self::from_bucket_query2(bucket.as_ref(), query)
     }
 
-    #[cfg(feature = "core")]
+    #[cfg(any(feature = "core", feature = "auth"))]
     #[doc(hidden)]
     pub fn from_bucket_query2(bucket: &BucketName, query: &Query) -> Self {
         match query.get(QueryKey::ContinuationToken) {
@@ -1039,7 +1006,7 @@ impl<'a> InnerCanonicalizedResource<'a> {
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
-    #[cfg(feature = "core")]
+    #[cfg(any(feature = "core", feature = "auth"))]
     pub(crate) fn from_object<
         Q: IntoIterator<Item = (QueryKey, QueryValue)>,
         B: AsRef<str>,
