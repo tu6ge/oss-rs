@@ -732,38 +732,22 @@ impl GenCanonicalizedResource for Url {
         }
     }
 
-    #[allow(clippy::unwrap_used)]
     fn oss_query(&self) -> Query {
-        use std::str::FromStr;
         self.query_pairs()
             .filter(|(_, val)| !val.is_empty())
-            .map(|(key, val)| {
-                (
-                    QueryKey::from_str(key.as_ref()),
-                    QueryValue::from_str(val.as_ref()),
-                )
-            })
-            .filter(|(key, val)| key.is_ok() && val.is_ok())
-            .map(|(key, val)| (key.unwrap(), val.unwrap()))
             .collect()
     }
 
     fn object_path(&self) -> Option<ObjectPathInner> {
         use percent_encoding::percent_decode;
 
-        ObjectPathInner::new(
-            percent_decode({
-                if self.path().starts_with('/') {
-                    &self.path()[1..]
-                } else {
-                    self.path()
-                }
-                .as_bytes()
-            })
-            .decode_utf8()
-            .ok()?,
-        )
-        .ok()
+        let input = if self.path().starts_with('/') {
+            &self.path()[1..]
+        } else {
+            self.path()
+        }
+        .as_bytes();
+        ObjectPathInner::new(percent_decode(input).decode_utf8().ok()?).ok()
     }
 }
 
@@ -926,7 +910,7 @@ mod tests_canonicalized_resource {
     #[test]
     fn test_canonicalized_resource() {
         let url: Url = "https://oss2.aliyuncs.com".parse().unwrap();
-        assert_eq!(url.canonicalized_resource(), None,);
+        assert_eq!(url.canonicalized_resource(), None);
         let url: Url = "https://oss-cn-qingdao.aliyuncs.com".parse().unwrap();
         assert_eq!(
             url.canonicalized_resource(),
@@ -949,9 +933,10 @@ mod tests_canonicalized_resource {
             Some(CanonicalizedResource::new("/abc/?continuation-token=foo"))
         );
 
-        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com?continuation-token=foo&list-type=2"
-            .parse()
-            .unwrap();
+        let url: Url =
+            "https://abc.oss-cn-qingdao.aliyuncs.com?continuation-token=foo&abc=def&list-type=2"
+                .parse()
+                .unwrap();
         assert_eq!(
             url.canonicalized_resource(),
             Some(CanonicalizedResource::new("/abc/?continuation-token=foo"))

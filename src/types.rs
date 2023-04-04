@@ -1264,6 +1264,32 @@ impl<'a> FromIterator<(&'a str, &'a str)> for Query {
     }
 }
 
+impl<'a> FromIterator<(Cow<'a, str>, Cow<'a, str>)> for Query {
+    /// 转化例子
+    /// ```
+    /// # use aliyun_oss_client::Query;
+    /// # use aliyun_oss_client::QueryKey;
+    /// let query: Query = [("max-keys", "123")].into_iter().collect();
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
+    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
+    /// ```
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (Cow<'a, str>, Cow<'a, str>)>,
+    {
+        let inner = iter.into_iter().map(|(k, v)| {
+            (
+                k.as_ref().parse().expect("invalid QueryKey"),
+                v.as_ref().parse().expect("invalid QueryValue"),
+            )
+        });
+
+        let mut map = Query::default();
+        map.as_mut().extend(inner);
+        map
+    }
+}
+
 impl<'a> FromIterator<(&'a str, u8)> for Query {
     /// 转化例子
     /// ```
@@ -1333,45 +1359,38 @@ impl<'a> FromIterator<(QueryKey, &'a str)> for Query {
     }
 }
 
-impl FromIterator<(QueryKey, u8)> for Query {
-    /// 转化例子
-    /// ```
-    /// # use aliyun_oss_client::Query;
-    /// # use aliyun_oss_client::QueryKey;
-    /// let query = Query::from_iter([(QueryKey::MaxKeys, 123u8)]);
-    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
-    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
-    /// ```
-    fn from_iter<I>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = (QueryKey, u8)>,
-    {
-        let inner = iter.into_iter().map(|(k, v)| (k, v.into()));
+macro_rules! impl_from_iter {
+    ($key:ty, $val:ty, $convert:expr) => {
+        impl FromIterator<($key, $val)> for Query {
+            fn from_iter<I>(iter: I) -> Self
+            where
+                I: IntoIterator<Item = ($key, $val)>,
+            {
+                let inner = iter.into_iter().map($convert);
 
-        let mut map = Query::default();
-        map.as_mut().extend(inner);
-        map
-    }
+                let mut map = Query::default();
+                map.as_mut().extend(inner);
+                map
+            }
+        }
+    };
 }
 
-impl FromIterator<(QueryKey, u16)> for Query {
-    /// 转化例子
-    /// ```
-    /// # use aliyun_oss_client::Query;
-    /// # use aliyun_oss_client::QueryKey;
-    /// let query = Query::from_iter([(QueryKey::MaxKeys, 123u16)]);
-    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
-    /// assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
-    /// ```
-    fn from_iter<I>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = (QueryKey, u16)>,
-    {
-        let inner = iter.into_iter().map(|(k, v)| (k, v.into()));
+impl_from_iter!(QueryKey, u8, |(k, v)| (k, v.into()));
+impl_from_iter!(QueryKey, u16, |(k, v)| (k, v.into()));
 
-        let mut map = Query::default();
-        map.as_mut().extend(inner);
-        map
+#[cfg(test)]
+mod tests_query_from_iter {
+    use super::*;
+    #[test]
+    fn test() {
+        let query = Query::from_iter([(QueryKey::MaxKeys, 123u8)]);
+        assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
+        assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
+
+        let query = Query::from_iter([(QueryKey::MaxKeys, 123u16)]);
+        assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
+        assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
     }
 }
 
@@ -1380,16 +1399,6 @@ impl PartialEq<Query> for Query {
         self.as_ref() == other.as_ref()
     }
 }
-
-// impl<K, V, const N: usize> From<[(K, V); N]> for Query
-// where
-//     K: Into<QueryKey>,
-//     V: Into<QueryValue>,
-// {
-//     fn from(arr: [(K, V); N]) -> Self {
-//         arr.into_iter().map(|(k, v)| (k.into(), v.into())).collect()
-//     }
-// }
 
 /// 为 Url 拼接 [`Query`] 数据
 /// [`Query`]: crate::types::Query
