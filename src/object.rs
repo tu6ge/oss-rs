@@ -743,13 +743,13 @@ impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
             .next()
             .ok_or(BuildInItemError::InvalidStorageClass)?;
 
-        match start_char {
-            'a' | 'A' => self.storage_class = StorageClass::Archive,
-            'i' | 'I' => self.storage_class = StorageClass::IA,
-            's' | 'S' => self.storage_class = StorageClass::Standard,
-            'c' | 'C' => self.storage_class = StorageClass::ColdArchive,
+        self.storage_class = match start_char {
+            'a' | 'A' => StorageClass::Archive,
+            'i' | 'I' => StorageClass::IA,
+            's' | 'S' => StorageClass::Standard,
+            'c' | 'C' => StorageClass::ColdArchive,
             _ => return Err(BuildInItemError::InvalidStorageClass),
-        }
+        };
         Ok(())
     }
 }
