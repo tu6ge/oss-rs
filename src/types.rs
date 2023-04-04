@@ -953,10 +953,8 @@ impl<'a> InnerCanonicalizedResource<'a> {
     pub fn from_bucket<B: AsRef<BucketName>>(bucket: B, query: Option<&str>) -> Self {
         match query {
             Some(q) => {
-                for k in QUERY_KEYWORD.iter() {
-                    if *k == q {
-                        return Self::new(format!("/{}/?{}", bucket.as_ref().as_ref(), q));
-                    }
+                if let Some(_) = QUERY_KEYWORD.iter().find(|&&str| str == q) {
+                    return Self::new(format!("/{}/?{}", bucket.as_ref().as_ref(), q));
                 }
 
                 Self::new(format!("/{}/", bucket.as_ref().as_ref()))
@@ -970,10 +968,8 @@ impl<'a> InnerCanonicalizedResource<'a> {
     pub fn from_bucket_name(bucket: &BucketName, query: Option<&str>) -> Self {
         match query {
             Some(q) => {
-                for k in QUERY_KEYWORD.iter() {
-                    if *k == q {
-                        return Self::new(format!("/{}/?{}", bucket.as_ref(), q));
-                    }
+                if let Some(_) = QUERY_KEYWORD.iter().find(|&&str| str == q) {
+                    return Self::new(format!("/{}/?{}", bucket.as_ref(), q));
                 }
 
                 Self::new(format!("/{}/", bucket.as_ref()))
