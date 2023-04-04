@@ -244,6 +244,15 @@ impl InnerAuth<'_> {
 
         Ok(map)
     }
+    /// 将 Auth 信息计算后附加到 HeaderMap 上
+    fn append_headers(&self, headers: &mut HeaderMap) -> AuthResult<()> {
+        headers.append_auth(self)?;
+        let oss_header = self.to_oss_header();
+        let sign_string = SignString::from_auth(self, oss_header);
+        headers.append_sign(sign_string.to_sign().map_err(AuthError::from)?)?;
+
+        Ok(())
+    }
 }
 
 pub(crate) trait AuthHeader {
@@ -291,6 +300,29 @@ impl AuthHeader for HeaderMap {
     }
 }
 
+trait AppendAuthHeader {
+    fn append_auth<'a>(&'a mut self, auth: &InnerAuth<'a>) -> Result<(), InvalidHeaderValue>;
+}
+
+impl AppendAuthHeader for HeaderMap {
+    fn append_auth<'a>(&'a mut self, auth: &InnerAuth<'a>) -> Result<(), InvalidHeaderValue> {
+        self.extend(auth.get_original_header());
+
+        self.insert(ACCESS_KEY_ID, auth.get_header_key()?);
+        self.insert(SECRET_ACCESS_KEY, auth.get_header_secret()?);
+        self.insert(VERB_IDENT, auth.get_header_method()?);
+
+        if let Some(a) = auth.get_header_md5() {
+            self.insert(CONTENT_MD5, a);
+        }
+
+        self.insert(DATE, auth.get_header_date()?);
+        self.insert(CANONICALIZED_RESOURCE, auth.get_header_resource()?);
+
+        Ok(())
+    }
+}
+
 /// # 前缀是 x-oss- 的 header 记录
 ///
 /// 将他们按顺序组合成一个字符串，用于计算签名
@@ -333,6 +365,7 @@ impl Display for OssHeader {
 }
 
 /// 待签名的数据
+#[derive(Debug)]
 pub(crate) struct SignString<'a> {
     data: String,
     key: InnerKeyId<'a>,
@@ -422,6 +455,7 @@ impl<'a> SignString<'a> {
 }
 
 /// header 中的签名
+#[derive(Debug)]
 pub(crate) struct Sign<'a> {
     data: String,
     key: InnerKeyId<'a>,
@@ -571,7 +605,7 @@ use reqwest::{Request, Url};
 
 impl RequestWithOSS for Request {
     fn with_oss(&mut self, key: KeyId, secret: KeySecret) -> AuthResult<()> {
-        let mut auth = Auth::default();
+        let mut auth = InnerAuth::default();
         auth.set_key(key);
         auth.set_secret(secret);
 
@@ -582,13 +616,13 @@ impl RequestWithOSS for Request {
                 .canonicalized_resource()
                 .ok_or(AuthError::InvalidCanonicalizedResource)?,
         );
-        auth.set_headers(self.headers().clone());
 
-        *self.headers_mut() = auth.get_headers()?;
+        auth.append_headers(self.headers_mut())?;
 
         Ok(())
     }
 }
+
 /// 根据 Url 计算 [`CanonicalizedResource`]
 ///
 /// [`CanonicalizedResource`]: crate::types::CanonicalizedResource
@@ -733,6 +767,24 @@ impl GenCanonicalizedResource for Url {
     }
 }
 
+impl GenCanonicalizedResource for Request {
+    fn canonicalized_resource(&self) -> Option<CanonicalizedResource> {
+        self.url().canonicalized_resource()
+    }
+
+    fn oss_host(&self) -> OssHost {
+        self.url().oss_host()
+    }
+
+    fn oss_query(&self) -> Query {
+        self.url().oss_query()
+    }
+
+    fn object_path(&self) -> Option<ObjectPathInner> {
+        self.url().object_path()
+    }
+}
+
 /// 收集 Auth 模块的错误
 #[derive(Debug)]
 pub enum AuthError {
@@ -742,6 +794,8 @@ pub enum AuthError {
     InvalidLength(hmac::digest::crypto_common::InvalidLength),
     #[doc(hidden)]
     InvalidCanonicalizedResource,
+    #[doc(hidden)]
+    AppendSignFailed,
 }
 
 impl std::error::Error for AuthError {}
@@ -770,6 +824,7 @@ impl Display for AuthError {
             Self::InvalidHeaderValue(_) => f.write_str("failed to parse header value"),
             Self::InvalidLength(_) => f.write_str("Invalid hmac Length"),
             Self::InvalidCanonicalizedResource => f.write_str("Invalid CanonicalizedResource"),
+            Self::AppendSignFailed => f.write_str("append signature failed"),
         }
     }
 }

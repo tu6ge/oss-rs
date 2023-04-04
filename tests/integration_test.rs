@@ -1,6 +1,6 @@
 #[cfg(all(feature = "core", not(tarpaulin)))]
 mod test_async {
-    use aliyun_oss_client::Client;
+    use aliyun_oss_client::{Client, Method};
     use assert_matches::assert_matches;
     use dotenv::dotenv;
 
@@ -24,6 +24,34 @@ mod test_async {
         let bucket_list = client.get_bucket_info().await;
 
         assert_matches!(bucket_list, Ok(_));
+    }
+
+    #[tokio::test]
+    async fn test_get_bucket_info_with_trait() {
+        use aliyun_oss_client::auth::RequestWithOSS;
+        use std::env;
+        dotenv().ok();
+
+        let client = reqwest::Client::default();
+
+        let key_id = env::var("ALIYUN_KEY_ID").unwrap();
+        let key_secret = env::var("ALIYUN_KEY_SECRET").unwrap();
+        let bucket = env::var("ALIYUN_BUCKET").unwrap();
+
+        let mut request = client
+            .request(
+                Method::GET,
+                format!("https://{bucket}.oss-cn-shanghai.aliyuncs.com/?bucketInfo"),
+            )
+            .build()
+            .unwrap();
+
+        request.with_oss(key_id.into(), key_secret.into()).unwrap();
+
+        let response = client.execute(request).await;
+
+        assert!(response.is_ok());
+        assert!(response.unwrap().status().is_success());
     }
 
     #[tokio::test]
