@@ -1056,6 +1056,24 @@ mod tests_canonicalized_resource {
 
     #[cfg(feature = "core")]
     #[test]
+    fn test_from_bucket() {
+        use crate::{config::BucketBase, types::CanonicalizedResource};
+
+        let base: BucketBase = "abc.jinan".parse().unwrap();
+        let resource = CanonicalizedResource::from_bucket(&base, Some("bucketInfo"));
+        assert_eq!(resource, "/abc/?bucketInfo");
+
+        let base: BucketBase = "abc.jinan".parse().unwrap();
+        let resource = CanonicalizedResource::from_bucket(&base, Some("bar"));
+        assert_eq!(resource, "/abc/");
+
+        let base: BucketBase = "abc.jinan".parse().unwrap();
+        let resource = CanonicalizedResource::from_bucket(&base, None);
+        assert_eq!(resource, "/");
+    }
+
+    #[cfg(feature = "core")]
+    #[test]
     fn test_from_bucket_query2() {
         use crate::{types::CanonicalizedResource, BucketName, Query, QueryKey};
 
@@ -1072,6 +1090,19 @@ mod tests_canonicalized_resource {
             resource,
             CanonicalizedResource::new("/abc/?continuation-token=foo")
         );
+    }
+
+    #[cfg(any(feature = "core", feature = "auth"))]
+    #[test]
+    fn test_from_object() {
+        use super::CanonicalizedResource;
+
+        let resource = CanonicalizedResource::from_object(("foo", "bar"), []);
+        assert_eq!(resource, "/foo/bar");
+
+        let resource =
+            CanonicalizedResource::from_object(("foo", "bar"), [("foo2".into(), "bar2".into())]);
+        assert_eq!(resource, "/foo/bar?foo2=bar2");
     }
 }
 
@@ -1136,15 +1167,6 @@ impl Query {
         value: impl Into<QueryValue>,
     ) -> Option<QueryValue> {
         self.as_mut().insert(key.into(), value.into())
-    }
-
-    /// Insert max_keys, value must be safe value (0-1000)
-    pub fn insert_max_keys(&mut self, value: u16) -> Option<QueryValue> {
-        if value > 0 && value <= 1000 {
-            self.insert(QueryKey::MaxKeys, value)
-        } else {
-            None
-        }
     }
 
     /// Returns a reference to the value corresponding to the key.

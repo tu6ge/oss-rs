@@ -470,10 +470,18 @@ impl PartialEq<Url> for BucketBase {
 mod tests {
     use super::*;
 
-    fn assert_as_ref_keyid<K: AsRef<KeyId>>(_k: K) {}
-    fn assert_as_ref_key_secret<K: AsRef<KeySecret>>(_k: K) {}
-    fn assert_as_ref_endpoint<K: AsRef<EndPoint>>(_k: K) {}
-    fn assert_as_ref_bucket<K: AsRef<BucketName>>(_k: K) {}
+    fn assert_as_ref_keyid<K: AsRef<KeyId>>(k: K) {
+        k.as_ref();
+    }
+    fn assert_as_ref_key_secret<K: AsRef<KeySecret>>(k: K) {
+        k.as_ref();
+    }
+    fn assert_as_ref_endpoint<K: AsRef<EndPoint>>(k: K) {
+        k.as_ref();
+    }
+    fn assert_as_ref_bucket<K: AsRef<BucketName>>(k: K) {
+        k.as_ref();
+    }
 
     #[test]
     fn test_config_as_ref() {
@@ -503,15 +511,24 @@ mod tests {
         let err = BucketBase::from_env();
 
         assert!(matches!(err, Err(InvalidConfig::VarError(_))));
-        assert_eq!(format!("{err:?}"), "Err(VarError(NotPresent))");
+        let err = err.unwrap_err();
+        assert_eq!(format!("{}", err), "environment variable not found");
     }
 
     #[test]
     fn test_base_as() {
-        fn assert_as_mut_endpoint<E: AsMut<EndPoint>>(_e: E) {}
-        fn assert_as_mut_name<E: AsMut<BucketName>>(_e: E) {}
-        fn assert_as_endpoint<E: AsRef<EndPoint>>(_e: E) {}
-        fn assert_as_name<E: AsRef<BucketName>>(_e: E) {}
+        fn assert_as_mut_endpoint<E: AsMut<EndPoint>>(e: &mut E) {
+            e.as_mut();
+        }
+        fn assert_as_mut_name<E: AsMut<BucketName>>(e: &mut E) {
+            e.as_mut();
+        }
+        fn assert_as_endpoint<E: AsRef<EndPoint>>(e: &E) {
+            e.as_ref();
+        }
+        fn assert_as_name<E: AsRef<BucketName>>(e: &E) {
+            e.as_ref();
+        }
 
         let mut base = BucketBase::default();
 
