@@ -27,7 +27,7 @@ use crate::{
         InnerCanonicalizedResource, InnerContentMd5, InnerDate, InnerKeyId, InnerKeySecret, KeyId,
         KeySecret,
     },
-    BucketName, EndPoint, Query, QueryKey, QueryValue,
+    BucketName, EndPoint, Query,
 };
 use chrono::Utc;
 #[cfg(test)]
@@ -979,6 +979,7 @@ mod tests_canonicalized_resource {
 
     #[test]
     fn test_oss_query() {
+        use crate::{QueryKey, QueryValue};
         let url: Url = "https://example.com/path1?delimiter=5".parse().unwrap();
         let query = url.oss_query();
         assert!(query[QueryKey::Delimiter] == QueryValue::new("5"));
