@@ -53,7 +53,7 @@ jobs:
           cargo test --lib --features auth --no-default-features tests
           cargo test --lib --features decode --no-default-features tests
           # --all-features, exclude bench features
-          cargo test --doc --features="blocking,sts,put_file"
+          cargo test --doc --all-features
           cd oss_derive
           cargo test
           cargo test --features blocking
