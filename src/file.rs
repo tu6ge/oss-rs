@@ -192,13 +192,74 @@ impl GetStd for &Object<ArcPointer> {
     }
 }
 
+#[cfg(test)]
+mod tests_get_std {
+    use reqwest::Url;
+    use std::sync::Arc;
+
+    use super::GetStd;
+    use crate::{
+        builder::ArcPointer,
+        object::Object,
+        types::{object::ObjectBase, CanonicalizedResource},
+    };
+
+    #[test]
+    fn test_object_base() {
+        let mut path = ObjectBase::<ArcPointer>::default();
+        path.set_path("path1").unwrap();
+        let bucket = Arc::new("abc.qingdao".parse().unwrap());
+        path.set_bucket(bucket);
+
+        let res = path.get_std();
+
+        assert!(res.is_some());
+        let (url, resource) = res.unwrap();
+
+        assert_eq!(
+            url,
+            Url::parse("https://abc.oss-cn-qingdao.aliyuncs.com/path1").unwrap()
+        );
+        assert_eq!(resource, CanonicalizedResource::new("/abc/path1"));
+    }
+
+    #[test]
+    fn test_object() {
+        let object = Object::<ArcPointer>::default();
+        let res = object.get_std();
+        assert!(res.is_some());
+        let (url, resource) = res.unwrap();
+
+        assert_eq!(
+            url,
+            Url::parse("https://a.oss-cn-hangzhou.aliyuncs.com/").unwrap()
+        );
+        assert_eq!(resource, CanonicalizedResource::new("/a/"));
+    }
+
+    #[test]
+    fn test_object_ref() {
+        let object = Object::<ArcPointer>::default();
+        let res = GetStd::get_std(&object);
+        assert!(res.is_some());
+        let (url, resource) = res.unwrap();
+
+        assert_eq!(
+            url,
+            Url::parse("https://a.oss-cn-hangzhou.aliyuncs.com/").unwrap()
+        );
+        assert_eq!(resource, CanonicalizedResource::new("/a/"));
+    }
+}
+
 /// 根据给定路径，获取请求 OSS 接口需要的信息
 pub trait GetStdWithPath<Path> {
     /// 根据 path 获取 `Url` 和 `CanonicalizedResource`
     fn get_std_with_path(&self, _path: Path) -> Option<(Url, CanonicalizedResource)>;
 }
 
-mod std_path_impl {
+#[doc(hidden)]
+pub mod std_path_impl {
 
     #[cfg(feature = "blocking")]
     use crate::builder::RcPointer;
@@ -210,7 +271,7 @@ mod std_path_impl {
         bucket::Bucket,
         builder::ArcPointer,
         client::ClientArc,
-        config::get_url_resource2 as get_url_resource,
+        config::{get_url_resource2 as get_url_resource, BucketBase},
         decode::{ItemError, RefineObject},
         object::ObjectList,
         types::{object::ObjectBase, CanonicalizedResource},
@@ -263,55 +324,29 @@ mod std_path_impl {
     ///
     /// [`&ObjectPath`]: crate::ObjectPath
     #[oss_gen_rc]
-    impl GetStdWithPath<&ObjectPath> for ClientArc {
-        fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            Some(get_url_resource(self, self, path))
-        }
-    }
-
-    /// # 用于在 Client 上对文件进行操作
-    ///
-    /// 文件路径可以是 [`ObjectBase`] 类型
-    ///
-    /// [`ObjectBase`]: crate::config::ObjectBase
-    #[oss_gen_rc]
-    impl GetStdWithPath<ObjectBase> for ClientArc {
-        #[inline]
-        fn get_std_with_path(&self, base: ObjectBase) -> Option<(Url, CanonicalizedResource)> {
-            Some(base.get_url_resource([]))
-        }
-    }
-
-    /// # 用于在 Client 上对文件进行操作
-    ///
-    /// 文件路径可以是 [`&ObjectBase`] 类型
-    ///
-    /// [`&ObjectBase`]: crate::config::ObjectBase
-    #[oss_gen_rc]
-    impl GetStdWithPath<&ObjectBase> for ClientArc {
-        #[inline]
-        fn get_std_with_path(&self, base: &ObjectBase) -> Option<(Url, CanonicalizedResource)> {
-            Some(base.get_url_resource([]))
+    impl<Path: AsRef<ObjectPath>> GetStdWithPath<Path> for ClientArc {
+        fn get_std_with_path(&self, path: Path) -> Option<(Url, CanonicalizedResource)> {
+            Some(get_url_resource(self, self, path.as_ref()))
         }
     }
 
     /// # 用于在 Bucket 上对文件进行操作
     ///
     /// 文件路径可以是 `String` 类型
-    impl GetStdWithPath<String> for Bucket {
+    impl<B: AsRef<BucketBase>> GetStdWithPath<String> for B {
         fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
             let path = path.try_into().ok()?;
-            Some(self.base.get_url_resource_with_path(&path))
+            Some(self.as_ref().get_url_resource_with_path(&path))
         }
     }
 
     /// # 用于在 Bucket 上对文件进行操作
     ///
     /// 文件路径可以是 `&str` 类型
-    impl GetStdWithPath<&str> for Bucket {
+    impl<B: AsRef<BucketBase>> GetStdWithPath<&str> for B {
         fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
             let path = path.try_into().ok()?;
-            Some(self.base.get_url_resource_with_path(&path))
+            Some(self.as_ref().get_url_resource_with_path(&path))
         }
     }
 
@@ -320,10 +355,10 @@ mod std_path_impl {
     /// 文件路径可以是 [`ObjectPath`] 类型
     ///
     /// [`ObjectPath`]: crate::ObjectPath
-    impl GetStdWithPath<ObjectPath> for Bucket {
+    impl<B: AsRef<BucketBase>> GetStdWithPath<ObjectPath> for B {
         #[inline]
         fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            Some(self.base.get_url_resource_with_path(&path))
+            Some(self.as_ref().get_url_resource_with_path(&path))
         }
     }
 
@@ -332,10 +367,10 @@ mod std_path_impl {
     /// 文件路径可以是 [`&ObjectPath`] 类型
     ///
     /// [`&ObjectPath`]: crate::ObjectPath
-    impl GetStdWithPath<&ObjectPath> for Bucket {
+    impl<B: AsRef<BucketBase>> GetStdWithPath<&ObjectPath> for B {
         #[inline]
         fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            Some(self.base.get_url_resource_with_path(path))
+            Some(self.as_ref().get_url_resource_with_path(path))
         }
     }
 
@@ -373,68 +408,6 @@ mod std_path_impl {
 
     /// # 用于在 ObjectList 上对文件进行操作
     ///
-    /// 文件路径可以是 `String` 类型
-    ///
-    /// [`ObjectBase`]: crate::config::ObjectBase
-    #[oss_gen_rc]
-    impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<String>
-        for ObjectList<ArcPointer, Item, E>
-    {
-        #[inline]
-        fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
-            let object_path = path.try_into().ok()?;
-            Some(get_url_resource(self, self, &object_path))
-        }
-    }
-
-    /// # 用于在 ObjectList 上对文件进行操作
-    ///
-    /// 文件路径可以是 `&str` 类型
-    ///
-    /// [`ObjectBase`]: crate::config::ObjectBase
-    #[oss_gen_rc]
-    impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<&str>
-        for ObjectList<ArcPointer, Item, E>
-    {
-        #[inline]
-        fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
-            let object_path = path.try_into().ok()?;
-            Some(get_url_resource(self, self, &object_path))
-        }
-    }
-
-    /// # 用于在 ObjectList 上对文件进行操作
-    ///
-    /// 文件路径可以是 [`ObjectPath`] 类型
-    ///
-    /// [`ObjectPath`]: crate::ObjectPath
-    #[oss_gen_rc]
-    impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync> GetStdWithPath<ObjectPath>
-        for ObjectList<ArcPointer, Item, E>
-    {
-        #[inline]
-        fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            Some(get_url_resource(self, self, &path))
-        }
-    }
-
-    /// # 用于在 ObjectList 上对文件进行操作
-    ///
-    /// 文件路径可以是 [`&ObjectPath`] 类型
-    ///
-    /// [`&ObjectPath`]: crate::ObjectPath
-    #[oss_gen_rc]
-    impl<Item: RefineObject<E> + Send + Sync, E: ItemError + Send + Sync>
-        GetStdWithPath<&ObjectPath> for ObjectList<ArcPointer, Item, E>
-    {
-        #[inline]
-        fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            Some(get_url_resource(self, self, path))
-        }
-    }
-
-    /// # 用于在 ObjectList 上对文件进行操作
-    ///
     /// 文件路径可以是实现 [`GetStd`] 特征的类型
     ///
     /// [`GetStd`]: crate::file::GetStd
@@ -444,6 +417,111 @@ mod std_path_impl {
         #[inline]
         fn get_std_with_path(&self, path: U) -> Option<(Url, CanonicalizedResource)> {
             path.get_std()
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use reqwest::Url;
+
+        use crate::{
+            bucket::Bucket,
+            builder::ArcPointer,
+            client::ClientArc,
+            file::GetStdWithPath,
+            object::Object,
+            types::{object::ObjectBase, CanonicalizedResource},
+            ObjectPath,
+        };
+
+        fn assert_url_resource(
+            result: Option<(Url, CanonicalizedResource)>,
+            url: &str,
+            resource: &str,
+        ) {
+            let (u, r) = result.unwrap();
+
+            assert_eq!(u, Url::parse(url).unwrap());
+            assert_eq!(r, resource);
+        }
+
+        #[test]
+        fn test_client() {
+            let client = ClientArc::test_init();
+            assert_url_resource(
+                client.get_std_with_path("path1".to_owned()),
+                "https://bar.oss-cn-qingdao.aliyuncs.com/path1",
+                "/bar/path1",
+            );
+
+            assert_url_resource(
+                client.get_std_with_path("path1"),
+                "https://bar.oss-cn-qingdao.aliyuncs.com/path1",
+                "/bar/path1",
+            );
+
+            assert_url_resource(
+                client.get_std_with_path("path1".parse::<ObjectPath>().unwrap()),
+                "https://bar.oss-cn-qingdao.aliyuncs.com/path1",
+                "/bar/path1",
+            );
+
+            assert_url_resource(
+                client.get_std_with_path(Object::<ArcPointer>::test_path("path1")),
+                "https://bar.oss-cn-qingdao.aliyuncs.com/path1",
+                "/bar/path1",
+            );
+        }
+
+        #[test]
+        fn test_as_bucket_base() {
+            let bucket = Bucket::<ArcPointer>::default();
+            assert_url_resource(
+                bucket.get_std_with_path("path1".to_string()),
+                "https://a.oss-cn-hangzhou.aliyuncs.com/path1",
+                "/a/path1",
+            );
+
+            assert_url_resource(
+                bucket.get_std_with_path("path1"),
+                "https://a.oss-cn-hangzhou.aliyuncs.com/path1",
+                "/a/path1",
+            );
+            assert_url_resource(
+                bucket.get_std_with_path("path1".parse::<ObjectPath>().unwrap()),
+                "https://a.oss-cn-hangzhou.aliyuncs.com/path1",
+                "/a/path1",
+            );
+
+            let path = "path1".parse::<ObjectPath>().unwrap();
+            assert_url_resource(
+                bucket.get_std_with_path(&path),
+                "https://a.oss-cn-hangzhou.aliyuncs.com/path1",
+                "/a/path1",
+            );
+        }
+
+        #[test]
+        fn test_bucket() {
+            let bucket = Bucket::<ArcPointer>::default();
+            assert_url_resource(
+                bucket.get_std_with_path({
+                    let mut obj = ObjectBase::<ArcPointer>::default();
+                    obj.set_path("path1").unwrap();
+                    obj
+                }),
+                "https://a.oss-cn-hangzhou.aliyuncs.com/path1",
+                "/a/path1",
+            );
+
+            let mut obj = ObjectBase::<ArcPointer>::default();
+            obj.set_path("path1").unwrap();
+
+            assert_url_resource(
+                bucket.get_std_with_path(&obj),
+                "https://a.oss-cn-hangzhou.aliyuncs.com/path1",
+                "/a/path1",
+            );
         }
     }
 }

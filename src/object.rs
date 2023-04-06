@@ -643,6 +643,18 @@ impl<T: PointerFamily> Object<T> {
     }
 }
 
+impl Object<ArcPointer> {
+    #[cfg(test)]
+    pub fn test_path(path: &'static str) -> Self {
+        let mut object = Self::default();
+        object.set_base(ObjectBase::<ArcPointer>::new2(
+            Arc::new(BucketBase::default()),
+            path.try_into().unwrap(),
+        ));
+        object
+    }
+}
+
 /// Object 结构体的构建器
 pub struct ObjectBuilder<T: PointerFamily = ArcPointer> {
     object: Object<T>,

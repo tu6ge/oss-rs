@@ -70,6 +70,18 @@ impl<M: Default + Clone> Client<M> {
         Self::from_builder(auth_builder, endpoint, bucket)
     }
 
+    /// - bucket: bar
+    /// - endpoint: qingdao
+    #[cfg(test)]
+    pub fn test_init() -> Self {
+        Self::new(
+            "foo1".into(),
+            "foo2".into(),
+            EndPoint::CnQingdao,
+            "bar".try_into().unwrap(),
+        )
+    }
+
     /// 使用 [`Config`] 中的配置初始化 Client
     ///
     /// [`Config`]: crate::config::Config
