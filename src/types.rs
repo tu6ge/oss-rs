@@ -689,7 +689,7 @@ impl PartialEq<BucketName> for &str {
 }
 
 /// 无效的 bucket 名称
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[non_exhaustive]
 pub struct InvalidBucketName;
 

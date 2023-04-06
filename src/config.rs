@@ -94,7 +94,7 @@ impl Config {
 }
 
 /// Config 错误信息集合
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum InvalidConfig {
     /// 非法的可用区
@@ -381,7 +381,7 @@ impl BuildFromBucket for Url {
             endpoint.as_ref()
         );
         url.parse().unwrap_or_else(|_| {
-            panic!("covert to url failed, bucket: {bucket}, endpoint: {endpoint}")
+            unreachable!("covert to url failed, bucket: {bucket}, endpoint: {endpoint}")
         })
     }
 }
@@ -463,5 +463,106 @@ impl PartialEq<Url> for BucketBase {
     #[inline]
     fn eq(&self, other: &Url) -> bool {
         &self.to_url() == other
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_as_ref_keyid<K: AsRef<KeyId>>(_k: K) {}
+    fn assert_as_ref_key_secret<K: AsRef<KeySecret>>(_k: K) {}
+    fn assert_as_ref_endpoint<K: AsRef<EndPoint>>(_k: K) {}
+    fn assert_as_ref_bucket<K: AsRef<BucketName>>(_k: K) {}
+
+    #[test]
+    fn test_config_as_ref() {
+        let config = Config::default();
+        assert_as_ref_keyid(&config);
+        assert_as_ref_key_secret(&config);
+        assert_as_ref_endpoint(&config);
+        assert_as_ref_bucket(&config);
+    }
+
+    #[test]
+    fn test_invalid_config() {
+        let error = InvalidEndPoint {};
+        let error2: InvalidConfig = error.into();
+        assert_eq!(
+            format!("{error2}"),
+            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
+        );
+
+        let error = InvalidBucketName {};
+        let error2: InvalidConfig = error.into();
+        assert_eq!(
+            format!("{error2}"),
+            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+        );
+
+        let err = BucketBase::from_env();
+
+        assert!(matches!(err, Err(InvalidConfig::VarError(_))));
+        assert_eq!(format!("{err:?}"), "Err(VarError(NotPresent))");
+    }
+
+    #[test]
+    fn test_base_as() {
+        fn assert_as_mut_endpoint<E: AsMut<EndPoint>>(_e: E) {}
+        fn assert_as_mut_name<E: AsMut<BucketName>>(_e: E) {}
+        fn assert_as_endpoint<E: AsRef<EndPoint>>(_e: E) {}
+        fn assert_as_name<E: AsRef<BucketName>>(_e: E) {}
+
+        let mut base = BucketBase::default();
+
+        assert_as_mut_endpoint(&mut base);
+        assert_as_mut_name(&mut base);
+        assert_as_endpoint(&base);
+        assert_as_name(&base);
+    }
+
+    #[test]
+    fn test_get_url_resource_with_path() {
+        let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnBeijing);
+
+        let path = "path".try_into().unwrap();
+        let (url, resource) = base.get_url_resource_with_path(&path);
+
+        assert_eq!(
+            url,
+            Url::parse("https://abc.oss-cn-beijing.aliyuncs.com/path").unwrap()
+        );
+        assert_eq!(resource, "/abc/path");
+    }
+
+    #[test]
+    fn test_get_url_resource_with_bucket() {
+        let endpoint = EndPoint::CnBeijing;
+        let bucket = BucketName::new("abc").unwrap();
+        let query = Query::new();
+
+        let (url, resource) = get_url_resource_with_bucket(&endpoint, &bucket, &query);
+        assert_eq!(
+            url,
+            Url::parse("https://abc.oss-cn-beijing.aliyuncs.com").unwrap()
+        );
+        assert_eq!(resource, "/abc/");
+    }
+
+    #[test]
+    fn test_invalid_bucket_base() {
+        let error = InvalidEndPoint {};
+        let base_err: InvalidBucketBase = error.into();
+        assert_eq!(
+            format!("{base_err}"),
+            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
+        );
+
+        let error = InvalidBucketName {};
+        let error2: InvalidBucketBase = error.into();
+        assert_eq!(
+            format!("{error2}"),
+            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+        );
     }
 }
