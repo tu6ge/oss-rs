@@ -166,6 +166,16 @@ impl<M: Default + Clone> Client<M> {
     pub fn timeout(&mut self, timeout: Duration) {
         self.timeout = Some(timeout);
     }
+
+    /// 根据默认的 bucket，endpoint 和提供的文件路径，获取 ObjectBase
+    #[inline]
+    pub fn get_object_base<P>(&self, path: P) -> Result<ObjectBase, InvalidObjectPath>
+    where
+        P: TryInto<ObjectPath>,
+        P::Error: Into<InvalidObjectPath>,
+    {
+        ObjectBase::<ArcPointer>::from_bucket(self.get_bucket_base(), path)
+    }
 }
 
 #[cfg(not(test))]
@@ -191,16 +201,6 @@ impl Client {
     pub(crate) fn middleware(mut self, middleware: Arc<dyn Middleware>) -> Self {
         self.client_middleware.middleware(middleware);
         self
-    }
-
-    /// 根据默认的 bucket，endpoint 和提供的文件路径，获取 ObjectBase
-    #[inline]
-    pub fn get_object_base<P>(&self, path: P) -> Result<ObjectBase, InvalidObjectPath>
-    where
-        P: TryInto<ObjectPath>,
-        P::Error: Into<InvalidObjectPath>,
-    {
-        ObjectBase::<ArcPointer>::from_bucket(self.get_bucket_base(), path)
     }
 }
 
@@ -342,10 +342,13 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
 
 #[cfg(test)]
 mod tests {
-    use super::ClientArc;
+    use http::Method;
+
+    use super::*;
     use crate::{
         builder::ArcPointer,
         config::{BucketBase, Config},
+        file::AlignBuilder,
         types::object::ObjectBase,
         BucketName,
     };
@@ -372,6 +375,41 @@ mod tests {
         assert!(client.timeout.is_some());
 
         assert_eq!(client.timeout, Some(Duration::new(10, 0)));
+    }
+
+    #[test]
+    fn test_timeout_with_builder() {
+        let mut client = ClientArc::test_init();
+        client.timeout(Duration::new(11, 0));
+        let (url, resource) = client
+            .get_object_base("9AB932LY.jpeg")
+            .unwrap()
+            .get_url_resource([]);
+        let builder = client.builder_with_header(Method::HEAD, url, resource, []);
+        let builder = builder.unwrap();
+
+        let request = builder.build().unwrap();
+        let timeout = request.timeout().unwrap().to_owned();
+        assert_eq!(timeout, Duration::new(11, 0));
+    }
+
+    #[cfg(feature = "blocking")]
+    #[test]
+    fn test_timeout_with_builder_blocking() {
+        use crate::file::blocking::AlignBuilder;
+
+        let mut client = ClientRc::test_init();
+        client.timeout(Duration::new(11, 0));
+        let (url, resource) = client
+            .get_object_base("9AB932LY.jpeg")
+            .unwrap()
+            .get_url_resource([]);
+        let builder = client.builder_with_header(Method::HEAD, url, resource, []);
+        let builder = builder.unwrap();
+
+        let request = builder.build().unwrap();
+        let timeout = request.timeout().unwrap().to_owned();
+        assert_eq!(timeout, Duration::new(11, 0));
     }
 
     #[test]

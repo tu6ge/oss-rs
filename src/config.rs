@@ -470,6 +470,17 @@ impl PartialEq<Url> for BucketBase {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_config_try_new() {
+        let err = Config::try_new("foo", "foo", "_aa", "abc");
+        let err = err.unwrap_err();
+        assert!(matches!(err, InvalidConfig::EndPoint(_)));
+
+        let err = Config::try_new("foo", "foo", "qingdao", "-abc");
+        let err = err.unwrap_err();
+        assert!(matches!(err, InvalidConfig::BucketName(_)));
+    }
+
     fn assert_as_ref_keyid<K: AsRef<KeyId>>(k: K) {
         k.as_ref();
     }
@@ -512,6 +523,7 @@ mod tests {
 
         assert!(matches!(err, Err(InvalidConfig::VarError(_))));
         let err = err.unwrap_err();
+        assert!(matches!(err, InvalidConfig::VarError(_)));
         assert_eq!(format!("{}", err), "environment variable not found");
     }
 
@@ -581,5 +593,23 @@ mod tests {
             format!("{error2}"),
             "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
         );
+    }
+
+    #[test]
+    fn test_bucket_base_from_str() {
+        let err = BucketBase::from_str("-abc.oss-cn-qingdao");
+        let err = err.unwrap_err();
+        assert!(matches!(err, InvalidBucketBase::BucketName(_)));
+
+        let err = BucketBase::from_str("abc.oss-cn-qing-");
+        let err = err.unwrap_err();
+        assert!(matches!(err, InvalidBucketBase::EndPoint(_)));
+    }
+
+    #[test]
+    fn test_bucket_base_eq_url() {
+        let base = BucketBase::default();
+        let url = Url::parse("https://a.oss-cn-hangzhou.aliyuncs.com/").unwrap();
+        assert!(base == url);
     }
 }
