@@ -41,6 +41,9 @@ use mockall::automock;
 use std::convert::TryInto;
 use std::fmt::Display;
 
+#[cfg(test)]
+mod test;
+
 /// 计算 OSS 签名的数据
 #[derive(Default, Clone)]
 pub struct InnerAuth<'a> {
@@ -61,7 +64,7 @@ impl<'a> InnerAuth<'a> {
     }
 
     #[cfg(test)]
-    pub(crate) fn get_key(self) -> InnerKeyId<'a> {
+    fn get_key(self) -> InnerKeyId<'a> {
         self.access_key_id
     }
 
@@ -94,7 +97,7 @@ impl<'a> InnerAuth<'a> {
     }
 
     #[cfg(test)]
-    pub(crate) fn get_header<K>(self, key: K) -> Option<HeaderValue>
+    fn get_header<K>(self, key: K) -> Option<HeaderValue>
     where
         K: AsHeaderName,
     {
@@ -102,12 +105,12 @@ impl<'a> InnerAuth<'a> {
     }
 
     #[cfg(test)]
-    pub(crate) fn header_len(&self) -> usize {
+    fn header_len(&self) -> usize {
         self.headers.len()
     }
 
     #[cfg(test)]
-    pub(crate) fn header_contains_key<K>(&self, key: K) -> bool
+    fn header_contains_key<K>(&self, key: K) -> bool
     where
         K: AsHeaderName,
     {
@@ -116,7 +119,7 @@ impl<'a> InnerAuth<'a> {
 }
 
 #[cfg_attr(test, automock)]
-pub(crate) trait AuthToHeaderMap {
+trait AuthToHeaderMap {
     fn get_original_header(&self) -> HeaderMap;
     fn get_header_key(&self) -> Result<HeaderValue, InvalidHeaderValue>;
     fn get_header_secret(&self) -> Result<HeaderValue, InvalidHeaderValue>;
@@ -155,7 +158,7 @@ impl AuthToHeaderMap for InnerAuth<'_> {
     }
 }
 
-pub(crate) trait AuthToOssHeader {
+trait AuthToOssHeader {
     fn to_oss_header(&self) -> OssHeader;
 }
 
@@ -188,7 +191,7 @@ impl AuthToOssHeader for InnerAuth<'_> {
 }
 
 /// 从 auth 中提取各个字段，用于计算签名的原始字符串
-pub(crate) trait AuthSignString {
+trait AuthSignString {
     fn get_sign_info(
         &self,
     ) -> (
@@ -255,7 +258,7 @@ impl InnerAuth<'_> {
     }
 }
 
-pub(crate) trait AuthHeader {
+trait AuthHeader {
     fn from_auth(auth: &impl AuthToHeaderMap) -> Result<Self, InvalidHeaderValue>
     where
         Self: Sized;
@@ -326,16 +329,16 @@ impl AppendAuthHeader for HeaderMap {
 /// # 前缀是 x-oss- 的 header 记录
 ///
 /// 将他们按顺序组合成一个字符串，用于计算签名
-pub(crate) struct OssHeader(Option<String>);
+struct OssHeader(Option<String>);
 
 impl OssHeader {
     #[allow(dead_code)]
-    pub(crate) fn new(string: Option<String>) -> Self {
+    fn new(string: Option<String>) -> Self {
         Self(string)
     }
 
     #[allow(dead_code)]
-    pub(crate) fn is_none(&self) -> bool {
+    fn is_none(&self) -> bool {
         self.0.is_none()
     }
 
@@ -366,7 +369,7 @@ impl Display for OssHeader {
 
 /// 待签名的数据
 #[derive(Debug)]
-pub(crate) struct SignString<'a> {
+struct SignString<'a> {
     data: String,
     key: InnerKeyId<'a>,
     secret: InnerKeySecret<'a>,
@@ -377,11 +380,7 @@ const LINE_BREAK: &str = "\n";
 impl<'a, 'b> SignString<'_> {
     #[allow(dead_code)]
     #[inline]
-    pub(crate) fn new(
-        data: &'b str,
-        key: InnerKeyId<'a>,
-        secret: InnerKeySecret<'a>,
-    ) -> SignString<'a> {
+    fn new(data: &'b str, key: InnerKeyId<'a>, secret: InnerKeySecret<'a>) -> SignString<'a> {
         SignString {
             data: data.to_owned(),
             key,
@@ -391,7 +390,7 @@ impl<'a, 'b> SignString<'_> {
 }
 
 impl<'a> SignString<'a> {
-    pub(crate) fn from_auth(auth: &'a impl AuthSignString, header: OssHeader) -> SignString {
+    fn from_auth(auth: &'a impl AuthSignString, header: OssHeader) -> SignString {
         let (key, secret, verb, content_md5, content_type, date, canonicalized_resource) =
             auth.get_sign_info();
         let method = verb.to_string();
@@ -420,18 +419,17 @@ impl<'a> SignString<'a> {
     }
 
     #[cfg(test)]
-    pub(crate) fn key_string(&self) -> String {
+    fn key_string(&self) -> String {
         self.key.as_ref().to_string()
     }
 
     #[cfg(test)]
-    pub(crate) fn secret_string(&self) -> String {
+    fn secret_string(&self) -> String {
         self.secret.as_ref().to_string()
     }
 
     // 转化成签名
-    #[inline]
-    pub(crate) fn to_sign(&self) -> Result<Sign, hmac::digest::crypto_common::InvalidLength> {
+    fn to_sign(&self) -> Result<Sign, hmac::digest::crypto_common::InvalidLength> {
         use base64::engine::general_purpose::STANDARD;
         use base64::Engine;
         use hmac::{Hmac, Mac};
@@ -456,14 +454,14 @@ impl<'a> SignString<'a> {
 
 /// header 中的签名
 #[derive(Debug)]
-pub(crate) struct Sign<'a> {
+struct Sign<'a> {
     data: String,
     key: InnerKeyId<'a>,
 }
 
 impl Sign<'_> {
     #[cfg(test)]
-    pub(crate) fn new<'a, 'b>(data: &'b str, key: InnerKeyId<'a>) -> Sign<'a> {
+    fn new<'a, 'b>(data: &'b str, key: InnerKeyId<'a>) -> Sign<'a> {
         Sign {
             data: data.to_owned(),
             key,
@@ -581,7 +579,7 @@ impl AuthBuilder {
 
     #[allow(dead_code)]
     #[inline]
-    pub(crate) fn build(self) -> Auth {
+    fn build(self) -> Auth {
         self.auth
     }
 }
@@ -778,8 +776,6 @@ pub enum AuthError {
     InvalidLength(hmac::digest::crypto_common::InvalidLength),
     #[doc(hidden)]
     InvalidCanonicalizedResource,
-    #[doc(hidden)]
-    AppendSignFailed,
 }
 
 impl std::error::Error for AuthError {}
@@ -808,7 +804,6 @@ impl Display for AuthError {
             Self::InvalidHeaderValue(_) => f.write_str("failed to parse header value"),
             Self::InvalidLength(_) => f.write_str("Invalid hmac Length"),
             Self::InvalidCanonicalizedResource => f.write_str("Invalid CanonicalizedResource"),
-            Self::AppendSignFailed => f.write_str("append signature failed"),
         }
     }
 }
@@ -875,143 +870,5 @@ mod builder_tests {
         builder.with_headers(None);
         let len = builder.build().get_headers().unwrap().len();
         assert!(len == 6);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn oss_header_to_string() {
-        let header = OssHeader::new(Some("foo7".to_string()));
-        assert_eq!(header.to_string(), "foo7\n".to_string());
-
-        let header = OssHeader::new(None);
-
-        assert_eq!(header.to_string(), "".to_string());
-    }
-
-    #[test]
-    fn get_sign_info() {
-        let mut builder = AuthBuilder::default();
-        builder.key("abc");
-        let auth = builder.build();
-        let (key, ..) = auth.get_sign_info();
-
-        assert_eq!(*key, KeyId::new("abc"))
-    }
-}
-
-#[cfg(test)]
-mod tests_canonicalized_resource {
-    use super::*;
-
-    #[test]
-    fn test_canonicalized_resource() {
-        let url: Url = "https://oss2.aliyuncs.com".parse().unwrap();
-        assert_eq!(url.canonicalized_resource(), None);
-        let url: Url = "https://oss-cn-qingdao.aliyuncs.com".parse().unwrap();
-        assert_eq!(
-            url.canonicalized_resource(),
-            Some(CanonicalizedResource::default())
-        );
-
-        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com?bucketInfo"
-            .parse()
-            .unwrap();
-        assert_eq!(
-            url.canonicalized_resource(),
-            Some(CanonicalizedResource::new("/abc/?bucketInfo"))
-        );
-
-        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com?list-type=2&continuation-token=foo"
-            .parse()
-            .unwrap();
-        assert_eq!(
-            url.canonicalized_resource(),
-            Some(CanonicalizedResource::new("/abc/?continuation-token=foo"))
-        );
-
-        let url: Url =
-            "https://abc.oss-cn-qingdao.aliyuncs.com?continuation-token=foo&abc=def&list-type=2"
-                .parse()
-                .unwrap();
-        assert_eq!(
-            url.canonicalized_resource(),
-            Some(CanonicalizedResource::new("/abc/?continuation-token=foo"))
-        );
-
-        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com/path1"
-            .parse()
-            .unwrap();
-        assert_eq!(
-            url.canonicalized_resource(),
-            Some(CanonicalizedResource::new("/abc/path1"))
-        );
-    }
-
-    #[test]
-    fn test_oss_host() {
-        let url: Url = "https://192.168.3.10/path1?delimiter=5".parse().unwrap();
-        assert_eq!(url.oss_host(), OssHost::None);
-
-        let url: Url = "https://example.com/path1?delimiter=5".parse().unwrap();
-        assert_eq!(url.oss_host(), OssHost::None);
-
-        let url: Url = "https://oss-cn-qingdao.aliyuncs.com".parse().unwrap();
-        assert_eq!(url.oss_host(), OssHost::EndPoint);
-
-        let url: Url = "https://oss-abc.aliyuncs.com".parse().unwrap();
-        assert_eq!(url.oss_host(), OssHost::EndPoint);
-
-        let url: Url = "https://abc.aliyuncs.com".parse().unwrap();
-        assert_eq!(url.oss_host(), OssHost::None);
-
-        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com".parse().unwrap();
-        assert_eq!(
-            url.oss_host(),
-            OssHost::Bucket(BucketName::new("abc").unwrap())
-        );
-        let url: Url = "https://abc-.oss-cn-qingdao.aliyuncs.com".parse().unwrap();
-        assert_eq!(url.oss_host(), OssHost::None);
-    }
-
-    #[test]
-    fn test_oss_query() {
-        use crate::{QueryKey, QueryValue};
-        let url: Url = "https://example.com/path1?delimiter=5".parse().unwrap();
-        let query = url.oss_query();
-        assert!(query[QueryKey::Delimiter] == QueryValue::new("5"));
-    }
-
-    #[test]
-    fn test_object_path() {
-        let url: Url = "https://example.com/path1".parse().unwrap();
-        assert_eq!(
-            url.object_path(),
-            Some(ObjectPathInner::new("path1").unwrap())
-        );
-
-        let url: Url = "https://example.com/path1/object2".parse().unwrap();
-        assert_eq!(
-            url.object_path(),
-            Some(ObjectPathInner::new("path1/object2").unwrap())
-        );
-
-        let url: Url = "https://example.com/路径/object2".parse().unwrap();
-        assert_eq!(
-            url.object_path(),
-            Some(ObjectPathInner::new("路径/object2").unwrap())
-        );
-
-        let url: Url = "https://example.com/path1/object2?foo=bar".parse().unwrap();
-        assert_eq!(
-            url.object_path(),
-            Some(ObjectPathInner::new("path1/object2").unwrap())
-        );
-
-        let url: Url = "https://example.com/path1/".parse().unwrap();
-        assert_eq!(url.object_path(), None);
     }
 }

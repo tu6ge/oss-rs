@@ -1,11 +1,16 @@
 use std::convert::TryInto;
 
-use http::header::{HeaderMap, HeaderValue, InvalidHeaderValue};
+use http::{
+    header::{HeaderMap, HeaderValue, InvalidHeaderValue},
+    Method,
+};
 use mockall::mock;
 
-use crate::{
-    auth::{AuthHeader, MockAuthToHeaderMap, OssHeader, Sign},
-    types::KeyId,
+use crate::types::KeyId;
+
+use super::{
+    AppendAuthHeader, AuthBuilder, AuthHeader, AuthSignString, MockAuthToHeaderMap, OssHeader,
+    Sign, SignString,
 };
 
 mod to_oss_header {
@@ -328,6 +333,31 @@ fn header_map_from_auth() {
 }
 
 #[test]
+fn test_append_auth() {
+    let mut builder = AuthBuilder::default();
+    builder.key("foo1");
+    builder.secret("foo2");
+    builder.method(&Method::POST);
+    builder.content_md5("foo4");
+    builder.date("foo_date");
+    builder.canonicalized_resource("foo5");
+    builder.header_insert("Content-Type", "foo6".try_into().unwrap());
+    let auth = builder.build();
+
+    let mut map = HeaderMap::new();
+    map.append_auth(&auth).unwrap();
+
+    assert_eq!(map.len(), 7);
+    assert_eq!(map.get("Content-Type").unwrap(), &"foo6");
+    assert_eq!(map.get("accesskeyid").unwrap(), &"foo1");
+    assert_eq!(map.get("secretaccesskey").unwrap(), &"foo2");
+    assert_eq!(map.get("verb").unwrap(), &"POST");
+    assert_eq!(map.get("content-md5").unwrap(), &"foo4");
+    assert_eq!(map.get("date").unwrap(), &"foo_date");
+    assert_eq!(map.get("canonicalizedresource").unwrap(), &"foo5");
+}
+
+#[test]
 fn test_append_sign() {
     mock! {
         BarStruct {}
@@ -476,6 +506,22 @@ mod sign_string_struct {
 }
 
 #[test]
+fn test_sign_string_debug() {
+    let sign = SignString::new("abc", "key".into(), "secret".into());
+
+    assert_eq!(format!("{sign:?}"), "SignString { data: \"abc\", key: InnerKeyId(\"key\"), secret: InnerKeySecret(\"secret\") }");
+}
+
+#[test]
+fn test_sign_debug() {
+    let sign = Sign::new("abc", "key".into());
+    assert_eq!(
+        format!("{sign:?}"),
+        "Sign { data: \"abc\", key: InnerKeyId(\"key\") }"
+    );
+}
+
+#[test]
 fn test_sign_to_headervalue() {
     let key = KeyId::from("bar");
     let sign = Sign::new("foo", key);
@@ -485,7 +531,7 @@ fn test_sign_to_headervalue() {
 }
 
 mod get_headers {
-    use http::Method;
+    use http::{HeaderMap, Method};
 
     use crate::auth::AuthBuilder;
 
@@ -516,5 +562,258 @@ mod get_headers {
             map.get("authorization").unwrap(),
             &"OSS foo1:67qpyspFaWOYrWwahWKgNN+ngUY="
         );
+    }
+
+    #[test]
+    fn test_append_headers() {
+        let mut builder = AuthBuilder::default();
+        builder.key("foo1");
+        builder.secret("foo2");
+        builder.method(&Method::POST);
+        builder.content_md5("foo4");
+        builder.date("foo_date");
+        builder.canonicalized_resource("foo5");
+        builder.header_insert("Content-Type", "foo6".try_into().unwrap());
+        let auth = builder.build();
+
+        let mut map = HeaderMap::new();
+        auth.append_headers(&mut map).unwrap();
+
+        assert_eq!(map.len(), 8);
+        assert_eq!(map.get("Content-Type").unwrap(), &"foo6");
+        assert_eq!(map.get("accesskeyid").unwrap(), &"foo1");
+        assert_eq!(map.get("secretaccesskey").unwrap(), &"foo2");
+        assert_eq!(map.get("verb").unwrap(), &"POST");
+        assert_eq!(map.get("content-md5").unwrap(), &"foo4");
+        assert_eq!(map.get("date").unwrap(), &"foo_date");
+        assert_eq!(map.get("canonicalizedresource").unwrap(), &"foo5");
+        assert_eq!(
+            map.get("authorization").unwrap(),
+            &"OSS foo1:67qpyspFaWOYrWwahWKgNN+ngUY="
+        );
+    }
+}
+
+#[test]
+fn oss_header_to_string() {
+    let header = OssHeader::new(Some("foo7".to_string()));
+    assert_eq!(header.to_string(), "foo7\n".to_string());
+
+    let header = OssHeader::new(None);
+
+    assert_eq!(header.to_string(), "".to_string());
+}
+
+#[test]
+fn get_sign_info() {
+    let mut builder = AuthBuilder::default();
+    builder.key("abc");
+    let auth = builder.build();
+    let (key, ..) = auth.get_sign_info();
+
+    assert_eq!(*key, KeyId::new("abc"))
+}
+
+mod with_oss {
+    use http::{HeaderValue, Method};
+
+    use crate::auth::{AuthError, RequestWithOSS};
+
+    #[test]
+    fn test() {
+        let client = reqwest::Client::default();
+        let mut request = client
+            .request(
+                Method::GET,
+                "https://foo.oss-cn-shanghai.aliyuncs.com/?bucketInfo",
+            )
+            .build()
+            .unwrap();
+
+        request.with_oss("key1".into(), "secret2".into()).unwrap();
+        let header = request.headers();
+
+        assert!(header.len() == 6);
+
+        assert_eq!(
+            header.get("accesskeyid").unwrap(),
+            "key1".parse::<HeaderValue>().unwrap()
+        );
+        assert_eq!(
+            header.get("secretaccesskey").unwrap(),
+            "secret2".parse::<HeaderValue>().unwrap()
+        );
+        assert_eq!(
+            header.get("verb").unwrap(),
+            "GET".parse::<HeaderValue>().unwrap()
+        );
+        assert_eq!(
+            header.get("canonicalizedresource").unwrap(),
+            "/foo/?bucketInfo".parse::<HeaderValue>().unwrap()
+        );
+        assert!(header.get("date").is_some());
+        assert!(header.get("authorization").is_some());
+    }
+
+    #[test]
+    fn test_err() {
+        let client = reqwest::Client::default();
+        let mut request = client
+            .request(
+                Method::GET,
+                "https://foo.oss-cn-shanghai.aliyunxx.com/?bucketInfo",
+            )
+            .build()
+            .unwrap();
+
+        let err = request
+            .with_oss("key1".into(), "secret2".into())
+            .unwrap_err();
+
+        assert!(matches!(err, AuthError::InvalidCanonicalizedResource));
+    }
+}
+
+mod tests_canonicalized_resource {
+    use http::Method;
+    use reqwest::Url;
+
+    use crate::{
+        auth::OssHost,
+        types::{object::ObjectPathInner, CanonicalizedResource},
+        BucketName,
+    };
+
+    use super::super::GenCanonicalizedResource;
+
+    #[test]
+    fn test_canonicalized_resource() {
+        let url: Url = "https://oss2.aliyuncs.com".parse().unwrap();
+        assert_eq!(url.canonicalized_resource(), None);
+        let url: Url = "https://oss-cn-qingdao.aliyuncs.com".parse().unwrap();
+        assert_eq!(
+            url.canonicalized_resource(),
+            Some(CanonicalizedResource::default())
+        );
+
+        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com?bucketInfo"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            url.canonicalized_resource(),
+            Some(CanonicalizedResource::new("/abc/?bucketInfo"))
+        );
+
+        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com?list-type=2&continuation-token=foo"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            url.canonicalized_resource(),
+            Some(CanonicalizedResource::new("/abc/?continuation-token=foo"))
+        );
+
+        let url: Url =
+            "https://abc.oss-cn-qingdao.aliyuncs.com?continuation-token=foo&abc=def&list-type=2"
+                .parse()
+                .unwrap();
+        assert_eq!(
+            url.canonicalized_resource(),
+            Some(CanonicalizedResource::new("/abc/?continuation-token=foo"))
+        );
+
+        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com/path1"
+            .parse()
+            .unwrap();
+        assert_eq!(
+            url.canonicalized_resource(),
+            Some(CanonicalizedResource::new("/abc/path1"))
+        );
+    }
+
+    #[test]
+    fn test_oss_host() {
+        let url: Url = "https://192.168.3.10/path1?delimiter=5".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::None);
+
+        let url: Url = "https://example.com/path1?delimiter=5".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::None);
+
+        let url: Url = "https://aliyuncs.com".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::None);
+
+        let url: Url = "https://oss-cn-qingdao.aliyuncs.com".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::EndPoint);
+
+        let url: Url = "https://oss-abc.aliyuncs.com".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::EndPoint);
+
+        let url: Url = "https://abc.aliyuncs.com".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::None);
+
+        let url: Url = "https://abc.oss-cn-qingdao.aliyuncs.com".parse().unwrap();
+        assert_eq!(
+            url.oss_host(),
+            OssHost::Bucket(BucketName::new("abc").unwrap())
+        );
+        let url: Url = "https://abc-.oss-cn-qingdao.aliyuncs.com".parse().unwrap();
+        assert_eq!(url.oss_host(), OssHost::None);
+    }
+
+    #[test]
+    fn test_oss_query() {
+        use crate::{QueryKey, QueryValue};
+        let url: Url = "https://example.com/path1?delimiter=5".parse().unwrap();
+        let query = url.oss_query();
+        assert!(query[QueryKey::Delimiter] == QueryValue::new("5"));
+    }
+
+    #[test]
+    fn test_object_path() {
+        let url: Url = "https://example.com/path1".parse().unwrap();
+        assert_eq!(
+            url.object_path(),
+            Some(ObjectPathInner::new("path1").unwrap())
+        );
+
+        let url: Url = "https://example.com/path1/object2".parse().unwrap();
+        assert_eq!(
+            url.object_path(),
+            Some(ObjectPathInner::new("path1/object2").unwrap())
+        );
+
+        let url: Url = "https://example.com/路径/object2".parse().unwrap();
+        assert_eq!(
+            url.object_path(),
+            Some(ObjectPathInner::new("路径/object2").unwrap())
+        );
+
+        let url: Url = "https://example.com/path1/object2?foo=bar".parse().unwrap();
+        assert_eq!(
+            url.object_path(),
+            Some(ObjectPathInner::new("path1/object2").unwrap())
+        );
+
+        let url: Url = "https://example.com/path1/".parse().unwrap();
+        assert_eq!(url.object_path(), None);
+    }
+
+    #[test]
+    fn test_request() {
+        let client = reqwest::Client::default();
+        let request = client
+            .request(
+                Method::GET,
+                "https://foo.oss-cn-shanghai.aliyuncs.com/?bucketInfo",
+            )
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            request.canonicalized_resource(),
+            request.url().canonicalized_resource(),
+        );
+        assert_eq!(request.oss_host(), request.url().oss_host(),);
+        assert_eq!(request.oss_query(), request.url().oss_query(),);
+        assert_eq!(request.object_path(), request.url().object_path(),);
     }
 }

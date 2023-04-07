@@ -1,6 +1,3 @@
-#[cfg(feature = "auth")]
-mod auth;
-
 #[cfg(feature = "core")]
 mod client;
 
