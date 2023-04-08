@@ -31,6 +31,20 @@ mod test_core {
             ObjectBase::<ArcPointer>::from_bucket_name("foo1", "qingdao", "img1.jpg").unwrap();
 
         assert_eq!(object.path(), "img1.jpg");
+
+        let object =
+            ObjectBase::<ArcPointer>::from_bucket_name("-foo1", "qingdao", "img1.jpg").unwrap_err();
+        assert!(matches!(object, InvalidObjectBase::Bucket(_)));
+
+        let object =
+            ObjectBase::<ArcPointer>::from_bucket_name("foo1", "-q-", "img1.jpg").unwrap_err();
+        assert!(matches!(object, InvalidObjectBase::Bucket(_)));
+    }
+
+    #[test]
+    fn object_base_debug() {
+        let object = ObjectBase::<ArcPointer>::default();
+        assert_eq!(format!("{object:?}"), "ObjectBase { bucket: BucketBase { endpoint: CnHangzhou, name: BucketName(\"a\") }, path: ObjectPathInner(\"\") }");
     }
 
     #[test]
@@ -44,6 +58,7 @@ mod test_core {
 
         let path = InvalidObjectBase::Path(InvalidObjectPath {});
         assert_eq!(format!("{path}"), "invalid object path");
+        assert_eq!(format!("{path:?}"), "Path(InvalidObjectPath)");
 
         let base = ObjectBase::<ArcPointer>::try_from_bucket("-a", "path1").unwrap_err();
         assert!(matches!(base, InvalidObjectBase::Bucket(_)));
@@ -104,6 +119,7 @@ mod test_core {
     fn test_object_path_eq() {
         assert!(ObjectPath::new("path1").unwrap() == "path1");
         assert!(ObjectPath::new("path1").unwrap() == "path1".to_string());
+        assert!("path1" == ObjectPath::new("path1").unwrap());
         assert!("path1".to_string() == ObjectPath::new("path1").unwrap());
     }
 
