@@ -28,6 +28,9 @@ use std::num::ParseIntError;
 use std::rc::Rc;
 use std::sync::Arc;
 
+#[cfg(test)]
+mod test;
+
 /// # 存储 Bucket 列表的 struct
 #[derive(Clone)]
 #[non_exhaustive]
@@ -677,95 +680,79 @@ impl<T: PointerFamily> PartialEq<BucketBase> for Bucket<T> {
     }
 }
 
-#[doc(hidden)]
-#[derive(Default)]
-pub enum Grant {
-    #[default]
-    Private,
-    PublicRead,
-    PublicReadWrite,
-}
+// #[doc(hidden)]
+// #[derive(Default)]
+// pub enum Grant {
+//     #[default]
+//     Private,
+//     PublicRead,
+//     PublicReadWrite,
+// }
 
-#[doc(hidden)]
-#[derive(Clone, Debug, Default)]
-pub enum DataRedundancyType {
-    #[default]
-    LRS,
-    ZRS,
-}
+// #[doc(hidden)]
+// #[derive(Clone, Debug, Default)]
+// pub enum DataRedundancyType {
+//     #[default]
+//     LRS,
+//     ZRS,
+// }
 
-#[doc(hidden)]
-#[derive(Default, Clone, Debug)]
-pub struct BucketListObjectParms<'a> {
-    pub list_type: u8,
-    pub delimiter: &'a str,
-    pub continuation_token: &'a str,
-    pub max_keys: u32,
-    pub prefix: &'a str,
-    pub encoding_type: &'a str,
-    pub fetch_owner: bool,
-}
+// #[doc(hidden)]
+// #[derive(Default, Clone, Debug)]
+// pub struct BucketListObjectParms<'a> {
+//     pub list_type: u8,
+//     pub delimiter: &'a str,
+//     pub continuation_token: &'a str,
+//     pub max_keys: u32,
+//     pub prefix: &'a str,
+//     pub encoding_type: &'a str,
+//     pub fetch_owner: bool,
+// }
 
-#[doc(hidden)]
-#[derive(Default, Clone, Debug)]
-pub struct BucketListObject<'a> {
-    //pub content:
-    pub common_prefixes: &'a str,
-    pub delimiter: &'a str,
-    pub encoding_type: &'a str,
-    pub display_name: &'a str,
-    pub etag: &'a str,
-    pub id: &'a str,
-    pub is_truncated: bool,
-    pub key: &'a str,
-    pub last_modified: &'a str,
-    pub list_bucket_result: Option<&'a str>,
-    pub start_after: Option<&'a str>,
-    pub max_keys: u32,
-    pub name: &'a str,
-    // pub owner: &'a str,
-    pub prefix: &'a str,
-    pub size: u64,
-    pub storage_class: &'a str,
-    pub continuation_token: Option<&'a str>,
-    pub key_count: i32,
-    pub next_continuation_token: Option<&'a str>,
-    pub restore_info: Option<&'a str>,
-}
+// #[doc(hidden)]
+// #[derive(Default, Clone, Debug)]
+// pub struct BucketListObject<'a> {
+//     //pub content:
+//     pub common_prefixes: &'a str,
+//     pub delimiter: &'a str,
+//     pub encoding_type: &'a str,
+//     pub display_name: &'a str,
+//     pub etag: &'a str,
+//     pub id: &'a str,
+//     pub is_truncated: bool,
+//     pub key: &'a str,
+//     pub last_modified: &'a str,
+//     pub list_bucket_result: Option<&'a str>,
+//     pub start_after: Option<&'a str>,
+//     pub max_keys: u32,
+//     pub name: &'a str,
+//     // pub owner: &'a str,
+//     pub prefix: &'a str,
+//     pub size: u64,
+//     pub storage_class: &'a str,
+//     pub continuation_token: Option<&'a str>,
+//     pub key_count: i32,
+//     pub next_continuation_token: Option<&'a str>,
+//     pub restore_info: Option<&'a str>,
+// }
 
-#[doc(hidden)]
-#[derive(Clone, Debug)]
-pub struct BucketStat {
-    pub storage: u64,
-    pub object_count: u32,
-    pub multipart_upload_count: u32,
-    pub live_channel_count: u32,
-    pub last_modified_time: u16,
-    pub standard_storage: u64,
-    pub standard_object_count: u32,
-    pub infrequent_access_storage: u64,
-    pub infrequent_access_real_storage: u64,
-    pub infrequent_access_object_count: u64,
-    pub archive_storage: u64,
-    pub archive_real_storage: u64,
-    pub archive_object_count: u64,
-    pub cold_archive_storage: u64,
-    pub cold_archive_real_storage: u64,
-    pub cold_archive_object_count: u64,
-}
-
-#[cfg(test)]
-mod tests {
-
-    #[cfg(feature = "blocking")]
-    #[test]
-    fn test_default_list_bucket() {
-        use crate::builder::RcPointer;
-
-        use super::ListBuckets;
-
-        let list = ListBuckets::<RcPointer>::default();
-
-        assert!(list.buckets.len() == 0);
-    }
-}
+// #[doc(hidden)]
+// #[derive(Clone, Debug)]
+// pub struct BucketStat {
+//     pub storage: u64,
+//     pub object_count: u32,
+//     pub multipart_upload_count: u32,
+//     pub live_channel_count: u32,
+//     pub last_modified_time: u16,
+//     pub standard_storage: u64,
+//     pub standard_object_count: u32,
+//     pub infrequent_access_storage: u64,
+//     pub infrequent_access_real_storage: u64,
+//     pub infrequent_access_object_count: u64,
+//     pub archive_storage: u64,
+//     pub archive_real_storage: u64,
+//     pub archive_object_count: u64,
+//     pub cold_archive_storage: u64,
+//     pub cold_archive_real_storage: u64,
+//     pub cold_archive_object_count: u64,
+// }

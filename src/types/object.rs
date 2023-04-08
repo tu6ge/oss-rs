@@ -27,6 +27,9 @@ use crate::builder::RcPointer;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 
+#[cfg(test)]
+mod test;
+
 /// # Object 元信息
 /// 包含所属 bucket endpoint 以及文件路径
 #[cfg(feature = "core")]
@@ -770,66 +773,3 @@ impl OssFullUrl for Url {
 
 /// 文件夹下的子文件夹名，子文件夹下递归的所有文件和文件夹不包含在这里。
 pub type CommonPrefixes = Vec<ObjectDir<'static>>;
-
-#[cfg(all(test, feature = "core"))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn object_from_ref_bucket() {
-        use std::env::set_var;
-        set_var("ALIYUN_ENDPOINT", "qingdao");
-        set_var("ALIYUN_BUCKET", "foo1");
-        let object = ObjectBase::<ArcPointer>::from_ref_bucket(
-            Arc::new(BucketBase::from_env().unwrap()),
-            "img1.jpg",
-        )
-        .unwrap();
-
-        assert_eq!(object.path(), "img1.jpg");
-    }
-
-    #[test]
-    fn object_from_bucket_name() {
-        let object =
-            ObjectBase::<ArcPointer>::from_bucket_name("foo1", "qingdao", "img1.jpg").unwrap();
-
-        assert_eq!(object.path(), "img1.jpg");
-    }
-}
-
-#[cfg(feature = "blocking")]
-#[cfg(test)]
-mod blocking_tests {
-    use crate::builder::RcPointer;
-
-    use super::ObjectBase;
-
-    fn crate_object_base(bucket: &'static str, path: &'static str) -> ObjectBase<RcPointer> {
-        use std::rc::Rc;
-
-        let bucket = bucket.parse().unwrap();
-
-        let object = ObjectBase::<RcPointer>::new2(Rc::new(bucket), path.try_into().unwrap());
-        object
-    }
-
-    #[test]
-    fn test_get_object_info() {
-        let object = crate_object_base("abc.oss-cn-shanghai.aliyuncs.com", "bar");
-
-        assert_eq!(object.bucket_name(), &"abc");
-        assert_eq!(object.path(), "bar");
-    }
-
-    #[test]
-    fn test_object_base_eq() {
-        let object1 = crate_object_base("abc.oss-cn-shanghai.aliyuncs.com", "bar");
-        let object2 = crate_object_base("abc.oss-cn-shanghai.aliyuncs.com", "bar");
-        let object3 = crate_object_base("abc.oss-cn-qingdao.aliyuncs.com", "bar");
-        let object4 = crate_object_base("abc.oss-cn-shanghai.aliyuncs.com", "ba2");
-        assert!(object1 == object2);
-        assert!(object1 != object3);
-        assert!(object1 != object4);
-    }
-}

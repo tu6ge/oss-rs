@@ -208,6 +208,13 @@ impl FromStr for BucketBase {
     }
 }
 
+impl TryFrom<&str> for BucketBase {
+    type Error = InvalidBucketBase;
+    fn try_from(str: &str) -> Result<Self, Self::Error> {
+        str.parse()
+    }
+}
+
 impl BucketBase {
     /// 初始化
     pub fn new(name: BucketName, endpoint: EndPoint) -> Self {

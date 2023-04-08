@@ -8,7 +8,4 @@ mod traits;
 mod errors;
 
 #[cfg(feature = "core")]
-mod bucket;
-
-#[cfg(feature = "core")]
-mod object;
+pub(crate) mod object;

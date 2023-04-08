@@ -12,7 +12,7 @@ use http::HeaderValue;
 use reqwest::{Request, Response};
 use std::sync::Arc;
 
-pub(super) fn assert_object_list<T: PointerFamily>(
+pub(crate) fn assert_object_list<T: PointerFamily>(
     list: ObjectList<T>,
     endpoint: EndPoint,
     name: BucketName,

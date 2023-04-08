@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use crate::bucket::Bucket;
+use crate::bucket::{Bucket, BucketError};
 use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware};
+use crate::decode::{RefineBucket, RefineBucketList};
 use crate::object::StorageClass;
 use crate::tests::object::assert_object_list;
 use crate::types::object::CommonPrefixes;
@@ -14,6 +15,8 @@ use reqwest::{Request, Response};
 
 use crate::client::ClientArc;
 use crate::{builder::Middleware, client::Client};
+
+use super::ListBuckets;
 
 #[tokio::test]
 async fn test_get_bucket_list() {
@@ -451,4 +454,64 @@ fn test_get_blocking_object_list() {
         CommonPrefixes::from_iter([]),
         Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );
+}
+
+#[test]
+fn test_set_storage_class() {
+    let mut bucket = Bucket::<ArcPointer>::default();
+
+    bucket.set_storage_class("archive").unwrap();
+    assert_eq!(bucket.storage_class, StorageClass::Archive);
+    bucket.set_storage_class("Archive").unwrap();
+    assert_eq!(bucket.storage_class, StorageClass::Archive);
+
+    bucket.set_storage_class("IA").unwrap();
+    assert_eq!(bucket.storage_class, StorageClass::IA);
+    bucket.set_storage_class("ia").unwrap();
+    assert_eq!(bucket.storage_class, StorageClass::IA);
+
+    bucket.set_storage_class("standard").unwrap();
+    assert_eq!(bucket.storage_class, StorageClass::Standard);
+    bucket.set_storage_class("Standard").unwrap();
+    assert_eq!(bucket.storage_class, StorageClass::Standard);
+
+    bucket.set_storage_class("cold_archive").unwrap();
+    assert_eq!(bucket.storage_class, StorageClass::ColdArchive);
+    bucket.set_storage_class("ColdArchive").unwrap();
+    assert_eq!(bucket.storage_class, StorageClass::ColdArchive);
+
+    let err = bucket.set_storage_class("eeeeee").unwrap_err();
+    assert!(matches!(err, BucketError::InvalidStorageClass(_)));
+}
+
+#[test]
+fn test_refine_bucket() {
+    let mut list = ListBuckets::<ArcPointer>::default();
+    list.set_prefix("foo1").unwrap();
+    list.set_marker("foo2").unwrap();
+    list.set_max_keys("10").unwrap();
+    list.set_is_truncated(true).unwrap();
+    list.set_next_marker("foo3").unwrap();
+    list.set_id("foo4").unwrap();
+    list.set_display_name("foo5").unwrap();
+
+    assert_eq!(list.prefix, "foo1");
+    assert_eq!(list.marker, "foo2");
+    assert_eq!(list.max_keys, 10);
+    assert_eq!(list.is_truncated, true);
+    assert_eq!(list.next_marker, "foo3");
+    assert_eq!(list.id, "foo4");
+    assert_eq!(list.display_name, "foo5");
+}
+
+#[cfg(feature = "blocking")]
+#[test]
+fn test_default_list_bucket() {
+    use crate::builder::RcPointer;
+
+    use super::ListBuckets;
+
+    let list = ListBuckets::<RcPointer>::default();
+
+    assert!(list.buckets.len() == 0);
 }
