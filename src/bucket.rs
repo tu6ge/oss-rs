@@ -71,7 +71,7 @@ impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: ItemError> fm
 
 #[oss_gen_rc]
 impl<Item: RefineBucket<E>, E: ItemError> ListBuckets<ArcPointer, Item, E> {
-    pub(crate) fn set_client(&mut self, client: Arc<ClientArc>) {
+    fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = Arc::clone(&client);
     }
 }
@@ -120,7 +120,7 @@ impl<Item: RefineBucket<E>, E: ItemError> ListBuckets<ArcPointer, Item, E> {
 #[derive(Clone)]
 #[non_exhaustive]
 pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
-    pub(crate) base: BucketBase,
+    base: BucketBase,
     // bucket_info: Option<Bucket<'b>>,
     // bucket: Option<Bucket<'c>>,
     creation_date: DateTime<Utc>,
