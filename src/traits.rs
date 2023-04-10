@@ -416,6 +416,7 @@ impl ListError for &str {}
 /// [`RefineObjectList`]: crate::decode::RefineObjectList
 #[doc(hidden)]
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum InnerListError {
     Item(InnerItemError),
     Xml(quick_xml::Error),
