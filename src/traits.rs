@@ -763,4 +763,48 @@ mod tests {
 
         assert!(res.is_ok());
     }
+
+    #[test]
+    fn test_item_from() {
+        let string = "abc".to_string();
+        let err: InnerItemError = string.into();
+        assert_eq!(
+            format!("{err}"),
+            "decode xml to object has error, info: abc"
+        );
+    }
+
+    #[test]
+    fn test_list_from() {
+        let string = "abc".to_string();
+        let err: InnerListError = string.into();
+        assert_eq!(
+            format!("{err}"),
+            "decode xml to object list has error, info: abc"
+        );
+    }
+
+    #[test]
+    fn test_error_list_from_item() {
+        let err = InnerListError::Item(InnerItemError("foo".to_string()));
+        assert_eq!(format!("{err}"), "decode xml to object list has error, item info: decode xml to object has error, info: foo");
+
+        fn bar() -> InnerListError {
+            InnerItemError("foo".to_string()).into()
+        }
+
+        assert_eq!(format!("{:?}", bar()), "Item(InnerItemError(\"foo\"))");
+    }
+
+    #[test]
+    fn test_error_list_from_xml() {
+        let err = InnerListError::Xml(quick_xml::Error::TextNotFound);
+        assert_eq!(format!("{err}"), "decode xml to object list has error, xml info: Cannot read text, expecting Event::Text");
+
+        fn bar() -> InnerListError {
+            quick_xml::Error::TextNotFound.into()
+        }
+
+        assert_eq!(format!("{:?}", bar()), "Xml(TextNotFound)");
+    }
 }
