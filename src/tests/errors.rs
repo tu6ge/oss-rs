@@ -37,4 +37,20 @@ fn test_oss_service_new() {
     assert_eq!(service.request_id, format!("63145DB90BFD85303279D56B"))
 }
 
-//use test::Bencher;
+mod debug {
+    #[test]
+    fn test_dotenv() {
+        let err = crate::Error::Dotenv(dotenv::Error::LineParse("abc".to_string(), 1));
+
+        assert_eq!(
+            format!("{err}"),
+            "Error parsing line: 'abc', error at line index: 1"
+        );
+        assert_eq!(format!("{err:?}"), "Dotenv(LineParse(\"abc\", 1))");
+
+        fn bar() -> crate::Error {
+            dotenv::Error::LineParse("abc".to_string(), 1).into()
+        }
+        assert_eq!(format!("{:?}", bar()), "Dotenv(LineParse(\"abc\", 1))");
+    }
+}
