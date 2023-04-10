@@ -19,6 +19,9 @@ use crate::{
 };
 use reqwest::{Client, Request, Response};
 
+#[cfg(test)]
+mod test;
+
 pub trait PointerFamily
 where
     Self::Bucket: std::fmt::Debug + Clone + Default,
@@ -36,6 +39,7 @@ impl PointerFamily for ArcPointer {
 }
 
 #[cfg(feature = "blocking")]
+#[derive(Default, Debug)]
 pub struct RcPointer;
 
 #[cfg(feature = "blocking")]
