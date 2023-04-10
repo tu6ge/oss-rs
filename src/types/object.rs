@@ -4,7 +4,7 @@ use oss_derive::oss_gen_rc;
 use std::sync::Arc;
 use std::{
     borrow::Cow,
-    fmt::{self, Display},
+    fmt::{self, Debug, Display},
     ops::{Add, AddAssign},
     path::Path,
     str::FromStr,
@@ -368,10 +368,10 @@ impl<'a> ObjectPathInner<'a> {
     pub fn new(val: impl Into<Cow<'a, str>>) -> Result<Self, InvalidObjectPath> {
         let val = val.into();
         if val.starts_with('/') || val.starts_with('.') || val.ends_with('/') {
-            return Err(InvalidObjectPath);
+            return Err(InvalidObjectPath { _priv: () });
         }
         if !val.chars().all(|c| c != '\\') {
-            return Err(InvalidObjectPath);
+            return Err(InvalidObjectPath { _priv: () });
         }
         Ok(Self(val))
     }
@@ -426,11 +426,11 @@ impl FromStr for ObjectPathInner<'_> {
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with('/') || s.starts_with('.') || s.ends_with('/') {
-            return Err(InvalidObjectPath);
+            return Err(InvalidObjectPath { _priv: () });
         }
 
         if !s.chars().all(|c| c != '\\') {
-            return Err(InvalidObjectPath);
+            return Err(InvalidObjectPath { _priv: () });
         }
         Ok(Self(Cow::Owned(s.to_owned())))
     }
@@ -439,7 +439,7 @@ impl FromStr for ObjectPathInner<'_> {
 impl TryFrom<&Path> for ObjectPathInner<'_> {
     type Error = InvalidObjectPath;
     fn try_from(value: &Path) -> Result<Self, Self::Error> {
-        let val = value.to_str().ok_or(InvalidObjectPath)?;
+        let val = value.to_str().ok_or(InvalidObjectPath { _priv: () })?;
         if std::path::MAIN_SEPARATOR != '/' {
             val.replace(std::path::MAIN_SEPARATOR, "/").parse()
         } else {
@@ -457,16 +457,19 @@ impl<T: PointerFamily> From<Object<T>> for ObjectPathInner<'static> {
 }
 
 /// 不合法的文件路径
-#[derive(Debug)]
-pub struct InvalidObjectPath;
+pub struct InvalidObjectPath {
+    pub(crate) _priv: (),
+}
 
 impl Display for InvalidObjectPath {
-    /// ```
-    /// # use aliyun_oss_client::types::object::InvalidObjectPath;
-    /// assert_eq!(format!("{}", InvalidObjectPath), "invalid object path");
-    /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "invalid object path")
+    }
+}
+
+impl Debug for InvalidObjectPath {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InvalidObjectPath").finish()
     }
 }
 
@@ -642,10 +645,10 @@ impl<'a> ObjectDir<'a> {
     pub fn new<'b: 'a>(val: impl Into<Cow<'b, str>>) -> Result<Self, InvalidObjectDir> {
         let val = val.into();
         if val.starts_with('/') || val.starts_with('.') || !val.ends_with('/') {
-            return Err(InvalidObjectDir);
+            return Err(InvalidObjectDir { _priv: () });
         }
         if !val.chars().all(|c| c != '\\') {
-            return Err(InvalidObjectDir);
+            return Err(InvalidObjectDir { _priv: () });
         }
         Ok(Self(val))
     }
@@ -699,11 +702,11 @@ impl FromStr for ObjectDir<'_> {
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with('/') || s.starts_with('.') || !s.ends_with('/') {
-            return Err(InvalidObjectDir);
+            return Err(InvalidObjectDir { _priv: () });
         }
 
         if !s.chars().all(|c| c != '\\') {
-            return Err(InvalidObjectDir);
+            return Err(InvalidObjectDir { _priv: () });
         }
         Ok(Self(Cow::Owned(s.to_owned())))
     }
@@ -712,7 +715,7 @@ impl FromStr for ObjectDir<'_> {
 impl TryFrom<&Path> for ObjectDir<'_> {
     type Error = InvalidObjectDir;
     fn try_from(value: &Path) -> Result<Self, Self::Error> {
-        let val = value.to_str().ok_or(InvalidObjectDir)?;
+        let val = value.to_str().ok_or(InvalidObjectDir { _priv: () })?;
         if std::path::MAIN_SEPARATOR != '/' {
             val.replace(std::path::MAIN_SEPARATOR, "/").parse()
         } else {
@@ -722,19 +725,19 @@ impl TryFrom<&Path> for ObjectDir<'_> {
 }
 
 /// 不合法的文件目录路径
-#[derive(Debug)]
-pub struct InvalidObjectDir;
+pub struct InvalidObjectDir {
+    pub(crate) _priv: (),
+}
 
 impl Display for InvalidObjectDir {
-    /// ```
-    /// # use aliyun_oss_client::types::object::InvalidObjectDir;
-    /// assert_eq!(
-    ///     format!("{}", InvalidObjectDir),
-    ///     "ObjectDir must end with `/`"
-    /// );
-    /// ```
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "ObjectDir must end with `/`")
+    }
+}
+
+impl Debug for InvalidObjectDir {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InvalidObjectDir").finish()
     }
 }
 

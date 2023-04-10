@@ -56,7 +56,7 @@ mod test_core {
             "bucket url must like with https://yyy.xxx.aliyuncs.com"
         );
 
-        let path = InvalidObjectBase::Path(InvalidObjectPath {});
+        let path = InvalidObjectBase::Path(InvalidObjectPath { _priv: () });
         assert_eq!(format!("{path}"), "invalid object path");
         assert_eq!(format!("{path:?}"), "Path(InvalidObjectPath)");
 
@@ -94,7 +94,7 @@ mod test_core {
         assert_eq!(dir, ObjectDir::new("path/").unwrap());
 
         let dir = ObjectDir::try_from("path").unwrap_err();
-        assert!(matches!(dir, InvalidObjectDir {}));
+        assert!(matches!(dir, InvalidObjectDir { _priv: () }));
     }
     #[test]
     fn test_dir_from_path() {
@@ -106,7 +106,8 @@ mod test_core {
 
     #[test]
     fn test_invalid_dir_debug() {
-        let err = InvalidObjectDir {};
+        let err = InvalidObjectDir { _priv: () };
+        assert_eq!(format!("{err}"), "ObjectDir must end with `/`");
         assert_eq!(format!("{err:?}"), "InvalidObjectDir");
     }
 
@@ -125,7 +126,8 @@ mod test_core {
 
     #[test]
     fn test_invalid_path_debug() {
-        let err = InvalidObjectPath {};
+        let err = InvalidObjectPath { _priv: () };
+        assert_eq!(format!("{err}"), "invalid object path");
         assert_eq!(format!("{err:?}"), "InvalidObjectPath");
     }
 

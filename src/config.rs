@@ -512,14 +512,14 @@ mod tests {
 
     #[test]
     fn test_invalid_config() {
-        let error = InvalidEndPoint {};
+        let error = InvalidEndPoint { _priv: () };
         let error2: InvalidConfig = error.into();
         assert_eq!(
             format!("{error2}"),
             "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
         );
 
-        let error = InvalidBucketName {};
+        let error = InvalidBucketName { _priv: () };
         let error2: InvalidConfig = error.into();
         assert_eq!(
             format!("{error2}"),
@@ -587,14 +587,14 @@ mod tests {
 
     #[test]
     fn test_invalid_bucket_base() {
-        let error = InvalidEndPoint {};
+        let error = InvalidEndPoint { _priv: () };
         let base_err: InvalidBucketBase = error.into();
         assert_eq!(
             format!("{base_err}"),
             "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
         );
 
-        let error = InvalidBucketName {};
+        let error = InvalidBucketName { _priv: () };
         let error2: InvalidBucketBase = error.into();
         assert_eq!(
             format!("{error2}"),

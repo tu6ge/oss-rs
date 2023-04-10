@@ -74,21 +74,21 @@ mod debug {
 
     #[test]
     fn test_endpoint() {
-        let err = Error::InvalidEndPoint(InvalidEndPoint {});
+        let err = Error::InvalidEndPoint(InvalidEndPoint { _priv: () });
         assert_eq!(
             format!("{err}"),
             "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
         );
 
         fn bar() -> Error {
-            InvalidEndPoint {}.into()
+            InvalidEndPoint { _priv: () }.into()
         }
         assert_eq!(format!("{:?}", bar()), "InvalidEndPoint(InvalidEndPoint)");
     }
 
     #[test]
     fn test_bucket_name() {
-        let err = Error::InvalidBucketName(InvalidBucketName {});
+        let err = Error::InvalidBucketName(InvalidBucketName { _priv: () });
 
         assert_eq!(
             format!("{err}"),
@@ -96,7 +96,7 @@ mod debug {
         );
 
         fn bar() -> Error {
-            InvalidBucketName {}.into()
+            InvalidBucketName { _priv: () }.into()
         }
         assert_eq!(
             format!("{:?}", bar()),
@@ -107,7 +107,7 @@ mod debug {
     #[test]
     fn test_config() {
         use crate::config::InvalidConfig::BucketName;
-        let err = Error::InvalidConfig(BucketName(InvalidBucketName {}));
+        let err = Error::InvalidConfig(BucketName(InvalidBucketName { _priv: () }));
 
         assert_eq!(
             format!("{err}"),
@@ -115,7 +115,7 @@ mod debug {
         );
 
         fn bar() -> Error {
-            BucketName(InvalidBucketName {}).into()
+            BucketName(InvalidBucketName { _priv: () }).into()
         }
         assert_eq!(
             format!("{:?}", bar()),
@@ -125,12 +125,12 @@ mod debug {
 
     #[test]
     fn test_object_path() {
-        let err = Error::InvalidObjectPath(InvalidObjectPath {});
+        let err = Error::InvalidObjectPath(InvalidObjectPath { _priv: () });
 
         assert_eq!(format!("{err}"), "invalid object path");
 
         fn bar() -> Error {
-            InvalidObjectPath {}.into()
+            InvalidObjectPath { _priv: () }.into()
         }
         assert_eq!(
             format!("{:?}", bar()),
@@ -140,12 +140,12 @@ mod debug {
 
     #[test]
     fn test_object_dir() {
-        let err = Error::InvalidObjectDir(InvalidObjectDir {});
+        let err = Error::InvalidObjectDir(InvalidObjectDir { _priv: () });
 
         assert_eq!(format!("{err}"), "ObjectDir must end with `/`");
 
         fn bar() -> Error {
-            InvalidObjectDir {}.into()
+            InvalidObjectDir { _priv: () }.into()
         }
         assert_eq!(format!("{:?}", bar()), "InvalidObjectDir(InvalidObjectDir)");
     }

@@ -258,10 +258,10 @@ mod test_bucket_error {
     fn assert_impl<T: ItemError>() {}
     #[test]
     fn display() {
-        let error = BucketError::BucketName(InvalidBucketName {}, "abc".to_string());
+        let error = BucketError::BucketName(InvalidBucketName { _priv: () }, "abc".to_string());
         assert_eq!(error.to_string(), "covert bucket name failed, bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾, source str: abc");
 
-        let error = BucketError::EndPoint(InvalidEndPoint {}, "abc".to_string());
+        let error = BucketError::EndPoint(InvalidEndPoint { _priv: () }, "abc".to_string());
         assert_eq!(error.to_string(), "convert endpoint failed, endpoint must not with `-` prefix or `-` suffix or `oss-` prefix, source str: abc");
 
         let error = BucketError::InvalidStorageClass("abc".to_string());

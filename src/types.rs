@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::error::Error;
-use std::fmt::{self, Display, Formatter};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -329,15 +329,15 @@ impl<'a> EndPoint {
             Ok(ApSouthEast1)
         } else {
             if url.is_empty() {
-                return Err(InvalidEndPoint);
+                return Err(InvalidEndPoint { _priv: () });
             }
 
             if url.starts_with('-') || url.ends_with('-') {
-                return Err(InvalidEndPoint);
+                return Err(InvalidEndPoint { _priv: () });
             }
 
             if url.starts_with("oss") {
-                return Err(InvalidEndPoint);
+                return Err(InvalidEndPoint { _priv: () });
             }
 
             fn valid_character(c: char) -> bool {
@@ -349,7 +349,7 @@ impl<'a> EndPoint {
                 }
             }
             if !url.chars().all(valid_character) {
-                return Err(InvalidEndPoint);
+                return Err(InvalidEndPoint { _priv: () });
             }
 
             Ok(Other(Cow::Owned(url.to_owned())))
@@ -359,7 +359,7 @@ impl<'a> EndPoint {
     /// 从 oss 域名中提取 Endpoint 信息
     pub(crate) fn from_host_piece(url: &'a str) -> Result<Self, InvalidEndPoint> {
         if !url.starts_with("oss-") {
-            return Err(InvalidEndPoint);
+            return Err(InvalidEndPoint { _priv: () });
         }
         Self::new(&url[4..])
     }
@@ -459,9 +459,17 @@ mod test_endpoint {
 }
 
 /// 无效的可用区
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash)]
 #[non_exhaustive]
-pub struct InvalidEndPoint;
+pub struct InvalidEndPoint {
+    pub(crate) _priv: (),
+}
+
+impl Debug for InvalidEndPoint {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InvalidEndPoint").finish()
+    }
+}
 
 impl Error for InvalidEndPoint {}
 
@@ -599,11 +607,11 @@ impl<'a> BucketName {
         let bucket = bucket.into();
 
         if bucket.is_empty() {
-            return Err(InvalidBucketName);
+            return Err(InvalidBucketName { _priv: () });
         }
 
         if bucket.starts_with('-') || bucket.ends_with('-') {
-            return Err(InvalidBucketName);
+            return Err(InvalidBucketName { _priv: () });
         }
 
         fn valid_character(c: char) -> bool {
@@ -615,7 +623,7 @@ impl<'a> BucketName {
             }
         }
         if !bucket.chars().all(valid_character) {
-            return Err(InvalidBucketName);
+            return Err(InvalidBucketName { _priv: () });
         }
 
         Ok(Self(bucket))
@@ -634,11 +642,11 @@ impl<'a> BucketName {
     /// ```
     pub fn from_static(bucket: &'a str) -> Result<Self, InvalidBucketName> {
         if bucket.is_empty() {
-            return Err(InvalidBucketName);
+            return Err(InvalidBucketName { _priv: () });
         }
 
         if bucket.starts_with('-') || bucket.ends_with('-') {
-            return Err(InvalidBucketName);
+            return Err(InvalidBucketName { _priv: () });
         }
 
         fn valid_character(c: char) -> bool {
@@ -650,7 +658,7 @@ impl<'a> BucketName {
             }
         }
         if !bucket.chars().all(valid_character) {
-            return Err(InvalidBucketName);
+            return Err(InvalidBucketName { _priv: () });
         }
 
         Ok(Self(Cow::Owned(bucket.to_owned())))
@@ -689,9 +697,17 @@ impl PartialEq<BucketName> for &str {
 }
 
 /// 无效的 bucket 名称
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 #[non_exhaustive]
-pub struct InvalidBucketName;
+pub struct InvalidBucketName {
+    pub(crate) _priv: (),
+}
+
+impl Debug for InvalidBucketName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InvalidBucketName").finish()
+    }
+}
 
 impl Error for InvalidBucketName {}
 
@@ -1563,7 +1579,9 @@ impl FromStr for QueryKey {
 
 /// 异常的查询条件键
 #[derive(Debug)]
-pub struct InvalidQueryKey;
+pub struct InvalidQueryKey {
+    _priv: (),
+}
 
 impl Error for InvalidQueryKey {}
 
@@ -1770,7 +1788,9 @@ impl FromStr for InnerQueryValue<'_> {
 
 /// 异常的查询值
 #[derive(Debug)]
-pub struct InvalidQueryValue;
+pub struct InvalidQueryValue {
+    _priv: (),
+}
 
 impl Error for InvalidQueryValue {}
 
