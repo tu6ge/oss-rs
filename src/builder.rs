@@ -168,6 +168,10 @@ pub enum BuilderError {
 
     #[error("{0}")]
     Config(#[from] InvalidConfig),
+
+    #[cfg(test)]
+    #[error("bar")]
+    Bar,
 }
 
 #[async_trait]

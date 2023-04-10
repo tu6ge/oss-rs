@@ -373,7 +373,7 @@ impl ItemError for &str {}
 /// [`RefineObject`]: crate::decode::RefineObject
 #[derive(Debug, Eq, PartialEq, Hash)]
 #[doc(hidden)]
-pub struct InnerItemError(String);
+pub struct InnerItemError(pub(crate) String);
 
 impl<T: ItemError> From<T> for InnerItemError {
     fn from(err: T) -> Self {
