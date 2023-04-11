@@ -173,9 +173,11 @@ mod debug {
     #[test]
     #[cfg(feature = "decode")]
     fn test_inner_list() {
-        use crate::decode::InnerListError;
+        use crate::decode::{InnerListError, ListErrorKind};
 
-        let err = Error::InnerListError(InnerListError::Custom("aaa".to_string()));
+        let err = Error::InnerListError(InnerListError {
+            kind: ListErrorKind::Custom("aaa".to_string()),
+        });
 
         assert_eq!(
             format!("{err}"),
@@ -183,7 +185,10 @@ mod debug {
         );
 
         fn bar() -> Error {
-            InnerListError::Custom("aaa".to_string()).into()
+            InnerListError {
+                kind: ListErrorKind::Custom("aaa".to_string()),
+            }
+            .into()
         }
         assert_eq!(format!("{:?}", bar()), "InnerListError(Custom(\"aaa\"))");
     }
