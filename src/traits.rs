@@ -262,23 +262,20 @@ where
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => {
                     if e.name().as_ref() == PREFIX {
-                        prefix_vec
-                            .push(reader.read_text(e.to_end().name()).map_err(into_list_err)?);
+                        prefix_vec.push(reader.read_text(e.to_end().name())?);
                     }
                 }
                 Ok(Event::Eof) => {
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(InnerListError {
-                        kind: ListErrorKind::from(e),
-                    });
+                    return Err(InnerListError::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
             buf.clear();
         }
-        self.set_common_prefix(&prefix_vec).map_err(into_list_err)?;
+        self.set_common_prefix(&prefix_vec)?;
 
         Ok(())
     }
@@ -300,67 +297,43 @@ where
                 Ok(Event::Start(e)) => {
                     match e.name().as_ref() {
                         COMMON_PREFIX => {
-                            self.decode_common_prefix(
-                                &reader.read_text(e.to_end().name()).map_err(into_list_err)?,
-                            )?;
+                            self.decode_common_prefix(&reader.read_text(e.to_end().name())?)?;
                         }
                         PREFIX => {
-                            self.set_prefix(
-                                &reader.read_text(e.to_end().name()).map_err(into_list_err)?,
-                            )
-                            .map_err(into_list_err)?;
+                            self.set_prefix(&reader.read_text(e.to_end().name())?)?;
                         }
-                        NAME => self
-                            .set_name(&reader.read_text(e.to_end().name()).map_err(into_list_err)?)
-                            .map_err(into_list_err)?,
-                        MAX_KEYS => self
-                            .set_max_keys(
-                                &reader.read_text(e.to_end().name()).map_err(into_list_err)?,
-                            )
-                            .map_err(into_list_err)?,
-                        KEY_COUNT => self
-                            .set_key_count(
-                                &reader.read_text(e.to_end().name()).map_err(into_list_err)?,
-                            )
-                            .map_err(into_list_err)?,
+                        NAME => self.set_name(&reader.read_text(e.to_end().name())?)?,
+                        MAX_KEYS => self.set_max_keys(&reader.read_text(e.to_end().name())?)?,
+                        KEY_COUNT => self.set_key_count(&reader.read_text(e.to_end().name())?)?,
                         IS_TRUNCATED => {
                             //is_truncated = reader.read_text(e.to_end().name())?.to_string() == "true"
                         }
                         NEXT_CONTINUATION_TOKEN => {
-                            let next_continuation_token =
-                                reader.read_text(e.to_end().name()).map_err(into_list_err)?;
-                            self.set_next_continuation_token_str(&next_continuation_token)
-                                .map_err(into_list_err)?;
+                            let next_continuation_token = reader.read_text(e.to_end().name())?;
+                            self.set_next_continuation_token_str(&next_continuation_token)?;
                             self.set_next_continuation_token(
                                 if !next_continuation_token.is_empty() {
                                     Some(&next_continuation_token)
                                 } else {
                                     None
                                 },
-                            )
-                            .map_err(into_list_err)?;
+                            )?;
                         }
                         CONTENTS => {
                             // <Contents></Contents> 标签内部的数据对应单个 object 信息
                             let mut object = init_object();
-                            object
-                                .decode(
-                                    &reader.read_text(e.to_end().name()).map_err(into_list_err)?,
-                                )
-                                .map_err(into_list_err)?;
+                            object.decode(&reader.read_text(e.to_end().name())?)?;
                             result.push(object);
                         }
                         _ => (),
                     }
                 }
                 Ok(Event::Eof) => {
-                    self.set_list(result).map_err(into_list_err)?;
+                    self.set_list(result)?;
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(InnerListError {
-                        kind: ListErrorKind::from(e),
-                    });
+                    return Err(InnerListError::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -475,10 +448,6 @@ impl From<ListErrorKind> for InnerListError {
     }
 }
 
-fn into_list_err<K: Into<ListErrorKind>>(kind: K) -> InnerListError {
-    InnerListError { kind: kind.into() }
-}
-
 #[doc(hidden)]
 #[derive(Debug)]
 #[non_exhaustive]
@@ -488,21 +457,27 @@ pub enum ListErrorKind {
     Custom(String),
 }
 
-impl<T: ListError> From<T> for ListErrorKind {
-    fn from(err: T) -> Self {
-        Self::Custom(format!("{err}"))
+impl<T: ListError> From<T> for InnerListError {
+    fn from(err: T) -> InnerListError {
+        Self {
+            kind: ListErrorKind::Custom(format!("{err}")),
+        }
     }
 }
 
-impl From<InnerItemError> for ListErrorKind {
+impl From<InnerItemError> for InnerListError {
     fn from(value: InnerItemError) -> Self {
-        Self::Item(value)
+        Self {
+            kind: ListErrorKind::Item(value),
+        }
     }
 }
 
-impl From<quick_xml::Error> for ListErrorKind {
+impl From<quick_xml::Error> for InnerListError {
     fn from(value: quick_xml::Error) -> Self {
-        Self::Xml(value)
+        Self {
+            kind: ListErrorKind::Xml(value),
+        }
     }
 }
 
@@ -662,52 +637,29 @@ where
         loop {
             match reader.read_event_into(&mut buf) {
                 Ok(Event::Start(e)) => match e.name().as_ref() {
-                    PREFIX => self
-                        .set_prefix(&reader.read_text(e.to_end().name()).map_err(into_list_err)?)
-                        .map_err(into_list_err)?,
-                    MARKER => self
-                        .set_marker(&reader.read_text(e.to_end().name()).map_err(into_list_err)?)
-                        .map_err(into_list_err)?,
-                    MAX_KEYS => self
-                        .set_max_keys(&reader.read_text(e.to_end().name()).map_err(into_list_err)?)
-                        .map_err(into_list_err)?,
+                    PREFIX => self.set_prefix(&reader.read_text(e.to_end().name())?)?,
+                    MARKER => self.set_marker(&reader.read_text(e.to_end().name())?)?,
+                    MAX_KEYS => self.set_max_keys(&reader.read_text(e.to_end().name())?)?,
                     IS_TRUNCATED => {
-                        self.set_is_truncated(
-                            reader.read_text(e.to_end().name()).map_err(into_list_err)? == TRUE,
-                        )
-                        .map_err(into_list_err)?;
+                        self.set_is_truncated(reader.read_text(e.to_end().name())? == TRUE)?;
                     }
-                    NEXT_MARKER => self
-                        .set_next_marker(
-                            &reader.read_text(e.to_end().name()).map_err(into_list_err)?,
-                        )
-                        .map_err(into_list_err)?,
-                    ID => self
-                        .set_id(&reader.read_text(e.to_end().name()).map_err(into_list_err)?)
-                        .map_err(into_list_err)?,
-                    DISPLAY_NAME => self
-                        .set_display_name(
-                            &reader.read_text(e.to_end().name()).map_err(into_list_err)?,
-                        )
-                        .map_err(into_list_err)?,
+                    NEXT_MARKER => self.set_next_marker(&reader.read_text(e.to_end().name())?)?,
+                    ID => self.set_id(&reader.read_text(e.to_end().name())?)?,
+                    DISPLAY_NAME => self.set_display_name(&reader.read_text(e.to_end().name())?)?,
                     BUCKET => {
                         // <Bucket></Bucket> 标签内部的数据对应单个 bucket 信息
                         let mut bucket = init_bucket();
-                        bucket
-                            .decode(&reader.read_text(e.to_end().name()).map_err(into_list_err)?)
-                            .map_err(into_list_err)?;
+                        bucket.decode(&reader.read_text(e.to_end().name())?)?;
                         result.push(bucket);
                     }
                     _ => (),
                 },
                 Ok(Event::Eof) => {
-                    self.set_list(result).map_err(into_list_err)?;
+                    self.set_list(result)?;
                     break;
                 } // exits the loop when reaching end of file
                 Err(e) => {
-                    return Err(InnerListError {
-                        kind: ListErrorKind::from(e),
-                    });
+                    return Err(InnerListError::from(e));
                 }
                 _ => (), // There are several other `Event`s we do not consider here
             }
@@ -860,13 +812,13 @@ mod tests {
     #[test]
     fn test_item_from() {
         let err = InnerItemError::new();
-        assert_eq!(format!("{err}"), "decode xml to object has error");
+        assert_eq!(format!("{err}"), "decode xml to item record has error");
     }
 
     #[test]
     fn test_list_from() {
         let string = "abc".to_string();
-        let err: ListErrorKind = string.into();
+        let err: InnerListError = string.into();
         assert_eq!(
             format!("{err}"),
             "decode xml faild, parse to custom type error"
@@ -878,11 +830,14 @@ mod tests {
         let err = ListErrorKind::Item(InnerItemError::new());
         assert_eq!(format!("{err}"), "decode xml faild, item error");
 
-        fn bar() -> ListErrorKind {
+        fn bar() -> InnerListError {
             InnerItemError::new().into()
         }
 
-        assert_eq!(format!("{:?}", bar()), "Item(InnerItemError(MyError))");
+        assert_eq!(
+            format!("{:?}", bar()),
+            "InnerListError { kind: Item(InnerItemError(MyError)) }"
+        );
     }
 
     #[test]
@@ -890,10 +845,13 @@ mod tests {
         let err = ListErrorKind::Xml(quick_xml::Error::TextNotFound);
         assert_eq!(format!("{err}"), "decode xml faild, xml error");
 
-        fn bar() -> ListErrorKind {
+        fn bar() -> InnerListError {
             quick_xml::Error::TextNotFound.into()
         }
 
-        assert_eq!(format!("{:?}", bar()), "Xml(TextNotFound)");
+        assert_eq!(
+            format!("{:?}", bar()),
+            "InnerListError { kind: Xml(TextNotFound) }"
+        );
     }
 }
