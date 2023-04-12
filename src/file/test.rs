@@ -211,7 +211,7 @@ mod test_try {
 mod error {
     use std::io::ErrorKind;
 
-    use http::{header::ToStrError, HeaderValue};
+    use http::HeaderValue;
 
     use crate::{builder::BuilderError, file::FileError, types::object::InvalidObjectPath};
 

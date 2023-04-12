@@ -169,31 +169,23 @@ mod debug {
     //         "InnerItemError(InnerItemError(\"foo\"))"
     //     );
     // }
-    #[test]
-    #[cfg(feature = "decode")]
-    fn test_inner_list() {
-        use crate::decode::{InnerListError, ListErrorKind};
+    // #[test]
+    // #[cfg(feature = "decode")]
+    // fn test_inner_list() {
+    //     use crate::decode::InnerListError;
 
-        let err = Error::InnerListError(InnerListError {
-            kind: ListErrorKind::Custom("aaa".to_string()),
-        });
+    //     let err = Error::InnerListError(InnerListError::from_xml());
 
-        assert_eq!(
-            format!("{err}"),
-            "decode xml faild, parse to custom type error"
-        );
+    //     assert_eq!(format!("{err}"), "decode xml faild, quick_xml error");
 
-        fn bar() -> Error {
-            InnerListError {
-                kind: ListErrorKind::Custom("aaa".to_string()),
-            }
-            .into()
-        }
-        assert_eq!(
-            format!("{:?}", bar()),
-            "InnerListError(InnerListError { kind: Custom(\"aaa\") })"
-        );
-    }
+    //     fn bar() -> Error {
+    //         InnerListError::from_xml().into()
+    //     }
+    //     assert_eq!(
+    //         format!("{:?}", bar()),
+    //         "InnerListError(InnerListError { kind: Xml(TextNotFound) })"
+    //     );
+    // }
 
     #[test]
     fn test_build_in_iter_error() {

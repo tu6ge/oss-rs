@@ -1,13 +1,12 @@
-use std::fmt::{self, Display};
-
 use aliyun_oss_client::{
     builder::ArcPointer,
     decode::RefineObject,
     object::ObjectList,
     types::object::{InvalidObjectDir, ObjectDir, ObjectPathInner},
-    BucketName, Client, DecodeItemError,
+    BucketName, Client,
 };
 use dotenv::dotenv;
+use thiserror::Error;
 
 #[derive(Debug)]
 enum MyObject<'a> {
@@ -28,14 +27,9 @@ impl RefineObject<MyError> for MyObject<'_> {
     }
 }
 
-#[derive(DecodeItemError)]
+#[derive(Debug, Error)]
+#[error("my error")]
 struct MyError(String);
-
-impl Display for MyError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("{}", self.0))
-    }
-}
 
 impl From<InvalidObjectDir> for MyError {
     fn from(value: InvalidObjectDir) -> Self {

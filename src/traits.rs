@@ -39,10 +39,10 @@
 //!     }
 //! }
 //!
-//! use aliyun_oss_client::{DecodeItemError, DecodeListError};
+//! use aliyun_oss_client::DecodeListError;
 //!
 //! // 自定义的 Error 需要实现这两个 Trait，用于内部解析方法在调用时，统一处理异常
-//! #[derive(Debug, Error, DecodeItemError, DecodeListError)]
+//! #[derive(Debug, Error, DecodeListError)]
 //! #[error("my error")]
 //! struct MyError {}
 //!
@@ -102,7 +102,6 @@ use quick_xml::{events::Event, Reader};
 use crate::{
     errors::OssError,
     types::object::{InvalidObjectDir, InvalidObjectPath},
-    types::InvalidEndPoint,
 };
 
 /// 将一个 object 的数据写入到 rust 类型
@@ -344,29 +343,6 @@ where
     }
 }
 
-/// 当外部要实现 [`RefineObject`] 时，Error 类需要实现此 Trait
-///
-/// [`RefineObject`]: crate::decode::RefineObject
-pub trait ItemError: Display {}
-
-impl ItemError for quick_xml::Error {}
-impl ItemError for ParseIntError {}
-
-#[cfg(feature = "core")]
-impl ItemError for InvalidObjectPath {}
-#[cfg(feature = "core")]
-impl ItemError for InvalidObjectDir {}
-#[cfg(feature = "core")]
-impl ItemError for chrono::ParseError {}
-#[cfg(feature = "core")]
-impl ItemError for OssError {}
-#[cfg(feature = "core")]
-impl ItemError for InvalidEndPoint {}
-
-impl ItemError for String {}
-impl ItemError for str {}
-impl ItemError for &str {}
-
 /// # Object 的 Error 中间层
 /// 当外部实现 [`RefineObject`] 时，所使用的 Error ,可先转换为这个，
 /// 变成一个已知的 Error 类型
@@ -407,7 +383,7 @@ impl InnerItemError {
 /// 当外部要实现 [`RefineObjectList`] 时，Error 类需要实现此 Trait
 ///
 /// [`RefineObjectList`]: crate::decode::RefineObjectList
-pub trait ListError: Display {}
+pub trait ListError: StdError + 'static {}
 
 impl ListError for ParseIntError {}
 
@@ -420,9 +396,16 @@ impl ListError for chrono::ParseError {}
 #[cfg(feature = "core")]
 impl ListError for OssError {}
 
-impl ListError for String {}
-impl ListError for str {}
-impl ListError for &str {}
+impl<T: ListError> From<T> for InnerListError {
+    fn from(err: T) -> InnerListError {
+        Self {
+            kind: ListErrorKind::Custom {
+                info: err.to_string(),
+                source: Box::new(err),
+            },
+        }
+    }
+}
 
 /// # ObjectList 的 Error 中间层
 /// 当外部实现 [`RefineObjectList`] 时，所使用的 Error ,可先转换为这个，
@@ -431,16 +414,21 @@ impl ListError for &str {}
 /// [`RefineObjectList`]: crate::decode::RefineObjectList
 #[derive(Debug)]
 pub struct InnerListError {
-    pub(crate) kind: ListErrorKind,
+    kind: ListErrorKind,
 }
-
-impl std::error::Error for InnerListError {}
 
 impl Display for InnerListError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self.kind))
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use ListErrorKind::*;
+        match &self.kind {
+            Item(_) => write!(fmt, "decode xml faild, item error"),
+            Xml(_) => write!(fmt, "decode xml faild, quick_xml error"),
+            Custom { info, .. } => write!(fmt, "{info}"),
+        }
     }
 }
+
+// impl StdError for InnerListError {}
 
 impl From<ListErrorKind> for InnerListError {
     fn from(kind: ListErrorKind) -> Self {
@@ -448,19 +436,21 @@ impl From<ListErrorKind> for InnerListError {
     }
 }
 
-#[doc(hidden)]
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum ListErrorKind {
-    Item(InnerItemError),
-    Xml(quick_xml::Error),
-    Custom(String),
-}
-
-impl<T: ListError> From<T> for InnerListError {
-    fn from(err: T) -> InnerListError {
+impl InnerListError {
+    #[cfg(test)]
+    pub(crate) fn from_xml() -> Self {
         Self {
-            kind: ListErrorKind::Custom(format!("{err}")),
+            kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
+        }
+    }
+
+    /// 获取更详细的错误信息
+    pub fn get_source(&self) -> Option<&(dyn StdError + 'static)> {
+        use ListErrorKind::*;
+        match &self.kind {
+            Item(item) => Some(item.0.as_ref()),
+            Xml(xml) => Some(xml),
+            Custom { source, .. } => Some(source.as_ref()),
         }
     }
 }
@@ -481,27 +471,21 @@ impl From<quick_xml::Error> for InnerListError {
     }
 }
 
-impl Display for ListErrorKind {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            ListErrorKind::Item(_) => write!(fmt, "decode xml faild, item error",),
-            ListErrorKind::Xml(_) => write!(fmt, "decode xml faild, xml error",),
-            ListErrorKind::Custom(_) => {
-                // TODO
-                write!(fmt, "decode xml faild, parse to custom type error")
-            }
-        }
-    }
-}
+#[doc(hidden)]
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum ListErrorKind {
+    #[non_exhaustive]
+    Item(InnerItemError),
 
-impl std::error::Error for ListErrorKind {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            ListErrorKind::Item(item) => Some(item.0.as_ref()),
-            ListErrorKind::Xml(xml) => Some(xml),
-            ListErrorKind::Custom(_) => None,
-        }
-    }
+    #[non_exhaustive]
+    Xml(quick_xml::Error),
+
+    #[non_exhaustive]
+    Custom {
+        info: String,
+        source: Box<dyn StdError + 'static>,
+    },
 }
 
 /// 将一个 bucket 的数据写入到 rust 类型
@@ -817,18 +801,17 @@ mod tests {
 
     #[test]
     fn test_list_from() {
-        let string = "abc".to_string();
+        let string = InvalidObjectPath { _priv: () };
         let err: InnerListError = string.into();
-        assert_eq!(
-            format!("{err}"),
-            "decode xml faild, parse to custom type error"
-        );
+        assert_eq!(format!("{err}"), "invalid object path");
     }
 
     #[test]
     fn test_error_list_from_item() {
-        let err = ListErrorKind::Item(InnerItemError::new());
-        assert_eq!(format!("{err}"), "decode xml faild, item error");
+        let err = InnerListError {
+            kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
+        };
+        assert_eq!(format!("{err}"), "decode xml faild, quick_xml error");
 
         fn bar() -> InnerListError {
             InnerItemError::new().into()
@@ -842,8 +825,10 @@ mod tests {
 
     #[test]
     fn test_error_list_from_xml() {
-        let err = ListErrorKind::Xml(quick_xml::Error::TextNotFound);
-        assert_eq!(format!("{err}"), "decode xml faild, xml error");
+        let err = InnerListError {
+            kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
+        };
+        assert_eq!(format!("{err}"), "decode xml faild, quick_xml error");
 
         fn bar() -> InnerListError {
             quick_xml::Error::TextNotFound.into()

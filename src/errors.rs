@@ -50,11 +50,10 @@ pub enum OssError {
     #[error("{0}")]
     BuildInItemError(#[from] crate::object::BuildInItemError),
 
-    #[cfg(feature = "decode")]
-    #[doc(hidden)]
-    #[error("{0}")]
-    InnerListError(#[from] crate::decode::InnerListError),
-
+    // #[cfg(feature = "decode")]
+    // #[doc(hidden)]
+    // #[error("{0}")]
+    // InnerListError(#[from] crate::decode::InnerListError),
     #[doc(hidden)]
     #[error("{0}")]
     ExtractList(#[from] ExtractListError),
