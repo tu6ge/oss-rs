@@ -5,9 +5,7 @@ use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::BucketBase;
-use crate::decode::{
-    InnerItemError, ItemError, ListError, RefineBucket, RefineBucketList, RefineObjectList,
-};
+use crate::decode::{ItemError, ListError, RefineBucket, RefineBucketList, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
@@ -21,6 +19,7 @@ use crate::{BucketName, EndPoint};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use http::Method;
 use oss_derive::oss_gen_rc;
+use std::error::Error;
 use std::fmt;
 use std::marker::PhantomData;
 use std::num::ParseIntError;
@@ -37,7 +36,7 @@ mod test;
 pub struct ListBuckets<
     PointerSel: PointerFamily = ArcPointer,
     Item: RefineBucket<E> = Bucket<PointerSel>,
-    E: ItemError = BucketError,
+    E: Error + 'static = BucketError,
 > {
     prefix: String,
     marker: String,
@@ -52,7 +51,7 @@ pub struct ListBuckets<
     ph_err: PhantomData<E>,
 }
 
-impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: ItemError> fmt::Debug
+impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: Error> fmt::Debug
     for ListBuckets<T, Item, E>
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -70,14 +69,14 @@ impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: ItemError> fm
 }
 
 #[oss_gen_rc]
-impl<Item: RefineBucket<E>, E: ItemError> ListBuckets<ArcPointer, Item, E> {
+impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
     fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = Arc::clone(&client);
     }
 }
 
 #[oss_gen_rc]
-impl<Item: RefineBucket<E>, E: ItemError> Default for ListBuckets<ArcPointer, Item, E> {
+impl<Item: RefineBucket<E>, E: Error> Default for ListBuckets<ArcPointer, Item, E> {
     fn default() -> Self {
         Self {
             prefix: String::default(),
@@ -94,7 +93,7 @@ impl<Item: RefineBucket<E>, E: ItemError> Default for ListBuckets<ArcPointer, It
     }
 }
 
-impl<Item: RefineBucket<E>, E: ItemError> ListBuckets<ArcPointer, Item, E> {
+impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
     /// 获取 prefix
     pub fn prefix_string(&self) -> &String {
         &self.prefix
@@ -417,7 +416,7 @@ impl Bucket<RcPointer> {
     }
 }
 
-impl<T: PointerFamily, Item: RefineBucket<E>, E: ItemError>
+impl<T: PointerFamily, Item: RefineBucket<E>, E: Error + 'static>
     RefineBucketList<Item, BucketListError, E> for ListBuckets<T, Item, E>
 {
     fn set_prefix(&mut self, prefix: &str) -> Result<(), BucketListError> {
@@ -492,7 +491,7 @@ impl ClientArc {
         List: RefineBucketList<Item, E, ItemErr>,
         Item: RefineBucket<ItemErr>,
         E: ListError,
-        ItemErr: ItemError,
+        ItemErr: Error + 'static,
         F: FnMut() -> Item,
     {
         let url = self.get_endpoint_url();
@@ -536,7 +535,7 @@ impl ClientArc {
     ) -> Result<(), ExtractItemError>
     where
         Bucket: RefineBucket<E>,
-        E: ItemError,
+        E: Error + 'static,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some(BUCKET_INFO);
@@ -549,7 +548,7 @@ impl ClientArc {
 
         bucket
             .decode(&content.text().await.map_err(BuilderError::from)?)
-            .map_err(ExtractItemError::from)?;
+            .map_err(|_| ExtractItemError::Decode)?;
 
         Ok(())
     }
@@ -566,8 +565,8 @@ pub enum ExtractItemError {
     Builder(#[from] BuilderError),
 
     #[doc(hidden)]
-    #[error("{0}")]
-    Item(#[from] InnerItemError),
+    #[error("decode xml failed")]
+    Decode,
 }
 
 #[cfg(feature = "blocking")]

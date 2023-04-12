@@ -92,6 +92,7 @@
 //! ```
 
 use std::borrow::Cow;
+use std::error::Error as StdError;
 use std::fmt::Display;
 use std::num::ParseIntError;
 
@@ -105,7 +106,7 @@ use crate::{
 };
 
 /// 将一个 object 的数据写入到 rust 类型
-pub trait RefineObject<Error: ItemError> {
+pub trait RefineObject<Error: StdError + 'static> {
     /// 提取 key
     fn set_key(&mut self, _key: &str) -> Result<(), Error> {
         Ok(())
@@ -205,7 +206,7 @@ pub trait RefineObjectList<T, Error, ItemErr = Error>
 where
     T: RefineObject<ItemErr>,
     Error: ListError,
-    ItemErr: ItemError,
+    ItemErr: StdError + 'static,
 {
     /// 提取 bucket 名
     fn set_name(&mut self, _name: &str) -> Result<(), Error> {
@@ -398,25 +399,35 @@ impl ItemError for &str {}
 /// 变成一个已知的 Error 类型
 ///
 /// [`RefineObject`]: crate::decode::RefineObject
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug)]
 #[doc(hidden)]
-pub struct InnerItemError(pub(crate) String);
+pub struct InnerItemError(pub(crate) Box<dyn StdError + 'static>);
 
-impl<T: ItemError> From<T> for InnerItemError {
+impl<T: StdError + 'static> From<T> for InnerItemError {
     fn from(err: T) -> Self {
-        Self(format!("{err}"))
+        Self(Box::new(err))
     }
 }
 
 impl Display for InnerItemError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "decode xml to object has error, info: {}", self.0)
+        write!(fmt, "decode xml to item record has error")
     }
 }
 
-impl std::error::Error for InnerItemError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        None
+impl InnerItemError {
+    #[cfg(test)]
+    pub(crate) fn new() -> Self {
+        #[derive(Debug)]
+        struct MyError;
+        impl Display for MyError {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                "demo".fmt(f)
+            }
+        }
+        impl StdError for MyError {}
+
+        Self(Box::new(MyError {}))
     }
 }
 
@@ -511,7 +522,7 @@ impl Display for ListErrorKind {
 impl std::error::Error for ListErrorKind {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            ListErrorKind::Item(item) => Some(item),
+            ListErrorKind::Item(item) => Some(item.0.as_ref()),
             ListErrorKind::Xml(xml) => Some(xml),
             ListErrorKind::Custom(_) => None,
         }
@@ -519,7 +530,7 @@ impl std::error::Error for ListErrorKind {
 }
 
 /// 将一个 bucket 的数据写入到 rust 类型
-pub trait RefineBucket<Error: ItemError> {
+pub trait RefineBucket<Error: StdError + 'static> {
     /// 提取 bucket name
     fn set_name(&mut self, _name: &str) -> Result<(), Error> {
         Ok(())
@@ -596,7 +607,7 @@ const TRUE: &str = "true";
 pub trait RefineBucketList<T: RefineBucket<ItemErr>, Error, ItemErr = Error>
 where
     Error: ListError,
-    ItemErr: ItemError,
+    ItemErr: StdError + 'static,
 {
     /// 提取 prefix
     fn set_prefix(&mut self, _prefix: &str) -> Result<(), Error> {
@@ -743,6 +754,7 @@ mod tests {
             }
         }
 
+        #[derive(Debug)]
         struct MyError {}
 
         impl From<InnerItemError> for MyError {
@@ -762,7 +774,7 @@ mod tests {
                 write!(f, "demo")
             }
         }
-        impl ItemError for MyError {}
+        impl std::error::Error for MyError {}
 
         let xml = r#"<Key>LICENSE</Key>
             <LastModified>2022-06-12T06:11:06.000Z</LastModified>
@@ -777,11 +789,13 @@ mod tests {
 
     #[test]
     fn test_common_prefixes() {
+        use std::error::Error;
         struct ObjectA {}
         impl RefineObject<MyError> for ObjectA {}
 
         struct ListA {}
 
+        #[derive(Debug)]
         struct MyError {}
 
         impl From<InnerItemError> for MyError {
@@ -802,7 +816,7 @@ mod tests {
             }
         }
 
-        impl ItemError for MyError {}
+        impl Error for MyError {}
         impl ListError for MyError {}
 
         impl RefineObjectList<ObjectA, MyError, MyError> for ListA {
@@ -845,12 +859,8 @@ mod tests {
 
     #[test]
     fn test_item_from() {
-        let string = "abc".to_string();
-        let err: InnerItemError = string.into();
-        assert_eq!(
-            format!("{err}"),
-            "decode xml to object has error, info: abc"
-        );
+        let err = InnerItemError::new();
+        assert_eq!(format!("{err}"), "decode xml to object has error");
     }
 
     #[test]
@@ -859,26 +869,26 @@ mod tests {
         let err: ListErrorKind = string.into();
         assert_eq!(
             format!("{err}"),
-            "decode xml to object list has error, info: abc"
+            "decode xml faild, parse to custom type error"
         );
     }
 
     #[test]
     fn test_error_list_from_item() {
-        let err = ListErrorKind::Item(InnerItemError("foo".to_string()));
-        assert_eq!(format!("{err}"), "decode xml to object list has error, item info: decode xml to object has error, info: foo");
+        let err = ListErrorKind::Item(InnerItemError::new());
+        assert_eq!(format!("{err}"), "decode xml faild, item error");
 
         fn bar() -> ListErrorKind {
-            InnerItemError("foo".to_string()).into()
+            InnerItemError::new().into()
         }
 
-        assert_eq!(format!("{:?}", bar()), "Item(InnerItemError(\"foo\"))");
+        assert_eq!(format!("{:?}", bar()), "Item(InnerItemError(MyError))");
     }
 
     #[test]
     fn test_error_list_from_xml() {
         let err = ListErrorKind::Xml(quick_xml::Error::TextNotFound);
-        assert_eq!(format!("{err}"), "decode xml to object list has error, xml info: Cannot read text, expecting Event::Text");
+        assert_eq!(format!("{err}"), "decode xml faild, xml error");
 
         fn bar() -> ListErrorKind {
             quick_xml::Error::TextNotFound.into()

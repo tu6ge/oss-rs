@@ -46,11 +46,6 @@ pub enum OssError {
     #[error("{0}")]
     InvalidObjectDir(#[from] InvalidObjectDir),
 
-    #[cfg(feature = "decode")]
-    #[doc(hidden)]
-    #[error("{0}")]
-    InnerItemError(#[from] crate::decode::InnerItemError),
-
     #[doc(hidden)]
     #[error("{0}")]
     BuildInItemError(#[from] crate::object::BuildInItemError),
