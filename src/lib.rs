@@ -298,10 +298,12 @@ pub mod decode;
 /// 重新导出 derive 用于解析xml数据
 ///
 /// ```rust
-/// # use aliyun_oss_client::{DecodeItemError, DecodeListError};
+/// # use aliyun_oss_client::DecodeListError;
 /// # use std::fmt;
-/// #[derive(DecodeItemError, DecodeListError)]
+/// #[derive(DecodeListError, Debug)]
 /// struct MyError {}
+///
+/// impl std::error::Error for MyError {}
 ///
 /// impl fmt::Display for MyError {
 ///     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -310,7 +312,7 @@ pub mod decode;
 /// }
 /// ```
 #[cfg(feature = "decode")]
-pub use oss_derive::{DecodeItemError, DecodeListError};
+pub use oss_derive::DecodeListError;
 
 /// 异常处理模块
 #[cfg(feature = "core")]

@@ -8,7 +8,7 @@
 //! use aliyun_oss_client::{
 //!     builder::{ArcPointer, BuilderError},
 //!     types::object::{InvalidObjectDir, ObjectDir, ObjectPath},
-//!     decode::{ItemError, RefineObject},
+//!     decode::RefineObject,
 //!     object::ObjectList,
 //!     BucketName, Client,
 //! };
@@ -86,7 +86,7 @@ use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::{get_url_resource_with_bucket, BucketBase};
-use crate::decode::{InnerListError, ItemError, ListError, RefineObject, RefineObjectList};
+use crate::decode::{ListError, RefineObject, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
@@ -339,7 +339,8 @@ impl ObjectList<ArcPointer> {
                         ExtractListError::from(builder_err)
                     })?,
                     init_object,
-                )?;
+                )
+                .map_err(|_| ExtractListError::Decode)?;
 
                 list.set_search_query(query);
                 Ok(list)
@@ -866,8 +867,6 @@ pub enum BuildInItemError {
     InvalidStorageClass,
 }
 
-impl ItemError for BuildInItemError {}
-
 impl Client {
     /// 查询默认 bucket 的文件列表
     ///
@@ -904,7 +903,7 @@ impl Client {
             &content.text().await.map_err(BuilderError::from)?,
             init_object,
         )
-        .map_err(ExtractListError::from)?;
+        .map_err(|_| ExtractListError::Decode)?;
 
         list.set_client(Arc::new(self));
         list.set_search_query(query);
@@ -917,7 +916,7 @@ impl Client {
     /// ## 示例
     /// ```rust
     /// use aliyun_oss_client::{
-    ///     decode::{ItemError, ListError, RefineObject, RefineObjectList},
+    ///     decode::{ListError, RefineObject, RefineObjectList},
     ///     object::ExtractListError,
     ///     Client,
     /// };
@@ -958,7 +957,6 @@ impl Client {
     /// #[error("my error")]
     /// enum MyError {}
     ///
-    /// impl ItemError for MyError {}
     /// impl ListError for MyError {}
     ///
     /// async fn run() -> Result<(), ExtractListError> {
@@ -1037,7 +1035,7 @@ impl Client {
             &content.text().await.map_err(BuilderError::from)?,
             init_object,
         )
-        .map_err(ExtractListError::from)?;
+        .map_err(|_| ExtractListError::Decode)?;
 
         Ok(())
     }
@@ -1053,9 +1051,9 @@ pub enum ExtractListError {
     #[error("{0}")]
     Builder(#[from] BuilderError),
 
-    #[doc(hidden)]
-    #[error("{0}")]
-    List(#[from] InnerListError),
+    /// 解析 xml 错误
+    #[error("decode xml error")]
+    Decode,
 
     /// 用于 Stream
     #[doc(hidden)]

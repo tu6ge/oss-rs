@@ -1,5 +1,5 @@
 use aliyun_oss_client::decode::{InnerListError, RefineObject, RefineObjectList};
-use aliyun_oss_client::{DecodeItemError, DecodeListError};
+use aliyun_oss_client::DecodeListError;
 use thiserror::Error;
 
 struct MyFile {
@@ -32,7 +32,7 @@ impl RefineObjectList<MyFile, MyError> for MyBucket {
     }
 }
 
-#[derive(Debug, Error, DecodeItemError, DecodeListError)]
+#[derive(Debug, Error, DecodeListError)]
 #[error("my error")]
 struct MyError {}
 

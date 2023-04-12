@@ -5,7 +5,7 @@ use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::BucketBase;
-use crate::decode::{ItemError, ListError, RefineBucket, RefineBucketList, RefineObjectList};
+use crate::decode::{ListError, RefineBucket, RefineBucketList, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
@@ -248,13 +248,10 @@ pub enum BucketError {
     InvalidStorageClass(String),
 }
 
-impl ItemError for BucketError {}
-
 #[cfg(test)]
 mod test_bucket_error {
 
     use super::*;
-    fn assert_impl<T: ItemError>() {}
     #[test]
     fn display() {
         let error = BucketError::BucketName(InvalidBucketName { _priv: () }, "abc".to_string());
@@ -265,8 +262,6 @@ mod test_bucket_error {
 
         let error = BucketError::InvalidStorageClass("abc".to_string());
         assert_eq!(error.to_string(), "invalid storage class, source str: abc");
-
-        assert_impl::<BucketError>();
     }
 }
 
@@ -370,7 +365,8 @@ impl Bucket {
         list.decode(
             &content.text().await.map_err(BuilderError::from)?,
             init_object,
-        )?;
+        )
+        .map_err(|_| ExtractListError::Decode)?;
 
         list.set_bucket(self.base.clone());
         list.set_client(self.client());
@@ -509,7 +505,7 @@ impl ClientArc {
                 .map_err(ExtractListError::from)?,
             init_bucket,
         )
-        .map_err(ExtractListError::from)?;
+        .map_err(|_| ExtractListError::Decode)?;
 
         Ok(())
     }
