@@ -36,6 +36,7 @@
 //!     }
 //! }
 //!
+//! #[derive(Debug)]
 //! struct MyError(String);
 //!
 //! use std::fmt::{self, Display};
@@ -45,7 +46,7 @@
 //!         f.write_fmt(format_args!("{}", self.0))
 //!     }
 //! }
-//! impl ItemError for MyError {}
+//! impl std::error::Error for MyError {}
 //!
 //! impl From<InvalidObjectDir> for MyError {
 //!     fn from(value: InvalidObjectDir) -> Self {
@@ -100,6 +101,7 @@ use futures_core::stream::Stream;
 use http::Method;
 use oss_derive::oss_gen_rc;
 
+use std::error::Error;
 use std::fmt;
 use std::marker::PhantomData;
 use std::num::ParseIntError;
@@ -115,7 +117,7 @@ use std::vec::IntoIter;
 pub struct ObjectList<
     P: PointerFamily = ArcPointer,
     Item: RefineObject<E> = Object<P>,
-    E: ItemError = BuildInItemError,
+    E: Error + 'static = BuildInItemError,
 > {
     pub(crate) bucket: BucketBase,
     prefix: Option<ObjectDir<'static>>,
@@ -130,7 +132,7 @@ pub struct ObjectList<
     ph_err: PhantomData<E>,
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> fmt::Debug for ObjectList<T, Item, E> {
+impl<T: PointerFamily, Item: RefineObject<E>, E: Error> fmt::Debug for ObjectList<T, Item, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ObjectList")
             .field("bucket", &self.bucket)
@@ -145,7 +147,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> fmt::Debug for Objec
 }
 
 #[oss_gen_rc]
-impl<Item: RefineObject<E>, E: ItemError> Default for ObjectList<ArcPointer, Item, E> {
+impl<Item: RefineObject<E>, E: Error> Default for ObjectList<ArcPointer, Item, E> {
     fn default() -> Self {
         Self {
             bucket: BucketBase::default(),
@@ -162,15 +164,13 @@ impl<Item: RefineObject<E>, E: ItemError> Default for ObjectList<ArcPointer, Ite
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> AsMut<Query>
-    for ObjectList<T, Item, E>
-{
+impl<T: PointerFamily, Item: RefineObject<E>, E: Error> AsMut<Query> for ObjectList<T, Item, E> {
     fn as_mut(&mut self) -> &mut Query {
         &mut self.search_query
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> AsRef<BucketBase>
+impl<T: PointerFamily, Item: RefineObject<E>, E: Error> AsRef<BucketBase>
     for ObjectList<T, Item, E>
 {
     fn as_ref(&self) -> &BucketBase {
@@ -178,7 +178,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> AsRef<BucketBase>
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> AsRef<BucketName>
+impl<T: PointerFamily, Item: RefineObject<E>, E: Error> AsRef<BucketName>
     for ObjectList<T, Item, E>
 {
     fn as_ref(&self) -> &BucketName {
@@ -186,15 +186,13 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> AsRef<BucketName>
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> AsRef<EndPoint>
-    for ObjectList<T, Item, E>
-{
+impl<T: PointerFamily, Item: RefineObject<E>, E: Error> AsRef<EndPoint> for ObjectList<T, Item, E> {
     fn as_ref(&self) -> &EndPoint {
         self.bucket.as_ref()
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, E> {
+impl<T: PointerFamily, Item: RefineObject<E>, E: Error> ObjectList<T, Item, E> {
     /// 文件列表的初始化方法
     #[allow(clippy::too_many_arguments)]
     pub fn new<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
@@ -297,7 +295,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, 
 }
 
 #[oss_gen_rc]
-impl<Item: RefineObject<E>, E: ItemError> ObjectList<ArcPointer, Item, E> {
+impl<Item: RefineObject<E>, E: Error> ObjectList<ArcPointer, Item, E> {
     /// 设置 Client
     pub(crate) fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
@@ -388,7 +386,7 @@ impl ObjectList<ArcPointer> {
     }
 }
 
-impl<Item: RefineObject<E>, E: ItemError> ObjectList<ArcPointer, Item, E> {
+impl<Item: RefineObject<E>, E: Error + 'static> ObjectList<ArcPointer, Item, E> {
     /// 自定义 Item 时，获取下一页数据
     pub async fn get_next_base<F>(&self, init_object: F) -> Result<Self, ExtractListError>
     where
@@ -442,7 +440,7 @@ impl ObjectList<RcPointer> {
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, E> {
+impl<T: PointerFamily, Item: RefineObject<E>, E: Error + 'static> ObjectList<T, Item, E> {
     /// 设置查询条件
     #[inline]
     pub fn set_search_query(&mut self, search_query: Query) {
@@ -766,7 +764,7 @@ impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
     }
 }
 
-impl<P: PointerFamily, Item: RefineObject<E>, E: ItemError>
+impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
     RefineObjectList<Item, ObjectListError, E> for ObjectList<P, Item, E>
 {
     #[inline]
@@ -997,7 +995,7 @@ impl Client {
         Item,
         F,
         E: ListError,
-        ItemErr: ItemError,
+        ItemErr: Error + 'static,
     >(
         &self,
         name: Name,
@@ -1018,7 +1016,7 @@ impl Client {
     }
 
     /// # 可将 object 列表导出到外部类型（关注性能）
-    pub async fn base_object_list2<List, Item, F, E: ListError, ItemErr: ItemError>(
+    pub async fn base_object_list2<List, Item, F, E: ListError, ItemErr: Error + 'static>(
         &self,
         name: &BucketName,
         query: &Query,
