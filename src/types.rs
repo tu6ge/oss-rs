@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
-#[cfg(any(feature = "core", feature = "auth"))]
+#[cfg(any(feature = "core", feature = "auth", test))]
 use url::Url;
 
 /// object 相关的类型
@@ -131,7 +131,7 @@ impl<'a> InnerKeySecret<'a> {
 
 /// # OSS 的可用区
 /// [aliyun docs](https://help.aliyun.com/document_detail/31837.htm)
-#[cfg(any(feature = "core", feature = "auth"))]
+#[cfg(any(feature = "core", feature = "auth", test))]
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum EndPoint {
@@ -171,6 +171,7 @@ const US_WEST1: &str = "us-west-1";
 const US_EAST1: &str = "us-east-1";
 const AP_SOUTH_EAST1: &str = "ap-southeast-1";
 
+#[cfg(any(feature = "core", feature = "auth", test))]
 impl AsRef<str> for EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint::*;
@@ -204,6 +205,7 @@ impl AsRef<str> for EndPoint {
     }
 }
 
+#[cfg(any(feature = "core", feature = "auth", test))]
 impl Display for EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint::*;
@@ -222,6 +224,7 @@ const ZHANGJIAKOU_L: &str = "zhangjiakou";
 const HONGKONG_L: &str = "hongkong";
 const SHENZHEN_L: &str = "shenzhen";
 
+#[cfg(any(feature = "core", feature = "auth", test))]
 impl TryFrom<String> for EndPoint {
     type Error = InvalidEndPoint;
     /// 字符串转 endpoint
@@ -237,6 +240,7 @@ impl TryFrom<String> for EndPoint {
     }
 }
 
+#[cfg(any(feature = "core", feature = "auth", test))]
 impl<'a> TryFrom<&'a str> for EndPoint {
     type Error = InvalidEndPoint;
     /// 字符串字面量转 endpoint
@@ -252,6 +256,7 @@ impl<'a> TryFrom<&'a str> for EndPoint {
     }
 }
 
+#[cfg(any(feature = "core", feature = "auth", test))]
 impl FromStr for EndPoint {
     type Err = InvalidEndPoint;
     fn from_str(url: &str) -> Result<Self, Self::Err> {
@@ -264,6 +269,7 @@ const OSS_DOMAIN_PREFIX: &str = "https://oss-";
 const OSS_INTERNAL: &str = "-internal";
 const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
 
+#[cfg(any(feature = "core", feature = "auth", test))]
 impl<'a> EndPoint {
     /// 通过字符串字面值初始化 endpoint
     ///
@@ -357,6 +363,7 @@ impl<'a> EndPoint {
     }
 
     /// 从 oss 域名中提取 Endpoint 信息
+    #[cfg(feature = "auth")]
     pub(crate) fn from_host_piece(url: &'a str) -> Result<Self, InvalidEndPoint> {
         if !url.starts_with("oss-") {
             return Err(InvalidEndPoint { _priv: () });
@@ -443,6 +450,7 @@ mod test_endpoint {
         ));
     }
 
+    #[cfg(feature = "auth")]
     #[test]
     fn test_from_host_piece() {
         assert!(EndPoint::from_host_piece("qingdao").is_err());
