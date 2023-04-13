@@ -98,6 +98,7 @@ use std::num::ParseIntError;
 
 use quick_xml::{events::Event, Reader};
 
+use crate::types::InvalidEndPoint;
 #[cfg(feature = "core")]
 use crate::{
     errors::OssError,
@@ -387,6 +388,8 @@ pub trait ListError: StdError + 'static {}
 
 impl ListError for ParseIntError {}
 
+impl ListError for InvalidEndPoint {}
+
 #[cfg(feature = "core")]
 impl ListError for InvalidObjectPath {}
 #[cfg(feature = "core")]
@@ -438,6 +441,7 @@ impl From<ListErrorKind> for InnerListError {
 
 impl InnerListError {
     #[cfg(test)]
+    #[allow(dead_code)]
     pub(crate) fn from_xml() -> Self {
         Self {
             kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
@@ -801,9 +805,12 @@ mod tests {
 
     #[test]
     fn test_list_from() {
-        let string = InvalidObjectPath { _priv: () };
+        let string = InvalidEndPoint { _priv: () };
         let err: InnerListError = string.into();
-        assert_eq!(format!("{err}"), "invalid object path");
+        assert_eq!(
+            format!("{err}"),
+            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
+        );
     }
 
     #[test]

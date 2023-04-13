@@ -678,11 +678,7 @@ mod tests_canonicalized_resource {
     use http::Method;
     use reqwest::Url;
 
-    use crate::{
-        auth::OssHost,
-        types::{object::ObjectPathInner, CanonicalizedResource},
-        BucketName,
-    };
+    use crate::{auth::OssHost, types::CanonicalizedResource, BucketName};
 
     use super::super::GenCanonicalizedResource;
 
@@ -760,41 +756,36 @@ mod tests_canonicalized_resource {
     }
 
     #[test]
-    fn test_oss_query() {
-        use crate::{QueryKey, QueryValue};
+    fn test_object_list_resource() {
         let url: Url = "https://example.com/path1?delimiter=5".parse().unwrap();
-        let query = url.oss_query();
-        assert!(query[QueryKey::Delimiter] == QueryValue::new("5"));
+        let bucket = "abc".parse().unwrap();
+        let resource = url.object_list_resource(&bucket);
+        assert!(resource == "/abc/");
+
+        let url: Url = "https://example.com/path1?continuation-token=bar&delimiter=5"
+            .parse()
+            .unwrap();
+        let bucket = "abc".parse().unwrap();
+        let resource = url.object_list_resource(&bucket);
+        assert!(resource == "/abc/?continuation-token=bar");
     }
 
     #[test]
     fn test_object_path() {
         let url: Url = "https://example.com/path1".parse().unwrap();
-        assert_eq!(
-            url.object_path(),
-            Some(ObjectPathInner::new("path1").unwrap())
-        );
+        assert_eq!(url.object_path().unwrap(), "path1");
 
         let url: Url = "https://example.com/path1/object2".parse().unwrap();
-        assert_eq!(
-            url.object_path(),
-            Some(ObjectPathInner::new("path1/object2").unwrap())
-        );
+        assert_eq!(url.object_path().unwrap(), "path1/object2");
 
         let url: Url = "https://example.com/路径/object2".parse().unwrap();
-        assert_eq!(
-            url.object_path(),
-            Some(ObjectPathInner::new("路径/object2").unwrap())
-        );
+        assert_eq!(url.object_path().unwrap(), "路径/object2");
 
         let url: Url = "https://example.com/path1/object2?foo=bar".parse().unwrap();
-        assert_eq!(
-            url.object_path(),
-            Some(ObjectPathInner::new("path1/object2").unwrap())
-        );
+        assert_eq!(url.object_path().unwrap(), "path1/object2");
 
         let url: Url = "https://example.com/path1/".parse().unwrap();
-        assert_eq!(url.object_path(), None);
+        assert!(url.object_path().is_none());
     }
 
     #[test]
@@ -813,7 +804,12 @@ mod tests_canonicalized_resource {
             request.url().canonicalized_resource(),
         );
         assert_eq!(request.oss_host(), request.url().oss_host(),);
-        assert_eq!(request.oss_query(), request.url().oss_query(),);
+
+        let bucket = "abc".parse().unwrap();
+        assert_eq!(
+            request.object_list_resource(&bucket),
+            request.url().object_list_resource(&bucket),
+        );
         assert_eq!(request.object_path(), request.url().object_path(),);
     }
 }
