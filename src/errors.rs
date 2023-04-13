@@ -1,3 +1,5 @@
+//! 异常处理模块
+
 use http::StatusCode;
 use std::fmt;
 use thiserror::Error;

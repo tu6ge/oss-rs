@@ -1,3 +1,6 @@
+//! # bucket 操作模块
+//! 包含查询账号下的所有bucket ，bucket明细
+
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 use crate::builder::{ArcPointer, BuilderError, PointerFamily};
