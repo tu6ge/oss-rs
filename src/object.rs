@@ -1091,7 +1091,8 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text().map_err(BuilderError::from)?, init_object)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_object)
+            .map_err(|_| ExtractListError::Decode)?;
 
         list.set_client(Rc::new(self));
         list.set_search_query(query);
@@ -1108,7 +1109,7 @@ impl ClientRc {
         Item,
         F,
         E: ListError,
-        ItemErr: ItemError,
+        ItemErr: Error + 'static,
     >(
         &self,
         name: Name,
@@ -1130,7 +1131,7 @@ impl ClientRc {
         let content = response.send_adjust_error()?;
 
         list.decode(&content.text().map_err(BuilderError::from)?, init_object)
-            .map_err(ExtractListError::from)?;
+            .map_err(|_| ExtractListError::Decode)?;
 
         Ok(())
     }
