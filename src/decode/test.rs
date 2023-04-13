@@ -281,6 +281,7 @@ mod object_list_xml {
     //     object_list
     // }
 
+    #[cfg(feature = "core")]
     #[allow(dead_code)]
     fn init_object_list(token: Option<String>, list: Vec<Object>) -> ObjectList {
         use crate::builder::ArcPointer;
@@ -781,8 +782,12 @@ mod some_tests {
 
     #[test]
     fn test_item_from() {
-        let err = InnerItemError::new();
-        assert_eq!(format!("{err}"), "demo");
+        let string = InvalidEndPoint { _priv: () };
+        let err = InnerItemError::from(string);
+        assert_eq!(
+            format!("{err}"),
+            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
+        );
     }
 
     #[test]
@@ -810,8 +815,14 @@ mod some_tests {
         let err = InnerListError::from_xml();
         assert_eq!(format!("{err}"), "Cannot read text, expecting Event::Text");
 
-        let err = InnerListError::from_custom();
-        assert_eq!(format!("{err}"), "custom");
+        let string = InvalidEndPoint { _priv: () };
+        let kind = ListErrorKind::Custom(Box::new(string));
+
+        let err = InnerListError { kind };
+        assert_eq!(
+            format!("{err}"),
+            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
+        );
     }
 
     #[test]
