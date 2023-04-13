@@ -344,160 +344,6 @@ where
     }
 }
 
-/// # Object 的 Error 中间层
-/// 当外部实现 [`RefineObject`] 时，所使用的 Error ,可先转换为这个，
-/// 变成一个已知的 Error 类型
-///
-/// [`RefineObject`]: crate::decode::RefineObject
-#[derive(Debug)]
-#[doc(hidden)]
-pub struct InnerItemError(Box<dyn StdError + 'static>);
-
-impl<T: StdError + 'static> From<T> for InnerItemError {
-    fn from(err: T) -> Self {
-        Self(Box::new(err))
-    }
-}
-
-impl Display for InnerItemError {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "{}", self.0)
-    }
-}
-
-impl InnerItemError {
-    #[cfg(test)]
-    pub(crate) fn new() -> Self {
-        #[derive(Debug)]
-        struct MyError;
-        impl Display for MyError {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                "demo".fmt(f)
-            }
-        }
-        impl StdError for MyError {}
-
-        Self(Box::new(MyError {}))
-    }
-
-    pub fn get_source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.0.source()
-    }
-}
-
-/// 当外部要实现 [`RefineObjectList`] 时，Error 类需要实现此 Trait
-///
-/// [`RefineObjectList`]: crate::decode::RefineObjectList
-pub trait ListError: StdError + 'static {}
-
-impl ListError for ParseIntError {}
-
-impl ListError for InvalidEndPoint {}
-
-#[cfg(feature = "core")]
-impl ListError for InvalidObjectPath {}
-#[cfg(feature = "core")]
-impl ListError for InvalidObjectDir {}
-#[cfg(feature = "core")]
-impl ListError for chrono::ParseError {}
-#[cfg(feature = "core")]
-impl ListError for OssError {}
-
-impl<T: ListError> From<T> for InnerListError {
-    fn from(err: T) -> InnerListError {
-        Self {
-            kind: ListErrorKind::Custom(Box::new(err)),
-        }
-    }
-}
-
-/// # ObjectList 的 Error 中间层
-/// 当外部实现 [`RefineObjectList`] 时，所使用的 Error ,可先转换为这个，
-/// 变成一个已知的 Error 类型
-///
-/// [`RefineObjectList`]: crate::decode::RefineObjectList
-#[derive(Debug)]
-pub struct InnerListError {
-    kind: ListErrorKind,
-}
-
-impl Display for InnerListError {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use ListErrorKind::*;
-        match &self.kind {
-            Item(item) => write!(fmt, "{}", item.0),
-            Xml(xml) => write!(fmt, "{xml}"),
-            Custom(out) => write!(fmt, "{out}"),
-        }
-    }
-}
-
-impl InnerListError {
-    #[cfg(test)]
-    #[allow(dead_code)]
-    pub(crate) fn from_xml() -> Self {
-        Self {
-            kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
-        }
-    }
-
-    #[cfg(test)]
-    #[allow(dead_code)]
-    pub(crate) fn from_custom() -> Self {
-        #[derive(Debug)]
-        struct MyError;
-        impl Display for MyError {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                "custom".fmt(f)
-            }
-        }
-        impl StdError for MyError {}
-        Self {
-            kind: ListErrorKind::Custom(Box::new(MyError {})),
-        }
-    }
-
-    /// 获取更详细的错误信息
-    pub fn get_source(&self) -> Option<&(dyn StdError + 'static)> {
-        use ListErrorKind::*;
-        match &self.kind {
-            Item(item) => item.0.as_ref().source(),
-            Xml(xml) => xml.source(),
-            Custom(out) => out.as_ref().source(),
-        }
-    }
-}
-
-impl From<InnerItemError> for InnerListError {
-    fn from(value: InnerItemError) -> Self {
-        Self {
-            kind: ListErrorKind::Item(value),
-        }
-    }
-}
-
-impl From<quick_xml::Error> for InnerListError {
-    fn from(value: quick_xml::Error) -> Self {
-        Self {
-            kind: ListErrorKind::Xml(value),
-        }
-    }
-}
-
-#[doc(hidden)]
-#[derive(Debug)]
-#[non_exhaustive]
-pub enum ListErrorKind {
-    #[non_exhaustive]
-    Item(InnerItemError),
-
-    #[non_exhaustive]
-    Xml(quick_xml::Error),
-
-    #[non_exhaustive]
-    Custom(Box<dyn StdError + 'static>),
-}
-
 /// 将一个 bucket 的数据写入到 rust 类型
 pub trait RefineBucket<Error: StdError + 'static> {
     /// 提取 bucket name
@@ -661,6 +507,160 @@ where
         }
         Ok(())
     }
+}
+
+/// # Object 的 Error 中间层
+/// 当外部实现 [`RefineObject`] 时，所使用的 Error ,可先转换为这个，
+/// 变成一个已知的 Error 类型
+///
+/// [`RefineObject`]: crate::decode::RefineObject
+#[derive(Debug)]
+#[doc(hidden)]
+pub struct InnerItemError(Box<dyn StdError + 'static>);
+
+impl<T: StdError + 'static> From<T> for InnerItemError {
+    fn from(err: T) -> Self {
+        Self(Box::new(err))
+    }
+}
+
+impl Display for InnerItemError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(fmt, "{}", self.0)
+    }
+}
+
+impl InnerItemError {
+    #[cfg(test)]
+    pub(crate) fn new() -> Self {
+        #[derive(Debug)]
+        struct MyError;
+        impl Display for MyError {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                "demo".fmt(f)
+            }
+        }
+        impl StdError for MyError {}
+
+        Self(Box::new(MyError {}))
+    }
+
+    pub fn get_source(&self) -> Option<&(dyn StdError + 'static)> {
+        self.0.source()
+    }
+}
+
+/// 当外部要实现 [`RefineObjectList`] 时，Error 类需要实现此 Trait
+///
+/// [`RefineObjectList`]: crate::decode::RefineObjectList
+pub trait ListError: StdError + 'static {}
+
+impl ListError for ParseIntError {}
+
+impl ListError for InvalidEndPoint {}
+
+#[cfg(feature = "core")]
+impl ListError for InvalidObjectPath {}
+#[cfg(feature = "core")]
+impl ListError for InvalidObjectDir {}
+#[cfg(feature = "core")]
+impl ListError for chrono::ParseError {}
+#[cfg(feature = "core")]
+impl ListError for OssError {}
+
+impl<T: ListError> From<T> for InnerListError {
+    fn from(err: T) -> InnerListError {
+        Self {
+            kind: ListErrorKind::Custom(Box::new(err)),
+        }
+    }
+}
+
+/// # ObjectList 的 Error 中间层
+/// 当外部实现 [`RefineObjectList`] 时，所使用的 Error ,可先转换为这个，
+/// 变成一个已知的 Error 类型
+///
+/// [`RefineObjectList`]: crate::decode::RefineObjectList
+#[derive(Debug)]
+pub struct InnerListError {
+    kind: ListErrorKind,
+}
+
+impl Display for InnerListError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use ListErrorKind::*;
+        match &self.kind {
+            Item(item) => write!(fmt, "{}", item.0),
+            Xml(xml) => write!(fmt, "{xml}"),
+            Custom(out) => write!(fmt, "{out}"),
+        }
+    }
+}
+
+impl InnerListError {
+    #[cfg(test)]
+    #[allow(dead_code)]
+    pub(crate) fn from_xml() -> Self {
+        Self {
+            kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
+        }
+    }
+
+    #[cfg(test)]
+    #[allow(dead_code)]
+    pub(crate) fn from_custom() -> Self {
+        #[derive(Debug)]
+        struct MyError;
+        impl Display for MyError {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                "custom".fmt(f)
+            }
+        }
+        impl StdError for MyError {}
+        Self {
+            kind: ListErrorKind::Custom(Box::new(MyError {})),
+        }
+    }
+
+    /// 获取更详细的错误信息
+    pub fn get_source(&self) -> Option<&(dyn StdError + 'static)> {
+        use ListErrorKind::*;
+        match &self.kind {
+            Item(item) => item.0.as_ref().source(),
+            Xml(xml) => xml.source(),
+            Custom(out) => out.as_ref().source(),
+        }
+    }
+}
+
+impl From<InnerItemError> for InnerListError {
+    fn from(value: InnerItemError) -> Self {
+        Self {
+            kind: ListErrorKind::Item(value),
+        }
+    }
+}
+
+impl From<quick_xml::Error> for InnerListError {
+    fn from(value: quick_xml::Error) -> Self {
+        Self {
+            kind: ListErrorKind::Xml(value),
+        }
+    }
+}
+
+#[doc(hidden)]
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum ListErrorKind {
+    #[non_exhaustive]
+    Item(InnerItemError),
+
+    #[non_exhaustive]
+    Xml(quick_xml::Error),
+
+    #[non_exhaustive]
+    Custom(Box<dyn StdError + 'static>),
 }
 
 #[cfg(test)]
