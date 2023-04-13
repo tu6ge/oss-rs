@@ -231,22 +231,22 @@ let client = aliyun_oss_client::Client::new(
 extern crate test;
 
 /// 库内置类型的定义模块
-#[cfg(any(feature = "core", feature = "auth"))]
+#[cfg(any(feature = "core", feature = "auth", test))]
 pub mod types;
-#[cfg(feature = "core")]
+#[cfg(any(feature = "core", test))]
 use builder::ClientWithMiddleware;
-#[cfg(feature = "core")]
+#[cfg(any(feature = "core", test))]
 use config::Config;
 
 /// 重新导出 http 库的一些方法，便于开发者调用 lib 未提供的 api
-#[cfg(feature = "core")]
+#[cfg(any(feature = "core", test))]
 pub use http::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Method,
 };
-#[cfg(feature = "core")]
+#[cfg(any(feature = "core", test))]
 pub use types::object::{ObjectDir, ObjectPath};
-#[cfg(any(feature = "core", feature = "auth"))]
+#[cfg(any(feature = "core", feature = "auth", test))]
 pub use types::{BucketName, EndPoint, KeyId, KeySecret, Query, QueryKey, QueryValue};
 
 /// # 验证模块
