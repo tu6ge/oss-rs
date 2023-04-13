@@ -1,3 +1,5 @@
+//! object 相关的类型
+
 #[cfg(feature = "core")]
 use oss_derive::oss_gen_rc;
 #[cfg(feature = "core")]

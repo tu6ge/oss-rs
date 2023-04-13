@@ -1,3 +1,5 @@
+//! 核心功能用到的类型 Query ContentRange 等
+
 use std::borrow::Cow;
 use std::collections::HashMap;
 

@@ -8,11 +8,9 @@ use chrono::{DateTime, Utc};
 use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
 use url::Url;
 
-/// object 相关的类型
 #[cfg(feature = "core")]
 pub mod object;
 
-/// 核心功能用到的类型 Query ContentRange 等
 #[cfg(feature = "core")]
 pub mod core;
 #[cfg(feature = "core")]
