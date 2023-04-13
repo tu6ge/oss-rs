@@ -402,7 +402,8 @@ impl Bucket<RcPointer> {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text().map_err(BuilderError::from)?, init_object)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_object)
+            .map_err(|_| ExtractListError::Decode)?;
 
         list.set_bucket(self.base.clone());
         list.set_client(self.client());
@@ -595,7 +596,7 @@ impl ClientRc {
         List: RefineBucketList<Item, E, ItemErr>,
         Item: RefineBucket<ItemErr>,
         E: ListError,
-        ItemErr: ItemError,
+        ItemErr: Error + 'static,
         F: FnMut() -> Item,
     {
         let url = self.get_endpoint_url();
@@ -606,7 +607,7 @@ impl ClientRc {
         let content = response.send_adjust_error()?;
 
         list.decode(&content.text().map_err(BuilderError::from)?, init_bucket)
-            .map_err(ExtractListError::from)?;
+            .map_err(|_| ExtractListError::Decode)?;
 
         Ok(())
     }
@@ -633,7 +634,7 @@ impl ClientRc {
     ) -> Result<(), ExtractItemError>
     where
         Bucket: RefineBucket<E>,
-        E: ItemError,
+        E: Error + 'static,
     {
         let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
         let query = Some(BUCKET_INFO);
@@ -646,7 +647,7 @@ impl ClientRc {
 
         bucket
             .decode(&content.text().map_err(BuilderError::from)?)
-            .map_err(ExtractItemError::from)?;
+            .map_err(|_| ExtractItemError::Decode)?;
 
         Ok(())
     }
