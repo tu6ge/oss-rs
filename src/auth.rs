@@ -23,11 +23,11 @@
 
 use crate::{
     types::{
-        object::ObjectPathInner, CanonicalizedResource, ContentMd5, ContentType, Date,
-        InnerCanonicalizedResource, InnerContentMd5, InnerDate, InnerKeyId, InnerKeySecret, KeyId,
-        KeySecret,
+        CanonicalizedResource, ContentMd5, ContentType, Date, InnerCanonicalizedResource,
+        InnerContentMd5, InnerDate, InnerKeyId, InnerKeySecret, KeyId, KeySecret,
+        CONTINUATION_TOKEN,
     },
-    BucketName, EndPoint, Query,
+    BucketName, EndPoint,
 };
 use chrono::Utc;
 #[cfg(test)]
@@ -38,8 +38,8 @@ use http::{
 };
 #[cfg(test)]
 use mockall::automock;
-use std::convert::TryInto;
 use std::fmt::Display;
+use std::{borrow::Cow, convert::TryInto};
 
 #[cfg(test)]
 mod test;
@@ -636,12 +636,12 @@ pub trait GenCanonicalizedResource {
     /// 根据 Url 的 query 计算 [`Query`]
     ///
     /// [`Query`]: crate::types::Query
-    fn oss_query(&self) -> Query;
+    fn object_list_resource(&self, bucket: &BucketName) -> CanonicalizedResource;
 
     /// 根据 Url 的 path 计算当前使用的 [`ObjectPathInner`]
     ///
     /// [`ObjectPathInner`]: crate::config::ObjectPathInner
-    fn object_path(&self) -> Option<ObjectPathInner>;
+    fn object_path(&self) -> Option<Cow<'_, str>>;
 }
 
 /// Oss 域名的几种状态
@@ -683,9 +683,9 @@ impl GenCanonicalizedResource for Url {
                     Some(BUCKET_INFO),
                 )),
                 // 查 object_list
-                Some(q) if q.ends_with(LIST_TYPE2) || q.contains(LIST_TYPE2_AND) => Some(
-                    CanonicalizedResource::from_bucket_query2(&bucket, &self.oss_query()),
-                ),
+                Some(q) if q.ends_with(LIST_TYPE2) || q.contains(LIST_TYPE2_AND) => {
+                    Some(self.object_list_resource(&bucket))
+                }
                 // 其他情况待定
                 _ => todo!("Unable to obtain can information based on existing query information"),
             };
@@ -693,7 +693,7 @@ impl GenCanonicalizedResource for Url {
 
         // 获取 ObjectPath 失败，返回 None，否则根据 ObjectPath 计算 CanonicalizedResource
         self.object_path()
-            .map(|path| CanonicalizedResource::from_object((bucket.as_ref(), path.as_ref()), []))
+            .map(|path| CanonicalizedResource::from_object_without_query(bucket.as_ref(), path))
     }
 
     fn oss_host(&self) -> OssHost {
@@ -730,14 +730,24 @@ impl GenCanonicalizedResource for Url {
         }
     }
 
-    fn oss_query(&self) -> Query {
-        self.query_pairs()
-            .filter(|(_, val)| !val.is_empty())
-            .collect()
+    fn object_list_resource(&self, bucket: &BucketName) -> CanonicalizedResource {
+        let mut query = self.query_pairs().filter(|(_, val)| !val.is_empty());
+        match query.find(|(key, _)| key == CONTINUATION_TOKEN) {
+            Some((_, token)) => CanonicalizedResource::new(format!(
+                "/{}/?continuation-token={}",
+                bucket.as_ref(),
+                token
+            )),
+            None => CanonicalizedResource::new(format!("/{}/", bucket.as_ref())),
+        }
     }
 
-    fn object_path(&self) -> Option<ObjectPathInner> {
+    fn object_path(&self) -> Option<Cow<'_, str>> {
         use percent_encoding::percent_decode;
+
+        if self.path().ends_with('/') {
+            return None;
+        }
 
         let input = if self.path().starts_with('/') {
             &self.path()[1..]
@@ -745,7 +755,10 @@ impl GenCanonicalizedResource for Url {
             self.path()
         }
         .as_bytes();
-        ObjectPathInner::new(percent_decode(input).decode_utf8().ok()?).ok()
+        percent_decode(input)
+            .decode_utf8()
+            .ok()
+            .map(|str| str.to_owned())
     }
 }
 
@@ -758,11 +771,11 @@ impl GenCanonicalizedResource for Request {
         self.url().oss_host()
     }
 
-    fn oss_query(&self) -> Query {
-        self.url().oss_query()
+    fn object_list_resource(&self, bucket: &BucketName) -> CanonicalizedResource {
+        self.url().object_list_resource(bucket)
     }
 
-    fn object_path(&self) -> Option<ObjectPathInner> {
+    fn object_path(&self) -> Option<Cow<'_, str>> {
         self.url().object_path()
     }
 }
