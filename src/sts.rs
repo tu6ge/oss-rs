@@ -1,4 +1,4 @@
-//! # STS
+//! # STS 临时访问权限管理服务
 //! 阿里云STS（Security Token Service）是阿里云提供的一种临时访问权限管理服务。RAM提供RAM用户和RAM角色两种身份。
 //! 其中，RAM角色不具备永久身份凭证，而只能通过STS获取可以自定义时效和访问权限的临时身份凭证，即安全令牌（STS Token）。
 //! @link [文档](https://help.aliyun.com/document_detail/28756.html)

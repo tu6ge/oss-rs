@@ -1,3 +1,5 @@
+//! lib 内置类型的定义模块
+
 use std::borrow::Cow;
 
 use std::error::Error;

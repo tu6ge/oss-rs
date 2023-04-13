@@ -230,7 +230,6 @@ let client = aliyun_oss_client::Client::new(
 #[cfg(all(feature = "bench", test))]
 extern crate test;
 
-/// 库内置类型的定义模块
 pub mod types;
 #[cfg(feature = "core")]
 use builder::ClientWithMiddleware;
@@ -250,48 +249,29 @@ pub use types::{BucketName, EndPoint, KeyId, KeySecret};
 #[cfg(feature = "core")]
 pub use types::{Query, QueryKey, QueryValue};
 
-/// # 验证模块
-/// 包含了签名验证的一些方法，header 以及参数的封装
 #[cfg(feature = "auth")]
 pub mod auth;
 
-/// # bucket 操作模块
-/// 包含查询账号下的所有bucket ，bucket明细
-#[cfg(feature = "core")]
-pub mod bucket;
-
-/// # 存储对象模块
-/// 包含查询当前 bucket 下所有存储对象的方法
-#[cfg(feature = "core")]
-pub mod object;
-
-/// OSS 文件相关操作
-#[cfg(feature = "core")]
-pub mod file;
-
-/// 配置类型
-#[cfg(feature = "core")]
-pub mod config;
-
-/// # 对 reqwest 进行了简单的封装，加上了 OSS 的签名验证功能
-#[cfg(feature = "core")]
-pub mod client;
-#[cfg(feature = "core")]
-pub use client::ClientArc as Client;
-
-#[cfg(feature = "blocking")]
-pub use client::ClientRc;
-
-/// 阻塞模式（无需 async await）
 #[cfg(feature = "blocking")]
 pub mod blocking;
 
-/// 封装了 reqwest::RequestBuilder 模块
+#[cfg(feature = "core")]
+pub mod bucket;
+
 #[cfg(feature = "core")]
 #[doc(hidden)]
 pub mod builder;
 
-/// 解析 aliyun OSS 接口返回的 xml
+#[cfg(feature = "core")]
+pub mod client;
+#[cfg(feature = "core")]
+pub use client::ClientArc as Client;
+#[cfg(feature = "blocking")]
+pub use client::ClientRc;
+
+#[cfg(feature = "core")]
+pub mod config;
+
 #[cfg(feature = "decode")]
 #[path = "traits.rs"]
 pub mod decode;
@@ -315,13 +295,17 @@ pub mod decode;
 #[cfg(feature = "decode")]
 pub use oss_derive::DecodeListError;
 
-/// 异常处理模块
 #[cfg(feature = "core")]
 pub mod errors;
 #[cfg(feature = "core")]
 pub use errors::{OssError as Error, OssResult as Result};
 
-/// 临时访问权限管理服务
+#[cfg(feature = "core")]
+pub mod file;
+
+#[cfg(feature = "core")]
+pub mod object;
+
 #[cfg(feature = "sts")]
 pub mod sts;
 

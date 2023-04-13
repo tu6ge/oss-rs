@@ -1,3 +1,5 @@
+//! 配置类型
+
 use crate::{
     types::{
         object::{ObjectPathInner, UrlObjectPath},

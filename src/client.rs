@@ -1,3 +1,5 @@
+//! # 对 reqwest 进行了简单的封装，加上了 OSS 的签名验证功能
+
 use crate::auth::AuthBuilder;
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
