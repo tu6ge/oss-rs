@@ -351,7 +351,7 @@ where
 /// [`RefineObject`]: crate::decode::RefineObject
 #[derive(Debug)]
 #[doc(hidden)]
-pub struct InnerItemError(pub(crate) Box<dyn StdError + 'static>);
+pub struct InnerItemError(Box<dyn StdError + 'static>);
 
 impl<T: StdError + 'static> From<T> for InnerItemError {
     fn from(err: T) -> Self {
@@ -361,7 +361,7 @@ impl<T: StdError + 'static> From<T> for InnerItemError {
 
 impl Display for InnerItemError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "decode xml to item record has error")
+        write!(fmt, "{}", self.0)
     }
 }
 
@@ -378,6 +378,10 @@ impl InnerItemError {
         impl StdError for MyError {}
 
         Self(Box::new(MyError {}))
+    }
+
+    pub fn get_source(&self) -> Option<&(dyn StdError + 'static)> {
+        self.0.source()
     }
 }
 
@@ -402,10 +406,7 @@ impl ListError for OssError {}
 impl<T: ListError> From<T> for InnerListError {
     fn from(err: T) -> InnerListError {
         Self {
-            kind: ListErrorKind::Custom {
-                info: err.to_string(),
-                source: Box::new(err),
-            },
+            kind: ListErrorKind::Custom(Box::new(err)),
         }
     }
 }
@@ -424,18 +425,10 @@ impl Display for InnerListError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         use ListErrorKind::*;
         match &self.kind {
-            Item(_) => write!(fmt, "decode xml faild, item error"),
-            Xml(_) => write!(fmt, "decode xml faild, quick_xml error"),
-            Custom { info, .. } => write!(fmt, "{info}"),
+            Item(item) => write!(fmt, "{}", item.0),
+            Xml(xml) => write!(fmt, "{xml}"),
+            Custom(out) => write!(fmt, "{out}"),
         }
-    }
-}
-
-// impl StdError for InnerListError {}
-
-impl From<ListErrorKind> for InnerListError {
-    fn from(kind: ListErrorKind) -> Self {
-        Self { kind }
     }
 }
 
@@ -448,13 +441,29 @@ impl InnerListError {
         }
     }
 
+    #[cfg(test)]
+    #[allow(dead_code)]
+    pub(crate) fn from_custom() -> Self {
+        #[derive(Debug)]
+        struct MyError;
+        impl Display for MyError {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                "custom".fmt(f)
+            }
+        }
+        impl StdError for MyError {}
+        Self {
+            kind: ListErrorKind::Custom(Box::new(MyError {})),
+        }
+    }
+
     /// 获取更详细的错误信息
     pub fn get_source(&self) -> Option<&(dyn StdError + 'static)> {
         use ListErrorKind::*;
         match &self.kind {
-            Item(item) => Some(item.0.as_ref()),
-            Xml(xml) => Some(xml),
-            Custom { source, .. } => Some(source.as_ref()),
+            Item(item) => item.0.as_ref().source(),
+            Xml(xml) => xml.source(),
+            Custom(out) => out.as_ref().source(),
         }
     }
 }
@@ -486,10 +495,7 @@ pub enum ListErrorKind {
     Xml(quick_xml::Error),
 
     #[non_exhaustive]
-    Custom {
-        info: String,
-        source: Box<dyn StdError + 'static>,
-    },
+    Custom(Box<dyn StdError + 'static>),
 }
 
 /// 将一个 bucket 的数据写入到 rust 类型
@@ -800,7 +806,13 @@ mod tests {
     #[test]
     fn test_item_from() {
         let err = InnerItemError::new();
-        assert_eq!(format!("{err}"), "decode xml to item record has error");
+        assert_eq!(format!("{err}"), "demo");
+    }
+
+    #[test]
+    fn test_error_item_source() {
+        let err = InnerItemError::new();
+        assert!(err.get_source().is_none());
     }
 
     #[test]
@@ -814,11 +826,37 @@ mod tests {
     }
 
     #[test]
+    fn test_error_list_display() {
+        let err = InnerItemError::new();
+        let err_list: InnerListError = err.into();
+        assert_eq!(err_list.to_string(), "demo");
+
+        let err = InnerListError::from_xml();
+        assert_eq!(format!("{err}"), "Cannot read text, expecting Event::Text");
+
+        let err = InnerListError::from_custom();
+        assert_eq!(format!("{err}"), "custom");
+    }
+
+    #[test]
+    fn test_error_list_get_source() {
+        let err = InnerItemError::new();
+        let err_list: InnerListError = err.into();
+        assert!(err_list.get_source().is_none());
+
+        let err_list = InnerListError::from_xml();
+        assert!(err_list.get_source().is_none());
+
+        let err_list = InnerListError::from_custom();
+        assert!(err_list.get_source().is_none());
+    }
+
+    #[test]
     fn test_error_list_from_item() {
         let err = InnerListError {
             kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
         };
-        assert_eq!(format!("{err}"), "decode xml faild, quick_xml error");
+        assert_eq!(format!("{err}"), "Cannot read text, expecting Event::Text");
 
         fn bar() -> InnerListError {
             InnerItemError::new().into()
@@ -835,7 +873,7 @@ mod tests {
         let err = InnerListError {
             kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
         };
-        assert_eq!(format!("{err}"), "decode xml faild, quick_xml error");
+        assert_eq!(format!("{err}"), "Cannot read text, expecting Event::Text");
 
         fn bar() -> InnerListError {
             quick_xml::Error::TextNotFound.into()
