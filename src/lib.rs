@@ -273,7 +273,6 @@ pub use client::ClientRc;
 pub mod config;
 
 #[cfg(feature = "decode")]
-#[path = "traits.rs"]
 pub mod decode;
 
 /// 重新导出 derive 用于解析xml数据
