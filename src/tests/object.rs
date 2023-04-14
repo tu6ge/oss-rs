@@ -10,6 +10,7 @@ use crate::{BucketName, EndPoint, Query, QueryKey};
 use async_trait::async_trait;
 use http::HeaderValue;
 use reqwest::{Request, Response};
+use std::error::Error;
 use std::sync::Arc;
 
 pub(crate) fn assert_object_list<T: PointerFamily>(
@@ -182,7 +183,6 @@ async fn test_get_object_list() {
         .get_object_list(vec![("max-keys".parse().unwrap(), "5".parse().unwrap())])
         .await;
 
-    //println!("{:?}", res);
     assert!(res.is_ok());
     let list = res.unwrap();
     assert_object_list::<ArcPointer>(
@@ -195,6 +195,142 @@ async fn test_get_object_list() {
         None,
         CommonPrefixes::from_iter([]),
         Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
+    );
+}
+
+#[tokio::test]
+async fn test_error_object_list() {
+    struct MyMiddleware {}
+
+    #[async_trait]
+    impl Middleware for MyMiddleware {
+        async fn handle(&self, request: Request) -> Result<Response, BuilderError> {
+            //println!("request {:?}", request);
+            assert_eq!(request.method(), "GET");
+            assert_eq!(
+                *request.url(),
+                "https://foo4.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5"
+                    .parse()
+                    .unwrap()
+            );
+            assert_eq!(
+                request.headers().get("canonicalizedresource"),
+                Some(&HeaderValue::from_str("/foo4/").unwrap())
+            );
+            use http::response::Builder;
+            let response = Builder::new()
+                .status(200)
+                //.url(url.clone())
+                .body(
+                    r#"<?xml version="1.0" encoding="UTF-8"?>
+                <ListBucketResult>
+                  <Name>barname</Name>
+                  <Prefix></Prefix>
+                  <MaxKeys>100</MaxKeys>
+                  <Delimiter></Delimiter>
+                  <IsTruncated>false</IsTruncated>
+                  <Contents>
+                    <Key>9AB932LY.jpeg</Key>
+                    <LastModified>2022-06-26T09:53:21.000Z</LastModified>
+                    <ETag>"F75A15996D0857B16FA31A3B16624C26"</ETag>
+                    <Type>Normal</Type>
+                    <Size>18027</Size>
+                    <StorageClass>Standard</StorageClass>
+                  </Contents>
+                  <KeyCount>foo</KeyCount>
+                </ListBucketResult>"#,
+                )
+                .unwrap();
+            let response = Response::from(response);
+            Ok(response)
+        }
+    }
+
+    let client = Client::<ClientWithMiddleware>::new(
+        "foo1".into(),
+        "foo2".into(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
+    )
+    .middleware(Arc::new(MyMiddleware {}));
+
+    let res = client
+        .get_object_list(vec![("max-keys".parse().unwrap(), "5".parse().unwrap())])
+        .await;
+    let err = res.unwrap_err();
+
+    assert_eq!(format!("{err}"), "decode xml failed");
+    assert_eq!(
+        format!("{}", err.source().unwrap()),
+        "covert key_count failed, source str: foo"
+    );
+}
+
+#[tokio::test]
+async fn test_item_error_object_list() {
+    struct MyMiddleware {}
+
+    #[async_trait]
+    impl Middleware for MyMiddleware {
+        async fn handle(&self, request: Request) -> Result<Response, BuilderError> {
+            //println!("request {:?}", request);
+            assert_eq!(request.method(), "GET");
+            assert_eq!(
+                *request.url(),
+                "https://foo4.oss-cn-shanghai.aliyuncs.com/?list-type=2&max-keys=5"
+                    .parse()
+                    .unwrap()
+            );
+            assert_eq!(
+                request.headers().get("canonicalizedresource"),
+                Some(&HeaderValue::from_str("/foo4/").unwrap())
+            );
+            use http::response::Builder;
+            let response = Builder::new()
+                .status(200)
+                //.url(url.clone())
+                .body(
+                    r#"<?xml version="1.0" encoding="UTF-8"?>
+                <ListBucketResult>
+                  <Name>barname</Name>
+                  <Prefix></Prefix>
+                  <MaxKeys>100</MaxKeys>
+                  <Delimiter></Delimiter>
+                  <IsTruncated>false</IsTruncated>
+                  <Contents>
+                    <Key>9AB932LY.jpeg</Key>
+                    <LastModified>2022-06-26T09:53:21.000Z</LastModified>
+                    <ETag>"F75A15996D0857B16FA31A3B16624C26"</ETag>
+                    <Type>Normal</Type>
+                    <Size>aaa</Size>
+                    <StorageClass>Standard</StorageClass>
+                  </Contents>
+                  <KeyCount>23</KeyCount>
+                </ListBucketResult>"#,
+                )
+                .unwrap();
+            let response = Response::from(response);
+            Ok(response)
+        }
+    }
+
+    let client = Client::<ClientWithMiddleware>::new(
+        "foo1".into(),
+        "foo2".into(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
+    )
+    .middleware(Arc::new(MyMiddleware {}));
+
+    let res = client
+        .get_object_list(vec![("max-keys".parse().unwrap(), "5".parse().unwrap())])
+        .await;
+    let err = res.unwrap_err();
+
+    assert_eq!(format!("{err}"), "decode xml failed");
+    assert_eq!(
+        format!("{}", err.source().unwrap()),
+        "invalid digit found in string"
     );
 }
 

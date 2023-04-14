@@ -86,7 +86,7 @@ use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::{get_url_resource_with_bucket, BucketBase};
-use crate::decode::{ListError, RefineObject, RefineObjectList};
+use crate::decode::{InnerListError, ListError, RefineObject, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
@@ -102,7 +102,7 @@ use http::Method;
 use oss_derive::oss_gen_rc;
 
 use std::error::Error;
-use std::fmt;
+use std::fmt::{self, Display};
 use std::marker::PhantomData;
 use std::num::ParseIntError;
 #[cfg(feature = "blocking")]
@@ -311,7 +311,7 @@ impl ObjectList<ArcPointer> {
     /// 异步获取下一页的数据
     pub async fn get_next_list(&self) -> Result<ObjectList<ArcPointer>, ExtractListError> {
         match self.next_query() {
-            None => Err(ExtractListError::WithoutMore),
+            None => Err(ExtractListError::NoMoreFile),
             Some(query) => {
                 let mut url = self.bucket.to_url();
                 url.set_search_query(&query);
@@ -339,8 +339,7 @@ impl ObjectList<ArcPointer> {
                         ExtractListError::from(builder_err)
                     })?,
                     init_object,
-                )
-                .map_err(|_| ExtractListError::Decode)?;
+                )?;
 
                 list.set_search_query(query);
                 Ok(list)
@@ -394,7 +393,7 @@ impl<Item: RefineObject<E>, E: Error + 'static> ObjectList<ArcPointer, Item, E> 
         F: FnMut() -> Item,
     {
         match self.next_query() {
-            None => Err(ExtractListError::WithoutMore),
+            None => Err(ExtractListError::NoMoreFile),
             Some(query) => {
                 let mut list = Self::default();
                 let name = self.bucket.get_name().clone();
@@ -902,8 +901,7 @@ impl Client {
         list.decode(
             &content.text().await.map_err(BuilderError::from)?,
             init_object,
-        )
-        .map_err(|_| ExtractListError::Decode)?;
+        )?;
 
         list.set_client(Arc::new(self));
         list.set_search_query(query);
@@ -1034,8 +1032,7 @@ impl Client {
         list.decode(
             &content.text().await.map_err(BuilderError::from)?,
             init_object,
-        )
-        .map_err(|_| ExtractListError::Decode)?;
+        )?;
 
         Ok(())
     }
@@ -1044,21 +1041,47 @@ impl Client {
 /// 为 [`base_object_list`] 方法，返回一个统一的 Error
 ///
 /// [`base_object_list`]: crate::client::Client::base_object_list
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 #[non_exhaustive]
 pub enum ExtractListError {
     #[doc(hidden)]
-    #[error("{0}")]
-    Builder(#[from] BuilderError),
+    Builder(BuilderError),
 
     /// 解析 xml 错误
-    #[error("decode xml error")]
-    Decode,
+    Decode(InnerListError),
 
     /// 用于 Stream
-    #[doc(hidden)]
-    #[error("Without More Content")]
-    WithoutMore,
+    NoMoreFile,
+}
+
+impl From<InnerListError> for ExtractListError {
+    fn from(value: InnerListError) -> Self {
+        Self::Decode(value)
+    }
+}
+
+impl From<BuilderError> for ExtractListError {
+    fn from(value: BuilderError) -> Self {
+        Self::Builder(value)
+    }
+}
+impl Display for ExtractListError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Builder(_) => "builder error".fmt(f),
+            Self::Decode(_) => "decode xml failed".fmt(f),
+            Self::NoMoreFile => "no more file".fmt(f),
+        }
+    }
+}
+impl Error for ExtractListError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Builder(b) => b.source(),
+            Self::Decode(e) => e.get_source(),
+            Self::NoMoreFile => None,
+        }
+    }
 }
 
 #[cfg(feature = "blocking")]
@@ -1091,8 +1114,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text().map_err(BuilderError::from)?, init_object)
-            .map_err(|_| ExtractListError::Decode)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_object)?;
 
         list.set_client(Rc::new(self));
         list.set_search_query(query);
@@ -1130,8 +1152,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text().map_err(BuilderError::from)?, init_object)
-            .map_err(|_| ExtractListError::Decode)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_object)?;
 
         Ok(())
     }
