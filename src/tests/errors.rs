@@ -40,6 +40,7 @@ fn test_oss_service_new() {
 mod debug {
     use crate::bucket::ExtractItemError;
     use crate::builder::BuilderError;
+    use crate::decode::InnerItemError;
     use crate::object::{BuildInItemError, ExtractListError};
     use crate::types::object::{InvalidObjectDir, InvalidObjectPath};
     use crate::types::{InvalidBucketName, InvalidEndPoint};
@@ -208,25 +209,28 @@ mod debug {
     fn test_extract_list() {
         use ExtractListError::*;
 
-        let err = Error::ExtractList(WithoutMore);
+        let err = Error::ExtractList(NoMoreFile);
 
-        assert_eq!(format!("{err}"), "Without More Content");
+        assert_eq!(format!("{err}"), "no more file");
 
         fn bar() -> Error {
-            WithoutMore.into()
+            NoMoreFile.into()
         }
-        assert_eq!(format!("{:?}", bar()), "ExtractList(WithoutMore)");
+        assert_eq!(format!("{:?}", bar()), "ExtractList(NoMoreFile)");
     }
 
     #[test]
     fn test_extract_item() {
-        let err = Error::ExtractItem(ExtractItemError::Decode);
+        let err = Error::ExtractItem(ExtractItemError::Decode(InnerItemError::new()));
 
         assert_eq!(format!("{err}"), "decode xml failed");
 
         fn bar() -> Error {
-            ExtractItemError::Decode.into()
+            ExtractItemError::Decode(InnerItemError::new()).into()
         }
-        assert_eq!(format!("{:?}", bar()), "ExtractItem(Decode)");
+        assert_eq!(
+            format!("{:?}", bar()),
+            "ExtractItem(Decode(InnerItemError(MyError)))"
+        );
     }
 }

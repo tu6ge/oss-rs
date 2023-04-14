@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::sync::Arc;
 
 use crate::bucket::{Bucket, BucketError};
@@ -335,15 +336,7 @@ async fn test_get_object_list() {
     )
     .middleware(Arc::new(MyMiddleware {}));
 
-    let naive = NaiveDateTime::parse_from_str("2022/10/6 20:40:00", "%Y/%m/%d %H:%M:%S").unwrap();
-    let creation_date = DateTime::from_utc(naive, Utc);
-
-    let bucket = Bucket::<ArcPointer>::new(
-        "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
-        creation_date,
-        StorageClass::Archive,
-        Arc::new(client),
-    );
+    let bucket = bucket(client);
 
     let res = bucket
         .get_object_list(vec![("max-keys".into(), "5".into())])
@@ -362,6 +355,76 @@ async fn test_get_object_list() {
         CommonPrefixes::from_iter([]),
         Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );
+}
+
+#[tokio::test]
+async fn test_error_get_object_list() {
+    struct MyMiddleware {}
+
+    #[async_trait]
+    impl Middleware for MyMiddleware {
+        async fn handle(&self, _request: Request) -> Result<Response, BuilderError> {
+            use http::response::Builder;
+            let response = Builder::new()
+                .status(200)
+                //.url(url.clone())
+                .body(
+                    r#"<?xml version="1.0" encoding="UTF-8"?>
+                <ListBucketResult>
+                  <Name>barname</Name>
+                  <Prefix></Prefix>
+                  <MaxKeys>aaa</MaxKeys>
+                  <Delimiter></Delimiter>
+                  <IsTruncated>false</IsTruncated>
+                  <Contents>
+                    <Key>9AB932LY.jpeg</Key>
+                    <LastModified>2022-06-26T09:53:21.000Z</LastModified>
+                    <ETag>"F75A15996D0857B16FA31A3B16624C26"</ETag>
+                    <Type>Normal</Type>
+                    <Size>18027</Size>
+                    <StorageClass>Standard</StorageClass>
+                  </Contents>
+                  <KeyCount>23</KeyCount>
+                </ListBucketResult>"#,
+                )
+                .unwrap();
+            let response = Response::from(response);
+            Ok(response)
+        }
+    }
+
+    let client = ClientArc::new(
+        "foo1".into(),
+        "foo2".into(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
+    )
+    .middleware(Arc::new(MyMiddleware {}));
+
+    let bucket = bucket(client);
+
+    let res = bucket
+        .get_object_list(vec![("max-keys".into(), "5".into())])
+        .await;
+
+    let err = res.unwrap_err();
+    assert_eq!(format!("{err}"), "decode xml failed");
+    assert_eq!(
+        format!("{}", err.source().unwrap()),
+        "covert max_keys failed, source str: aaa"
+    );
+}
+
+fn bucket(client: Client) -> Bucket {
+    let naive = NaiveDateTime::parse_from_str("2022/10/6 20:40:00", "%Y/%m/%d %H:%M:%S").unwrap();
+    let creation_date = DateTime::from_utc(naive, Utc);
+
+    Bucket::<ArcPointer>::new(
+        "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        creation_date,
+        StorageClass::Archive,
+        Arc::new(client),
+    )
 }
 
 #[cfg(feature = "blocking")]

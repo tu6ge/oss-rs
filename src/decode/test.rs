@@ -793,7 +793,7 @@ mod some_tests {
     #[test]
     fn test_error_item_source() {
         let err = InnerItemError::new();
-        assert!(err.get_source().is_none());
+        assert_eq!(format!("{}", err.get_source().unwrap()), "demo");
     }
 
     #[test]
@@ -829,13 +829,13 @@ mod some_tests {
     fn test_error_list_get_source() {
         let err = InnerItemError::new();
         let err_list: InnerListError = err.into();
-        assert!(err_list.get_source().is_none());
+        assert_eq!(format!("{}", err_list.get_source().unwrap()), "demo");
 
         let err_list = InnerListError::from_xml();
-        assert!(err_list.get_source().is_none());
+        assert_eq!(format!("{}", err_list.get_source().unwrap()), "Cannot read text, expecting Event::Text");
 
         let err_list = InnerListError::from_custom();
-        assert!(err_list.get_source().is_none());
+        assert_eq!(format!("{}", err_list.get_source().unwrap()), "custom");
     }
 
     #[test]

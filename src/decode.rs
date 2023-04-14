@@ -549,7 +549,7 @@ impl InnerItemError {
     }
 
     pub fn get_source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.0.source()
+        Some(self.0.as_ref())
     }
 }
 
@@ -629,9 +629,9 @@ impl InnerListError {
     pub fn get_source(&self) -> Option<&(dyn StdError + 'static)> {
         use ListErrorKind::*;
         match &self.kind {
-            Item(item) => item.0.as_ref().source(),
-            Xml(xml) => xml.source(),
-            Custom(out) => out.as_ref().source(),
+            Item(item) => item.get_source(),
+            Xml(xml) => Some(xml),
+            Custom(out) => Some(out.as_ref()),
         }
     }
 }

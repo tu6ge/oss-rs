@@ -8,7 +8,7 @@ use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
 use crate::config::BucketBase;
-use crate::decode::{ListError, RefineBucket, RefineBucketList, RefineObjectList};
+use crate::decode::{InnerItemError, ListError, RefineBucket, RefineBucketList, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
@@ -23,7 +23,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use http::Method;
 use oss_derive::oss_gen_rc;
 use std::error::Error;
-use std::fmt;
+use std::fmt::{self, Display};
 use std::marker::PhantomData;
 use std::num::ParseIntError;
 #[cfg(feature = "blocking")]
@@ -368,8 +368,7 @@ impl Bucket {
         list.decode(
             &content.text().await.map_err(BuilderError::from)?,
             init_object,
-        )
-        .map_err(|_| ExtractListError::Decode)?;
+        )?;
 
         list.set_bucket(self.base.clone());
         list.set_client(self.client());
@@ -405,8 +404,7 @@ impl Bucket<RcPointer> {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text().map_err(BuilderError::from)?, init_object)
-            .map_err(|_| ExtractListError::Decode)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_object)?;
 
         list.set_bucket(self.base.clone());
         list.set_client(self.client());
@@ -508,8 +506,7 @@ impl ClientArc {
                 .map_err(BuilderError::from)
                 .map_err(ExtractListError::from)?,
             init_bucket,
-        )
-        .map_err(|_| ExtractListError::Decode)?;
+        )?;
 
         Ok(())
     }
@@ -546,9 +543,7 @@ impl ClientArc {
         let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error().await?;
 
-        bucket
-            .decode(&content.text().await.map_err(BuilderError::from)?)
-            .map_err(|_| ExtractItemError::Decode)?;
+        bucket.decode(&content.text().await.map_err(BuilderError::from)?)?;
 
         Ok(())
     }
@@ -557,16 +552,41 @@ impl ClientArc {
 /// 为 [`base_bucket_info`] 方法，返回一个统一的 Error
 ///
 /// [`base_bucket_info`]: crate::client::Client::base_bucket_info
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 #[non_exhaustive]
 pub enum ExtractItemError {
     #[doc(hidden)]
-    #[error("{0}")]
-    Builder(#[from] BuilderError),
+    Builder(BuilderError),
 
     #[doc(hidden)]
-    #[error("decode xml failed")]
-    Decode,
+    Decode(InnerItemError),
+}
+
+impl From<BuilderError> for ExtractItemError {
+    fn from(value: BuilderError) -> Self {
+        Self::Builder(value)
+    }
+}
+impl From<InnerItemError> for ExtractItemError {
+    fn from(value: InnerItemError) -> Self {
+        Self::Decode(value)
+    }
+}
+impl Display for ExtractItemError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Builder(_) => "builder error".fmt(f),
+            Self::Decode(_) => "decode xml failed".fmt(f),
+        }
+    }
+}
+impl Error for ExtractItemError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Builder(b) => b.source(),
+            Self::Decode(d) => d.get_source(),
+        }
+    }
 }
 
 #[cfg(feature = "blocking")]
@@ -609,8 +629,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, url, canonicalized)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text().map_err(BuilderError::from)?, init_bucket)
-            .map_err(|_| ExtractListError::Decode)?;
+        list.decode(&content.text().map_err(BuilderError::from)?, init_bucket)?;
 
         Ok(())
     }
@@ -648,9 +667,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error()?;
 
-        bucket
-            .decode(&content.text().map_err(BuilderError::from)?)
-            .map_err(|_| ExtractItemError::Decode)?;
+        bucket.decode(&content.text().map_err(BuilderError::from)?)?;
 
         Ok(())
     }
