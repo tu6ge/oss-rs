@@ -640,7 +640,7 @@ pub trait GenCanonicalizedResource {
 
     /// 根据 Url 的 path 计算当前使用的 [`ObjectPathInner`]
     ///
-    /// [`ObjectPathInner`]: crate::config::ObjectPathInner
+    /// [`ObjectPathInner`]: crate::types::object::ObjectPathInner
     fn object_path(&self) -> Option<Cow<'_, str>>;
 }
 
