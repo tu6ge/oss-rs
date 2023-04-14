@@ -832,7 +832,10 @@ mod some_tests {
         assert_eq!(format!("{}", err_list.get_source().unwrap()), "demo");
 
         let err_list = InnerListError::from_xml();
-        assert_eq!(format!("{}", err_list.get_source().unwrap()), "Cannot read text, expecting Event::Text");
+        assert_eq!(
+            format!("{}", err_list.get_source().unwrap()),
+            "Cannot read text, expecting Event::Text"
+        );
 
         let err_list = InnerListError::from_custom();
         assert_eq!(format!("{}", err_list.get_source().unwrap()), "custom");
