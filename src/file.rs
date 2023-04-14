@@ -319,7 +319,7 @@ pub mod std_path_impl {
     ///
     /// 文件路径可以是 [`ObjectBase`] 类型
     ///
-    /// [`ObjectBase`]: crate::config::ObjectBase
+    /// [`ObjectBase`]: crate::types::object::ObjectBase
     #[oss_gen_rc]
     impl GetStdWithPath<ObjectBase<ArcPointer>> for Bucket {
         #[inline]
@@ -335,7 +335,7 @@ pub mod std_path_impl {
     ///
     /// 文件路径可以是 [`&ObjectBase`] 类型
     ///
-    /// [`&ObjectBase`]: crate::config::ObjectBase
+    /// [`&ObjectBase`]: crate::types::object::ObjectBase
     #[oss_gen_rc]
     impl GetStdWithPath<&ObjectBase<ArcPointer>> for Bucket {
         #[inline]
