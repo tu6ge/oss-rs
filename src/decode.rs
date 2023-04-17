@@ -655,7 +655,7 @@ impl From<quick_xml::Error> for InnerListError {
 #[doc(hidden)]
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum ListErrorKind {
+enum ListErrorKind {
     #[non_exhaustive]
     Item(InnerItemError),
 

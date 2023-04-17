@@ -788,7 +788,7 @@ pub struct AuthError {
 /// Auth 模块错误的枚举
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum AuthErrorKind {
+pub(crate) enum AuthErrorKind {
     #[doc(hidden)]
     InvalidHeaderValue(http::header::InvalidHeaderValue),
     #[doc(hidden)]
