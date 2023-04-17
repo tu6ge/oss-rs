@@ -319,6 +319,7 @@ mod test_bucket_error {
     }
 }
 
+// 如果要改成 pub ，为了兼容，则应该改成 struct
 /// decode xml to bucket list error collection
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
@@ -605,7 +606,13 @@ impl ClientArc {
 /// [`base_bucket_info`]: crate::client::Client::base_bucket_info
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum ExtractItemError {
+pub struct ExtractItemError {
+    pub(crate) kind: ExtractItemErrorKind,
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub(crate) enum ExtractItemErrorKind {
     #[doc(hidden)]
     Builder(BuilderError),
 
@@ -615,27 +622,35 @@ pub enum ExtractItemError {
 
 impl From<BuilderError> for ExtractItemError {
     fn from(value: BuilderError) -> Self {
-        Self::Builder(value)
+        use ExtractItemErrorKind::*;
+        Self {
+            kind: Builder(value),
+        }
     }
 }
 impl From<InnerItemError> for ExtractItemError {
     fn from(value: InnerItemError) -> Self {
-        Self::Decode(value)
+        use ExtractItemErrorKind::*;
+        Self {
+            kind: Decode(value),
+        }
     }
 }
 impl Display for ExtractItemError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Builder(_) => "builder error".fmt(f),
-            Self::Decode(_) => "decode xml failed".fmt(f),
+        use ExtractItemErrorKind::*;
+        match &self.kind {
+            Builder(_) => "builder error".fmt(f),
+            Decode(_) => "decode xml failed".fmt(f),
         }
     }
 }
 impl Error for ExtractItemError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Builder(b) => b.source(),
-            Self::Decode(d) => d.get_source(),
+        use ExtractItemErrorKind::*;
+        match &self.kind {
+            Builder(b) => Some(b),
+            Decode(d) => d.get_source(),
         }
     }
 }

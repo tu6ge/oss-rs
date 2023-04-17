@@ -38,7 +38,7 @@ fn test_oss_service_new() {
 }
 
 mod debug {
-    use crate::bucket::ExtractItemError;
+    use crate::bucket::{ExtractItemError, ExtractItemErrorKind};
     use crate::builder::BuilderError;
     use crate::decode::InnerItemError;
     use crate::object::{BuildInItemError, ExtractListError, ExtractListErrorKind};
@@ -219,21 +219,29 @@ mod debug {
             }
             .into()
         }
-        assert_eq!(format!("{:?}", bar()), "ExtractList(ExtractListError { kind: NoMoreFile })");
+        assert_eq!(
+            format!("{:?}", bar()),
+            "ExtractList(ExtractListError { kind: NoMoreFile })"
+        );
     }
 
     #[test]
     fn test_extract_item() {
-        let err = Error::ExtractItem(ExtractItemError::Decode(InnerItemError::new()));
+        let err = Error::ExtractItem(ExtractItemError {
+            kind: ExtractItemErrorKind::Decode(InnerItemError::new()),
+        });
 
         assert_eq!(format!("{err}"), "decode xml failed");
 
         fn bar() -> Error {
-            ExtractItemError::Decode(InnerItemError::new()).into()
+            ExtractItemError {
+                kind: ExtractItemErrorKind::Decode(InnerItemError::new()),
+            }
+            .into()
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "ExtractItem(Decode(InnerItemError(MyError)))"
+            "ExtractItem(ExtractItemError { kind: Decode(InnerItemError(MyError)) })"
         );
     }
 }
