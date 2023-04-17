@@ -190,65 +190,98 @@ impl<T: PointerFamily> AsRef<EndPoint> for Bucket<T> {
 
 impl<T: PointerFamily> RefineBucket<BucketError> for Bucket<T> {
     fn set_name(&mut self, name: &str) -> Result<(), BucketError> {
-        self.base.set_name(
-            name.parse::<BucketName>()
-                .map_err(|e| BucketError::BucketName(e, name.to_string()))?,
-        );
+        self.base
+            .set_name(name.parse::<BucketName>().map_err(|e| BucketError {
+                source: name.to_string(),
+                kind: BucketErrorKind::BucketName(e),
+            })?);
         Ok(())
     }
 
     fn set_location(&mut self, location: &str) -> Result<(), BucketError> {
-        self.base.set_endpoint(
-            location
-                .parse::<EndPoint>()
-                .map_err(|e| BucketError::EndPoint(e, location.to_string()))?,
-        );
+        self.base
+            .set_endpoint(location.parse::<EndPoint>().map_err(|e| BucketError {
+                source: location.to_string(),
+                kind: BucketErrorKind::EndPoint(e),
+            })?);
         Ok(())
     }
 
     fn set_creation_date(&mut self, creation_date: &str) -> Result<(), BucketError> {
-        self.creation_date = creation_date
-            .parse()
-            .map_err(|e| BucketError::Chrono(e, creation_date.to_string()))?;
+        self.creation_date = creation_date.parse().map_err(|e| BucketError {
+            source: creation_date.to_string(),
+            kind: BucketErrorKind::Chrono(e),
+        })?;
         Ok(())
     }
 
     fn set_storage_class(&mut self, storage_class: &str) -> Result<(), BucketError> {
-        let start_char = storage_class
-            .chars()
-            .next()
-            .ok_or(BucketError::InvalidStorageClass(storage_class.to_string()))?;
+        let start_char = storage_class.chars().next().ok_or(BucketError {
+            source: storage_class.to_string(),
+            kind: BucketErrorKind::InvalidStorageClass,
+        })?;
 
         self.storage_class = match start_char {
             'a' | 'A' => StorageClass::Archive,
             'i' | 'I' => StorageClass::IA,
             's' | 'S' => StorageClass::Standard,
             'c' | 'C' => StorageClass::ColdArchive,
-            _ => return Err(BucketError::InvalidStorageClass(storage_class.to_string())),
+            _ => {
+                return Err(BucketError {
+                    source: storage_class.to_string(),
+                    kind: BucketErrorKind::InvalidStorageClass,
+                })
+            }
         };
         Ok(())
     }
 }
 
-/// decode xml to bucket error collection
+/// decode xml to bucket error type
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct BucketError {
+    source: String,
+    kind: BucketErrorKind,
+}
+
+impl Display for BucketError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "decode bucket xml faild, gived str: {}", self.source)
+    }
+}
+
+impl Error for BucketError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        use BucketErrorKind::*;
+        match &self.kind {
+            BucketName(e) => Some(e),
+            EndPoint(e) => Some(e),
+            Chrono(e) => Some(e),
+            InvalidStorageClass => None,
+        }
+    }
+}
+
+/// decode xml to bucket error enum
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
-pub enum BucketError {
+enum BucketErrorKind {
     /// when covert bucket name failed ,return this error
-    #[error("covert bucket name failed, {0}, source str: {1}")]
-    BucketName(InvalidBucketName, String),
+    #[error("covert bucket name failed")]
+    BucketName(InvalidBucketName),
 
     /// when covert endpoint failed ,return this error
-    #[error("convert endpoint failed, {0}, source str: {1}")]
-    EndPoint(InvalidEndPoint, String),
+    #[error("convert endpoint failed")]
+    EndPoint(InvalidEndPoint),
 
     /// when covert creation_date failed ,return this error
-    #[error("covert creation_date failed: {0}, source str: {1}")]
-    Chrono(chrono::ParseError, String),
+    #[error("covert creation_date failed")]
+    Chrono(chrono::ParseError),
 
     /// when failed to get storage_class, return this error
-    #[error("invalid storage class, source str: {0}")]
-    InvalidStorageClass(String),
+    #[error("invalid storage class")]
+    InvalidStorageClass,
 }
 
 #[cfg(test)]
@@ -257,14 +290,32 @@ mod test_bucket_error {
     use super::*;
     #[test]
     fn display() {
-        let error = BucketError::BucketName(InvalidBucketName { _priv: () }, "abc".to_string());
-        assert_eq!(error.to_string(), "covert bucket name failed, bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾, source str: abc");
+        let error = BucketError {
+            kind: BucketErrorKind::BucketName(InvalidBucketName { _priv: () }),
+            source: "abc".to_string(),
+        };
+        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
+        assert_eq!(
+            format!("{}", error.source().unwrap()),
+            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+        );
 
-        let error = BucketError::EndPoint(InvalidEndPoint { _priv: () }, "abc".to_string());
-        assert_eq!(error.to_string(), "convert endpoint failed, endpoint must not with `-` prefix or `-` suffix or `oss-` prefix, source str: abc");
+        let error = BucketError {
+            kind: BucketErrorKind::EndPoint(InvalidEndPoint { _priv: () }),
+            source: "abc".to_string(),
+        };
+        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
+        assert_eq!(
+            format!("{}", error.source().unwrap()),
+            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
+        );
 
-        let error = BucketError::InvalidStorageClass("abc".to_string());
-        assert_eq!(error.to_string(), "invalid storage class, source str: abc");
+        let error = BucketError {
+            kind: BucketErrorKind::InvalidStorageClass,
+            source: "abc".to_string(),
+        };
+        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
+        assert!(error.source().is_none());
     }
 }
 

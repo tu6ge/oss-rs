@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::sync::Arc;
 
-use crate::bucket::{Bucket, BucketError};
+use crate::bucket::{Bucket, BucketError, BucketErrorKind};
 use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware};
 use crate::decode::{RefineBucket, RefineBucketList};
 use crate::object::StorageClass;
@@ -544,7 +544,13 @@ fn test_set_storage_class() {
     assert_eq!(bucket.storage_class, StorageClass::ColdArchive);
 
     let err = bucket.set_storage_class("eeeeee").unwrap_err();
-    assert!(matches!(err, BucketError::InvalidStorageClass(_)));
+    assert!(matches!(
+        err,
+        BucketError {
+            kind: BucketErrorKind::InvalidStorageClass,
+            ..
+        }
+    ));
 }
 
 #[test]
