@@ -41,7 +41,7 @@ mod debug {
     use crate::bucket::ExtractItemError;
     use crate::builder::BuilderError;
     use crate::decode::InnerItemError;
-    use crate::object::{BuildInItemError, ExtractListError};
+    use crate::object::{BuildInItemError, ExtractListError, ExtractListErrorKind};
     use crate::types::object::{InvalidObjectDir, InvalidObjectPath};
     use crate::types::{InvalidBucketName, InvalidEndPoint};
     use crate::Error;
@@ -207,16 +207,19 @@ mod debug {
 
     #[test]
     fn test_extract_list() {
-        use ExtractListError::*;
-
-        let err = Error::ExtractList(NoMoreFile);
+        let err = Error::ExtractList(ExtractListError {
+            kind: ExtractListErrorKind::NoMoreFile,
+        });
 
         assert_eq!(format!("{err}"), "no more file");
 
         fn bar() -> Error {
-            NoMoreFile.into()
+            ExtractListError {
+                kind: ExtractListErrorKind::NoMoreFile,
+            }
+            .into()
         }
-        assert_eq!(format!("{:?}", bar()), "ExtractList(NoMoreFile)");
+        assert_eq!(format!("{:?}", bar()), "ExtractList(ExtractListError { kind: NoMoreFile })");
     }
 
     #[test]

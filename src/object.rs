@@ -311,7 +311,9 @@ impl ObjectList<ArcPointer> {
     /// 异步获取下一页的数据
     pub async fn get_next_list(&self) -> Result<ObjectList<ArcPointer>, ExtractListError> {
         match self.next_query() {
-            None => Err(ExtractListError::NoMoreFile),
+            None => Err(ExtractListError {
+                kind: ExtractListErrorKind::NoMoreFile,
+            }),
             Some(query) => {
                 let mut url = self.bucket.to_url();
                 url.set_search_query(&query);
@@ -393,7 +395,9 @@ impl<Item: RefineObject<E>, E: Error + 'static> ObjectList<ArcPointer, Item, E> 
         F: FnMut() -> Item,
     {
         match self.next_query() {
-            None => Err(ExtractListError::NoMoreFile),
+            None => Err(ExtractListError {
+                kind: ExtractListErrorKind::NoMoreFile,
+            }),
             Some(query) => {
                 let mut list = Self::default();
                 let name = self.bucket.get_name().clone();
@@ -1043,7 +1047,16 @@ impl Client {
 /// [`base_object_list`]: crate::client::Client::base_object_list
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum ExtractListError {
+pub struct ExtractListError {
+    pub(crate) kind: ExtractListErrorKind,
+}
+
+/// [`ExtractListError`] 类型的枚举
+///
+/// [`ExtractListError`]: crate::object::ExtractListError
+#[derive(Debug)]
+#[non_exhaustive]
+pub(crate) enum ExtractListErrorKind {
     #[doc(hidden)]
     Builder(BuilderError),
 
@@ -1056,30 +1069,38 @@ pub enum ExtractListError {
 
 impl From<InnerListError> for ExtractListError {
     fn from(value: InnerListError) -> Self {
-        Self::Decode(value)
+        use ExtractListErrorKind::*;
+        Self {
+            kind: Decode(value),
+        }
     }
 }
 
 impl From<BuilderError> for ExtractListError {
     fn from(value: BuilderError) -> Self {
-        Self::Builder(value)
+        use ExtractListErrorKind::*;
+        Self {
+            kind: Builder(value),
+        }
     }
 }
 impl Display for ExtractListError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Builder(_) => "builder error".fmt(f),
-            Self::Decode(_) => "decode xml failed".fmt(f),
-            Self::NoMoreFile => "no more file".fmt(f),
+        use ExtractListErrorKind::*;
+        match &self.kind {
+            Builder(_) => "builder error".fmt(f),
+            Decode(_) => "decode xml failed".fmt(f),
+            NoMoreFile => "no more file".fmt(f),
         }
     }
 }
 impl Error for ExtractListError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Builder(b) => b.source(),
-            Self::Decode(e) => e.get_source(),
-            Self::NoMoreFile => None,
+        use ExtractListErrorKind::*;
+        match &self.kind {
+            Builder(e) => Some(e),
+            Decode(e) => e.get_source(),
+            NoMoreFile => None,
         }
     }
 }
