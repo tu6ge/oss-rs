@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, error::Error};
 
 use http::{
     header::{HeaderMap, HeaderValue, InvalidHeaderValue},
@@ -9,8 +9,8 @@ use mockall::mock;
 use crate::types::KeyId;
 
 use super::{
-    AppendAuthHeader, AuthBuilder, AuthHeader, AuthSignString, MockAuthToHeaderMap, OssHeader,
-    Sign, SignString,
+    AppendAuthHeader, AuthBuilder, AuthError, AuthErrorKind, AuthHeader, AuthSignString,
+    MockAuthToHeaderMap, OssHeader, Sign, SignString,
 };
 
 mod to_oss_header {
@@ -614,10 +614,53 @@ fn get_sign_info() {
     assert_eq!(*key, KeyId::new("abc"))
 }
 
+#[test]
+fn test_error_display() {
+    let val = HeaderValue::from_str("\n");
+    let header_error = val.unwrap_err();
+    let err = AuthError {
+        kind: AuthErrorKind::InvalidHeaderValue(header_error),
+    };
+    assert_eq!(format!("{}", err), "failed to parse header value");
+
+    let err = AuthError {
+        kind: AuthErrorKind::InvalidLength(hmac::digest::crypto_common::InvalidLength {}),
+    };
+    assert_eq!(format!("{}", err), "invalid aliyun secret length");
+
+    let err = AuthError {
+        kind: AuthErrorKind::InvalidCanonicalizedResource,
+    };
+    assert_eq!(format!("{}", err), "invalid canonicalized-resource");
+}
+
+#[test]
+fn test_error_source() {
+    let val = HeaderValue::from_str("\n");
+    let header_error = val.unwrap_err();
+    let err = AuthError {
+        kind: AuthErrorKind::InvalidHeaderValue(header_error),
+    };
+    assert_eq!(
+        format!("{}", err.source().unwrap()),
+        "failed to parse header value"
+    );
+
+    let err = AuthError {
+        kind: AuthErrorKind::InvalidLength(hmac::digest::crypto_common::InvalidLength {}),
+    };
+    assert_eq!(format!("{}", err.source().unwrap()), "Invalid Length");
+
+    let err = AuthError {
+        kind: AuthErrorKind::InvalidCanonicalizedResource,
+    };
+    assert!(err.source().is_none());
+}
+
 mod with_oss {
     use http::{HeaderValue, Method};
 
-    use crate::auth::{AuthError, RequestWithOSS};
+    use crate::auth::{AuthError, AuthErrorKind, RequestWithOSS};
 
     #[test]
     fn test() {
@@ -670,7 +713,12 @@ mod with_oss {
             .with_oss("key1".into(), "secret2".into())
             .unwrap_err();
 
-        assert!(matches!(err, AuthError::InvalidCanonicalizedResource));
+        assert!(matches!(
+            err,
+            AuthError {
+                kind: AuthErrorKind::InvalidCanonicalizedResource,
+            }
+        ));
     }
 }
 

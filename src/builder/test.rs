@@ -36,17 +36,22 @@ mod error {
     #[test]
     #[cfg(feature = "auth")]
     fn from_auth() {
-        use crate::auth::AuthError;
+        use crate::auth::{AuthError, AuthErrorKind};
 
-        let err = BuilderError::AuthError(AuthError::InvalidCanonicalizedResource);
-        assert_eq!(format!("{err}"), "Invalid CanonicalizedResource");
+        let err = BuilderError::AuthError(AuthError {
+            kind: AuthErrorKind::InvalidCanonicalizedResource,
+        });
+        assert_eq!(format!("{err}"), "invalid canonicalized-resource");
 
         fn bar() -> BuilderError {
-            AuthError::InvalidCanonicalizedResource.into()
+            AuthError {
+                kind: AuthErrorKind::InvalidCanonicalizedResource,
+            }
+            .into()
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "AuthError(InvalidCanonicalizedResource)"
+            "AuthError(AuthError { kind: InvalidCanonicalizedResource })"
         );
     }
 

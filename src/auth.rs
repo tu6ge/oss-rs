@@ -38,7 +38,7 @@ use http::{
 };
 #[cfg(test)]
 use mockall::automock;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::{borrow::Cow, convert::TryInto};
 
 #[cfg(test)]
@@ -609,11 +609,9 @@ impl RequestWithOSS for Request {
 
         auth.set_method(self.method().clone());
         auth.set_date(Utc::now().into());
-        auth.set_canonicalized_resource(
-            self.url()
-                .canonicalized_resource()
-                .ok_or(AuthError::InvalidCanonicalizedResource)?,
-        );
+        auth.set_canonicalized_resource(self.url().canonicalized_resource().ok_or(AuthError {
+            kind: AuthErrorKind::InvalidCanonicalizedResource,
+        })?);
 
         auth.append_headers(self.headers_mut())?;
 
@@ -780,9 +778,17 @@ impl GenCanonicalizedResource for Request {
     }
 }
 
-/// 收集 Auth 模块的错误
+/// Auth 模块的错误
 #[derive(Debug)]
-pub enum AuthError {
+#[non_exhaustive]
+pub struct AuthError {
+    pub(crate) kind: AuthErrorKind,
+}
+
+/// Auth 模块错误的枚举
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum AuthErrorKind {
     #[doc(hidden)]
     InvalidHeaderValue(http::header::InvalidHeaderValue),
     #[doc(hidden)]
@@ -791,32 +797,24 @@ pub enum AuthError {
     InvalidCanonicalizedResource,
 }
 
-impl std::error::Error for AuthError {}
+impl std::error::Error for AuthError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        use AuthErrorKind::*;
+        match &self.kind {
+            InvalidHeaderValue(e) => Some(e),
+            InvalidLength(e) => Some(e),
+            InvalidCanonicalizedResource => None,
+        }
+    }
+}
 
 impl Display for AuthError {
-    /// Error message
-    /// ```
-    /// # use aliyun_oss_client::auth::AuthError;
-    /// # use http::header::HeaderValue;
-    /// let val = HeaderValue::from_str("\n");
-    /// let header_error = val.unwrap_err();
-    /// assert_eq!(
-    ///     format!("{}", AuthError::InvalidHeaderValue(header_error)),
-    ///     "failed to parse header value"
-    /// );
-    /// assert_eq!(
-    ///     format!(
-    ///         "{}",
-    ///         AuthError::InvalidLength(hmac::digest::crypto_common::InvalidLength {})
-    ///     ),
-    ///     "Invalid hmac Length"
-    /// );
-    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            Self::InvalidHeaderValue(_) => f.write_str("failed to parse header value"),
-            Self::InvalidLength(_) => f.write_str("Invalid hmac Length"),
-            Self::InvalidCanonicalizedResource => f.write_str("Invalid CanonicalizedResource"),
+        use AuthErrorKind::*;
+        match self.kind {
+            InvalidHeaderValue(_) => f.write_str("failed to parse header value"),
+            InvalidLength(_) => f.write_str("invalid aliyun secret length"),
+            InvalidCanonicalizedResource => f.write_str("invalid canonicalized-resource"),
         }
     }
 }
@@ -831,7 +829,9 @@ impl From<http::header::InvalidHeaderValue> for AuthError {
     /// assert_eq!(format!("{}", auth_error), "failed to parse header value");
     /// ```
     fn from(value: http::header::InvalidHeaderValue) -> Self {
-        Self::InvalidHeaderValue(value)
+        Self {
+            kind: AuthErrorKind::InvalidHeaderValue(value),
+        }
     }
 }
 impl From<hmac::digest::crypto_common::InvalidLength> for AuthError {
@@ -839,10 +839,12 @@ impl From<hmac::digest::crypto_common::InvalidLength> for AuthError {
     /// # use aliyun_oss_client::auth::AuthError;
     /// let hmac_error = hmac::digest::crypto_common::InvalidLength {};
     /// let auth_error: AuthError = hmac_error.into();
-    /// assert_eq!(format!("{}", auth_error), "Invalid hmac Length");
+    /// assert_eq!(format!("{}", auth_error), "invalid aliyun secret length");
     /// ```
     fn from(value: hmac::digest::crypto_common::InvalidLength) -> Self {
-        Self::InvalidLength(value)
+        Self {
+            kind: AuthErrorKind::InvalidLength(value),
+        }
     }
 }
 
