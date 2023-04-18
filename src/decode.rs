@@ -519,6 +519,7 @@ where
 /// [`RefineObject`]: crate::decode::RefineObject
 #[derive(Debug)]
 #[doc(hidden)]
+#[non_exhaustive]
 pub struct InnerItemError(Box<dyn StdError + 'static>);
 
 impl<T: StdError + 'static> From<T> for InnerItemError {
@@ -585,6 +586,7 @@ impl<T: ListError> From<T> for InnerListError {
 ///
 /// [`RefineObjectList`]: crate::decode::RefineObjectList
 #[derive(Debug)]
+#[non_exhaustive]
 pub struct InnerListError {
     kind: ListErrorKind,
 }
