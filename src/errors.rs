@@ -203,5 +203,10 @@ mod tests {
             OssService::new("abc", &StatusCode::OK),
             OssService::default()
         );
+
+        assert_eq!(
+            OssService::new2("abc".to_string(), &StatusCode::OK),
+            OssService::default()
+        );
     }
 }
