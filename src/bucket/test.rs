@@ -614,3 +614,75 @@ mod test_extract_item_error {
         );
     }
 }
+
+mod test_bucket_error {
+
+    use super::super::*;
+    #[test]
+    fn display() {
+        let error = BucketError {
+            kind: BucketErrorKind::BucketName(InvalidBucketName { _priv: () }),
+            source: "abc".to_string(),
+        };
+        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
+        assert_eq!(
+            format!("{}", error.source().unwrap()),
+            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+        );
+
+        let error = BucketError {
+            kind: BucketErrorKind::EndPoint(InvalidEndPoint { _priv: () }),
+            source: "abc".to_string(),
+        };
+        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
+        assert_eq!(
+            format!("{}", error.source().unwrap()),
+            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
+        );
+
+        let error = "aaa".parse::<DateTime<Utc>>().unwrap_err();
+        let error = BucketError {
+            kind: BucketErrorKind::Chrono(error),
+            source: "bar".to_string(),
+        };
+        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: bar");
+        assert_eq!(
+            format!("{}", error.source().unwrap()),
+            "input contains invalid characters"
+        );
+
+        let error = BucketError {
+            kind: BucketErrorKind::InvalidStorageClass,
+            source: "abc".to_string(),
+        };
+        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
+        assert!(error.source().is_none());
+        assert_eq!(
+            format!("{error:?}"),
+            "BucketError { source: \"abc\", kind: InvalidStorageClass }"
+        );
+    }
+}
+
+mod test_bucket_list_error {
+    use super::super::*;
+
+    fn assert_impl<T: ListError>() {}
+
+    #[test]
+    fn test_bucket_list_error() {
+        assert_impl::<BucketListError>();
+
+        let err = i32::from_str_radix("a12", 10).unwrap_err();
+        let err = BucketListError::ParseInt(err);
+        assert_eq!(format!("{err}"), "covert max_keys failed");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "invalid digit found in string"
+        );
+        assert_eq!(
+            format!("{err:?}"),
+            "ParseInt(ParseIntError { kind: InvalidDigit })"
+        );
+    }
+}

@@ -264,59 +264,20 @@ impl Error for BucketError {
 }
 
 /// decode xml to bucket error enum
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 #[non_exhaustive]
 enum BucketErrorKind {
     /// when covert bucket name failed ,return this error
-    #[error("covert bucket name failed")]
     BucketName(InvalidBucketName),
 
     /// when covert endpoint failed ,return this error
-    #[error("convert endpoint failed")]
     EndPoint(InvalidEndPoint),
 
     /// when covert creation_date failed ,return this error
-    #[error("covert creation_date failed")]
     Chrono(chrono::ParseError),
 
     /// when failed to get storage_class, return this error
-    #[error("invalid storage class")]
     InvalidStorageClass,
-}
-
-#[cfg(test)]
-mod test_bucket_error {
-
-    use super::*;
-    #[test]
-    fn display() {
-        let error = BucketError {
-            kind: BucketErrorKind::BucketName(InvalidBucketName { _priv: () }),
-            source: "abc".to_string(),
-        };
-        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
-        assert_eq!(
-            format!("{}", error.source().unwrap()),
-            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
-        );
-
-        let error = BucketError {
-            kind: BucketErrorKind::EndPoint(InvalidEndPoint { _priv: () }),
-            source: "abc".to_string(),
-        };
-        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
-        assert_eq!(
-            format!("{}", error.source().unwrap()),
-            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
-        );
-
-        let error = BucketError {
-            kind: BucketErrorKind::InvalidStorageClass,
-            source: "abc".to_string(),
-        };
-        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
-        assert!(error.source().is_none());
-    }
 }
 
 // 如果要改成 pub ，为了兼容，则应该改成 struct
@@ -329,18 +290,6 @@ enum BucketListError {
     ParseInt(#[from] ParseIntError),
 }
 impl ListError for BucketListError {}
-
-#[cfg(test)]
-mod test_bucket_list_error {
-    use super::*;
-
-    fn assert_impl<T: ListError>() {}
-
-    #[test]
-    fn test_bucket_list_error() {
-        assert_impl::<BucketListError>();
-    }
-}
 
 impl<T: PointerFamily> Bucket<T> {
     /// 初始化 Bucket
