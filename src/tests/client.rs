@@ -217,7 +217,9 @@ mod handle_error {
 
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(matches!(err, BuilderError::OssService(OssService{code,..}) if code=="foo_code"));
+        assert!(
+            matches!(err, BuilderError{kind:BuilderErrorKind::OssService(OssService{code,..}) } if code=="foo_code")
+        );
     }
 
     #[cfg(feature = "blocking")]
