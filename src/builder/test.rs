@@ -21,9 +21,8 @@ mod error {
 
     use crate::{
         builder::{BuilderError, BuilderErrorKind},
-        config::InvalidConfig,
+        config::get_endpoint,
         errors::OssService,
-        types::InvalidEndPoint,
     };
 
     #[tokio::test]
@@ -99,21 +98,23 @@ mod error {
 
     #[test]
     fn from_config() {
+        let err = get_endpoint("oss").unwrap_err();
         let err = BuilderError {
-            kind: BuilderErrorKind::Config(InvalidConfig::EndPoint(InvalidEndPoint { _priv: () })),
+            kind: BuilderErrorKind::Config(err),
         };
         assert_eq!(format!("{err}"), "oss config error");
         assert_eq!(
             format!("{}", err.source().unwrap()),
-            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
+            "get config faild, source: oss"
         );
 
         fn bar() -> BuilderError {
-            InvalidConfig::EndPoint(InvalidEndPoint { _priv: () }).into()
+            let err = get_endpoint("oss").unwrap_err();
+            err.into()
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "BuilderError { kind: Config(EndPoint(InvalidEndPoint)) }"
+            "BuilderError { kind: Config(InvalidConfig { source: \"oss\", kind: EndPoint(InvalidEndPoint) }) }"
         );
     }
 }

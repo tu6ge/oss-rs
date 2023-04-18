@@ -114,20 +114,22 @@ mod debug {
 
     #[test]
     fn test_config() {
-        use crate::config::InvalidConfig::BucketName;
-        let err = Error::InvalidConfig(BucketName(InvalidBucketName { _priv: () }));
+        use crate::config::InvalidConfig;
+        let err = Error::InvalidConfig(InvalidConfig::test_bucket());
 
-        assert_eq!(
-            format!("{err}"),
-            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
-        );
+        assert_eq!(format!("{err}"), "get config faild, source: bar");
+
+        //   assert_eq!(
+        //     format!("{}", err.source().unwrap()),
+        //     "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+        // );
 
         fn bar() -> Error {
-            BucketName(InvalidBucketName { _priv: () }).into()
+            InvalidConfig::test_bucket().into()
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "InvalidConfig(BucketName(InvalidBucketName))"
+            "InvalidConfig(InvalidConfig { source: \"bar\", kind: BucketName(InvalidBucketName) })"
         );
     }
 

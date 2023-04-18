@@ -11,6 +11,8 @@ use crate::{
 use reqwest::Url;
 use std::{
     env::{self, VarError},
+    error::Error,
+    fmt::Display,
     str::FromStr,
 };
 use thiserror::Error;
@@ -67,8 +69,11 @@ impl Config {
 
     /// 初始化 OSS 配置信息
     ///
+    /// [未稳定] 暂不公开
+    ///
     /// 支持更宽泛的输入类型
-    pub fn try_new<ID, S, E, B>(
+    #[cfg(test)]
+    pub(crate) fn try_new<ID, S, E, B>(
         key: ID,
         secret: S,
         endpoint: E,
@@ -77,16 +82,22 @@ impl Config {
     where
         ID: Into<KeyId>,
         S: Into<KeySecret>,
-        E: TryInto<EndPoint>,
-        E::Error: Into<InvalidConfig>,
-        B: TryInto<BucketName>,
-        B::Error: Into<InvalidConfig>,
+        E: TryInto<EndPoint> + Display + Clone,
+        E::Error: Into<InvalidEndPoint>,
+        B: TryInto<BucketName> + Display + Clone,
+        B::Error: Into<InvalidBucketName>,
     {
         Ok(Config {
             key: key.into(),
             secret: secret.into(),
-            endpoint: endpoint.try_into().map_err(|e| e.into())?,
-            bucket: bucket.try_into().map_err(|e| e.into())?,
+            endpoint: endpoint.clone().try_into().map_err(|e| InvalidConfig {
+                source: endpoint.to_string(),
+                kind: InvalidConfigKind::EndPoint(e.into()),
+            })?,
+            bucket: bucket.clone().try_into().map_err(|e| InvalidConfig {
+                source: bucket.to_string(),
+                kind: InvalidConfigKind::BucketName(e.into()),
+            })?,
         })
     }
 
@@ -95,30 +106,93 @@ impl Config {
     }
 }
 
-/// Config 错误信息集合
-#[derive(Error, Debug, PartialEq)]
-#[non_exhaustive]
-pub enum InvalidConfig {
-    /// 非法的可用区
-    #[error("{0}")]
-    EndPoint(#[from] InvalidEndPoint),
-
-    /// 非法的 bucket 名称
-    #[error("{0}")]
-    BucketName(#[from] InvalidBucketName),
-
-    /// 非法的环境变量
-    #[error("{0}")]
-    VarError(#[from] VarError),
+pub(crate) fn get_env(name: &str) -> Result<String, InvalidConfig> {
+    env::var(name).map_err(|e| InvalidConfig {
+        source: name.to_owned(),
+        kind: InvalidConfigKind::VarError(e),
+    })
 }
 
-// impl Error for InvalidConfig{}
+pub(crate) fn get_endpoint(name: &str) -> Result<EndPoint, InvalidConfig> {
+    EndPoint::try_from(name).map_err(|e| InvalidConfig {
+        source: name.to_string(),
+        kind: InvalidConfigKind::EndPoint(e),
+    })
+}
 
-// impl fmt::Display for InvalidConfig {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         write!(f, "endpoint must like with https://xxx.aliyuncs.com")
-//     }
-// }
+pub(crate) fn get_bucket(name: &str) -> Result<BucketName, InvalidConfig> {
+    BucketName::try_from(name).map_err(|e| InvalidConfig {
+        source: name.to_string(),
+        kind: InvalidConfigKind::BucketName(e),
+    })
+}
+
+/// Config 错误信息集合
+#[derive(Debug, PartialEq)]
+#[non_exhaustive]
+pub struct InvalidConfig {
+    source: String,
+    kind: InvalidConfigKind,
+}
+
+impl InvalidConfig {
+    #[cfg(test)]
+    pub(crate) fn test_bucket() -> Self {
+        Self {
+            source: "bar".into(),
+            kind: InvalidConfigKind::BucketName(InvalidBucketName { _priv: () }),
+        }
+    }
+}
+
+impl Display for InvalidConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use InvalidConfigKind::*;
+        match &self.kind {
+            EndPoint(_) | BucketName(_) => write!(f, "get config faild, source: {}", self.source),
+            VarError(_) => write!(f, "get config faild, env name: {}", self.source),
+        }
+    }
+}
+impl Error for InvalidConfig {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        use InvalidConfigKind::*;
+        match &self.kind {
+            EndPoint(e) => Some(e),
+            BucketName(e) => Some(e),
+            VarError(e) => Some(e),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+#[non_exhaustive]
+enum InvalidConfigKind {
+    /// 非法的可用区
+    EndPoint(InvalidEndPoint),
+
+    /// 非法的 bucket 名称
+    BucketName(InvalidBucketName),
+
+    /// 非法的环境变量
+    VarError(VarError),
+}
+
+impl From<InvalidEndPoint> for InvalidConfigKind {
+    fn from(value: InvalidEndPoint) -> Self {
+        Self::EndPoint(value)
+    }
+}
+impl From<InvalidBucketName> for InvalidConfigKind {
+    fn from(value: InvalidBucketName) -> Self {
+        Self::BucketName(value)
+    }
+}
+impl From<VarError> for InvalidConfigKind {
+    fn from(value: VarError) -> Self {
+        Self::VarError(value)
+    }
+}
 
 /// # Bucket 元信息
 /// 包含所属 bucket 名以及所属的 endpoint
@@ -194,18 +268,32 @@ impl FromStr for BucketBase {
             }
         }
         if !domain.chars().all(valid_character) {
-            return Err(InvalidBucketBase::Tacitly);
+            return Err(InvalidBucketBase {
+                source: domain.to_string(),
+                kind: InvalidBucketBaseKind::Tacitly,
+            });
         }
 
-        let (bucket, endpoint) = domain.split_once('.').ok_or(InvalidBucketBase::Tacitly)?;
+        let (bucket, endpoint) = domain.split_once('.').ok_or(InvalidBucketBase {
+            source: domain.to_string(),
+            kind: InvalidBucketBaseKind::Tacitly,
+        })?;
         let endpoint = match endpoint.find('.') {
             Some(s) => &endpoint[0..s],
             None => endpoint,
         };
 
         Ok(Self {
-            name: BucketName::from_static(bucket)?,
-            endpoint: EndPoint::new(endpoint.trim_start_matches("oss-"))?,
+            name: BucketName::from_static(bucket).map_err(|e| InvalidBucketBase {
+                source: bucket.to_string(),
+                kind: InvalidBucketBaseKind::from(e),
+            })?,
+            endpoint: EndPoint::new(endpoint.trim_start_matches("oss-")).map_err(|e| {
+                InvalidBucketBase {
+                    source: endpoint.to_string(),
+                    kind: InvalidBucketBaseKind::from(e),
+                }
+            })?,
         })
     }
 }
@@ -215,6 +303,47 @@ impl TryFrom<&str> for BucketBase {
     fn try_from(str: &str) -> Result<Self, Self::Error> {
         str.parse()
     }
+}
+
+/// Bucket 元信息的错误集
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct InvalidBucketBase {
+    pub(crate) source: String,
+    pub(crate) kind: InvalidBucketBaseKind,
+}
+
+impl Display for InvalidBucketBase {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "get bucket base faild, source: {}", self.source)
+    }
+}
+impl Error for InvalidBucketBase {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        use InvalidBucketBaseKind::*;
+        match &self.kind {
+            Tacitly => None,
+            EndPoint(e) => Some(e),
+            BucketName(e) => Some(e),
+        }
+    }
+}
+
+/// Bucket 元信息的错误集
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub(crate) enum InvalidBucketBaseKind {
+    #[doc(hidden)]
+    #[error("bucket url must like with https://yyy.xxx.aliyuncs.com")]
+    Tacitly,
+
+    #[doc(hidden)]
+    #[error("{0}")]
+    EndPoint(#[from] InvalidEndPoint),
+
+    #[doc(hidden)]
+    #[error("{0}")]
+    BucketName(#[from] InvalidBucketName),
 }
 
 impl BucketBase {
@@ -233,12 +362,24 @@ impl BucketBase {
     /// assert!(BucketBase::from_env().is_ok());
     /// ```
     pub fn from_env() -> Result<Self, InvalidConfig> {
-        let endpoint = env::var("ALIYUN_ENDPOINT").map_err(InvalidConfig::from)?;
-        let bucket = env::var("ALIYUN_BUCKET").map_err(InvalidConfig::from)?;
+        let endpoint = env::var("ALIYUN_ENDPOINT").map_err(|e| InvalidConfig {
+            source: "ALIYUN_ENDPOINT".to_string(),
+            kind: InvalidConfigKind::VarError(e),
+        })?;
+        let bucket = env::var("ALIYUN_BUCKET").map_err(|e| InvalidConfig {
+            source: "ALIYUN_BUCKET".to_string(),
+            kind: InvalidConfigKind::VarError(e),
+        })?;
 
         Ok(Self {
-            name: BucketName::new(bucket)?,
-            endpoint: endpoint.try_into().map_err(InvalidConfig::from)?,
+            name: BucketName::from_str(&bucket).map_err(|e| InvalidConfig {
+                source: bucket,
+                kind: InvalidConfigKind::BucketName(e),
+            })?,
+            endpoint: EndPoint::from_str(&endpoint).map_err(|e| InvalidConfig {
+                source: endpoint,
+                kind: InvalidConfigKind::EndPoint(e),
+            })?,
         })
     }
 
@@ -378,21 +519,15 @@ impl BucketBase {
     }
 }
 
-trait BuildFromBucket {
-    fn from_bucket(endpoint: &EndPoint, bucket: &BucketName) -> Self;
-}
-
-impl BuildFromBucket for Url {
-    fn from_bucket(endpoint: &EndPoint, bucket: &BucketName) -> Self {
-        let url = format!(
-            "https://{}.oss-{}.aliyuncs.com",
-            bucket.as_ref(),
-            endpoint.as_ref()
-        );
-        url.parse().unwrap_or_else(|_| {
-            unreachable!("covert to url failed, bucket: {bucket}, endpoint: {endpoint}")
-        })
-    }
+fn url_from_bucket(endpoint: &EndPoint, bucket: &BucketName) -> Url {
+    let url = format!(
+        "https://{}.oss-{}.aliyuncs.com",
+        bucket.as_ref(),
+        endpoint.as_ref()
+    );
+    url.parse().unwrap_or_else(|_| {
+        unreachable!("covert to url failed, bucket: {bucket}, endpoint: {endpoint}")
+    })
 }
 
 /// 根据 endpoint， bucket， path 获取接口信息
@@ -401,7 +536,7 @@ pub fn get_url_resource(
     bucket: &BucketName,
     path: &ObjectPathInner,
 ) -> (Url, CanonicalizedResource) {
-    let mut url = Url::from_bucket(endpoint, bucket);
+    let mut url = url_from_bucket(endpoint, bucket);
     url.set_object_path(path);
 
     let resource = CanonicalizedResource::from_object((bucket.as_ref(), path.as_ref()), []);
@@ -424,7 +559,7 @@ pub(crate) fn get_url_resource_with_bucket(
     bucket: &BucketName,
     query: &Query,
 ) -> (Url, CanonicalizedResource) {
-    let url = Url::from_bucket(endpoint, bucket);
+    let url = url_from_bucket(endpoint, bucket);
 
     let resource = CanonicalizedResource::from_bucket_query2(bucket, query);
 
@@ -439,23 +574,6 @@ pub(crate) fn get_url_resource_with_bucket2<E: AsRef<EndPoint>, B: AsRef<BucketN
     query: &Query,
 ) -> (Url, CanonicalizedResource) {
     get_url_resource_with_bucket(endpoint.as_ref(), bucket.as_ref(), query)
-}
-
-/// Bucket 元信息的错误集
-#[derive(Error, Debug)]
-#[non_exhaustive]
-pub enum InvalidBucketBase {
-    #[doc(hidden)]
-    #[error("bucket url must like with https://yyy.xxx.aliyuncs.com")]
-    Tacitly,
-
-    #[doc(hidden)]
-    #[error("{0}")]
-    EndPoint(#[from] InvalidEndPoint),
-
-    #[doc(hidden)]
-    #[error("{0}")]
-    BucketName(#[from] InvalidBucketName),
 }
 
 impl PartialEq<Url> for BucketBase {
@@ -483,11 +601,23 @@ mod tests {
     fn test_config_try_new() {
         let err = Config::try_new("foo", "foo", "_aa", "abc");
         let err = err.unwrap_err();
-        assert!(matches!(err, InvalidConfig::EndPoint(_)));
+        assert!(matches!(
+            err,
+            InvalidConfig {
+                kind: InvalidConfigKind::EndPoint(_),
+                ..
+            }
+        ));
 
         let err = Config::try_new("foo", "foo", "qingdao", "-abc");
         let err = err.unwrap_err();
-        assert!(matches!(err, InvalidConfig::BucketName(_)));
+        assert!(matches!(
+            err,
+            InvalidConfig {
+                kind: InvalidConfigKind::BucketName(_),
+                ..
+            }
+        ));
     }
 
     fn assert_as_ref_keyid<K: AsRef<KeyId>>(k: K) {
@@ -514,26 +644,26 @@ mod tests {
 
     #[test]
     fn test_invalid_config() {
-        let error = InvalidEndPoint { _priv: () };
-        let error2: InvalidConfig = error.into();
+        let error = get_endpoint("oss").unwrap_err();
+        assert_eq!(format!("{error}"), "get config faild, source: oss");
         assert_eq!(
-            format!("{error2}"),
+            format!("{}", error.source().unwrap()),
             "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
         );
 
-        let error = InvalidBucketName { _priv: () };
-        let error2: InvalidConfig = error.into();
+        let error = get_bucket("-oss").unwrap_err();
+        assert_eq!(format!("{error}"), "get config faild, source: -oss");
         assert_eq!(
-            format!("{error2}"),
+            format!("{}", error.source().unwrap()),
             "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
         );
 
-        let err = BucketBase::from_env();
-
-        assert!(matches!(err, Err(InvalidConfig::VarError(_))));
-        let err = err.unwrap_err();
-        assert!(matches!(err, InvalidConfig::VarError(_)));
-        assert_eq!(format!("{}", err), "environment variable not found");
+        let err = get_env("aaa").unwrap_err();
+        assert_eq!(format!("{}", err), "get config faild, env name: aaa");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "environment variable not found"
+        );
     }
 
     #[test]
@@ -590,29 +720,56 @@ mod tests {
     #[test]
     fn test_invalid_bucket_base() {
         let error = InvalidEndPoint { _priv: () };
-        let base_err: InvalidBucketBase = error.into();
+        let base_err = InvalidBucketBase {
+            source: "abc".to_string(),
+            kind: error.into(),
+        };
+        assert_eq!(format!("{base_err}"), "get bucket base faild, source: abc");
         assert_eq!(
-            format!("{base_err}"),
+            format!("{}", base_err.source().unwrap()),
             "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
         );
 
         let error = InvalidBucketName { _priv: () };
-        let error2: InvalidBucketBase = error.into();
+        let error2 = InvalidBucketBase {
+            source: "abc".to_string(),
+            kind: error.into(),
+        };
+        assert_eq!(format!("{error2}"), "get bucket base faild, source: abc");
         assert_eq!(
-            format!("{error2}"),
+            format!("{}", error2.source().unwrap()),
             "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
         );
+
+        let error2 = InvalidBucketBase {
+            source: "abc".to_string(),
+            kind: InvalidBucketBaseKind::Tacitly,
+        };
+        assert_eq!(format!("{error2}"), "get bucket base faild, source: abc");
+        assert!(error2.source().is_none());
     }
 
     #[test]
     fn test_bucket_base_from_str() {
         let err = BucketBase::from_str("-abc.oss-cn-qingdao");
         let err = err.unwrap_err();
-        assert!(matches!(err, InvalidBucketBase::BucketName(_)));
+        assert!(matches!(
+            err,
+            InvalidBucketBase {
+                kind: InvalidBucketBaseKind::BucketName(_),
+                ..
+            }
+        ));
 
         let err = BucketBase::from_str("abc.oss-cn-qing-");
         let err = err.unwrap_err();
-        assert!(matches!(err, InvalidBucketBase::EndPoint(_)));
+        assert!(matches!(
+            err,
+            InvalidBucketBase {
+                kind: InvalidBucketBaseKind::EndPoint(_),
+                ..
+            }
+        ));
     }
 
     #[test]

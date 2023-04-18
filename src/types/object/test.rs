@@ -1,14 +1,15 @@
 #[cfg(feature = "core")]
 mod test_core {
+    use std::error::Error;
     use std::path::Path;
     use std::sync::Arc;
 
     use reqwest::Url;
 
     use crate::builder::ArcPointer;
-    use crate::config::{BucketBase, InvalidBucketBase};
-    use crate::types::object::InvalidObjectDir;
+    use crate::config::BucketBase;
     use crate::types::object::{InvalidObjectBase, InvalidObjectPath, ObjectBase, OssFullUrl};
+    use crate::types::object::{InvalidObjectBaseKind, InvalidObjectDir};
     use crate::{BucketName, ObjectDir, ObjectPath};
 
     #[test]
@@ -34,11 +35,11 @@ mod test_core {
 
         let object =
             ObjectBase::<ArcPointer>::from_bucket_name("-foo1", "qingdao", "img1.jpg").unwrap_err();
-        assert!(matches!(object, InvalidObjectBase::Bucket(_)));
+        assert!(matches!(object.kind, InvalidObjectBaseKind::Bucket(_)));
 
         let object =
             ObjectBase::<ArcPointer>::from_bucket_name("foo1", "-q-", "img1.jpg").unwrap_err();
-        assert!(matches!(object, InvalidObjectBase::Bucket(_)));
+        assert!(matches!(object.kind, InvalidObjectBaseKind::Bucket(_)));
     }
 
     #[test]
@@ -49,22 +50,29 @@ mod test_core {
 
     #[test]
     fn test_invalid_obj_base() {
-        let bucket = InvalidObjectBase::Bucket(InvalidBucketBase::Tacitly);
+        let bucket = InvalidObjectBase {
+            source: "aaa".to_string(),
+            kind: InvalidObjectBaseKind::Bar,
+        };
 
+        assert_eq!(format!("{bucket}"), "get object base faild, source: aaa");
+        assert!(bucket.source().is_none());
+
+        let path = InvalidObjectBase {
+            source: "aaa".to_string(),
+            kind: InvalidObjectBaseKind::Path(InvalidObjectPath { _priv: () }),
+        };
+        assert_eq!(format!("{}", path.source().unwrap()), "invalid object path");
         assert_eq!(
-            format!("{bucket}"),
-            "bucket url must like with https://yyy.xxx.aliyuncs.com"
+            format!("{path:?}"),
+            "InvalidObjectBase { source: \"aaa\", kind: Path(InvalidObjectPath) }"
         );
 
-        let path = InvalidObjectBase::Path(InvalidObjectPath { _priv: () });
-        assert_eq!(format!("{path}"), "invalid object path");
-        assert_eq!(format!("{path:?}"), "Path(InvalidObjectPath)");
-
         let base = ObjectBase::<ArcPointer>::try_from_bucket("-a", "path1").unwrap_err();
-        assert!(matches!(base, InvalidObjectBase::Bucket(_)));
+        assert!(matches!(base.kind, InvalidObjectBaseKind::Bucket(_)));
 
         let base = ObjectBase::<ArcPointer>::try_from_bucket("abc.qingdao", "/path1").unwrap_err();
-        assert!(matches!(base, InvalidObjectBase::Path(_)));
+        assert!(matches!(base.kind, InvalidObjectBaseKind::Path(_)));
     }
 
     #[test]

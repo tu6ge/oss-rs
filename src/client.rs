@@ -6,7 +6,7 @@ use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddlewa
 #[cfg(test)]
 use crate::builder::Middleware;
 use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware, RequestBuilder};
-use crate::config::{BucketBase, Config, InvalidConfig};
+use crate::config::{get_bucket, get_endpoint, get_env, BucketBase, Config, InvalidConfig};
 use crate::file::AlignBuilder;
 use crate::types::{
     object::{InvalidObjectPath, ObjectBase, ObjectPath},
@@ -19,7 +19,6 @@ use http::{
     HeaderValue, Method,
 };
 use reqwest::Url;
-use std::env;
 #[cfg(all(feature = "blocking", test))]
 use std::rc::Rc;
 #[cfg(test)]
@@ -113,10 +112,10 @@ impl<M: Default + Clone> Client<M> {
     /// assert!(client.is_ok());
     /// ```
     pub fn from_env() -> Result<Self, InvalidConfig> {
-        let key_id = env::var("ALIYUN_KEY_ID").map_err(InvalidConfig::from)?;
-        let key_secret = env::var("ALIYUN_KEY_SECRET").map_err(InvalidConfig::from)?;
-        let endpoint = env::var("ALIYUN_ENDPOINT").map_err(InvalidConfig::from)?;
-        let bucket = env::var("ALIYUN_BUCKET").map_err(InvalidConfig::from)?;
+        let key_id = get_env("ALIYUN_KEY_ID")?;
+        let key_secret = get_env("ALIYUN_KEY_SECRET")?;
+        let endpoint = get_env("ALIYUN_ENDPOINT")?;
+        let bucket = get_env("ALIYUN_BUCKET")?;
 
         let mut auth_builder = AuthBuilder::default();
         auth_builder.key(key_id);
@@ -124,8 +123,8 @@ impl<M: Default + Clone> Client<M> {
 
         Ok(Self::from_builder(
             auth_builder,
-            endpoint.try_into().map_err(InvalidConfig::from)?,
-            bucket.try_into().map_err(InvalidConfig::from)?,
+            get_endpoint(&endpoint)?,
+            get_bucket(&bucket)?,
         ))
     }
 
