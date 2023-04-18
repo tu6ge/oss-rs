@@ -35,11 +35,11 @@ mod test_core {
 
         let object =
             ObjectBase::<ArcPointer>::from_bucket_name("-foo1", "qingdao", "img1.jpg").unwrap_err();
-        assert!(matches!(object.kind, InvalidObjectBaseKind::Bucket(_)));
+        assert!(matches!(object.kind, InvalidObjectBaseKind::BucketName(_)));
 
         let object =
             ObjectBase::<ArcPointer>::from_bucket_name("foo1", "-q-", "img1.jpg").unwrap_err();
-        assert!(matches!(object.kind, InvalidObjectBaseKind::Bucket(_)));
+        assert!(matches!(object.kind, InvalidObjectBaseKind::EndPoint(_)));
     }
 
     #[test]

@@ -114,16 +114,17 @@ impl ObjectBase<ArcPointer> {
 
     #[doc(hidden)]
     #[inline]
-    pub fn try_from_bucket<B, P>(bucket: B, path: P) -> Result<Self, InvalidObjectBase>
+    #[cfg(test)]
+    pub(crate) fn try_from_bucket<B>(bucket: B, path: &str) -> Result<Self, InvalidObjectBase>
     where
         B: TryInto<BucketBase>,
-        P: TryInto<ObjectPath>,
         B::Error: Into<InvalidObjectBase>,
-        P::Error: Into<InvalidObjectBase>,
     {
         Ok(Self {
             bucket: Arc::new(bucket.try_into().map_err(|e| e.into())?),
-            path: path.try_into().map_err(|e| e.into())?,
+            path: path
+                .parse()
+                .map_err(|e| InvalidObjectBase::from_path(path, e))?,
         })
     }
 
@@ -152,15 +153,14 @@ impl ObjectBase<ArcPointer> {
                 .parse()
                 .map_err(|e: InvalidBucketName| InvalidObjectBase::from_bucket_name(bucket, e))?,
             endpoint
-                .try_into()
+                .parse()
                 .map_err(|e| InvalidObjectBase::from_endpoint(endpoint, e))?,
         );
         Ok(Self {
             bucket: Arc::new(bucket),
-            path: path.parse().map_err(|e| InvalidObjectBase {
-                source: path.to_string(),
-                kind: InvalidObjectBaseKind::Path(e),
-            })?,
+            path: path
+                .parse()
+                .map_err(|e| InvalidObjectBase::from_path(path, e))?,
         })
     }
 
@@ -232,7 +232,7 @@ pub mod invalid {
     };
 
     use crate::{
-        config::{InvalidBucketBase, InvalidBucketBaseKind},
+        config::InvalidBucketBase,
         types::{InvalidBucketName, InvalidEndPoint},
     };
 
@@ -250,28 +250,34 @@ pub mod invalid {
         pub(super) fn from_bucket_name(name: &str, err: InvalidBucketName) -> Self {
             InvalidObjectBase {
                 source: name.to_string(),
-                kind: InvalidObjectBaseKind::Bucket(InvalidBucketBase {
-                    source: name.to_owned(),
-                    kind: InvalidBucketBaseKind::BucketName(err),
-                }),
+                kind: InvalidObjectBaseKind::BucketName(err),
             }
         }
         pub(super) fn from_endpoint(name: &str, err: InvalidEndPoint) -> Self {
             InvalidObjectBase {
                 source: name.to_string(),
-                kind: InvalidObjectBaseKind::Bucket(InvalidBucketBase {
-                    source: name.to_owned(),
-                    kind: InvalidBucketBaseKind::EndPoint(err),
-                }),
+                kind: InvalidObjectBaseKind::EndPoint(err),
+            }
+        }
+
+        pub(super) fn from_path(name: &str, err: InvalidObjectPath) -> Self {
+            InvalidObjectBase {
+                source: name.to_string(),
+                kind: InvalidObjectBaseKind::Path(err),
             }
         }
     }
 
     /// Object 元信息的错误集
     #[derive(Debug)]
+    #[non_exhaustive]
     pub(super) enum InvalidObjectBaseKind {
         #[doc(hidden)]
         Bucket(InvalidBucketBase),
+        #[doc(hidden)]
+        BucketName(InvalidBucketName),
+        #[doc(hidden)]
+        EndPoint(InvalidEndPoint),
         #[doc(hidden)]
         Path(InvalidObjectPath),
         #[cfg(test)]
@@ -289,6 +295,8 @@ pub mod invalid {
             use InvalidObjectBaseKind::*;
             match &self.kind {
                 Bucket(b) => Some(b),
+                BucketName(e) => Some(e),
+                EndPoint(e) => Some(e),
                 Path(p) => Some(p),
                 #[cfg(test)]
                 Bar => None,
@@ -301,42 +309,6 @@ pub mod invalid {
             Self {
                 source: value.source.to_owned(),
                 kind: InvalidObjectBaseKind::Bucket(value),
-            }
-        }
-    }
-
-    impl From<InvalidObjectPath> for InvalidObjectBase {
-        fn from(value: InvalidObjectPath) -> Self {
-            Self {
-                // TODO
-                source: String::default(),
-                kind: InvalidObjectBaseKind::Path(value),
-            }
-        }
-    }
-
-    impl From<InvalidBucketName> for InvalidObjectBase {
-        fn from(value: InvalidBucketName) -> Self {
-            Self {
-                // TODO
-                source: String::default(),
-                kind: InvalidObjectBaseKind::Bucket(InvalidBucketBase {
-                    source: String::default(),
-                    kind: InvalidBucketBaseKind::BucketName(value),
-                }),
-            }
-        }
-    }
-
-    impl From<InvalidEndPoint> for InvalidObjectBase {
-        fn from(value: InvalidEndPoint) -> Self {
-            Self {
-                // TODO
-                source: String::default(),
-                kind: InvalidObjectBaseKind::Bucket(InvalidBucketBase {
-                    source: String::default(),
-                    kind: InvalidBucketBaseKind::EndPoint(value),
-                }),
             }
         }
     }
