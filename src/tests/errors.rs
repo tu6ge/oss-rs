@@ -39,7 +39,7 @@ fn test_oss_service_new() {
 
 mod debug {
     use crate::bucket::{ExtractItemError, ExtractItemErrorKind};
-    use crate::builder::BuilderError;
+    use crate::builder::{BuilderError, BuilderErrorKind};
     use crate::decode::InnerItemError;
     use crate::object::{BuildInItemError, ExtractListError, ExtractListErrorKind};
     use crate::types::object::{InvalidObjectDir, InvalidObjectPath};
@@ -63,13 +63,18 @@ mod debug {
 
     #[test]
     fn test_builder() {
-        let err = Error::BuilderError(BuilderError::Bar);
+        let err = Error::BuilderError(BuilderError {
+            kind: BuilderErrorKind::Bar,
+        });
         assert_eq!(format!("{err}"), "bar");
 
         fn bar() -> Error {
-            BuilderError::Bar.into()
+            BuilderError {
+                kind: BuilderErrorKind::Bar,
+            }
+            .into()
         }
-        assert_eq!(format!("{:?}", bar()), "BuilderError(Bar)");
+        assert_eq!(format!("{:?}", bar()), "BuilderError(BuilderError { kind: Bar })");
     }
 
     #[test]

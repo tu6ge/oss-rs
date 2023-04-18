@@ -122,7 +122,7 @@ fn test_blocking_builder_with_header() {
 }
 
 mod handle_error {
-    use crate::builder::{BuilderError, RequestHandler};
+    use crate::builder::{check_http_status, BuilderError, BuilderErrorKind};
     use crate::errors::OssService;
     use http::Response as HttpResponse;
     use reqwest::Response;
@@ -148,11 +148,13 @@ mod handle_error {
             .unwrap();
         let response: Response = http.into();
 
-        let res = response.handle_error().await;
+        let res = check_http_status(response).await;
 
         assert!(res.is_err());
         let err = res.unwrap_err();
-        assert!(matches!(err, BuilderError::OssService(OssService{code,..}) if code=="foo_code"));
+        assert!(
+            matches!(err, BuilderError{kind:BuilderErrorKind::OssService(OssService{code,..}) } if code=="foo_code")
+        );
 
         //mock.checkpoint();
     }
@@ -166,7 +168,7 @@ mod handle_error {
             .unwrap();
         let response: Response = http.into();
 
-        let res = response.handle_error().await;
+        let res = check_http_status(response).await;
         assert!(res.is_ok());
         let ok = res.unwrap();
         assert_eq!(ok.status(), 200);
@@ -179,7 +181,7 @@ mod handle_error {
             .unwrap();
         let response: Response = http.into();
 
-        let res = response.handle_error().await;
+        let res = check_http_status(response).await;
         assert!(res.is_ok());
         let ok = res.unwrap();
         assert_eq!(ok.status(), 204);

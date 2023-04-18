@@ -213,7 +213,11 @@ mod error {
 
     use http::HeaderValue;
 
-    use crate::{builder::BuilderError, file::FileError, types::object::InvalidObjectPath};
+    use crate::{
+        builder::{BuilderError, BuilderErrorKind},
+        file::FileError,
+        types::object::InvalidObjectPath,
+    };
 
     #[test]
     fn test_path() {
@@ -258,14 +262,19 @@ mod error {
 
     #[test]
     fn test_build() {
-        let err = FileError::Build(BuilderError::Bar);
+        let err = FileError::Build(BuilderError {
+            kind: BuilderErrorKind::Bar,
+        });
 
         assert_eq!(format!("{err}"), "bar");
 
         fn bar() -> FileError {
-            BuilderError::Bar.into()
+            BuilderError {
+                kind: BuilderErrorKind::Bar,
+            }
+            .into()
         }
-        assert_eq!(format!("{:?}", bar()), "Build(Bar)");
+        assert_eq!(format!("{:?}", bar()), "Build(BuilderError { kind: Bar })");
     }
 
     #[test]

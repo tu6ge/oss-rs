@@ -6,10 +6,10 @@ use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Body, IntoUrl,
 };
+use std::error::Error;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
-use std::{sync::Arc, time::Duration};
-use thiserror::Error;
+use std::{fmt::Display, sync::Arc, time::Duration};
 
 #[cfg(feature = "auth")]
 use crate::auth::AuthError;
@@ -18,6 +18,7 @@ use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddlewa
 use crate::{
     client::Client as AliClient,
     config::{BucketBase, InvalidConfig},
+    errors::OssService,
 };
 use reqwest::{Client, Request, Response};
 
@@ -147,56 +148,101 @@ impl RequestBuilder {
                 #[allow(clippy::unwrap_used)]
                 m.handle(self.inner.build().unwrap()).await
             }
-            None => self
-                .inner
-                .send()
-                .await
-                .map_err(BuilderError::from)?
-                .handle_error()
+            None => check_http_status(self.inner.send().await.map_err(BuilderError::from)?)
                 .await
                 .map_err(BuilderError::from),
         }
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 #[non_exhaustive]
-pub enum BuilderError {
-    #[error("{0}")]
-    Reqwest(#[from] reqwest::Error),
+pub struct BuilderError {
+    pub(crate) kind: BuilderErrorKind,
+}
 
-    #[error("OssService {0}")]
-    OssService(#[from] OssService),
+#[derive(Debug)]
+#[non_exhaustive]
+pub(crate) enum BuilderErrorKind {
+    Reqwest(reqwest::Error),
+
+    OssService(OssService),
 
     #[cfg(feature = "auth")]
-    #[error("{0}")]
-    AuthError(#[from] AuthError),
+    Auth(AuthError),
 
-    #[error("{0}")]
-    Config(#[from] InvalidConfig),
+    Config(InvalidConfig),
 
     #[cfg(test)]
-    #[error("bar")]
     Bar,
 }
 
-#[async_trait]
-pub(crate) trait RequestHandler {
-    async fn handle_error(self) -> Result<Response, BuilderError>;
+impl Display for BuilderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use BuilderErrorKind::*;
+        match &self.kind {
+            Reqwest(_) => "reqwest error".fmt(f),
+            OssService(_) => "http status is not success".fmt(f),
+            #[cfg(feature = "auth")]
+            Auth(_) => "aliyun auth failed".fmt(f),
+            Config(_) => "oss config error".fmt(f),
+            #[cfg(test)]
+            Bar => "bar".fmt(f),
+        }
+    }
 }
 
-use crate::errors::OssService;
-
-#[async_trait]
-impl RequestHandler for Response {
-    /// # 收集并处理 OSS 接口返回的错误
-    async fn handle_error(self) -> Result<Response, BuilderError> {
-        if self.status().is_success() {
-            return Ok(self);
+impl Error for BuilderError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        use BuilderErrorKind::*;
+        match &self.kind {
+            Reqwest(e) => Some(e),
+            OssService(e) => Some(e),
+            #[cfg(feature = "auth")]
+            Auth(e) => Some(e),
+            Config(e) => Some(e),
+            #[cfg(test)]
+            Bar => None,
         }
-
-        let status = self.status();
-
-        Err(OssService::new(&self.text().await?, &status).into())
     }
+}
+
+impl From<reqwest::Error> for BuilderError {
+    fn from(value: reqwest::Error) -> Self {
+        Self {
+            kind: BuilderErrorKind::Reqwest(value),
+        }
+    }
+}
+impl From<OssService> for BuilderError {
+    fn from(value: OssService) -> Self {
+        Self {
+            kind: BuilderErrorKind::OssService(value),
+        }
+    }
+}
+
+#[cfg(feature = "auth")]
+impl From<AuthError> for BuilderError {
+    fn from(value: AuthError) -> Self {
+        Self {
+            kind: BuilderErrorKind::Auth(value),
+        }
+    }
+}
+impl From<InvalidConfig> for BuilderError {
+    fn from(value: InvalidConfig) -> Self {
+        Self {
+            kind: BuilderErrorKind::Config(value),
+        }
+    }
+}
+
+pub(crate) async fn check_http_status(response: Response) -> Result<Response, BuilderError> {
+    if response.status().is_success() {
+        return Ok(response);
+    }
+    let status = response.status();
+    let text = response.text().await?;
+    Err(OssService::new2(text, &status).into())
 }

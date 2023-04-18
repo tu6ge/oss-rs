@@ -133,6 +133,33 @@ impl<'a> OssService {
             _ => Self::default(),
         }
     }
+
+    /// 解析 oss 的错误信息
+    pub fn new2(source: String, status: &StatusCode) -> Self {
+        match (
+            source.find("<Code>"),
+            source.find("</Code>"),
+            source.find("<Message>"),
+            source.find("</Message>"),
+            source.find("<RequestId>"),
+            source.find("</RequestId>"),
+        ) {
+            (
+                Some(code0),
+                Some(code1),
+                Some(message0),
+                Some(message1),
+                Some(request_id0),
+                Some(request_id1),
+            ) => Self {
+                code: source[code0 + 6..code1].to_owned(),
+                status: *status,
+                message: source[message0 + 9..message1].to_owned(),
+                request_id: source[request_id0 + 11..request_id1].to_owned(),
+            },
+            _ => Self::default(),
+        }
+    }
 }
 
 /// 内置的 Result
