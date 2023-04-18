@@ -161,6 +161,15 @@ pub struct BuilderError {
     pub(crate) kind: BuilderErrorKind,
 }
 
+impl BuilderError {
+    #[cfg(test)]
+    pub(crate) fn bar() -> Self {
+        Self {
+            kind: BuilderErrorKind::Bar,
+        }
+    }
+}
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub(crate) enum BuilderErrorKind {

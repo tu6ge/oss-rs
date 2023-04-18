@@ -27,14 +27,12 @@ mod error {
     };
 
     #[tokio::test]
-    async fn from_reqwest(){
+    async fn from_reqwest() {
         use http::response::Builder;
         use reqwest::Response;
         use serde::Deserialize;
 
-        let response = Builder::new()
-            .status(200)
-            .body("aaaa").unwrap();
+        let response = Builder::new().status(200).body("aaaa").unwrap();
 
         #[derive(Debug, Deserialize)]
         struct Ip;
@@ -44,7 +42,10 @@ mod error {
 
         let builder_err = BuilderError::from(err);
         assert_eq!(format!("{builder_err}"), "reqwest error");
-        assert_eq!(format!("{}", builder_err.source().unwrap()), "error decoding response body: expected value at line 1 column 1");
+        assert_eq!(
+            format!("{}", builder_err.source().unwrap()),
+            "error decoding response body: expected value at line 1 column 1"
+        );
         assert_eq!(format!("{:?}", builder_err), "BuilderError { kind: Reqwest(reqwest::Error { kind: Decode, source: Error(\"expected value\", line: 1, column: 1) }) }");
     }
 
@@ -101,18 +102,18 @@ mod error {
         let err = BuilderError {
             kind: BuilderErrorKind::Config(InvalidConfig::EndPoint(InvalidEndPoint { _priv: () })),
         };
+        assert_eq!(format!("{err}"), "oss config error");
         assert_eq!(
-            format!("{err}"),
-            "oss config error"
+            format!("{}", err.source().unwrap()),
+            "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
         );
-        assert_eq!(
-          format!("{}", err.source().unwrap()),
-          "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
-      );
 
         fn bar() -> BuilderError {
             InvalidConfig::EndPoint(InvalidEndPoint { _priv: () }).into()
         }
-        assert_eq!(format!("{:?}", bar()), "BuilderError { kind: Config(EndPoint(InvalidEndPoint)) }");
+        assert_eq!(
+            format!("{:?}", bar()),
+            "BuilderError { kind: Config(EndPoint(InvalidEndPoint)) }"
+        );
     }
 }

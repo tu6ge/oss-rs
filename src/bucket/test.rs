@@ -584,3 +584,33 @@ fn test_default_list_bucket() {
 
     assert!(list.buckets.len() == 0);
 }
+
+mod test_extract_item_error {
+    use std::error::Error;
+
+    use crate::{bucket::ExtractItemError, builder::BuilderError, decode::InnerItemError};
+
+    #[test]
+    fn from_builder() {
+        let err = ExtractItemError::from(BuilderError::bar());
+
+        assert_eq!(format!("{err}"), "builder error");
+        assert_eq!(format!("{}", err.source().unwrap()), "bar");
+        assert_eq!(
+            format!("{:?}", err),
+            "ExtractItemError { kind: Builder(BuilderError { kind: Bar }) }"
+        );
+    }
+
+    #[test]
+    fn from_decode() {
+        let err = ExtractItemError::from(InnerItemError::new());
+
+        assert_eq!(format!("{err}"), "decode xml failed");
+        assert_eq!(format!("{}", err.source().unwrap()), "demo");
+        assert_eq!(
+            format!("{:?}", err),
+            "ExtractItemError { kind: Decode(InnerItemError(MyError)) }"
+        );
+    }
+}

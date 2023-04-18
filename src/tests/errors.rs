@@ -74,7 +74,10 @@ mod debug {
             }
             .into()
         }
-        assert_eq!(format!("{:?}", bar()), "BuilderError(BuilderError { kind: Bar })");
+        assert_eq!(
+            format!("{:?}", bar()),
+            "BuilderError(BuilderError { kind: Bar })"
+        );
     }
 
     #[test]
