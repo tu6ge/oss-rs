@@ -311,6 +311,9 @@ impl<'a> EndPoint {
     /// ```
     pub fn new(url: &'a str) -> Result<Self, InvalidEndPoint> {
         use EndPoint::*;
+        if url.is_empty() {
+            return Err(InvalidEndPoint { _priv: () });
+        }
 
         if url.contains(SHANGHAI_L) {
             Ok(CnShanghai)
@@ -333,10 +336,6 @@ impl<'a> EndPoint {
         } else if url.contains(AP_SOUTH_EAST1) {
             Ok(ApSouthEast1)
         } else {
-            if url.is_empty() {
-                return Err(InvalidEndPoint { _priv: () });
-            }
-
             if url.starts_with('-') || url.ends_with('-') {
                 return Err(InvalidEndPoint { _priv: () });
             }
