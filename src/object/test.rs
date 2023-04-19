@@ -387,6 +387,16 @@ mod item_error {
     #[test]
     fn storage_class() {
         let mut object = Object::<ArcPointer>::default();
+
+        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "aaa").is_ok());
+        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "AAA").is_ok());
+        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "iii").is_ok());
+        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "III").is_ok());
+        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "sss").is_ok());
+        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "SSS").is_ok());
+        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "ccc").is_ok());
+        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "CCC").is_ok());
+        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "").is_err());
         let err =
             RefineObject::<BuildInItemError>::set_storage_class(&mut object, "xxx").unwrap_err();
         assert_eq!(
@@ -460,6 +470,9 @@ mod list_error {
     #[test]
     fn common_prefix() {
         let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+
+        assert!(RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_common_prefix(&mut list, &[]).is_ok());
+
         let item: Cow<str> = "foo".into();
         let list_data = [item];
         let err = RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_common_prefix(&mut list, &list_data).unwrap_err();
@@ -476,5 +489,52 @@ mod list_error {
             format!("{err:?}"),
             "ObjectListError { source: \"foo\", kind: CommonPrefix(InvalidObjectDir) }"
         );
+    }
+
+    #[test]
+    fn next_token() {
+        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+
+        assert!(RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_next_continuation_token_str(&mut list, "aaa").is_ok());
+
+        assert_eq!(list.next_continuation_token_str(), "aaa");
+    }
+}
+
+mod extract_list_error {
+    use std::error::Error;
+
+    use crate::{
+        builder::BuilderError,
+        decode::InnerListError,
+        object::{ExtractListError, ExtractListErrorKind},
+    };
+
+    #[test]
+    fn builder() {
+        let err = ExtractListError::from(BuilderError::bar());
+
+        assert_eq!(format!("{}", err), "builder error");
+        assert_eq!(format!("{}", err.source().unwrap()), "bar");
+    }
+
+    #[test]
+    fn decode() {
+        let err = ExtractListError::from(InnerListError::from_xml());
+
+        assert_eq!(format!("{}", err), "decode xml failed");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "Cannot read text, expecting Event::Text"
+        );
+    }
+
+    #[test]
+    fn no_more_file() {
+        let err = ExtractListError {
+            kind: ExtractListErrorKind::NoMoreFile,
+        };
+        assert_eq!(format!("{}", err), "no more file");
+        assert!(err.source().is_none());
     }
 }
