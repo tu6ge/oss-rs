@@ -80,6 +80,7 @@ impl Config {
     /// 初始化 OSS 配置信息
     ///
     /// 支持更宽泛的输入类型
+    #[deprecated(since = "0.12.0", note = "less usage scenarios")]
     pub fn try_new<ID, S, E, B>(
         key: ID,
         secret: S,
@@ -476,6 +477,7 @@ impl<T: PointerFamily> AsRef<ObjectPath> for ObjectBase<T> {
 
 impl<T: PointerFamily> ObjectBase<T> {
     /// 初始化 Object 元信息
+    #[deprecated(since = "0.12.0", note = "less usage scenarios")]
     pub fn new<P>(bucket: T::Bucket, path: P) -> Result<Self, InvalidObjectPath>
     where
         P: TryInto<ObjectPath>,
@@ -530,6 +532,7 @@ impl ObjectBase<ArcPointer> {
 
     #[doc(hidden)]
     #[inline]
+    #[deprecated(since = "0.12.0", note = "less usage scenarios")]
     pub fn try_from_bucket<B, P>(bucket: B, path: P) -> Result<Self, InvalidObjectBase>
     where
         B: TryInto<BucketBase>,
