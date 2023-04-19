@@ -334,62 +334,136 @@ mod blocking_tests {
     }
 }
 
-mod list_error {
+mod item_error {
     use std::error::Error;
 
-    use crate::types::object::InvalidObjectDir;
+    use crate::{
+        builder::ArcPointer,
+        decode::RefineObject,
+        object::{BuildInItemError, Object},
+    };
 
-    use super::super::{ObjectListError, ObjectListErrorKind};
+    #[test]
+    fn size() {
+        let mut object = Object::<ArcPointer>::default();
+        let err = RefineObject::<BuildInItemError>::set_size(&mut object, "foo").unwrap_err();
+        assert_eq!(format!("{err}"), "parse size failed, gived str: foo");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "invalid digit found in string"
+        );
+        assert_eq!(format!("{err:?}"), "BuildInItemError { source: \"foo\", kind: Size(ParseIntError { kind: InvalidDigit }) }");
+    }
+    #[test]
+    fn base_path() {
+        let mut object = Object::<ArcPointer>::default();
+        let err = RefineObject::<BuildInItemError>::set_key(&mut object, ".foo").unwrap_err();
+        assert_eq!(format!("{err}"), "parse base-path failed, gived str: .foo");
+        assert_eq!(format!("{}", err.source().unwrap()), "invalid object path");
+        assert_eq!(
+            format!("{err:?}"),
+            "BuildInItemError { source: \".foo\", kind: BasePath(InvalidObjectPath) }"
+        );
+    }
+    #[test]
+    fn last_modified() {
+        let mut object = Object::<ArcPointer>::default();
+        let err =
+            RefineObject::<BuildInItemError>::set_last_modified(&mut object, "foo").unwrap_err();
+        assert_eq!(
+            format!("{err}"),
+            "parse last-modified failed, gived str: foo"
+        );
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "input contains invalid characters"
+        );
+        assert_eq!(
+            format!("{err:?}"),
+            "BuildInItemError { source: \"foo\", kind: LastModified(ParseError(Invalid)) }"
+        );
+    }
+
+    #[test]
+    fn storage_class() {
+        let mut object = Object::<ArcPointer>::default();
+        let err =
+            RefineObject::<BuildInItemError>::set_storage_class(&mut object, "xxx").unwrap_err();
+        assert_eq!(
+            format!("{err}"),
+            "parse storage-class failed, gived str: xxx"
+        );
+        assert!(err.source().is_none());
+        assert_eq!(
+            format!("{err:?}"),
+            "BuildInItemError { source: \"xxx\", kind: InvalidStorageClass }"
+        );
+    }
+}
+
+mod list_error {
+    use std::{borrow::Cow, error::Error};
+
+    use crate::{
+        builder::ArcPointer,
+        decode::RefineObjectList,
+        object::{BuildInItemError, Object, ObjectList},
+    };
+
+    use super::super::ObjectListError;
 
     #[test]
     fn key_count() {
-        let err = i32::from_str_radix("a12", 10).unwrap_err();
-
-        let err = ObjectListError {
-            source: "foo".to_string(),
-            kind: ObjectListErrorKind::KeyCount(err),
-        };
+        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+        let err = RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_key_count(&mut list, "foo").unwrap_err();
         assert_eq!(format!("{err}"), "parse key-count failed, gived str: foo");
         assert_eq!(
             format!("{}", err.source().unwrap()),
             "invalid digit found in string"
         );
+        assert_eq!(format!("{err:?}"), "ObjectListError { source: \"foo\", kind: KeyCount(ParseIntError { kind: InvalidDigit }) }");
     }
 
     #[test]
     fn max_keys() {
-        let err = i32::from_str_radix("a12", 10).unwrap_err();
+        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+        let err = RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_max_keys(&mut list, "foo").unwrap_err();
 
-        let err = ObjectListError {
-            source: "foo".to_string(),
-            kind: ObjectListErrorKind::MaxKeys(err),
-        };
         assert_eq!(format!("{err}"), "parse max-keys failed, gived str: foo");
         assert_eq!(
             format!("{}", err.source().unwrap()),
             "invalid digit found in string"
         );
+        assert_eq!(format!("{err:?}"), "ObjectListError { source: \"foo\", kind: MaxKeys(ParseIntError { kind: InvalidDigit }) }");
     }
 
     #[test]
     fn prefix() {
-        let err = ObjectListError {
-            source: "foo".to_string(),
-            kind: ObjectListErrorKind::Prefix(InvalidObjectDir { _priv: () }),
-        };
-        assert_eq!(format!("{err}"), "parse prefix failed, gived str: foo");
+        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+        let err =
+            RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_prefix(
+                &mut list, ".foo",
+            )
+            .unwrap_err();
+
+        assert_eq!(format!("{err}"), "parse prefix failed, gived str: .foo");
         assert_eq!(
             format!("{}", err.source().unwrap()),
             "object-dir must end with `/`"
+        );
+        assert_eq!(
+            format!("{err:?}"),
+            "ObjectListError { source: \".foo\", kind: Prefix(InvalidObjectDir) }"
         );
     }
 
     #[test]
     fn common_prefix() {
-        let err = ObjectListError {
-            source: "foo".to_string(),
-            kind: ObjectListErrorKind::CommonPrefix(InvalidObjectDir { _priv: () }),
-        };
+        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+        let item: Cow<str> = "foo".into();
+        let list_data = [item];
+        let err = RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_common_prefix(&mut list, &list_data).unwrap_err();
+
         assert_eq!(
             format!("{err}"),
             "parse common-prefix failed, gived str: foo"
@@ -397,6 +471,10 @@ mod list_error {
         assert_eq!(
             format!("{}", err.source().unwrap()),
             "object-dir must end with `/`"
+        );
+        assert_eq!(
+            format!("{err:?}"),
+            "ObjectListError { source: \"foo\", kind: CommonPrefix(InvalidObjectDir) }"
         );
     }
 }

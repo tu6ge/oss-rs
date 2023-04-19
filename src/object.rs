@@ -713,12 +713,18 @@ impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
     fn set_key(&mut self, key: &str) -> Result<(), BuildInItemError> {
         self.base
             .set_path(key.to_owned())
-            .map_err(BuildInItemError::from)
+            .map_err(|e| BuildInItemError {
+                source: key.to_string(),
+                kind: BuildInItemErrorKind::BasePath(e),
+            })
     }
 
     #[inline]
     fn set_last_modified(&mut self, value: &str) -> Result<(), BuildInItemError> {
-        self.last_modified = value.parse().map_err(BuildInItemError::from)?;
+        self.last_modified = value.parse().map_err(|e| BuildInItemError {
+            source: value.to_string(),
+            kind: BuildInItemErrorKind::LastModified(e),
+        })?;
         Ok(())
     }
 
@@ -736,26 +742,96 @@ impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
 
     #[inline]
     fn set_size(&mut self, size: &str) -> Result<(), BuildInItemError> {
-        self.size = size.parse().map_err(BuildInItemError::from)?;
+        self.size = size.parse().map_err(|e| BuildInItemError {
+            source: size.to_string(),
+            kind: BuildInItemErrorKind::Size(e),
+        })?;
         Ok(())
     }
 
     #[inline]
     fn set_storage_class(&mut self, storage_class: &str) -> Result<(), BuildInItemError> {
-        let start_char = storage_class
-            .chars()
-            .next()
-            .ok_or(BuildInItemError::InvalidStorageClass)?;
+        let start_char = storage_class.chars().next().ok_or(BuildInItemError {
+            source: storage_class.to_string(),
+            kind: BuildInItemErrorKind::InvalidStorageClass,
+        })?;
 
         self.storage_class = match start_char {
             'a' | 'A' => StorageClass::Archive,
             'i' | 'I' => StorageClass::IA,
             's' | 'S' => StorageClass::Standard,
             'c' | 'C' => StorageClass::ColdArchive,
-            _ => return Err(BuildInItemError::InvalidStorageClass),
+            _ => {
+                return Err(BuildInItemError {
+                    source: storage_class.to_string(),
+                    kind: BuildInItemErrorKind::InvalidStorageClass,
+                })
+            }
         };
         Ok(())
     }
+}
+
+/// Xml 转化为内置 Object 时的错误集合
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct BuildInItemError {
+    source: String,
+    kind: BuildInItemErrorKind,
+}
+
+impl BuildInItemError {
+    #[cfg(test)]
+    pub(crate) fn test_new() -> Self {
+        Self {
+            source: "foo".to_string(),
+            kind: BuildInItemErrorKind::InvalidStorageClass,
+        }
+    }
+}
+
+impl Display for BuildInItemError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use BuildInItemErrorKind::*;
+        let kind = match &self.kind {
+            Size(_) => "size",
+            BasePath(_) => "base-path",
+            LastModified(_) => "last-modified",
+            InvalidStorageClass => "storage-class",
+        };
+        write!(f, "parse {kind} failed, gived str: {}", self.source)
+    }
+}
+
+impl Error for BuildInItemError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        use BuildInItemErrorKind::*;
+        match &self.kind {
+            Size(e) => Some(e),
+            BasePath(e) => Some(e),
+            LastModified(e) => Some(e),
+            InvalidStorageClass => None,
+        }
+    }
+}
+
+/// Xml 转化为内置 Object 时的错误集合
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum BuildInItemErrorKind {
+    /// 转换数字类型的错误
+    Size(ParseIntError),
+
+    /// 转换为 ObjectPath 时的错误
+    BasePath(InvalidObjectPath),
+
+    /// 转换日期格式的错误
+    LastModified(chrono::ParseError),
+
+    // /// 接收 Xml 转换时的错误
+    // Xml(quick_xml::Error),
+    /// 非法的 StorageClass
+    InvalidStorageClass,
 }
 
 impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
@@ -778,7 +854,7 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
             let mut string = String::from(prefix);
             string += "/";
             self.prefix = Some(string.parse().map_err(|e| ObjectListError {
-                source: string,
+                source: prefix.to_owned(),
                 kind: ObjectListErrorKind::Prefix(e),
             })?)
         }
@@ -833,7 +909,7 @@ pub struct ObjectListError {
 impl Display for ObjectListError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use ObjectListErrorKind::*;
-        let kind = match &self.kind {
+        let kind: &str = match &self.kind {
             KeyCount(_) => "key-count",
             Prefix(_) => "prefix",
             CommonPrefix(_) => "common-prefix",
@@ -867,31 +943,6 @@ enum ObjectListErrorKind {
     CommonPrefix(InvalidObjectDir),
     /// when covert max_keys failed ,return this error
     MaxKeys(ParseIntError),
-}
-
-/// Xml 转化为内置 Object 时的错误集合
-#[derive(Debug, thiserror::Error)]
-#[non_exhaustive]
-pub enum BuildInItemError {
-    /// 转换数字类型的错误
-    #[error("{0}")]
-    ParseInt(#[from] ParseIntError),
-
-    /// 转换为 ObjectPath 时的错误
-    #[error("{0}")]
-    Path(#[from] InvalidObjectPath),
-
-    /// 转换日期格式的错误
-    #[error("{0}")]
-    ParseDate(#[from] chrono::ParseError),
-
-    /// 接收 Xml 转换时的错误
-    #[error("{0}")]
-    Xml(#[from] quick_xml::Error),
-
-    /// 非法的 StorageClass
-    #[error("invalid storage class")]
-    InvalidStorageClass,
 }
 
 impl Client {

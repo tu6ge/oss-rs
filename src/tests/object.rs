@@ -330,7 +330,7 @@ async fn test_item_error_object_list() {
     assert_eq!(format!("{err}"), "decode xml failed");
     assert_eq!(
         format!("{}", err.source().unwrap()),
-        "invalid digit found in string"
+        "parse size failed, gived str: aaa"
     );
 }
 

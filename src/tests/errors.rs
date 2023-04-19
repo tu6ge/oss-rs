@@ -200,18 +200,19 @@ mod debug {
 
     #[test]
     fn test_build_in_iter_error() {
-        use BuildInItemError::*;
+        let err = Error::BuildInItemError(BuildInItemError::test_new());
 
-        let err = Error::BuildInItemError(InvalidStorageClass);
-
-        assert_eq!(format!("{err}"), "invalid storage class");
+        assert_eq!(
+            format!("{err}"),
+            "parse storage-class failed, gived str: foo"
+        );
 
         fn bar() -> Error {
-            InvalidStorageClass.into()
+            BuildInItemError::test_new().into()
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "BuildInItemError(InvalidStorageClass)"
+            "BuildInItemError(BuildInItemError { source: \"foo\", kind: InvalidStorageClass })"
         );
     }
 

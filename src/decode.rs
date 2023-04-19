@@ -312,14 +312,8 @@ where
                             //is_truncated = reader.read_text(e.to_end().name())?.to_string() == "true"
                         }
                         NEXT_CONTINUATION_TOKEN => {
-                            let next_continuation_token = reader.read_text(e.to_end().name())?;
-                            self.set_next_continuation_token_str(&next_continuation_token)?;
-                            self.set_next_continuation_token(
-                                if !next_continuation_token.is_empty() {
-                                    Some(&next_continuation_token)
-                                } else {
-                                    None
-                                },
+                            self.set_next_continuation_token_str(
+                                &reader.read_text(e.to_end().name())?,
                             )?;
                         }
                         CONTENTS => {
