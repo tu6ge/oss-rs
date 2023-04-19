@@ -585,7 +585,7 @@ mod error_impl {
 
     use http::header::InvalidHeaderValue;
 
-    use crate::{builder::BuilderError, types::object::InvalidObjectPath};
+    use crate::builder::BuilderError;
 
     use super::FileError;
 
@@ -593,8 +593,6 @@ mod error_impl {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             use FileErrorKind::*;
             match &self.kind {
-                // TODO path
-                Path(p) => write!(f, "{p}"),
                 #[cfg(feature = "put_file")]
                 FileRead(_) => write!(f, "file read failed"),
                 InvalidContentLength(_) => write!(f, "invalid content length"),
@@ -618,15 +616,13 @@ mod error_impl {
                 Build(e) => e.source(),
                 Reqwest(e) => Some(e),
                 InvalidEtag(e) => Some(e),
-                // TODO path
-                Path(_) | EtagNotFound | NotFoundCanonicalizedResource => None,
+                EtagNotFound | NotFoundCanonicalizedResource => None,
             }
         }
     }
 
     #[derive(Debug)]
     pub(super) enum FileErrorKind {
-        Path(InvalidObjectPath),
         #[cfg(feature = "put_file")]
         FileRead(std::io::Error),
         InvalidContentLength(InvalidHeaderValue),
@@ -636,14 +632,6 @@ mod error_impl {
         EtagNotFound,
         InvalidEtag(http::header::ToStrError),
         NotFoundCanonicalizedResource,
-    }
-
-    impl From<InvalidObjectPath> for FileError {
-        fn from(value: InvalidObjectPath) -> Self {
-            Self {
-                kind: FileErrorKind::Path(value),
-            }
-        }
     }
 
     impl From<BuilderError> for FileError {

@@ -219,24 +219,7 @@ mod error {
     use crate::{
         builder::{BuilderError, BuilderErrorKind},
         file::{error_impl::FileErrorKind, FileError},
-        types::object::InvalidObjectPath,
     };
-
-    #[test]
-    fn test_path() {
-        let err = FileError::from(InvalidObjectPath { _priv: () });
-
-        assert_eq!(format!("{err}"), "invalid object path");
-        assert!(err.source().is_none());
-
-        fn bar() -> FileError {
-            InvalidObjectPath { _priv: () }.into()
-        }
-        assert_eq!(
-            format!("{:?}", bar()),
-            "FileError { kind: Path(InvalidObjectPath) }"
-        );
-    }
 
     #[cfg(feature = "put_file")]
     #[test]
