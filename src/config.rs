@@ -149,8 +149,8 @@ impl Display for InvalidConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use InvalidConfigKind::*;
         match &self.kind {
-            EndPoint(_) | BucketName(_) => write!(f, "get config faild, source: {}", self.source),
-            VarError(_) => write!(f, "get config faild, env name: {}", self.source),
+            EndPoint(_) | BucketName(_) => write!(f, "get config failed, source: {}", self.source),
+            VarError(_) => write!(f, "get config failed, env name: {}", self.source),
         }
     }
 }
@@ -176,22 +176,6 @@ enum InvalidConfigKind {
 
     /// 非法的环境变量
     VarError(VarError),
-}
-
-impl From<InvalidEndPoint> for InvalidConfigKind {
-    fn from(value: InvalidEndPoint) -> Self {
-        Self::EndPoint(value)
-    }
-}
-impl From<InvalidBucketName> for InvalidConfigKind {
-    fn from(value: InvalidBucketName) -> Self {
-        Self::BucketName(value)
-    }
-}
-impl From<VarError> for InvalidConfigKind {
-    fn from(value: VarError) -> Self {
-        Self::VarError(value)
-    }
 }
 
 /// # Bucket 元信息
@@ -645,21 +629,21 @@ mod tests {
     #[test]
     fn test_invalid_config() {
         let error = get_endpoint("oss").unwrap_err();
-        assert_eq!(format!("{error}"), "get config faild, source: oss");
+        assert_eq!(format!("{error}"), "get config failed, source: oss");
         assert_eq!(
             format!("{}", error.source().unwrap()),
             "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
         );
 
         let error = get_bucket("-oss").unwrap_err();
-        assert_eq!(format!("{error}"), "get config faild, source: -oss");
+        assert_eq!(format!("{error}"), "get config failed, source: -oss");
         assert_eq!(
             format!("{}", error.source().unwrap()),
             "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
         );
 
         let err = get_env("aaa").unwrap_err();
-        assert_eq!(format!("{}", err), "get config faild, env name: aaa");
+        assert_eq!(format!("{}", err), "get config failed, env name: aaa");
         assert_eq!(
             format!("{}", err.source().unwrap()),
             "environment variable not found"

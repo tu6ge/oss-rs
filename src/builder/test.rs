@@ -105,7 +105,7 @@ mod error {
         assert_eq!(format!("{err}"), "oss config error");
         assert_eq!(
             format!("{}", err.source().unwrap()),
-            "get config faild, source: oss"
+            "get config failed, source: oss"
         );
 
         fn bar() -> BuilderError {

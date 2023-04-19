@@ -147,7 +147,7 @@ mod debug {
         assert_eq!(format!("{err}"), "invalid config");
         assert_eq!(
             format!("{}", err.source().unwrap()),
-            "get config faild, source: bar"
+            "get config failed, source: bar"
         );
 
         fn bar() -> Error {
