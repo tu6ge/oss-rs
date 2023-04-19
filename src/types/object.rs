@@ -13,8 +13,6 @@ use std::{
 };
 use url::Url;
 
-use self::invalid::InvalidObjectBaseKind;
-
 #[cfg(feature = "core")]
 use super::{CanonicalizedResource, InvalidBucketName};
 #[cfg(feature = "core")]
@@ -59,7 +57,8 @@ impl<T: PointerFamily> AsRef<ObjectPath> for ObjectBase<T> {
 #[cfg(feature = "core")]
 impl<T: PointerFamily> ObjectBase<T> {
     /// 初始化 Object 元信息
-    pub fn new<P>(bucket: T::Bucket, path: P) -> Result<Self, InvalidObjectPath>
+    #[cfg(test)]
+    pub(crate) fn new<P>(bucket: T::Bucket, path: P) -> Result<Self, InvalidObjectPath>
     where
         P: TryInto<ObjectPath>,
         P::Error: Into<InvalidObjectPath>,
