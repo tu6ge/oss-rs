@@ -7,9 +7,9 @@
 //! ```rust,no_run
 //! use aliyun_oss_client::{
 //!     builder::{ArcPointer, BuilderError},
-//!     types::object::{InvalidObjectDir, ObjectDir, ObjectPath},
 //!     decode::RefineObject,
 //!     object::ObjectList,
+//!     types::object::{InvalidObjectDir, ObjectDir, ObjectPath},
 //!     BucketName, Client,
 //! };
 //! use dotenv::dotenv;

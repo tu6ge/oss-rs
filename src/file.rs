@@ -3,7 +3,7 @@
 //! [`File`] 是一个文件操作的工具包，包含上传，下载，删除功能，开发者可以方便的调用使用
 //!
 //! ```rust
-//! use std::{fs, path::Path};
+//! use std::{fs, io, path::Path};
 //!
 //! use aliyun_oss_client::{
 //!     config::get_url_resource,
@@ -23,7 +23,7 @@
 //!     const END_POINT: EndPoint = EndPoint::CnShanghai;
 //!     const BUCKET: BucketName = unsafe { BucketName::from_static2("xxxxxx") };
 //!
-//!     fn new(path: &Path) -> Result<MyObject, FileError> {
+//!     fn new(path: &Path) -> Result<MyObject, io::Error> {
 //!         Ok(MyObject {
 //!             path: path.to_str().unwrap().to_owned(),
 //!         })
@@ -48,7 +48,7 @@
 //!     }
 //! }
 //!
-//! async fn run() -> Result<(), FileError> {
+//! async fn run() -> Result<(), io::Error> {
 //!     for entry in fs::read_dir("examples")? {
 //!         let path = entry?.path();
 //!         let path = path.as_path();
@@ -60,7 +60,10 @@
 //!         let obj = MyObject::new(path)?;
 //!         let content = fs::read(path)?;
 //!
-//!         let res = obj.put_oss(content, "application/pdf").await?;
+//!         let res = obj
+//!             .put_oss(content, "application/pdf")
+//!             .await
+//!             .map_err(|_| io::Error::new(io::ErrorKind::Other, "oh no!"))?;
 //!
 //!         println!("result status: {}", res.status());
 //!     }
