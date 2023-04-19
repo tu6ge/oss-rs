@@ -7,6 +7,7 @@
 //!
 //! use aliyun_oss_client::{
 //!     config::get_url_resource,
+//!     errors::OssError,
 //!     file::{File, FileError, GetStd},
 //!     types::CanonicalizedResource,
 //!     BucketName, Client, EndPoint, KeyId, KeySecret,
@@ -48,7 +49,7 @@
 //!     }
 //! }
 //!
-//! async fn run() -> Result<(), io::Error> {
+//! async fn run() -> Result<(), OssError> {
 //!     for entry in fs::read_dir("examples")? {
 //!         let path = entry?.path();
 //!         let path = path.as_path();
@@ -62,8 +63,7 @@
 //!
 //!         let res = obj
 //!             .put_oss(content, "application/pdf")
-//!             .await
-//!             .map_err(|_| io::Error::new(io::ErrorKind::Other, "oh no!"))?;
+//!             .await.map_err(OssError::from)?;
 //!
 //!         println!("result status: {}", res.status());
 //!     }

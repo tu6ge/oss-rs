@@ -38,6 +38,8 @@ fn test_oss_service_new() {
 }
 
 mod debug {
+    use std::error::Error as StdError;
+
     use crate::bucket::{ExtractItemError, ExtractItemErrorKind};
     use crate::builder::{BuilderError, BuilderErrorKind};
     use crate::decode::InnerItemError;
@@ -47,23 +49,29 @@ mod debug {
     use crate::Error;
     #[test]
     fn test_dotenv() {
-        let err = Error::Dotenv(dotenv::Error::LineParse("abc".to_string(), 1));
+        let err = Error::from(dotenv::Error::LineParse("abc".to_string(), 1));
 
         assert_eq!(
             format!("{err}"),
             "Error parsing line: 'abc', error at line index: 1"
         );
-        assert_eq!(format!("{err:?}"), "Dotenv(LineParse(\"abc\", 1))");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "Error parsing line: 'abc', error at line index: 1"
+        );
 
         fn bar() -> Error {
             dotenv::Error::LineParse("abc".to_string(), 1).into()
         }
-        assert_eq!(format!("{:?}", bar()), "Dotenv(LineParse(\"abc\", 1))");
+        assert_eq!(
+            format!("{:?}", bar()),
+            "OssError { kind: Dotenv(LineParse(\"abc\", 1)) }"
+        );
     }
 
     #[test]
     fn test_builder() {
-        let err = Error::BuilderError(BuilderError {
+        let err = Error::from(BuilderError {
             kind: BuilderErrorKind::Bar,
         });
         assert_eq!(format!("{err}"), "bar");
@@ -76,13 +84,13 @@ mod debug {
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "BuilderError(BuilderError { kind: Bar })"
+            "OssError { kind: Builder(BuilderError { kind: Bar }) }"
         );
     }
 
     #[test]
     fn test_endpoint() {
-        let err = Error::InvalidEndPoint(InvalidEndPoint { _priv: () });
+        let err = Error::from(InvalidEndPoint { _priv: () });
         assert_eq!(
             format!("{err}"),
             "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
@@ -91,12 +99,15 @@ mod debug {
         fn bar() -> Error {
             InvalidEndPoint { _priv: () }.into()
         }
-        assert_eq!(format!("{:?}", bar()), "InvalidEndPoint(InvalidEndPoint)");
+        assert_eq!(
+            format!("{:?}", bar()),
+            "OssError { kind: EndPoint(InvalidEndPoint) }"
+        );
     }
 
     #[test]
     fn test_bucket_name() {
-        let err = Error::InvalidBucketName(InvalidBucketName { _priv: () });
+        let err = Error::from(InvalidBucketName { _priv: () });
 
         assert_eq!(
             format!("{err}"),
@@ -108,14 +119,14 @@ mod debug {
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "InvalidBucketName(InvalidBucketName)"
+            "OssError { kind: BucketName(InvalidBucketName) }"
         );
     }
 
     #[test]
     fn test_config() {
         use crate::config::InvalidConfig;
-        let err = Error::InvalidConfig(InvalidConfig::test_bucket());
+        let err = Error::from(InvalidConfig::test_bucket());
 
         assert_eq!(format!("{err}"), "get config faild, source: bar");
 
@@ -129,13 +140,13 @@ mod debug {
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "InvalidConfig(InvalidConfig { source: \"bar\", kind: BucketName(InvalidBucketName) })"
+            "OssError { kind: Config(InvalidConfig { source: \"bar\", kind: BucketName(InvalidBucketName) }) }"
         );
     }
 
     #[test]
     fn test_object_path() {
-        let err = Error::InvalidObjectPath(InvalidObjectPath { _priv: () });
+        let err = Error::from(InvalidObjectPath { _priv: () });
 
         assert_eq!(format!("{err}"), "invalid object path");
 
@@ -144,13 +155,13 @@ mod debug {
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "InvalidObjectPath(InvalidObjectPath)"
+            "OssError { kind: ObjectPath(InvalidObjectPath) }"
         );
     }
 
     #[test]
     fn test_object_dir() {
-        let err = Error::InvalidObjectDir(InvalidObjectDir { _priv: () });
+        let err = Error::from(InvalidObjectDir { _priv: () });
 
         assert_eq!(
             format!("{err}"),
@@ -160,50 +171,53 @@ mod debug {
         fn bar() -> Error {
             InvalidObjectDir { _priv: () }.into()
         }
-        assert_eq!(format!("{:?}", bar()), "InvalidObjectDir(InvalidObjectDir)");
+        assert_eq!(
+            format!("{:?}", bar()),
+            "OssError { kind: ObjectDir(InvalidObjectDir) }"
+        );
     }
 
-    // #[test]
-    // #[cfg(feature = "decode")]
-    // fn test_inner_item() {
-    //     use crate::decode::InnerItemError;
+    #[test]
+    #[cfg(feature = "decode")]
+    fn test_inner_item() {
+        use std::error::Error as StdError;
 
-    //     let err = Error::InnerItemError(InnerItemError::new());
+        use crate::decode::InnerItemError;
 
-    //     assert_eq!(
-    //         format!("{err}"),
-    //         "decode xml to object has error, info: foo"
-    //     );
+        let err = Error::from(InnerItemError::new());
 
-    //     fn bar() -> Error {
-    //       InnerItemError::new().into()
-    //     }
-    //     assert_eq!(
-    //         format!("{:?}", bar()),
-    //         "InnerItemError(InnerItemError(\"foo\"))"
-    //     );
-    // }
-    // #[test]
-    // #[cfg(feature = "decode")]
-    // fn test_inner_list() {
-    //     use crate::decode::InnerListError;
+        assert_eq!(format!("{err}"), "decode into list error");
+        assert_eq!(format!("{}", err.source().unwrap()), "demo");
 
-    //     let err = Error::InnerListError(InnerListError::from_xml());
+        fn bar() -> Error {
+            InnerItemError::new().into()
+        }
+        assert_eq!(
+            format!("{:?}", bar()),
+            "OssError { kind: InnerItem(InnerItemError(MyError)) }"
+        );
+    }
+    #[test]
+    #[cfg(feature = "decode")]
+    fn test_inner_list() {
+        use crate::decode::InnerListError;
 
-    //     assert_eq!(format!("{err}"), "decode xml faild, quick_xml error");
+        let err = Error::from(InnerListError::from_xml());
 
-    //     fn bar() -> Error {
-    //         InnerListError::from_xml().into()
-    //     }
-    //     assert_eq!(
-    //         format!("{:?}", bar()),
-    //         "InnerListError(InnerListError { kind: Xml(TextNotFound) })"
-    //     );
-    // }
+        assert_eq!(format!("{err}"), "decode into list error");
+
+        fn bar() -> Error {
+            InnerListError::from_xml().into()
+        }
+        assert_eq!(
+            format!("{:?}", bar()),
+            "OssError { kind: InnerList(InnerListError { kind: Xml(TextNotFound) }) }"
+        );
+    }
 
     #[test]
     fn test_build_in_iter_error() {
-        let err = Error::BuildInItemError(BuildInItemError::test_new());
+        let err = Error::from(BuildInItemError::test_new());
 
         assert_eq!(
             format!("{err}"),
@@ -215,13 +229,13 @@ mod debug {
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "BuildInItemError(BuildInItemError { source: \"foo\", kind: InvalidStorageClass })"
+            "OssError { kind: BuildInItemError(BuildInItemError { source: \"foo\", kind: InvalidStorageClass }) }"
         );
     }
 
     #[test]
     fn test_extract_list() {
-        let err = Error::ExtractList(ExtractListError {
+        let err = Error::from(ExtractListError {
             kind: ExtractListErrorKind::NoMoreFile,
         });
 
@@ -235,13 +249,13 @@ mod debug {
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "ExtractList(ExtractListError { kind: NoMoreFile })"
+            "OssError { kind: ExtractList(ExtractListError { kind: NoMoreFile }) }"
         );
     }
 
     #[test]
     fn test_extract_item() {
-        let err = Error::ExtractItem(ExtractItemError {
+        let err = Error::from(ExtractItemError {
             kind: ExtractItemErrorKind::Decode(InnerItemError::new()),
         });
 
@@ -255,7 +269,7 @@ mod debug {
         }
         assert_eq!(
             format!("{:?}", bar()),
-            "ExtractItem(ExtractItemError { kind: Decode(InnerItemError(MyError)) })"
+            "OssError { kind: ExtractItem(ExtractItemError { kind: Decode(InnerItemError(MyError)) }) }"
         );
     }
 }

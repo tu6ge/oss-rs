@@ -1,13 +1,20 @@
 //! 异常处理模块
 
 use http::StatusCode;
-use std::fmt;
+use std::{
+    fmt::{self, Display},
+    io,
+};
 use thiserror::Error;
 
+#[cfg(feature = "decode")]
+use crate::decode::{InnerItemError, InnerListError};
 use crate::{
-    bucket::ExtractItemError,
+    auth::AuthError,
+    bucket::{BucketError, ExtractItemError},
     builder::BuilderError,
     config::InvalidConfig,
+    file::FileError,
     object::ExtractListError,
     types::{
         object::{InvalidObjectDir, InvalidObjectPath},
@@ -15,10 +22,56 @@ use crate::{
     },
 };
 
+/// aliyun-oss-client Error
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct OssError {
+    kind: OssErrorKind,
+}
+
+impl Display for OssError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.kind.fmt(f)
+    }
+}
+impl std::error::Error for OssError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        use OssErrorKind::*;
+        match &self.kind {
+            Io(e) => Some(e),
+            #[cfg(test)]
+            Dotenv(e) => Some(e),
+            Builder(e) => Some(e),
+            EndPoint(e) => Some(e),
+            BucketName(e) => Some(e),
+            Config(e) => Some(e),
+            ObjectPath(e) => Some(e),
+            ObjectDir(e) => Some(e),
+            BuildInItemError(e) => Some(e),
+            InnerList(e) => e.get_source(),
+            InnerItem(e) => e.get_source(),
+            ExtractList(e) => Some(e),
+            ExtractItem(e) => Some(e),
+            File(e) => Some(e),
+            Auth(e) => Some(e),
+            Bucket(e) => Some(e),
+        }
+    }
+}
+
+impl<T: Into<OssErrorKind>> From<T> for OssError {
+    fn from(value: T) -> Self {
+        Self { kind: value.into() }
+    }
+}
+
 /// 内置的 Error 集合
 #[derive(Debug, Error)]
 #[non_exhaustive]
-pub enum OssError {
+enum OssErrorKind {
+    #[error("{0}")]
+    Io(#[from] io::Error),
+
     #[doc(hidden)]
     #[error("{0}")]
     #[cfg(test)]
@@ -26,36 +79,42 @@ pub enum OssError {
 
     #[doc(hidden)]
     #[error("{0}")]
-    BuilderError(#[from] BuilderError),
+    Builder(#[from] BuilderError),
 
     #[doc(hidden)]
     #[error("{0}")]
-    InvalidEndPoint(#[from] InvalidEndPoint),
+    EndPoint(#[from] InvalidEndPoint),
 
     #[doc(hidden)]
     #[error("{0}")]
-    InvalidBucketName(#[from] InvalidBucketName),
+    BucketName(#[from] InvalidBucketName),
 
     #[doc(hidden)]
     #[error("{0}")]
-    InvalidConfig(#[from] InvalidConfig),
+    Config(#[from] InvalidConfig),
 
     #[doc(hidden)]
     #[error("{0}")]
-    InvalidObjectPath(#[from] InvalidObjectPath),
+    ObjectPath(#[from] InvalidObjectPath),
 
     #[doc(hidden)]
     #[error("{0}")]
-    InvalidObjectDir(#[from] InvalidObjectDir),
+    ObjectDir(#[from] InvalidObjectDir),
 
     #[doc(hidden)]
     #[error("{0}")]
     BuildInItemError(#[from] crate::object::BuildInItemError),
 
-    // #[cfg(feature = "decode")]
-    // #[doc(hidden)]
-    // #[error("{0}")]
-    // InnerListError(#[from] crate::decode::InnerListError),
+    #[cfg(feature = "decode")]
+    #[doc(hidden)]
+    #[error("decode into list error")]
+    InnerList(InnerListError),
+
+    #[cfg(feature = "decode")]
+    #[doc(hidden)]
+    #[error("decode into list error")]
+    InnerItem(InnerItemError),
+
     #[doc(hidden)]
     #[error("{0}")]
     ExtractList(#[from] ExtractListError),
@@ -63,6 +122,30 @@ pub enum OssError {
     #[doc(hidden)]
     #[error("{0}")]
     ExtractItem(#[from] ExtractItemError),
+
+    #[error("{0}")]
+    File(#[from] FileError),
+
+    #[error("{0}")]
+    Auth(#[from] AuthError),
+
+    // bucket 还有其他 Error
+    #[error("{0}")]
+    Bucket(#[from] BucketError),
+}
+
+#[cfg(feature = "decode")]
+impl From<InnerListError> for OssErrorKind {
+    fn from(value: InnerListError) -> Self {
+        Self::InnerList(value)
+    }
+}
+
+#[cfg(feature = "decode")]
+impl From<InnerItemError> for OssErrorKind {
+    fn from(value: InnerItemError) -> Self {
+        Self::InnerItem(value)
+    }
 }
 
 /// # 保存并返回 OSS 服务端返回是数据
