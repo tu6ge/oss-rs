@@ -165,6 +165,7 @@ mod test_try {
     use std::sync::Arc;
 
     use crate::builder::ArcPointer;
+    use crate::file::error_impl::FileErrorKind;
     use crate::file::{FileError, Files};
     use crate::types::object::{ObjectBase, ObjectPath};
     use crate::Client;
@@ -197,7 +198,9 @@ mod test_try {
 
         impl Into<FileError> for MyError {
             fn into(self) -> FileError {
-                FileError::FileTypeNotFound
+                FileError {
+                    kind: FileErrorKind::EtagNotFound,
+                }
             }
         }
 
@@ -209,64 +212,89 @@ mod test_try {
 }
 
 mod error {
-    use std::io::ErrorKind;
+    use std::{error::Error, io::ErrorKind};
 
     use http::HeaderValue;
 
     use crate::{
         builder::{BuilderError, BuilderErrorKind},
-        file::FileError,
+        file::{error_impl::FileErrorKind, FileError},
         types::object::InvalidObjectPath,
     };
 
     #[test]
     fn test_path() {
-        let err = FileError::Path(InvalidObjectPath { _priv: () });
+        let err = FileError::from(InvalidObjectPath { _priv: () });
 
         assert_eq!(format!("{err}"), "invalid object path");
+        assert!(err.source().is_none());
 
         fn bar() -> FileError {
             InvalidObjectPath { _priv: () }.into()
         }
-        assert_eq!(format!("{:?}", bar()), "Path(InvalidObjectPath)");
-    }
-
-    #[test]
-    fn test_io() {
-        let err = FileError::Io(std::io::Error::new(ErrorKind::Other, "oh no!"));
-
-        assert_eq!(format!("{err}"), "oh no!");
-
-        fn bar() -> FileError {
-            std::io::Error::new(ErrorKind::Other, "oh no!").into()
-        }
         assert_eq!(
             format!("{:?}", bar()),
-            "Io(Custom { kind: Other, error: \"oh no!\" })"
+            "FileError { kind: Path(InvalidObjectPath) }"
+        );
+    }
+
+    #[cfg(feature = "put_file")]
+    #[test]
+    fn test_file_read() {
+        let io_err = std::io::Error::new(ErrorKind::Other, "oh no!");
+        let err = FileError {
+            kind: FileErrorKind::FileRead(io_err),
+        };
+
+        assert_eq!(format!("{err}"), "file read failed");
+        assert_eq!(format!("{}", err.source().unwrap()), "oh no!");
+        assert_eq!(
+            format!("{:?}", err),
+            "FileError { kind: FileRead(Custom { kind: Other, error: \"oh no!\" }) }"
         );
     }
 
     #[test]
     fn test_header_value() {
-        let err = HeaderValue::from_bytes(b"\n").unwrap_err();
-        let err = FileError::HeaderValue(err);
+        let header_err = HeaderValue::from_bytes(b"\n").unwrap_err();
+        let err = FileError {
+            kind: FileErrorKind::InvalidContentLength(header_err),
+        };
 
-        assert_eq!(format!("{err}"), "failed to parse header value");
+        assert_eq!(format!("{err}"), "invalid content length");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "failed to parse header value"
+        );
+        assert_eq!(
+            format!("{:?}", err),
+            "FileError { kind: InvalidContentLength(InvalidHeaderValue) }"
+        );
 
-        fn bar() -> FileError {
-            let err = HeaderValue::from_bytes(b"\n").unwrap_err();
-            err.into()
-        }
-        assert_eq!(format!("{:?}", bar()), "HeaderValue(InvalidHeaderValue)");
+        let header_err = HeaderValue::from_bytes(b"\n").unwrap_err();
+        let err = FileError {
+            kind: FileErrorKind::InvalidContentType(header_err),
+        };
+
+        assert_eq!(format!("{err}"), "invalid content type");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "failed to parse header value"
+        );
+        assert_eq!(
+            format!("{:?}", err),
+            "FileError { kind: InvalidContentType(InvalidHeaderValue) }"
+        );
     }
 
     #[test]
     fn test_build() {
-        let err = FileError::Build(BuilderError {
+        let err = FileError::from(BuilderError {
             kind: BuilderErrorKind::Bar,
         });
 
         assert_eq!(format!("{err}"), "bar");
+        assert!(err.source().is_none());
 
         fn bar() -> FileError {
             BuilderError {
@@ -274,19 +302,69 @@ mod error {
             }
             .into()
         }
-        assert_eq!(format!("{:?}", bar()), "Build(BuilderError { kind: Bar })");
+        assert_eq!(
+            format!("{:?}", bar()),
+            "FileError { kind: Build(BuilderError { kind: Bar }) }"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_reqwest() {
+        use http::response::Builder;
+        use reqwest::Response;
+        use serde::Deserialize;
+
+        let response = Builder::new().status(200).body("aaaa").unwrap();
+
+        #[derive(Debug, Deserialize)]
+        struct Ip;
+
+        let response = Response::from(response);
+        let err = response.json::<Ip>().await.unwrap_err();
+
+        let err = FileError::from(err);
+        assert_eq!(format!("{err}"), "reqwest error");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "error decoding response body: expected value at line 1 column 1"
+        );
+        assert_eq!(format!("{:?}", err), "FileError { kind: Reqwest(reqwest::Error { kind: Decode, source: Error(\"expected value\", line: 1, column: 1) }) }");
     }
 
     #[test]
-    fn test_display() {
+    fn test_etag() {
+        let err = FileError {
+            kind: FileErrorKind::EtagNotFound,
+        };
+        assert_eq!(format!("{err}"), "failed to get etag");
+        assert!(err.source().is_none());
+
+        let value = http::header::HeaderValue::from_str("ñ").unwrap();
+        let err = value.to_str().unwrap_err();
+        let err = FileError {
+            kind: FileErrorKind::InvalidEtag(err),
+        };
+        assert_eq!(format!("{err}"), "invalid etag");
         assert_eq!(
-            format!("{}", FileError::FileTypeNotFound),
-            "Failed to get file type"
+            format!("{}", err.source().unwrap()),
+            "failed to convert header to a str"
         );
-        assert_eq!(format!("{}", FileError::EtagNotFound), "Failed to get etag");
         assert_eq!(
-            format!("{}", FileError::NotFoundCanonicalizedResource),
-            "Not found CanonicalizedResource"
+            format!("{err:?}"),
+            "FileError { kind: InvalidEtag(ToStrError { _priv: () }) }"
+        );
+    }
+
+    #[test]
+    fn none_resource() {
+        let err = FileError {
+            kind: FileErrorKind::NotFoundCanonicalizedResource,
+        };
+        assert_eq!(format!("{err}"), "not found canonicalized-resource");
+        assert!(err.source().is_none());
+        assert_eq!(
+            format!("{err:?}"),
+            "FileError { kind: NotFoundCanonicalizedResource }"
         );
     }
 }

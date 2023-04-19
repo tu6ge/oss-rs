@@ -74,7 +74,7 @@ use std::error::Error;
 
 use async_trait::async_trait;
 use http::{
-    header::{HeaderName, InvalidHeaderValue, CONTENT_LENGTH, CONTENT_TYPE},
+    header::{HeaderName, CONTENT_LENGTH, CONTENT_TYPE},
     HeaderValue, Method,
 };
 use reqwest::{Response, Url};
@@ -84,7 +84,7 @@ use crate::{
     builder::{ArcPointer, BuilderError, RequestBuilder},
     decode::RefineObject,
     object::{Object, ObjectList},
-    types::object::{InvalidObjectPath, ObjectBase, ObjectPath},
+    types::object::{ObjectBase, ObjectPath},
     types::{CanonicalizedResource, ContentRange},
 };
 #[cfg(feature = "put_file")]
@@ -106,17 +106,24 @@ where
 
     /// 上传文件内容到 OSS 上面
     async fn put_oss(&self, content: Vec<u8>, content_type: &str) -> Result<Response, FileError> {
-        let (url, canonicalized) = self
-            .get_std()
-            .ok_or(FileError::NotFoundCanonicalizedResource)?;
+        let (url, canonicalized) = self.get_std().ok_or(FileError {
+            kind: FileErrorKind::NotFoundCanonicalizedResource,
+        })?;
 
         let content_length = content.len().to_string();
         let headers = vec![
             (
                 CONTENT_LENGTH,
-                HeaderValue::from_str(&content_length).map_err(FileError::from)?,
+                HeaderValue::from_str(&content_length).map_err(|e| FileError {
+                    kind: FileErrorKind::InvalidContentLength(e),
+                })?,
             ),
-            (CONTENT_TYPE, content_type.parse().map_err(FileError::from)?),
+            (
+                CONTENT_TYPE,
+                content_type.parse().map_err(|e| FileError {
+                    kind: FileErrorKind::InvalidContentType(e),
+                })?,
+            ),
         ];
 
         self.oss_client()
@@ -136,9 +143,9 @@ where
         &self,
         range: R,
     ) -> Result<Vec<u8>, FileError> {
-        let (url, canonicalized) = self
-            .get_std()
-            .ok_or(FileError::NotFoundCanonicalizedResource)?;
+        let (url, canonicalized) = self.get_std().ok_or(FileError {
+            kind: FileErrorKind::NotFoundCanonicalizedResource,
+        })?;
 
         #[allow(clippy::unwrap_used)]
         let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
@@ -158,9 +165,9 @@ where
 
     /// # 从 OSS 中删除文件
     async fn delete_oss(&self) -> Result<(), FileError> {
-        let (url, canonicalized) = self
-            .get_std()
-            .ok_or(FileError::NotFoundCanonicalizedResource)?;
+        let (url, canonicalized) = self.get_std().ok_or(FileError {
+            kind: FileErrorKind::NotFoundCanonicalizedResource,
+        })?;
 
         self.oss_client()
             .builder(Method::DELETE, url, canonicalized)
@@ -394,7 +401,9 @@ where
         file_name: P,
         path: Path,
     ) -> Result<String, FileError> {
-        let file_content = std::fs::read(file_name)?;
+        let file_content = std::fs::read(file_name).map_err(|e| FileError {
+            kind: error_impl::FileErrorKind::FileRead(e),
+        })?;
 
         let get_content_type =
             |content: &Vec<u8>| Infer::new().get(content).map(|con| con.mime_type());
@@ -454,9 +463,13 @@ where
         let result = content
             .headers()
             .get("ETag")
-            .ok_or(FileError::EtagNotFound)?
+            .ok_or(FileError {
+                kind: FileErrorKind::EtagNotFound,
+            })?
             .to_str()
-            .map_err(FileError::from)?;
+            .map_err(|e| FileError {
+                kind: FileErrorKind::InvalidEtag(e),
+            })?;
 
         Ok(result.to_string())
     }
@@ -468,17 +481,24 @@ where
         content_type: &str,
         path: Path,
     ) -> Result<Response, FileError> {
-        let (url, canonicalized) = self
-            .get_std_with_path(path)
-            .ok_or(FileError::NotFoundCanonicalizedResource)?;
+        let (url, canonicalized) = self.get_std_with_path(path).ok_or(FileError {
+            kind: FileErrorKind::NotFoundCanonicalizedResource,
+        })?;
 
         let content_length = content.len().to_string();
         let headers = vec![
             (
                 CONTENT_LENGTH,
-                HeaderValue::from_str(&content_length).map_err(FileError::from)?,
+                HeaderValue::from_str(&content_length).map_err(|e| FileError {
+                    kind: FileErrorKind::InvalidContentLength(e),
+                })?,
             ),
-            (CONTENT_TYPE, content_type.parse().map_err(FileError::from)?),
+            (
+                CONTENT_TYPE,
+                content_type.parse().map_err(|e| FileError {
+                    kind: FileErrorKind::InvalidContentType(e),
+                })?,
+            ),
         ];
 
         self.builder_with_header(Method::PUT, url, canonicalized, headers)
@@ -495,9 +515,9 @@ where
         path: Path,
         range: R,
     ) -> Result<Vec<u8>, FileError> {
-        let (url, canonicalized) = self
-            .get_std_with_path(path)
-            .ok_or(FileError::NotFoundCanonicalizedResource)?;
+        let (url, canonicalized) = self.get_std_with_path(path).ok_or(FileError {
+            kind: FileErrorKind::NotFoundCanonicalizedResource,
+        })?;
 
         #[allow(clippy::unwrap_used)]
         let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
@@ -517,9 +537,9 @@ where
 
     /// # 删除 OSS 上的文件
     async fn delete_object(&self, path: Path) -> Result<(), FileError> {
-        let (url, canonicalized) = self
-            .get_std_with_path(path)
-            .ok_or(FileError::NotFoundCanonicalizedResource)?;
+        let (url, canonicalized) = self.get_std_with_path(path).ok_or(FileError {
+            kind: FileErrorKind::NotFoundCanonicalizedResource,
+        })?;
 
         self.builder(Method::DELETE, url, canonicalized)
             .map_err(FileError::from)?
@@ -541,27 +561,13 @@ where
 /// [`ObjectList`]: crate::object::ObjectList
 impl<P: Send + Sync + 'static, T: AlignBuilder + GetStdWithPath<P>> Files<P> for T {}
 
-/// 文件模块的 Error 集合
+/// 文件模块的 Error
 #[derive(Debug)]
-pub enum FileError {
-    #[doc(hidden)]
-    Path(InvalidObjectPath),
-    #[doc(hidden)]
-    Io(std::io::Error),
-    #[doc(hidden)]
-    ToStr(http::header::ToStrError),
-    #[doc(hidden)]
-    HeaderValue(InvalidHeaderValue),
-    #[doc(hidden)]
-    Build(BuilderError),
-    #[doc(hidden)]
-    FileTypeNotFound,
-    #[doc(hidden)]
-    EtagNotFound,
-    #[doc(hidden)]
-    NotFoundCanonicalizedResource,
+pub struct FileError {
+    kind: error_impl::FileErrorKind,
 }
 
+/// 文件模块的 Error 实现方法
 mod error_impl {
     use std::{error::Error, fmt::Display};
 
@@ -573,56 +579,76 @@ mod error_impl {
 
     impl Display for FileError {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            match self {
-                Self::Path(p) => write!(f, "{p}"),
-                Self::Io(p) => write!(f, "{p}"),
-                Self::ToStr(to) => write!(f, "{to}"),
-                Self::HeaderValue(to) => write!(f, "{to}"),
-                Self::Build(to) => write!(f, "{to}"),
-                Self::FileTypeNotFound => write!(f, "Failed to get file type"),
-                Self::EtagNotFound => write!(f, "Failed to get etag"),
-                Self::NotFoundCanonicalizedResource => write!(f, "Not found CanonicalizedResource"),
+            use FileErrorKind::*;
+            match &self.kind {
+                // TODO path
+                Path(p) => write!(f, "{p}"),
+                #[cfg(feature = "put_file")]
+                FileRead(_) => write!(f, "file read failed"),
+                InvalidContentLength(_) => write!(f, "invalid content length"),
+                InvalidContentType(_) => write!(f, "invalid content type"),
+                Build(to) => write!(f, "{to}"),
+                Reqwest(_) => write!(f, "reqwest error"),
+                EtagNotFound => write!(f, "failed to get etag"),
+                InvalidEtag(_) => write!(f, "invalid etag"),
+                NotFoundCanonicalizedResource => write!(f, "not found canonicalized-resource"),
             }
         }
     }
 
+    impl Error for FileError {
+        fn source(&self) -> Option<&(dyn Error + 'static)> {
+            use FileErrorKind::*;
+            match &self.kind {
+                #[cfg(feature = "put_file")]
+                FileRead(e) => Some(e),
+                InvalidContentLength(e) | InvalidContentType(e) => Some(e),
+                Build(e) => e.source(),
+                Reqwest(e) => Some(e),
+                InvalidEtag(e) => Some(e),
+                // TODO path
+                Path(_) | EtagNotFound | NotFoundCanonicalizedResource => None,
+            }
+        }
+    }
+
+    #[derive(Debug)]
+    pub(super) enum FileErrorKind {
+        Path(InvalidObjectPath),
+        #[cfg(feature = "put_file")]
+        FileRead(std::io::Error),
+        InvalidContentLength(InvalidHeaderValue),
+        InvalidContentType(InvalidHeaderValue),
+        Build(BuilderError),
+        Reqwest(reqwest::Error),
+        EtagNotFound,
+        InvalidEtag(http::header::ToStrError),
+        NotFoundCanonicalizedResource,
+    }
+
     impl From<InvalidObjectPath> for FileError {
         fn from(value: InvalidObjectPath) -> Self {
-            Self::Path(value)
-        }
-    }
-
-    impl From<std::io::Error> for FileError {
-        fn from(value: std::io::Error) -> Self {
-            Self::Io(value)
-        }
-    }
-
-    impl From<http::header::ToStrError> for FileError {
-        fn from(value: http::header::ToStrError) -> Self {
-            Self::ToStr(value)
-        }
-    }
-
-    impl From<InvalidHeaderValue> for FileError {
-        fn from(value: InvalidHeaderValue) -> Self {
-            Self::HeaderValue(value)
+            Self {
+                kind: FileErrorKind::Path(value),
+            }
         }
     }
 
     impl From<BuilderError> for FileError {
         fn from(value: BuilderError) -> Self {
-            Self::Build(value)
+            Self {
+                kind: FileErrorKind::Build(value),
+            }
         }
     }
 
     impl From<reqwest::Error> for FileError {
         fn from(value: reqwest::Error) -> Self {
-            Self::Build(value.into())
+            Self {
+                kind: FileErrorKind::Reqwest(value),
+            }
         }
     }
-
-    impl Error for FileError {}
 }
 
 /// # 对齐 [`Client`]，[`Bucket`], [`ObjectList`] 等结构体的 trait
@@ -688,11 +714,13 @@ impl<Item: RefineObject<E> + Send + Sync, E: Error + Send + Sync> AlignBuilder
 #[cfg(feature = "blocking")]
 pub use blocking::Files as BlockingFile;
 
+use self::error_impl::FileErrorKind;
+
 /// 同步的文件模块
 #[cfg(feature = "blocking")]
 pub mod blocking {
 
-    use super::{FileError, GetStdWithPath};
+    use super::{error_impl::FileErrorKind, FileError, GetStdWithPath};
     use crate::{
         blocking::builder::RequestBuilder,
         bucket::Bucket,
@@ -724,7 +752,9 @@ pub mod blocking {
             file_name: P,
             path: Path,
         ) -> Result<String, FileError> {
-            let file_content = std::fs::read(file_name)?;
+            let file_content = std::fs::read(file_name).map_err(|e| FileError {
+                kind: FileErrorKind::FileRead(e),
+            })?;
 
             let get_content_type =
                 |content: &Vec<u8>| Infer::new().get(content).map(|con| con.mime_type());
@@ -779,9 +809,13 @@ pub mod blocking {
             let result = content
                 .headers()
                 .get("ETag")
-                .ok_or(FileError::EtagNotFound)?
+                .ok_or(FileError {
+                    kind: FileErrorKind::EtagNotFound,
+                })?
                 .to_str()
-                .map_err(FileError::from)?;
+                .map_err(|e| FileError {
+                    kind: FileErrorKind::InvalidEtag(e),
+                })?;
 
             Ok(result.to_string())
         }
@@ -793,17 +827,24 @@ pub mod blocking {
             content_type: &str,
             path: Path,
         ) -> Result<Response, FileError> {
-            let (url, canonicalized) = self
-                .get_std_with_path(path)
-                .ok_or(FileError::NotFoundCanonicalizedResource)?;
+            let (url, canonicalized) = self.get_std_with_path(path).ok_or(FileError {
+                kind: FileErrorKind::NotFoundCanonicalizedResource,
+            })?;
 
             let content_length = content.len().to_string();
             let headers = vec![
                 (
                     CONTENT_LENGTH,
-                    HeaderValue::from_str(&content_length).map_err(FileError::from)?,
+                    HeaderValue::from_str(&content_length).map_err(|e| FileError {
+                        kind: FileErrorKind::InvalidContentLength(e),
+                    })?,
                 ),
-                (CONTENT_TYPE, content_type.parse().map_err(FileError::from)?),
+                (
+                    CONTENT_TYPE,
+                    content_type.parse().map_err(|e| FileError {
+                        kind: FileErrorKind::InvalidContentType(e),
+                    })?,
+                ),
             ];
 
             let response = self
@@ -820,9 +861,9 @@ pub mod blocking {
             path: Path,
             range: R,
         ) -> Result<Vec<u8>, FileError> {
-            let (url, canonicalized) = self
-                .get_std_with_path(path)
-                .ok_or(FileError::NotFoundCanonicalizedResource)?;
+            let (url, canonicalized) = self.get_std_with_path(path).ok_or(FileError {
+                kind: FileErrorKind::NotFoundCanonicalizedResource,
+            })?;
 
             #[allow(clippy::unwrap_used)]
             let headers: Vec<(_, HeaderValue)> =
@@ -840,9 +881,9 @@ pub mod blocking {
 
         /// # 删除 OSS 上的文件
         fn delete_object(&self, path: Path) -> Result<(), FileError> {
-            let (url, canonicalized) = self
-                .get_std_with_path(path)
-                .ok_or(FileError::NotFoundCanonicalizedResource)?;
+            let (url, canonicalized) = self.get_std_with_path(path).ok_or(FileError {
+                kind: FileErrorKind::NotFoundCanonicalizedResource,
+            })?;
 
             self.builder(Method::DELETE, url, canonicalized)
                 .map_err(FileError::from)?

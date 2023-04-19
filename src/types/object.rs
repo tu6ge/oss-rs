@@ -115,6 +115,7 @@ impl ObjectBase<ArcPointer> {
     #[doc(hidden)]
     #[inline]
     #[cfg(test)]
+    #[allow(dead_code)]
     pub(crate) fn try_from_bucket<B>(bucket: B, path: &str) -> Result<Self, InvalidObjectBase>
     where
         B: TryInto<BucketBase>,
