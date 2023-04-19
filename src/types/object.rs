@@ -778,7 +778,10 @@ pub struct InvalidObjectDir {
 
 impl Display for InvalidObjectDir {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "object-dir must end with `/`")
+        write!(
+            f,
+            "object-dir must end with `/`, and not start with `/`,`.`"
+        )
     }
 }
 

@@ -449,7 +449,7 @@ mod list_error {
         assert_eq!(format!("{err}"), "parse prefix failed, gived str: .foo");
         assert_eq!(
             format!("{}", err.source().unwrap()),
-            "object-dir must end with `/`"
+            "object-dir must end with `/`, and not start with `/`,`.`"
         );
         assert_eq!(
             format!("{err:?}"),
@@ -470,7 +470,7 @@ mod list_error {
         );
         assert_eq!(
             format!("{}", err.source().unwrap()),
-            "object-dir must end with `/`"
+            "object-dir must end with `/`, and not start with `/`,`.`"
         );
         assert_eq!(
             format!("{err:?}"),

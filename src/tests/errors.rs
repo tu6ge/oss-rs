@@ -152,7 +152,10 @@ mod debug {
     fn test_object_dir() {
         let err = Error::InvalidObjectDir(InvalidObjectDir { _priv: () });
 
-        assert_eq!(format!("{err}"), "object-dir must end with `/`");
+        assert_eq!(
+            format!("{err}"),
+            "object-dir must end with `/`, and not start with `/`,`.`"
+        );
 
         fn bar() -> Error {
             InvalidObjectDir { _priv: () }.into()

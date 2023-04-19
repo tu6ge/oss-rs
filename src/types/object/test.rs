@@ -9,8 +9,8 @@ mod test_core {
     use crate::builder::ArcPointer;
     use crate::config::BucketBase;
     use crate::types::object::invalid::InvalidObjectBaseKind;
+    use crate::types::object::InvalidObjectDir;
     use crate::types::object::{InvalidObjectBase, InvalidObjectPath, ObjectBase, OssFullUrl};
-    use crate::types::object::{InvalidObjectDir};
     use crate::{BucketName, ObjectDir, ObjectPath};
 
     #[test]
@@ -116,7 +116,10 @@ mod test_core {
     #[test]
     fn test_invalid_dir_debug() {
         let err = InvalidObjectDir { _priv: () };
-        assert_eq!(format!("{err}"), "object-dir must end with `/`");
+        assert_eq!(
+            format!("{err}"),
+            "object-dir must end with `/`, and not start with `/`,`.`"
+        );
         assert_eq!(format!("{err:?}"), "InvalidObjectDir");
     }
 
