@@ -245,6 +245,16 @@ pub struct BucketError {
     kind: BucketErrorKind,
 }
 
+impl BucketError {
+    #[cfg(test)]
+    pub(crate) fn test_new() -> Self {
+        Self {
+            source: "foo".to_string(),
+            kind: BucketErrorKind::InvalidStorageClass,
+        }
+    }
+}
+
 impl Display for BucketError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "decode bucket xml faild, gived str: {}", self.source)

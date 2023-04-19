@@ -570,6 +570,15 @@ pub struct FileError {
     kind: error_impl::FileErrorKind,
 }
 
+impl FileError {
+    #[cfg(test)]
+    pub(crate) fn test_new() -> Self {
+        Self {
+            kind: error_impl::FileErrorKind::EtagNotFound,
+        }
+    }
+}
+
 /// 文件模块的 Error 实现方法
 mod error_impl {
     use std::{error::Error, fmt::Display};

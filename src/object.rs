@@ -906,6 +906,16 @@ pub struct ObjectListError {
     kind: ObjectListErrorKind,
 }
 
+impl ObjectListError {
+    #[cfg(test)]
+    pub(crate) fn test_new() -> Self {
+        Self {
+            source: "foo".to_string(),
+            kind: ObjectListErrorKind::Bar,
+        }
+    }
+}
+
 impl Display for ObjectListError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use ObjectListErrorKind::*;
@@ -914,6 +924,8 @@ impl Display for ObjectListError {
             Prefix(_) => "prefix",
             CommonPrefix(_) => "common-prefix",
             MaxKeys(_) => "max-keys",
+            #[cfg(test)]
+            Bar => "bar",
         };
         write!(f, "parse {kind} failed, gived str: {}", self.source)
     }
@@ -925,6 +937,8 @@ impl Error for ObjectListError {
         match &self.kind {
             KeyCount(e) | MaxKeys(e) => Some(e),
             Prefix(e) | CommonPrefix(e) => Some(e),
+            #[cfg(test)]
+            Bar => None,
         }
     }
 }
@@ -943,6 +957,8 @@ enum ObjectListErrorKind {
     CommonPrefix(InvalidObjectDir),
     /// when covert max_keys failed ,return this error
     MaxKeys(ParseIntError),
+    #[cfg(test)]
+    Bar,
 }
 
 impl Client {

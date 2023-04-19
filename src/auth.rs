@@ -785,6 +785,15 @@ pub struct AuthError {
     pub(crate) kind: AuthErrorKind,
 }
 
+impl AuthError {
+    #[cfg(test)]
+    pub(crate) fn test_new() -> Self {
+        Self {
+            kind: AuthErrorKind::InvalidCanonicalizedResource,
+        }
+    }
+}
+
 /// Auth 模块错误的枚举
 #[derive(Debug)]
 #[non_exhaustive]

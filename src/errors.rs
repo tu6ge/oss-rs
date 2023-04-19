@@ -15,7 +15,7 @@ use crate::{
     builder::BuilderError,
     config::InvalidConfig,
     file::FileError,
-    object::ExtractListError,
+    object::{ExtractListError, ObjectListError},
     types::{
         object::{InvalidObjectDir, InvalidObjectPath},
         InvalidBucketName, InvalidEndPoint,
@@ -55,6 +55,7 @@ impl std::error::Error for OssError {
             File(e) => Some(e),
             Auth(e) => Some(e),
             Bucket(e) => Some(e),
+            ObjectList(e) => Some(e),
         }
     }
 }
@@ -69,40 +70,40 @@ impl<T: Into<OssErrorKind>> From<T> for OssError {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 enum OssErrorKind {
-    #[error("{0}")]
+    #[error("io error")]
     Io(#[from] io::Error),
 
     #[doc(hidden)]
-    #[error("{0}")]
+    #[error("dotenv error")]
     #[cfg(test)]
     Dotenv(#[from] dotenv::Error),
 
     #[doc(hidden)]
-    #[error("{0}")]
+    #[error("builder error")]
     Builder(#[from] BuilderError),
 
     #[doc(hidden)]
-    #[error("{0}")]
+    #[error("invalid endpoint")]
     EndPoint(#[from] InvalidEndPoint),
 
     #[doc(hidden)]
-    #[error("{0}")]
+    #[error("invalid bucket name")]
     BucketName(#[from] InvalidBucketName),
 
     #[doc(hidden)]
-    #[error("{0}")]
+    #[error("invalid config")]
     Config(#[from] InvalidConfig),
 
     #[doc(hidden)]
-    #[error("{0}")]
+    #[error("invalid object path")]
     ObjectPath(#[from] InvalidObjectPath),
 
     #[doc(hidden)]
-    #[error("{0}")]
+    #[error("invalid object dir")]
     ObjectDir(#[from] InvalidObjectDir),
 
     #[doc(hidden)]
-    #[error("{0}")]
+    #[error("build in item error")]
     BuildInItemError(#[from] crate::object::BuildInItemError),
 
     #[cfg(feature = "decode")]
@@ -116,22 +117,25 @@ enum OssErrorKind {
     InnerItem(InnerItemError),
 
     #[doc(hidden)]
-    #[error("{0}")]
+    #[error("extract list error")]
     ExtractList(#[from] ExtractListError),
 
     #[doc(hidden)]
-    #[error("{0}")]
+    #[error("extract item error")]
     ExtractItem(#[from] ExtractItemError),
 
-    #[error("{0}")]
+    #[error("file error")]
     File(#[from] FileError),
 
-    #[error("{0}")]
+    #[error("auth error")]
     Auth(#[from] AuthError),
 
     // bucket 还有其他 Error
-    #[error("{0}")]
+    #[error("bucket error")]
     Bucket(#[from] BucketError),
+
+    #[error("object list error")]
+    ObjectList(#[from] ObjectListError),
 }
 
 #[cfg(feature = "decode")]

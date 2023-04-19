@@ -39,22 +39,31 @@ fn test_oss_service_new() {
 
 mod debug {
     use std::error::Error as StdError;
+    use std::io::{self, ErrorKind};
 
-    use crate::bucket::{ExtractItemError, ExtractItemErrorKind};
+    use crate::auth::AuthError;
+    use crate::bucket::{BucketError, ExtractItemError, ExtractItemErrorKind};
     use crate::builder::{BuilderError, BuilderErrorKind};
     use crate::decode::InnerItemError;
-    use crate::object::{BuildInItemError, ExtractListError, ExtractListErrorKind};
+    use crate::file::FileError;
+    use crate::object::{
+        BuildInItemError, ExtractListError, ExtractListErrorKind, ObjectListError,
+    };
     use crate::types::object::{InvalidObjectDir, InvalidObjectPath};
     use crate::types::{InvalidBucketName, InvalidEndPoint};
     use crate::Error;
+
+    #[test]
+    fn test_io() {
+        let err = Error::from(io::Error::new(ErrorKind::Other, "foo"));
+        assert_eq!(format!("{}", err), "io error");
+        assert_eq!(format!("{}", err.source().unwrap()), "foo");
+    }
     #[test]
     fn test_dotenv() {
         let err = Error::from(dotenv::Error::LineParse("abc".to_string(), 1));
 
-        assert_eq!(
-            format!("{err}"),
-            "Error parsing line: 'abc', error at line index: 1"
-        );
+        assert_eq!(format!("{err}"), "dotenv error");
         assert_eq!(
             format!("{}", err.source().unwrap()),
             "Error parsing line: 'abc', error at line index: 1"
@@ -74,7 +83,8 @@ mod debug {
         let err = Error::from(BuilderError {
             kind: BuilderErrorKind::Bar,
         });
-        assert_eq!(format!("{err}"), "bar");
+        assert_eq!(format!("{err}"), "builder error");
+        assert_eq!(format!("{}", err.source().unwrap()), "bar");
 
         fn bar() -> Error {
             BuilderError {
@@ -91,8 +101,9 @@ mod debug {
     #[test]
     fn test_endpoint() {
         let err = Error::from(InvalidEndPoint { _priv: () });
+        assert_eq!(format!("{err}"), "invalid endpoint");
         assert_eq!(
-            format!("{err}"),
+            format!("{}", err.source().unwrap()),
             "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
         );
 
@@ -109,10 +120,11 @@ mod debug {
     fn test_bucket_name() {
         let err = Error::from(InvalidBucketName { _priv: () });
 
+        assert_eq!(format!("{err}"), "invalid bucket name");
         assert_eq!(
-            format!("{err}"),
-            "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
-        );
+          format!("{}", err.source().unwrap()),
+          "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
+      );
 
         fn bar() -> Error {
             InvalidBucketName { _priv: () }.into()
@@ -128,12 +140,11 @@ mod debug {
         use crate::config::InvalidConfig;
         let err = Error::from(InvalidConfig::test_bucket());
 
-        assert_eq!(format!("{err}"), "get config faild, source: bar");
-
-        //   assert_eq!(
-        //     format!("{}", err.source().unwrap()),
-        //     "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
-        // );
+        assert_eq!(format!("{err}"), "invalid config");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "get config faild, source: bar"
+        );
 
         fn bar() -> Error {
             InvalidConfig::test_bucket().into()
@@ -149,6 +160,7 @@ mod debug {
         let err = Error::from(InvalidObjectPath { _priv: () });
 
         assert_eq!(format!("{err}"), "invalid object path");
+        assert_eq!(format!("{}", err.source().unwrap()), "invalid object path");
 
         fn bar() -> Error {
             InvalidObjectPath { _priv: () }.into()
@@ -163,8 +175,9 @@ mod debug {
     fn test_object_dir() {
         let err = Error::from(InvalidObjectDir { _priv: () });
 
+        assert_eq!(format!("{err}"), "invalid object dir");
         assert_eq!(
-            format!("{err}"),
+            format!("{}", err.source().unwrap()),
             "object-dir must end with `/`, and not start with `/`,`.`"
         );
 
@@ -205,6 +218,10 @@ mod debug {
         let err = Error::from(InnerListError::from_xml());
 
         assert_eq!(format!("{err}"), "decode into list error");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "Cannot read text, expecting Event::Text"
+        );
 
         fn bar() -> Error {
             InnerListError::from_xml().into()
@@ -219,8 +236,9 @@ mod debug {
     fn test_build_in_iter_error() {
         let err = Error::from(BuildInItemError::test_new());
 
+        assert_eq!(format!("{err}"), "build in item error");
         assert_eq!(
-            format!("{err}"),
+            format!("{}", err.source().unwrap()),
             "parse storage-class failed, gived str: foo"
         );
 
@@ -239,7 +257,8 @@ mod debug {
             kind: ExtractListErrorKind::NoMoreFile,
         });
 
-        assert_eq!(format!("{err}"), "no more file");
+        assert_eq!(format!("{err}"), "extract list error");
+        assert_eq!(format!("{}", err.source().unwrap()), "no more file");
 
         fn bar() -> Error {
             ExtractListError {
@@ -259,7 +278,8 @@ mod debug {
             kind: ExtractItemErrorKind::Decode(InnerItemError::new()),
         });
 
-        assert_eq!(format!("{err}"), "decode xml failed");
+        assert_eq!(format!("{err}"), "extract item error");
+        assert_eq!(format!("{}", err.source().unwrap()), "decode xml failed");
 
         fn bar() -> Error {
             ExtractItemError {
@@ -270,6 +290,47 @@ mod debug {
         assert_eq!(
             format!("{:?}", bar()),
             "OssError { kind: ExtractItem(ExtractItemError { kind: Decode(InnerItemError(MyError)) }) }"
+        );
+    }
+
+    #[test]
+    fn file() {
+        let err = Error::from(FileError::test_new());
+
+        assert_eq!(format!("{err}"), "file error");
+        assert_eq!(format!("{}", err.source().unwrap()), "failed to get etag");
+    }
+
+    #[test]
+    fn auth() {
+        let err = Error::from(AuthError::test_new());
+
+        assert_eq!(format!("{err}"), "auth error");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "invalid canonicalized-resource"
+        );
+    }
+
+    #[test]
+    fn bucket() {
+        let err = Error::from(BucketError::test_new());
+
+        assert_eq!(format!("{err}"), "bucket error");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "decode bucket xml faild, gived str: foo"
+        );
+    }
+
+    #[test]
+    fn object_list() {
+        let err = Error::from(ObjectListError::test_new());
+
+        assert_eq!(format!("{err}"), "object list error");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "parse bar failed, gived str: foo"
         );
     }
 }
