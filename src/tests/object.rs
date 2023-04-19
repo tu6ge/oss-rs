@@ -20,7 +20,7 @@ pub(crate) fn assert_object_list<T: PointerFamily>(
     prefix: Option<crate::ObjectDir>,
     max_keys: u32,
     key_count: u64,
-    next_continuation_token: Option<String>,
+    next_continuation_token: String,
     common_prefixes: CommonPrefixes,
     search_query: Query,
 ) {
@@ -29,7 +29,7 @@ pub(crate) fn assert_object_list<T: PointerFamily>(
     assert!(*list.prefix() == prefix);
     assert!(*list.max_keys() == max_keys);
     assert!(*list.key_count() == key_count);
-    assert!(list.next_continuation_token() == next_continuation_token);
+    assert!(*list.next_continuation_token_str() == next_continuation_token);
     assert!(*list.common_prefixes() == common_prefixes);
     assert!(*list.search_query() == search_query);
 }
@@ -117,7 +117,7 @@ fn object_list_get_object_list() {
         Some("foo2/".parse().unwrap()),
         100,
         23,
-        None,
+        String::default(),
         CommonPrefixes::from_iter([]),
         Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );
@@ -192,7 +192,7 @@ async fn test_get_object_list() {
         None,
         100,
         23,
-        None,
+        String::default(),
         CommonPrefixes::from_iter([]),
         Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );
@@ -262,7 +262,7 @@ async fn test_error_object_list() {
     assert_eq!(format!("{err}"), "decode xml failed");
     assert_eq!(
         format!("{}", err.source().unwrap()),
-        "covert key_count failed, source str: foo"
+        "parse key-count failed, gived str: foo"
     );
 }
 
@@ -406,7 +406,7 @@ fn test_get_blocking_object_list() {
         None,
         100,
         23,
-        None,
+        String::default(),
         CommonPrefixes::from_iter([]),
         Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );

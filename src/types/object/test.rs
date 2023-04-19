@@ -115,7 +115,7 @@ mod test_core {
     #[test]
     fn test_invalid_dir_debug() {
         let err = InvalidObjectDir { _priv: () };
-        assert_eq!(format!("{err}"), "ObjectDir must end with `/`");
+        assert_eq!(format!("{err}"), "object-dir must end with `/`");
         assert_eq!(format!("{err:?}"), "InvalidObjectDir");
     }
 

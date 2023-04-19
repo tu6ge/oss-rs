@@ -351,7 +351,7 @@ async fn test_get_object_list() {
         None,
         100,
         23,
-        None,
+        String::default(),
         CommonPrefixes::from_iter([]),
         Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );
@@ -411,7 +411,7 @@ async fn test_error_get_object_list() {
     assert_eq!(format!("{err}"), "decode xml failed");
     assert_eq!(
         format!("{}", err.source().unwrap()),
-        "covert max_keys failed, source str: aaa"
+        "parse max-keys failed, gived str: aaa"
     );
 }
 
@@ -513,7 +513,7 @@ fn test_get_blocking_object_list() {
         None,
         100,
         23,
-        None,
+        String::default(),
         CommonPrefixes::from_iter([]),
         Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
     );

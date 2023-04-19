@@ -90,6 +90,7 @@ use crate::decode::{InnerListError, ListError, RefineObject, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
+use crate::types::object::InvalidObjectDir;
 use crate::types::{
     object::{CommonPrefixes, InvalidObjectPath, ObjectBase, ObjectDir, ObjectPath},
     CanonicalizedResource, Query, QueryKey, QueryValue, UrlQuery, CONTINUATION_TOKEN,
@@ -109,6 +110,9 @@ use std::num::ParseIntError;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::vec::IntoIter;
+
+#[cfg(test)]
+mod test;
 
 /// # 存放对象列表的结构体
 /// TODO impl core::ops::Index
@@ -247,20 +251,6 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error> ObjectList<T, Item, E> {
     /// 返回 key_count
     pub fn key_count(&self) -> &u64 {
         &self.key_count
-    }
-
-    /// # 返回下一个 continuation_token
-    /// 用于翻页使用
-    #[deprecated(
-        since = "0.12.0",
-        note = "Please use next_continuation_token_str replace"
-    )]
-    pub fn next_continuation_token(&self) -> Option<String> {
-        if !self.next_continuation_token.is_empty() {
-            Some(self.next_continuation_token.clone())
-        } else {
-            None
-        }
     }
 
     /// # 返回下一个 continuation_token
@@ -773,9 +763,10 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
 {
     #[inline]
     fn set_key_count(&mut self, key_count: &str) -> Result<(), ObjectListError> {
-        self.key_count = key_count
-            .parse()
-            .map_err(|_| ObjectListError::KeyCount(key_count.to_owned()))?;
+        self.key_count = key_count.parse().map_err(|e| ObjectListError {
+            source: key_count.to_owned(),
+            kind: ObjectListErrorKind::KeyCount(e),
+        })?;
         Ok(())
     }
 
@@ -786,7 +777,10 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
         } else {
             let mut string = String::from(prefix);
             string += "/";
-            self.prefix = string.parse().ok()
+            self.prefix = Some(string.parse().map_err(|e| ObjectListError {
+                source: string,
+                kind: ObjectListErrorKind::Prefix(e),
+            })?)
         }
         Ok(())
     }
@@ -797,19 +791,21 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
         list: &[std::borrow::Cow<'_, str>],
     ) -> Result<(), ObjectListError> {
         for val in list.iter() {
-            self.common_prefixes.push(
-                val.parse()
-                    .map_err(|_| ObjectListError::CommonPrefix(val.to_string()))?,
-            );
+            self.common_prefixes
+                .push(val.parse().map_err(|e| ObjectListError {
+                    source: val.to_string(),
+                    kind: ObjectListErrorKind::CommonPrefix(e),
+                })?);
         }
         Ok(())
     }
 
     #[inline]
     fn set_max_keys(&mut self, max_keys: &str) -> Result<(), ObjectListError> {
-        self.max_keys = max_keys
-            .parse()
-            .map_err(|_| ObjectListError::MaxKeys(max_keys.to_string()))?;
+        self.max_keys = max_keys.parse().map_err(|e| ObjectListError {
+            source: max_keys.to_string(),
+            kind: ObjectListErrorKind::MaxKeys(e),
+        })?;
         Ok(())
     }
 
@@ -827,23 +823,51 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
 }
 
 /// decode xml to object list error collection
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 #[non_exhaustive]
-pub enum ObjectListError {
-    /// when covert key_count failed ,return this error
-    #[error("covert key_count failed, source str: {0}")]
-    KeyCount(String),
+pub struct ObjectListError {
+    source: String,
+    kind: ObjectListErrorKind,
+}
 
-    /// when covert common_prefixes failed ,return this error
-    #[error("covert common_prefixes failed, source str: {0}")]
-    CommonPrefix(String),
+impl Display for ObjectListError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use ObjectListErrorKind::*;
+        let kind = match &self.kind {
+            KeyCount(_) => "key-count",
+            Prefix(_) => "prefix",
+            CommonPrefix(_) => "common-prefix",
+            MaxKeys(_) => "max-keys",
+        };
+        write!(f, "parse {kind} failed, gived str: {}", self.source)
+    }
+}
 
-    /// when covert max_keys failed ,return this error
-    #[error("covert max_keys failed, source str: {0}")]
-    MaxKeys(String),
+impl Error for ObjectListError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        use ObjectListErrorKind::*;
+        match &self.kind {
+            KeyCount(e) | MaxKeys(e) => Some(e),
+            Prefix(e) | CommonPrefix(e) => Some(e),
+        }
+    }
 }
 
 impl ListError for ObjectListError {}
+
+/// decode xml to object list error collection
+#[derive(Debug)]
+#[non_exhaustive]
+enum ObjectListErrorKind {
+    /// when covert key_count failed ,return this error
+    KeyCount(ParseIntError),
+    /// when covert prefix failed ,return this error
+    Prefix(InvalidObjectDir),
+    /// when covert common_prefix failed ,return this error
+    CommonPrefix(InvalidObjectDir),
+    /// when covert max_keys failed ,return this error
+    MaxKeys(ParseIntError),
+}
 
 /// Xml 转化为内置 Object 时的错误集合
 #[derive(Debug, thiserror::Error)]
@@ -1357,348 +1381,4 @@ pub enum CopyDirective {
     #[default]
     Copy,
     Replace,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::ObjectList;
-    use crate::{
-        builder::ArcPointer,
-        config::BucketBase,
-        object::{Object, ObjectBuilder, StorageClass},
-        types::{object::ObjectPath, QueryValue},
-        Client,
-    };
-    use chrono::{DateTime, NaiveDateTime, Utc};
-    use std::sync::Arc;
-
-    fn init_object_list(token: Option<String>, list: Vec<Object>) -> ObjectList {
-        let client = Client::new(
-            "foo1".into(),
-            "foo2".into(),
-            "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
-            "foo4".parse().unwrap(),
-        );
-
-        let object_list = ObjectList::<ArcPointer>::new(
-            "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
-            Some("foo2/".parse().unwrap()),
-            100,
-            200,
-            list,
-            token,
-            Arc::new(client),
-            vec![("key1".into(), "value1".into())],
-        );
-
-        object_list
-    }
-
-    #[test]
-    fn test_object_list_fmt() {
-        let object_list = init_object_list(Some(String::from("foo3")), vec![]);
-        assert_eq!(
-            format!("{object_list:?}"),
-            "ObjectList { bucket: BucketBase { endpoint: CnShanghai, name: BucketName(\"abc\") }, prefix: Some(ObjectDir(\"foo2/\")), max_keys: 100, key_count: 200, next_continuation_token: \"foo3\", common_prefixes: [], search_query: Query { inner: {Custom(\"key1\"): InnerQueryValue(\"value1\")} } }"
-        );
-    }
-
-    #[test]
-    fn test_get_bucket() {
-        let object_list = init_object_list(Some(String::from("foo3")), vec![]);
-
-        let bucket = object_list.bucket();
-
-        assert_eq!(bucket.name(), "abc");
-
-        assert!(object_list.prefix() == &Some("foo2/".parse().unwrap()));
-
-        assert!(object_list.max_keys() == &100u32);
-        assert_eq!(object_list.max_keys().to_owned(), 100u32);
-
-        match &object_list.next_continuation_token() {
-            Some(a) => {
-                assert!(a == "foo3");
-                assert_eq!(a, "foo3");
-            }
-            None => {
-                panic!("token is valid value");
-            }
-        }
-    }
-
-    #[test]
-    fn test_bucket_name() {
-        let object_list = init_object_list(Some(String::from("foo3")), vec![]);
-        let bucket_name = object_list.bucket_name();
-
-        assert!("abc" == bucket_name);
-    }
-
-    #[test]
-    fn test_next_query() {
-        let object_list = init_object_list(Some(String::from("foo3")), vec![]);
-
-        let query = object_list.next_query();
-
-        assert!(query.is_some());
-        let inner_query = query.unwrap();
-        assert_eq!(
-            inner_query.get("key1"),
-            Some(&QueryValue::from_static("value1"))
-        );
-        assert_eq!(
-            inner_query.get("continuation-token"),
-            Some(&QueryValue::from_static("foo3"))
-        );
-
-        let object_list = init_object_list(None, vec![]);
-        let query = object_list.next_query();
-        assert!(query.is_none());
-    }
-
-    #[test]
-    fn test_object_iter_in_list() {
-        let bucket = Arc::new("abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap());
-        let object_list = init_object_list(
-            None,
-            vec![
-                Object::new(
-                    Arc::clone(&bucket),
-                    "key1".parse().unwrap(),
-                    DateTime::<Utc>::from_utc(
-                        NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
-                        Utc,
-                    ),
-                    "foo3".into(),
-                    "foo4".into(),
-                    100,
-                    StorageClass::IA,
-                ),
-                Object::new(
-                    Arc::clone(&bucket),
-                    "key2".parse().unwrap(),
-                    DateTime::<Utc>::from_utc(
-                        NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
-                        Utc,
-                    ),
-                    "foo3".into(),
-                    "foo4".into(),
-                    100,
-                    StorageClass::IA,
-                ),
-            ],
-        );
-
-        let mut iter = object_list.object_iter();
-        let first = iter.next();
-        assert!(first.is_some());
-        assert_eq!(first.unwrap().base.path().as_ref(), "key1");
-
-        let second = iter.next();
-        assert!(second.is_some());
-        assert_eq!(second.unwrap().base.path().as_ref(), "key2");
-
-        let third = iter.next();
-        assert!(third.is_none());
-    }
-
-    #[test]
-    fn test_common_prefixes() {
-        let mut object_list = init_object_list(None, vec![]);
-        let list = object_list.common_prefixes();
-        assert!(list.len() == 0);
-
-        object_list.set_common_prefixes(["abc/".parse().unwrap(), "cde/".parse().unwrap()]);
-        let list = object_list.common_prefixes();
-
-        assert!(list.len() == 2);
-        assert!(list[0] == "abc/");
-        assert!(list[1] == "cde/");
-    }
-
-    #[test]
-    fn test_object_new() {
-        let bucket = Arc::new("abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap());
-        let object = Object::<ArcPointer>::new(
-            bucket,
-            "foo2".parse().unwrap(),
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(), Utc),
-            "foo3".into(),
-            "foo4".into(),
-            100,
-            StorageClass::IA,
-        );
-
-        assert_eq!(object.base.path().as_ref(), "foo2");
-        assert_eq!(object.last_modified.to_string(), "1970-01-02 10:10:00 UTC");
-        assert_eq!(object.etag, "foo3");
-        assert_eq!(object._type, "foo4");
-        assert_eq!(object.size, 100);
-        assert_eq!(object.storage_class, StorageClass::IA);
-    }
-
-    #[test]
-    fn test_object_builder() {
-        let bucket = Arc::new(BucketBase::new(
-            "abc".parse().unwrap(),
-            "qingdao".parse().unwrap(),
-        ));
-        let object = ObjectBuilder::<ArcPointer>::new(bucket, "abc".parse::<ObjectPath>().unwrap())
-            .last_modified(DateTime::<Utc>::from_utc(
-                NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
-                Utc,
-            ))
-            .etag("foo1".to_owned())
-            .set_type("foo2".to_owned())
-            .size(123)
-            .storage_class(StorageClass::IA)
-            .build();
-
-        assert_eq!(object.base.path().as_ref(), "abc");
-        assert_eq!(object.last_modified.to_string(), "1970-01-02 10:10:00 UTC");
-        assert_eq!(object.etag, "foo1");
-        assert_eq!(object._type, "foo2");
-        assert_eq!(object.size, 123);
-        assert_eq!(object.storage_class, StorageClass::IA);
-    }
-}
-
-#[cfg(feature = "blocking")]
-#[cfg(test)]
-mod blocking_tests {
-    use std::rc::Rc;
-
-    use chrono::{DateTime, NaiveDateTime, Utc};
-
-    use crate::builder::RcPointer;
-
-    use super::{Object, StorageClass};
-
-    fn init_object(
-        bucket: &str,
-        path: &'static str,
-        last_modified: i64,
-        etag: &'static str,
-        _type: &'static str,
-        size: u64,
-        storage_class: StorageClass,
-    ) -> Object<RcPointer> {
-        let bucket = Rc::new(bucket.parse().unwrap());
-        Object::<RcPointer>::new(
-            bucket,
-            path.parse().unwrap(),
-            DateTime::<Utc>::from_utc(
-                NaiveDateTime::from_timestamp_opt(last_modified, 0).unwrap(),
-                Utc,
-            ),
-            etag.into(),
-            _type.into(),
-            size,
-            storage_class,
-        )
-    }
-
-    #[test]
-    fn test_object_eq() {
-        let object1 = init_object(
-            "abc.oss-cn-shanghai.aliyuncs.com",
-            "foo1",
-            123000,
-            "efoo1",
-            "tyfoo1",
-            12,
-            StorageClass::Archive,
-        );
-
-        let object2 = init_object(
-            "abc.oss-cn-shanghai.aliyuncs.com",
-            "foo1",
-            123000,
-            "efoo1",
-            "tyfoo1",
-            12,
-            StorageClass::Archive,
-        );
-
-        assert!(object1 == object2);
-
-        let object3 = init_object(
-            "abc2.oss-cn-shanghai.aliyuncs.com",
-            "foo1",
-            123000,
-            "efoo1",
-            "tyfoo1",
-            12,
-            StorageClass::Archive,
-        );
-
-        assert!(object1 != object3);
-
-        let object3 = init_object(
-            "abc.oss-cn-shanghai.aliyuncs.com",
-            "foo2",
-            123000,
-            "efoo1",
-            "tyfoo1",
-            12,
-            StorageClass::Archive,
-        );
-        assert!(object1 != object3);
-
-        let object3 = init_object(
-            "abc.oss-cn-shanghai.aliyuncs.com",
-            "foo1",
-            123009,
-            "efoo1",
-            "tyfoo1",
-            12,
-            StorageClass::Archive,
-        );
-        assert!(object1 != object3);
-
-        let object3 = init_object(
-            "abc.oss-cn-shanghai.aliyuncs.com",
-            "foo1",
-            123000,
-            "efoo2",
-            "tyfoo1",
-            12,
-            StorageClass::Archive,
-        );
-        assert!(object1 != object3);
-
-        let object3 = init_object(
-            "abc.oss-cn-shanghai.aliyuncs.com",
-            "foo1",
-            123000,
-            "efoo1",
-            "tyfoo3",
-            12,
-            StorageClass::Archive,
-        );
-        assert!(object1 != object3);
-
-        let object3 = init_object(
-            "abc.oss-cn-shanghai.aliyuncs.com",
-            "foo1",
-            123000,
-            "efoo1",
-            "tyfoo1",
-            256,
-            StorageClass::Archive,
-        );
-        assert!(object1 != object3);
-
-        let object3 = init_object(
-            "abc.oss-cn-shanghai.aliyuncs.com",
-            "foo1",
-            123000,
-            "efoo1",
-            "tyfoo1",
-            12,
-            StorageClass::IA,
-        );
-        assert!(object1 != object3);
-    }
 }
