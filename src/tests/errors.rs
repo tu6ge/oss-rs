@@ -58,6 +58,10 @@ mod debug {
         let err = Error::from(io::Error::new(ErrorKind::Other, "foo"));
         assert_eq!(format!("{}", err), "io error");
         assert_eq!(format!("{}", err.source().unwrap()), "foo");
+        assert_eq!(
+            format!("{:?}", err),
+            "OssError { kind: Io(Custom { kind: Other, error: \"foo\" }) }"
+        );
     }
     #[test]
     fn test_dotenv() {
@@ -299,6 +303,10 @@ mod debug {
 
         assert_eq!(format!("{err}"), "file error");
         assert_eq!(format!("{}", err.source().unwrap()), "failed to get etag");
+        assert_eq!(
+            format!("{err:?}"),
+            "OssError { kind: File(FileError { kind: EtagNotFound }) }"
+        );
     }
 
     #[test]
@@ -309,6 +317,10 @@ mod debug {
         assert_eq!(
             format!("{}", err.source().unwrap()),
             "invalid canonicalized-resource"
+        );
+        assert_eq!(
+            format!("{err:?}"),
+            "OssError { kind: Auth(AuthError { kind: InvalidCanonicalizedResource }) }"
         );
     }
 
@@ -321,6 +333,10 @@ mod debug {
             format!("{}", err.source().unwrap()),
             "decode bucket xml faild, gived str: foo"
         );
+        assert_eq!(
+            format!("{err:?}"),
+            "OssError { kind: Bucket(BucketError { source: \"foo\", kind: InvalidStorageClass }) }"
+        );
     }
 
     #[test]
@@ -331,6 +347,10 @@ mod debug {
         assert_eq!(
             format!("{}", err.source().unwrap()),
             "parse bar failed, gived str: foo"
+        );
+        assert_eq!(
+            format!("{err:?}"),
+            "OssError { kind: ObjectList(ObjectListError { source: \"foo\", kind: Bar }) }"
         );
     }
 }
