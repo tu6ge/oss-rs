@@ -627,7 +627,7 @@ mod test_bucket_error {
         assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
         assert_eq!(
             format!("{}", error.source().unwrap()),
-            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+            "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
         );
 
         let error = BucketError {

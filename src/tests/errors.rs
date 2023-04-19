@@ -100,7 +100,7 @@ mod debug {
 
         assert_eq!(
             format!("{err}"),
-            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+            "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
         );
 
         fn bar() -> Error {
@@ -121,7 +121,7 @@ mod debug {
 
         //   assert_eq!(
         //     format!("{}", err.source().unwrap()),
-        //     "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+        //     "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
         // );
 
         fn bar() -> Error {

@@ -723,12 +723,12 @@ impl fmt::Display for InvalidBucketName {
     /// # use aliyun_oss_client::types::BucketName;
     ///
     /// let err = BucketName::from_static("").unwrap_err();
-    /// assert_eq!(format!("{}", err), "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾");
+    /// assert_eq!(format!("{}", err), "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix");
     /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+            "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
         )
     }
 }

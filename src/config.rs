@@ -655,7 +655,7 @@ mod tests {
         assert_eq!(format!("{error}"), "get config faild, source: -oss");
         assert_eq!(
             format!("{}", error.source().unwrap()),
-            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+            "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
         );
 
         let err = get_env("aaa").unwrap_err();
@@ -738,7 +738,7 @@ mod tests {
         assert_eq!(format!("{error2}"), "get bucket base faild, source: abc");
         assert_eq!(
             format!("{}", error2.source().unwrap()),
-            "bucket 名称只允许小写字母、数字、短横线（-），且不能以短横线开头或结尾"
+            "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
         );
 
         let error2 = InvalidBucketBase {
