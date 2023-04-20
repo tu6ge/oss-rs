@@ -1,3 +1,7 @@
+use crate::file::{error_impl::FileErrorKind, Files};
+
+use super::header_from_content_length;
+
 mod tests_get_std {
     use reqwest::Url;
     use std::sync::Arc;
@@ -219,6 +223,7 @@ mod error {
     use crate::{
         builder::{BuilderError, BuilderErrorKind},
         file::{error_impl::FileErrorKind, FileError},
+        tests::reqwest_error,
     };
 
     #[cfg(feature = "put_file")]
@@ -293,19 +298,7 @@ mod error {
 
     #[tokio::test]
     async fn test_reqwest() {
-        use http::response::Builder;
-        use reqwest::Response;
-        use serde::Deserialize;
-
-        let response = Builder::new().status(200).body("aaaa").unwrap();
-
-        #[derive(Debug, Deserialize)]
-        struct Ip;
-
-        let response = Response::from(response);
-        let err = response.json::<Ip>().await.unwrap_err();
-
-        let err = FileError::from(err);
+        let err = FileError::from(reqwest_error().await);
         assert_eq!(format!("{err}"), "reqwest error");
         assert_eq!(
             format!("{}", err.source().unwrap()),
@@ -350,4 +343,53 @@ mod error {
             "FileError { kind: NotFoundCanonicalizedResource }"
         );
     }
+}
+
+#[tokio::test]
+async fn test_put_content_base_error() {
+    use crate::client::ClientArc;
+    let client = ClientArc::test_init();
+
+    let err = client
+        .put_content_base("aa".into(), "image/jpg", "aaa/")
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        err.kind,
+        FileErrorKind::NotFoundCanonicalizedResource
+    ));
+
+    let err = client
+        .put_content_base("aa".into(), "\n", "aaa")
+        .await
+        .unwrap_err();
+    assert!(matches!(err.kind, FileErrorKind::InvalidContentType(_)));
+}
+
+#[test]
+fn test_header_from_content_length() {
+    let err = header_from_content_length("\n").unwrap_err();
+    assert!(matches!(err.kind, FileErrorKind::InvalidContentLength(_)));
+}
+
+#[tokio::test]
+async fn test_get_object_error() {
+    use crate::client::ClientArc;
+    let client = ClientArc::test_init();
+    let err = client.get_object("aaa/", ..).await.unwrap_err();
+    assert!(matches!(
+        err.kind,
+        FileErrorKind::NotFoundCanonicalizedResource
+    ));
+}
+
+#[tokio::test]
+async fn test_delete_object_error() {
+    use crate::client::ClientArc;
+    let client = ClientArc::test_init();
+    let err = client.delete_object("aaa/").await.unwrap_err();
+    assert!(matches!(
+        err.kind,
+        FileErrorKind::NotFoundCanonicalizedResource
+    ));
 }

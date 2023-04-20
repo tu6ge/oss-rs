@@ -588,7 +588,10 @@ fn test_default_list_bucket() {
 mod test_extract_item_error {
     use std::error::Error;
 
-    use crate::{bucket::ExtractItemError, builder::BuilderError, decode::InnerItemError};
+    use crate::{
+        bucket::ExtractItemError, builder::BuilderError, decode::InnerItemError,
+        tests::reqwest_error,
+    };
 
     #[test]
     fn from_builder() {
@@ -599,6 +602,17 @@ mod test_extract_item_error {
         assert_eq!(
             format!("{:?}", err),
             "ExtractItemError { kind: Builder(BuilderError { kind: Bar }) }"
+        );
+    }
+
+    #[tokio::test]
+    async fn from_reqwest() {
+        let err = ExtractItemError::from(reqwest_error().await);
+
+        assert_eq!(format!("{}", err), "reqwest error");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "error decoding response body: expected value at line 1 column 1"
         );
     }
 
@@ -620,46 +634,38 @@ mod test_bucket_error {
     use super::super::*;
     #[test]
     fn display() {
-        let error = BucketError {
-            kind: BucketErrorKind::BucketName(InvalidBucketName { _priv: () }),
-            source: "abc".to_string(),
-        };
-        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
+        let mut bucket = Bucket::<ArcPointer>::default();
+        let error = RefineBucket::<BucketError>::set_name(&mut bucket, "-abc").unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "decode bucket xml faild, gived str: -abc"
+        );
         assert_eq!(
             format!("{}", error.source().unwrap()),
             "bucket name only allow `alphabet, digit, -`, and must not with `-` prefix or `-` suffix"
         );
 
-        let error = BucketError {
-            kind: BucketErrorKind::EndPoint(InvalidEndPoint { _priv: () }),
-            source: "abc".to_string(),
-        };
-        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
+        let error = RefineBucket::<BucketError>::set_location(&mut bucket, "oss").unwrap_err();
+        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: oss");
         assert_eq!(
             format!("{}", error.source().unwrap()),
             "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
         );
 
-        let error = "aaa".parse::<DateTime<Utc>>().unwrap_err();
-        let error = BucketError {
-            kind: BucketErrorKind::Chrono(error),
-            source: "bar".to_string(),
-        };
-        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: bar");
+        let error = RefineBucket::<BucketError>::set_creation_date(&mut bucket, "oss").unwrap_err();
+        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: oss");
         assert_eq!(
             format!("{}", error.source().unwrap()),
             "input contains invalid characters"
         );
 
-        let error = BucketError {
-            kind: BucketErrorKind::InvalidStorageClass,
-            source: "abc".to_string(),
-        };
-        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: abc");
+        assert!(RefineBucket::<BucketError>::set_storage_class(&mut bucket, "").is_err());
+        let error = RefineBucket::<BucketError>::set_storage_class(&mut bucket, "xxx").unwrap_err();
+        assert_eq!(error.to_string(), "decode bucket xml faild, gived str: xxx");
         assert!(error.source().is_none());
         assert_eq!(
             format!("{error:?}"),
-            "BucketError { source: \"abc\", kind: InvalidStorageClass }"
+            "BucketError { source: \"xxx\", kind: InvalidStorageClass }"
         );
     }
 }

@@ -23,7 +23,7 @@ use crate::{
 use reqwest::{Client, Request, Response};
 
 #[cfg(test)]
-mod test;
+pub(crate) mod test;
 
 pub trait PointerFamily
 where

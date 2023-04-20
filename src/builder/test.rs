@@ -23,23 +23,12 @@ mod error {
         builder::{BuilderError, BuilderErrorKind},
         config::get_endpoint,
         errors::OssService,
+        tests::reqwest_error,
     };
 
     #[tokio::test]
     async fn from_reqwest() {
-        use http::response::Builder;
-        use reqwest::Response;
-        use serde::Deserialize;
-
-        let response = Builder::new().status(200).body("aaaa").unwrap();
-
-        #[derive(Debug, Deserialize)]
-        struct Ip;
-
-        let response = Response::from(response);
-        let err = response.json::<Ip>().await.unwrap_err();
-
-        let builder_err = BuilderError::from(err);
+        let builder_err = BuilderError::from(reqwest_error().await);
         assert_eq!(format!("{builder_err}"), "reqwest error");
         assert_eq!(
             format!("{}", builder_err.source().unwrap()),

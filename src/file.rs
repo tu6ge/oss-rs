@@ -130,8 +130,7 @@ where
         ];
 
         self.oss_client()
-            .builder_with_header(Method::PUT, url, canonicalized, headers)
-            .map_err(FileError::from)?
+            .builder_with_header(Method::PUT, url, canonicalized, headers)?
             .body(content)
             .send_adjust_error()
             .await
@@ -155,13 +154,11 @@ where
 
         let content = self
             .oss_client()
-            .builder_with_header(Method::GET, url, canonicalized, list)
-            .map_err(FileError::from)?
+            .builder_with_header(Method::GET, url, canonicalized, list)?
             .send_adjust_error()
             .await?
             .text()
-            .await
-            .map_err(FileError::from)?;
+            .await?;
 
         Ok(content.into_bytes())
     }
@@ -173,11 +170,9 @@ where
         })?;
 
         self.oss_client()
-            .builder(Method::DELETE, url, canonicalized)
-            .map_err(FileError::from)?
+            .builder(Method::DELETE, url, canonicalized)?
             .send_adjust_error()
-            .await
-            .map_err(FileError::from)?;
+            .await?;
 
         Ok(())
     }
@@ -490,12 +485,7 @@ where
 
         let content_length = content.len().to_string();
         let headers = vec![
-            (
-                CONTENT_LENGTH,
-                HeaderValue::from_str(&content_length).map_err(|e| FileError {
-                    kind: FileErrorKind::InvalidContentLength(e),
-                })?,
-            ),
+            (CONTENT_LENGTH, header_from_content_length(&content_length)?),
             (
                 CONTENT_TYPE,
                 content_type.parse().map_err(|e| FileError {
@@ -504,8 +494,7 @@ where
             ),
         ];
 
-        self.builder_with_header(Method::PUT, url, canonicalized, headers)
-            .map_err(FileError::from)?
+        self.builder_with_header(Method::PUT, url, canonicalized, headers)?
             .body(content)
             .send_adjust_error()
             .await
@@ -526,14 +515,11 @@ where
         let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
 
         let content = self
-            .builder_with_header(Method::GET, url, canonicalized, list)
-            .map_err(FileError::from)?
+            .builder_with_header(Method::GET, url, canonicalized, list)?
             .send_adjust_error()
-            .await
-            .map_err(FileError::from)?
+            .await?
             .text()
-            .await
-            .map_err(FileError::from)?;
+            .await?;
 
         Ok(content.into_bytes())
     }
@@ -544,14 +530,18 @@ where
             kind: FileErrorKind::NotFoundCanonicalizedResource,
         })?;
 
-        self.builder(Method::DELETE, url, canonicalized)
-            .map_err(FileError::from)?
+        self.builder(Method::DELETE, url, canonicalized)?
             .send_adjust_error()
-            .await
-            .map_err(FileError::from)?;
+            .await?;
 
         Ok(())
     }
+}
+
+fn header_from_content_length(content: &str) -> Result<HeaderValue, FileError> {
+    HeaderValue::from_str(content).map_err(|e| FileError {
+        kind: FileErrorKind::InvalidContentLength(e),
+    })
 }
 
 /// # 为更多的类型实现 上传，下载，删除等功能

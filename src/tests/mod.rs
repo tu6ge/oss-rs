@@ -5,4 +5,18 @@ mod client;
 mod errors;
 
 #[cfg(feature = "core")]
-pub(crate) mod object;
+pub mod object;
+
+pub async fn reqwest_error() -> reqwest::Error {
+    use http::response::Builder;
+    use reqwest::Response;
+    use serde::Deserialize;
+
+    let response = Builder::new().status(200).body("aaaa").unwrap();
+
+    #[derive(Debug, Deserialize)]
+    struct Ip;
+
+    let response = Response::from(response);
+    response.json::<Ip>().await.unwrap_err()
+}

@@ -508,6 +508,7 @@ mod extract_list_error {
         builder::BuilderError,
         decode::InnerListError,
         object::{ExtractListError, ExtractListErrorKind},
+        tests::reqwest_error,
     };
 
     #[test]
@@ -516,6 +517,17 @@ mod extract_list_error {
 
         assert_eq!(format!("{}", err), "builder error");
         assert_eq!(format!("{}", err.source().unwrap()), "bar");
+    }
+
+    #[tokio::test]
+    async fn reqwest() {
+        let err = ExtractListError::from(reqwest_error().await);
+
+        assert_eq!(format!("{}", err), "reqwest error");
+        assert_eq!(
+            format!("{}", err.source().unwrap()),
+            "error decoding response body: expected value at line 1 column 1"
+        );
     }
 
     #[test]

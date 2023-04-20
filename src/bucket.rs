@@ -376,10 +376,7 @@ impl Bucket {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
-        list.decode(
-            &content.text().await.map_err(BuilderError::from)?,
-            init_object,
-        )?;
+        list.decode(&content.text().await?, init_object)?;
 
         list.set_bucket(self.base.clone());
         list.set_client(self.client());
@@ -415,7 +412,7 @@ impl Bucket<RcPointer> {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text().map_err(BuilderError::from)?, init_object)?;
+        list.decode(&content.text()?, init_object)?;
 
         list.set_bucket(self.base.clone());
         list.set_client(self.client());
@@ -510,14 +507,7 @@ impl ClientArc {
         let response = self.builder(Method::GET, url, canonicalized)?;
         let content = response.send_adjust_error().await?;
 
-        list.decode(
-            &content
-                .text()
-                .await
-                .map_err(BuilderError::from)
-                .map_err(ExtractListError::from)?,
-            init_bucket,
-        )?;
+        list.decode(&content.text().await?, init_bucket)?;
 
         Ok(())
     }
@@ -554,7 +544,7 @@ impl ClientArc {
         let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error().await?;
 
-        bucket.decode(&content.text().await.map_err(BuilderError::from)?)?;
+        bucket.decode(&content.text().await?)?;
 
         Ok(())
     }
@@ -575,6 +565,8 @@ pub(crate) enum ExtractItemErrorKind {
     #[doc(hidden)]
     Builder(BuilderError),
 
+    Reqwest(reqwest::Error),
+
     #[doc(hidden)]
     Decode(InnerItemError),
 }
@@ -584,6 +576,14 @@ impl From<BuilderError> for ExtractItemError {
         use ExtractItemErrorKind::*;
         Self {
             kind: Builder(value),
+        }
+    }
+}
+impl From<reqwest::Error> for ExtractItemError {
+    fn from(value: reqwest::Error) -> Self {
+        use ExtractItemErrorKind::*;
+        Self {
+            kind: Reqwest(value),
         }
     }
 }
@@ -600,6 +600,7 @@ impl Display for ExtractItemError {
         use ExtractItemErrorKind::*;
         match &self.kind {
             Builder(_) => "builder error".fmt(f),
+            Reqwest(_) => "reqwest error".fmt(f),
             Decode(_) => "decode xml failed".fmt(f),
         }
     }
@@ -609,6 +610,7 @@ impl Error for ExtractItemError {
         use ExtractItemErrorKind::*;
         match &self.kind {
             Builder(b) => Some(b),
+            Reqwest(b) => Some(b),
             Decode(d) => d.get_source(),
         }
     }
@@ -654,7 +656,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, url, canonicalized)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text().map_err(BuilderError::from)?, init_bucket)?;
+        list.decode(&content.text()?, init_bucket)?;
 
         Ok(())
     }
@@ -692,7 +694,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error()?;
 
-        bucket.decode(&content.text().map_err(BuilderError::from)?)?;
+        bucket.decode(&content.text()?)?;
 
         Ok(())
     }
