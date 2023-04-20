@@ -6,7 +6,7 @@ use std::error::Error;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::str::FromStr;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone};
 use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
 use url::Url;
 
@@ -15,6 +15,8 @@ pub mod object;
 
 #[cfg(feature = "core")]
 pub mod core;
+#[cfg(test)]
+mod test;
 #[cfg(feature = "core")]
 pub use self::core::{ContentRange, Query, QueryKey, QueryValue, UrlQuery};
 
@@ -876,31 +878,19 @@ impl TryInto<HeaderValue> for InnerDate<'_> {
         HeaderValue::from_str(self.as_ref())
     }
 }
-impl From<String> for InnerDate<'_> {
-    fn from(s: String) -> Self {
-        Self(Cow::Owned(s))
-    }
-}
-impl<'a: 'b, 'b> From<&'a str> for InnerDate<'b> {
-    fn from(date: &'a str) -> Self {
-        Self::new(date)
-    }
-}
 
-impl From<DateTime<Utc>> for Date {
-    fn from(d: DateTime<Utc>) -> Self {
+impl<Tz: TimeZone> From<DateTime<Tz>> for Date
+where
+    Tz::Offset: fmt::Display,
+{
+    fn from(d: DateTime<Tz>) -> Self {
         Self(Cow::Owned(d.format("%a, %d %b %Y %T GMT").to_string()))
     }
 }
 
 impl<'a> InnerDate<'a> {
-    /// Creates a new `Date` from the given string.
-    pub fn new(val: impl Into<Cow<'a, str>>) -> Self {
-        Self(val.into())
-    }
-
     /// Const function that creates a new `Date` from a static str.
-    pub const fn from_static(val: &'static str) -> Self {
+    pub const unsafe fn from_static(val: &'static str) -> Self {
         Self(Cow::Borrowed(val))
     }
 }

@@ -6,7 +6,7 @@ use http::{
 };
 use mockall::mock;
 
-use crate::types::KeyId;
+use crate::types::{Date, KeyId};
 
 use super::{
     AppendAuthHeader, AuthBuilder, AuthError, AuthErrorKind, AuthHeader, AuthSignString,
@@ -339,7 +339,7 @@ fn test_append_auth() {
     builder.secret("foo2");
     builder.method(&Method::POST);
     builder.content_md5("foo4");
-    builder.date("foo_date");
+    builder.date(unsafe { Date::from_static("foo_date") });
     builder.canonicalized_resource("foo5");
     builder.header_insert("Content-Type", "foo6".try_into().unwrap());
     let auth = builder.build();
@@ -478,7 +478,7 @@ mod sign_string_struct {
             verb: Method::GET,
             content_md5: ContentMd5::new("foo3"),
             content_type: ContentType::new("foo4"),
-            date: Date::new("foo5"),
+            date: unsafe { Date::from_static("foo5") },
             canonicalized_resource: CanonicalizedResource::new("foo6"),
         };
 
@@ -533,7 +533,7 @@ fn test_sign_to_headervalue() {
 mod get_headers {
     use http::{HeaderMap, Method};
 
-    use crate::auth::AuthBuilder;
+    use crate::{auth::AuthBuilder, types::Date};
 
     /// 集成测试，其他的都是单元测试
     #[test]
@@ -543,7 +543,7 @@ mod get_headers {
         builder.secret("foo2");
         builder.method(&Method::POST);
         builder.content_md5("foo4");
-        builder.date("foo_date");
+        builder.date(unsafe { Date::from_static("foo_date") });
         builder.canonicalized_resource("foo5");
         builder.header_insert("Content-Type", "foo6".try_into().unwrap());
         let map = builder.build().get_headers();
@@ -571,7 +571,7 @@ mod get_headers {
         builder.secret("foo2");
         builder.method(&Method::POST);
         builder.content_md5("foo4");
-        builder.date("foo_date");
+        builder.date(unsafe { Date::from_static("foo_date") });
         builder.canonicalized_resource("foo5");
         builder.header_insert("Content-Type", "foo6".try_into().unwrap());
         let auth = builder.build();
