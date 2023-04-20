@@ -4,7 +4,7 @@ use aliyun_oss_client::{
     config::get_url_resource,
     file::{File, FileError, GetStd},
     types::CanonicalizedResource,
-    BucketName, Client, EndPoint, KeyId, KeySecret,
+    BucketName, Client, EndPoint, Error as OssError, KeyId, KeySecret,
 };
 use reqwest::Url;
 
@@ -44,7 +44,7 @@ impl File<Client> for MyObject {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), FileError> {
+async fn main() -> Result<(), OssError> {
     for entry in fs::read_dir("examples")? {
         let path = entry?.path();
         let path = path.as_path();

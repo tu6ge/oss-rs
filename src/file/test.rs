@@ -393,3 +393,48 @@ async fn test_delete_object_error() {
         FileErrorKind::NotFoundCanonicalizedResource
     ));
 }
+
+#[cfg(feature = "blocking")]
+mod blocking_files_trait {
+    use crate::{
+        file::{error_impl::FileErrorKind, BlockingFiles},
+        ClientRc,
+    };
+
+    #[test]
+    fn test_put_content_base_error() {
+        let client = ClientRc::test_init();
+        let err = client
+            .put_content_base("aa".into(), "image/jpg", "aaa/")
+            .unwrap_err();
+        assert!(matches!(
+            err.kind,
+            FileErrorKind::NotFoundCanonicalizedResource
+        ));
+
+        let err = client
+            .put_content_base("aa".into(), "\n", "aaa")
+            .unwrap_err();
+        assert!(matches!(err.kind, FileErrorKind::InvalidContentType(_)));
+    }
+
+    #[test]
+    fn test_get_object_error() {
+        let client = ClientRc::test_init();
+        let err = client.get_object("aaa/", ..).unwrap_err();
+        assert!(matches!(
+            err.kind,
+            FileErrorKind::NotFoundCanonicalizedResource
+        ));
+    }
+
+    #[test]
+    fn test_delete_object_error() {
+        let client = ClientRc::test_init();
+        let err = client.delete_object("aaa/").unwrap_err();
+        assert!(matches!(
+            err.kind,
+            FileErrorKind::NotFoundCanonicalizedResource
+        ));
+    }
+}

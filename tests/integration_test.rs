@@ -124,11 +124,9 @@ mod test_async {
     // }
 }
 
-#[cfg(all(feature = "blocking", not(tarpaulin)))]
+#[cfg(feature = "blocking")]
 mod test_blocking {
 
-    #[cfg(feature = "put_file")]
-    use aliyun_oss_client::file::BlockingFile;
     use aliyun_oss_client::ClientRc;
     use assert_matches::assert_matches;
     use dotenv::dotenv;
@@ -197,6 +195,7 @@ mod test_blocking {
     #[cfg(feature = "put_file")]
     #[test]
     fn test_put_and_delete_file() {
+        use aliyun_oss_client::file::BlockingFiles;
         dotenv().ok();
 
         let client = ClientRc::from_env().unwrap();

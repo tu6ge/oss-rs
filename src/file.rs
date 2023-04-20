@@ -702,7 +702,7 @@ impl<Item: RefineObject<E> + Send + Sync, E: Error + Send + Sync> AlignBuilder
 }
 
 #[cfg(feature = "blocking")]
-pub use blocking::Files as BlockingFile;
+pub use blocking::Files as BlockingFiles;
 
 use self::error_impl::FileErrorKind;
 
@@ -710,7 +710,7 @@ use self::error_impl::FileErrorKind;
 #[cfg(feature = "blocking")]
 pub mod blocking {
 
-    use super::{error_impl::FileErrorKind, FileError, GetStdWithPath};
+    use super::{error_impl::FileErrorKind, header_from_content_length, FileError, GetStdWithPath};
     use crate::{
         blocking::builder::RequestBuilder,
         bucket::Bucket,
@@ -766,7 +766,7 @@ pub mod blocking {
         /// # use dotenv::dotenv;
         /// # dotenv().ok();
         /// # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
-        /// use crate::aliyun_oss_client::file::BlockingFile;
+        /// use crate::aliyun_oss_client::file::BlockingFiles;
         ///
         /// fn sig_match(buf: &[u8]) -> bool {
         ///     return buf.len() >= 3 && buf[0] == 0x64 && buf[1] == 0x57 && buf[2] == 0x35;
@@ -823,12 +823,7 @@ pub mod blocking {
 
             let content_length = content.len().to_string();
             let headers = vec![
-                (
-                    CONTENT_LENGTH,
-                    HeaderValue::from_str(&content_length).map_err(|e| FileError {
-                        kind: FileErrorKind::InvalidContentLength(e),
-                    })?,
-                ),
+                (CONTENT_LENGTH, header_from_content_length(&content_length)?),
                 (
                     CONTENT_TYPE,
                     content_type.parse().map_err(|e| FileError {
@@ -838,8 +833,7 @@ pub mod blocking {
             ];
 
             let response = self
-                .builder_with_header(Method::PUT, url, canonicalized, headers)
-                .map_err(FileError::from)?
+                .builder_with_header(Method::PUT, url, canonicalized, headers)?
                 .body(content);
 
             response.send_adjust_error().map_err(FileError::from)
@@ -860,12 +854,9 @@ pub mod blocking {
                 vec![("Range".parse().unwrap(), range.into().into())];
 
             Ok(self
-                .builder_with_header(Method::GET, url, canonicalized, headers)
-                .map_err(FileError::from)?
-                .send_adjust_error()
-                .map_err(FileError::from)?
-                .text()
-                .map_err(FileError::from)?
+                .builder_with_header(Method::GET, url, canonicalized, headers)?
+                .send_adjust_error()?
+                .text()?
                 .into_bytes())
         }
 
@@ -875,10 +866,8 @@ pub mod blocking {
                 kind: FileErrorKind::NotFoundCanonicalizedResource,
             })?;
 
-            self.builder(Method::DELETE, url, canonicalized)
-                .map_err(FileError::from)?
-                .send_adjust_error()
-                .map_err(FileError::from)?;
+            self.builder(Method::DELETE, url, canonicalized)?
+                .send_adjust_error()?;
 
             Ok(())
         }

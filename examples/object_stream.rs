@@ -16,7 +16,7 @@ async fn main() {
     println!(
         "list: {:?}, token: {:?}",
         object_list,
-        object_list.next_continuation_token()
+        object_list.next_continuation_token_str()
     );
 
     let stream = object_list.into_stream();

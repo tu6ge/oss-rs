@@ -999,7 +999,7 @@ async fn test_delete_object() {
 #[test]
 fn test_blocking_delete_object() {
     use crate::client::ClientRc;
-    use crate::{blocking::builder::Middleware, file::BlockingFile};
+    use crate::{blocking::builder::Middleware, file::BlockingFiles};
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
