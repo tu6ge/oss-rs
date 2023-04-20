@@ -1,22 +1,23 @@
 //! lib 内置类型的定义模块
 
-use std::borrow::Cow;
-
-use std::error::Error;
-use std::fmt::{self, Debug, Display, Formatter};
-use std::str::FromStr;
+use std::{
+    borrow::Cow,
+    error::Error,
+    fmt::{self, Debug, Display, Formatter},
+    str::FromStr,
+};
 
 use chrono::{DateTime, TimeZone};
 use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
 use url::Url;
 
 #[cfg(feature = "core")]
-pub mod object;
-
-#[cfg(feature = "core")]
 pub mod core;
+#[cfg(feature = "core")]
+pub mod object;
 #[cfg(test)]
 mod test;
+
 #[cfg(feature = "core")]
 pub use self::core::{ContentRange, Query, QueryKey, QueryValue, UrlQuery};
 
@@ -956,7 +957,7 @@ impl<'a> InnerCanonicalizedResource<'a> {
     }
 
     /// 根据 OSS 存储对象（Object）查询签名参数
-    #[cfg(any(feature = "core"))]
+    #[cfg(feature = "core")]
     pub(crate) fn from_object<
         Q: IntoIterator<Item = (QueryKey, QueryValue)>,
         B: AsRef<str>,
@@ -978,7 +979,7 @@ impl<'a> InnerCanonicalizedResource<'a> {
         }
     }
 
-    #[cfg(any(feature = "auth"))]
+    #[cfg(feature = "auth")]
     pub(crate) fn from_object_without_query<B: AsRef<str>, P: AsRef<str>>(
         bucket: B,
         path: P,

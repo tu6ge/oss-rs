@@ -11,7 +11,6 @@ use std::error::Error;
 use std::rc::Rc;
 use std::{fmt::Display, sync::Arc, time::Duration};
 
-#[cfg(feature = "auth")]
 use crate::auth::AuthError;
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
@@ -177,7 +176,6 @@ pub(crate) enum BuilderErrorKind {
 
     OssService(OssService),
 
-    #[cfg(feature = "auth")]
     Auth(AuthError),
 
     Config(InvalidConfig),
@@ -192,7 +190,6 @@ impl Display for BuilderError {
         match &self.kind {
             Reqwest(_) => "reqwest error".fmt(f),
             OssService(_) => "http status is not success".fmt(f),
-            #[cfg(feature = "auth")]
             Auth(_) => "aliyun auth failed".fmt(f),
             Config(_) => "oss config error".fmt(f),
             #[cfg(test)]
@@ -207,7 +204,6 @@ impl Error for BuilderError {
         match &self.kind {
             Reqwest(e) => Some(e),
             OssService(e) => Some(e),
-            #[cfg(feature = "auth")]
             Auth(e) => Some(e),
             Config(e) => Some(e),
             #[cfg(test)]
@@ -231,7 +227,6 @@ impl From<OssService> for BuilderError {
     }
 }
 
-#[cfg(feature = "auth")]
 impl From<AuthError> for BuilderError {
     fn from(value: AuthError) -> Self {
         Self {

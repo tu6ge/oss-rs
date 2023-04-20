@@ -53,7 +53,6 @@ mod error {
     }
 
     #[test]
-    #[cfg(feature = "auth")]
     fn from_auth() {
         use std::error::Error;
 

@@ -230,25 +230,6 @@ let client = aliyun_oss_client::Client::new(
 #[cfg(all(feature = "bench", test))]
 extern crate test;
 
-pub mod types;
-#[cfg(feature = "core")]
-use builder::ClientWithMiddleware;
-#[cfg(feature = "core")]
-use config::Config;
-
-/// 重新导出 http 库的一些方法，便于开发者调用 lib 未提供的 api
-#[cfg(feature = "core")]
-pub use http::{
-    header::{HeaderMap, HeaderName, HeaderValue},
-    Method,
-};
-
-#[cfg(feature = "core")]
-pub use types::object::{ObjectDir, ObjectPath};
-pub use types::{BucketName, EndPoint, KeyId, KeySecret};
-#[cfg(feature = "core")]
-pub use types::{Query, QueryKey, QueryValue};
-
 #[cfg(feature = "auth")]
 pub mod auth;
 
@@ -264,10 +245,6 @@ pub mod builder;
 
 #[cfg(feature = "core")]
 pub mod client;
-#[cfg(feature = "core")]
-pub use client::ClientArc as Client;
-#[cfg(feature = "blocking")]
-pub use client::ClientRc;
 
 #[cfg(feature = "core")]
 pub mod config;
@@ -275,29 +252,8 @@ pub mod config;
 #[cfg(feature = "decode")]
 pub mod decode;
 
-/// 重新导出 derive 用于解析xml数据
-///
-/// ```rust
-/// # use aliyun_oss_client::DecodeListError;
-/// # use std::fmt;
-/// #[derive(DecodeListError, Debug)]
-/// struct MyError {}
-///
-/// impl std::error::Error for MyError {}
-///
-/// impl fmt::Display for MyError {
-///     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         write!(f, "demo")
-///     }
-/// }
-/// ```
-#[cfg(feature = "decode")]
-pub use oss_derive::DecodeListError;
-
 #[cfg(feature = "core")]
 pub mod errors;
-#[cfg(feature = "core")]
-pub use errors::{OssError as Error, OssResult as Result};
 
 #[cfg(feature = "core")]
 pub mod file;
@@ -308,9 +264,31 @@ pub mod object;
 #[cfg(feature = "sts")]
 pub mod sts;
 
+pub mod types;
+
 #[allow(soft_unstable)]
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "core")]
+pub use client::ClientArc as Client;
+#[cfg(feature = "blocking")]
+pub use client::ClientRc;
+#[cfg(feature = "core")]
+pub use errors::{OssError as Error, OssResult as Result};
+#[cfg(feature = "core")]
+pub use http::{
+    header::{HeaderMap, HeaderName, HeaderValue},
+    Method,
+};
+#[cfg(feature = "decode")]
+pub use oss_derive::DecodeListError;
+#[cfg(feature = "core")]
+pub use types::{
+    object::{ObjectDir, ObjectPath},
+    Query, QueryKey, QueryValue,
+};
+pub use types::{BucketName, EndPoint, KeyId, KeySecret};
 
 #[cfg(all(doctest, not(tarpaulin)))]
 #[doc = include_str!("../README.md")]
@@ -332,6 +310,10 @@ where
     E: Into<EndPoint>,
     B: Into<BucketName>,
 {
+    use config::Config;
     let config = Config::new(access_key_id, access_key_secret, endpoint, bucket);
     client::Client::<ClientWithMiddleware>::from_config(config)
 }
+
+#[cfg(feature = "core")]
+use builder::ClientWithMiddleware;
