@@ -140,7 +140,14 @@ impl AuthToHeaderMap for InnerAuth<'_> {
         self.access_key_id.as_ref().try_into()
     }
     fn get_header_secret(&self) -> Result<HeaderValue, InvalidHeaderValue> {
-        self.access_key_secret.as_ref().try_into()
+        self.access_key_secret
+            .as_ref()
+            .try_into()
+            .and_then(|secret| {
+                let mut value: HeaderValue = secret;
+                value.set_sensitive(true);
+                Ok(value)
+            })
     }
     fn get_header_method(&self) -> Result<HeaderValue, InvalidHeaderValue> {
         self.method.as_str().try_into()
@@ -298,7 +305,9 @@ impl AuthHeader for HeaderMap {
         &mut self,
         sign: S,
     ) -> Result<Option<HeaderValue>, InvalidHeaderValue> {
-        let res = self.insert(AUTHORIZATION, sign.try_into()?);
+        let mut value: HeaderValue = sign.try_into()?;
+        value.set_sensitive(true);
+        let res = self.insert(AUTHORIZATION, value);
         Ok(res)
     }
 }
