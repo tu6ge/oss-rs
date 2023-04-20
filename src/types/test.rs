@@ -18,8 +18,8 @@ fn key_id() {
 
     assert!(TryInto::<HeaderValue>::try_into(key).is_ok());
 
-    const KEY2: KeyId = KeyId::from_static("aaa");
-    assert_eq!(format!("{KEY2}"), "aaa");
+    let key2 = KeyId::from_static("aaa");
+    assert_eq!(format!("{key2}"), "aaa");
 }
 
 #[test]
@@ -27,25 +27,25 @@ fn secret() {
     let secret = KeySecret::new("aaa");
     assert_eq!(format!("{secret}"), "aaa");
 
-    const KEY2: KeySecret = KeySecret::from_static("aaa");
-    assert_eq!(format!("{KEY2}"), "aaa");
-    assert_eq!(KEY2.as_bytes(), b"aaa");
+    let key2 = KeySecret::from_static("aaa");
+    assert_eq!(format!("{key2}"), "aaa");
+    assert_eq!(key2.as_bytes(), b"aaa");
 }
 
 #[test]
 fn endpoint() {
-    const END: EndPoint = unsafe { EndPoint::from_static2("aaa") };
+    let end = unsafe { EndPoint::from_static2("aaa") };
 
-    assert_eq!(END.as_ref(), "aaa");
+    assert_eq!(end.as_ref(), "aaa");
 
     let end1 = EndPoint::Other(Cow::Borrowed("aaa"));
     assert_eq!(end1.as_ref(), "aaa");
 
     assert!(EndPoint::new("").is_err());
 
-    assert!(END == end1);
-    assert!(END == "aaa");
-    assert!("aaa" == END);
+    assert!(end == end1);
+    assert!(end == "aaa");
+    assert!("aaa" == end);
 
     let endpoint = EndPoint::new("shanghai").unwrap();
     assert!(endpoint == Url::parse("https://oss-cn-shanghai.aliyuncs.com").unwrap());
@@ -71,8 +71,8 @@ fn bucket_name() {
 
 #[test]
 fn content_md5() {
-    const VALUE: ContentMd5 = ContentMd5::from_static("aaa");
-    assert!(TryInto::<HeaderValue>::try_into(VALUE).is_ok());
+    let value: crate::types::InnerContentMd5 = ContentMd5::from_static("aaa");
+    assert!(TryInto::<HeaderValue>::try_into(value).is_ok());
 }
 
 #[test]
@@ -87,9 +87,9 @@ fn content_type() {
 
 #[test]
 fn date() {
-    const DATE: Date = unsafe { Date::from_static("Sat, 01 Jan 2022 18:01:01 GMT") };
+    let date = unsafe { Date::from_static("Sat, 01 Jan 2022 18:01:01 GMT") };
 
-    assert_eq!(format!("{DATE}"), "Sat, 01 Jan 2022 18:01:01 GMT");
+    assert_eq!(format!("{date}"), "Sat, 01 Jan 2022 18:01:01 GMT");
 
     let utc = Utc.with_ymd_and_hms(2022, 1, 1, 18, 1, 1).unwrap();
 
@@ -126,7 +126,7 @@ mod tests_canonicalized_resource {
         assert!(value == "/aaa/");
 
         let value = CanonicalizedResource::from_bucket_name(&name, None);
-        assert!(value == "/");
+        assert!("/" == value);
     }
 
     #[cfg(feature = "core")]
