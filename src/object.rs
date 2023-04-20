@@ -124,6 +124,7 @@ pub struct ObjectList<
     max_keys: u32,
     key_count: u64,
     /// 存放单个文件对象的 Vec 集合
+    #[deprecated(since = "0.12.0", note = "replace with to_vec()")]
     pub object_list: Vec<Item>,
     next_continuation_token: Option<String>,
     common_prefixes: CommonPrefixes,
@@ -447,6 +448,11 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: ItemError> ObjectList<T, Item, 
     /// 获取 bucket 名称
     pub fn bucket_name(&self) -> &str {
         self.bucket.name()
+    }
+
+    /// 获取 object 对象的 vec 集合
+    pub fn to_vec(self) -> Vec<Item> {
+        self.object_list
     }
 
     /// 返回文件数量

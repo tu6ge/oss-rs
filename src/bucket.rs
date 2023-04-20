@@ -41,6 +41,7 @@ pub struct ListBuckets<
     id: String,
     display_name: String,
     /// 存放单个 bucket 类型的 vec 集合
+    #[deprecated(since = "0.12.0", note = "replace with to_vec()")]
     pub buckets: Vec<Item>,
     client: PointerSel::PointerType,
     ph_err: PhantomData<E>,
@@ -107,6 +108,11 @@ impl<Item: RefineBucket<E>, E: ItemError> ListBuckets<ArcPointer, Item, E> {
     /// 获取 id 和 display_name
     pub fn info_string(&self) -> (&String, &String) {
         (&self.id, &self.display_name)
+    }
+
+    /// 获取 bucket 的 vec 集合
+    pub fn to_vec(self) -> Vec<Item> {
+        self.buckets
     }
 }
 
