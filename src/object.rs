@@ -75,7 +75,7 @@
 //!         )
 //!         .await;
 //!
-//!     println!("list: {:?}", list.object_list);
+//!     println!("list: {:?}", list.to_vec());
 //! }
 //! ```
 
@@ -128,7 +128,7 @@ pub struct ObjectList<
     max_keys: u32,
     key_count: u64,
     /// 存放单个文件对象的 Vec 集合
-    pub object_list: Vec<Item>,
+    object_list: Vec<Item>,
     next_continuation_token: String,
     common_prefixes: CommonPrefixes,
     client: P::PointerType,
@@ -443,6 +443,11 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error + 'static> ObjectList<T, 
     /// 获取 bucket 名称
     pub fn bucket_name(&self) -> &str {
         self.bucket.name()
+    }
+
+    /// 返回 object 的 Vec 集合
+    pub fn to_vec(self) -> Vec<Item> {
+        self.object_list
     }
 
     /// 返回文件数量

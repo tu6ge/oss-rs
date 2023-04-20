@@ -49,7 +49,7 @@ pub struct ListBuckets<
     id: String,
     display_name: String,
     /// 存放单个 bucket 类型的 vec 集合
-    pub buckets: Vec<Item>,
+    buckets: Vec<Item>,
     client: PointerSel::PointerType,
     ph_err: PhantomData<E>,
 }
@@ -115,6 +115,21 @@ impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
     /// 获取 id 和 display_name
     pub fn info_string(&self) -> (&String, &String) {
         (&self.id, &self.display_name)
+    }
+
+    /// 返回 bucket 的 Vec 集合
+    pub fn to_vec(self) -> Vec<Item> {
+        self.buckets
+    }
+
+    /// 返回 bucket 数量
+    pub fn len(&self) -> usize {
+        self.buckets.len()
+    }
+
+    /// 返回 bucket 是否为空
+    pub fn is_empty(&self) -> bool {
+        self.buckets.is_empty()
     }
 }
 

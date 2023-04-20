@@ -58,5 +58,5 @@ async fn main() {
         )
         .await;
 
-    println!("list: {:?}", list.object_list);
+    println!("list: {:?}", list.to_vec());
 }
