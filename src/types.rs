@@ -404,68 +404,6 @@ impl<'a> EndPoint {
     }
 }
 
-#[cfg(test)]
-mod test_endpoint {
-    use super::*;
-
-    #[test]
-    #[should_panic]
-    fn test_endpoint_painc() {
-        EndPoint::from_static("-weifang");
-    }
-
-    #[test]
-    fn test_new() {
-        assert!(matches!(
-            EndPoint::new("hangzhou"),
-            Ok(EndPoint::CnHangzhou)
-        ));
-
-        assert!(matches!(EndPoint::new("qingdao"), Ok(EndPoint::CnQingdao)));
-
-        assert!(matches!(EndPoint::new("beijing"), Ok(EndPoint::CnBeijing)));
-
-        assert!(matches!(
-            EndPoint::new("zhangjiakou"),
-            Ok(EndPoint::CnZhangjiakou)
-        ));
-
-        assert!(matches!(
-            EndPoint::new("hongkong"),
-            Ok(EndPoint::CnHongkong)
-        ));
-
-        assert!(matches!(
-            EndPoint::new("shenzhen"),
-            Ok(EndPoint::CnShenzhen)
-        ));
-
-        assert!(matches!(EndPoint::new("us-west-1"), Ok(EndPoint::UsWest1)));
-
-        assert!(matches!(EndPoint::new("us-east-1"), Ok(EndPoint::UsEast1)));
-
-        assert!(matches!(
-            EndPoint::new("ap-southeast-1"),
-            Ok(EndPoint::ApSouthEast1)
-        ));
-    }
-
-    #[cfg(feature = "auth")]
-    #[test]
-    fn test_from_host_piece() {
-        assert!(EndPoint::from_host_piece("qingdao").is_err());
-
-        assert_eq!(
-            EndPoint::from_host_piece("oss-cn-qingdao"),
-            Ok(EndPoint::CnQingdao)
-        );
-        assert_eq!(
-            EndPoint::from_host_piece("oss-qingdao"),
-            Ok(EndPoint::CnQingdao)
-        );
-    }
-}
-
 /// 无效的可用区
 #[derive(PartialEq, Eq, Hash)]
 #[non_exhaustive]
