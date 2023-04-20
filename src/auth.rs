@@ -140,14 +140,11 @@ impl AuthToHeaderMap for InnerAuth<'_> {
         self.access_key_id.as_ref().try_into()
     }
     fn get_header_secret(&self) -> Result<HeaderValue, InvalidHeaderValue> {
-        self.access_key_secret
-            .as_ref()
-            .try_into()
-            .and_then(|secret| {
-                let mut value: HeaderValue = secret;
-                value.set_sensitive(true);
-                Ok(value)
-            })
+        self.access_key_secret.as_ref().try_into().map(|secret| {
+            let mut value: HeaderValue = secret;
+            value.set_sensitive(true);
+            value
+        })
     }
     fn get_header_method(&self) -> Result<HeaderValue, InvalidHeaderValue> {
         self.method.as_str().try_into()
@@ -762,10 +759,7 @@ impl GenCanonicalizedResource for Url {
             self.path()
         }
         .as_bytes();
-        percent_decode(input)
-            .decode_utf8()
-            .ok()
-            .map(|str| str.to_owned())
+        percent_decode(input).decode_utf8().ok()
     }
 }
 
@@ -808,9 +802,9 @@ impl AuthError {
 #[non_exhaustive]
 pub(crate) enum AuthErrorKind {
     #[doc(hidden)]
-    InvalidHeaderValue(http::header::InvalidHeaderValue),
+    HeaderValue(http::header::InvalidHeaderValue),
     #[doc(hidden)]
-    InvalidLength(hmac::digest::crypto_common::InvalidLength),
+    Hmac(hmac::digest::crypto_common::InvalidLength),
     #[doc(hidden)]
     InvalidCanonicalizedResource,
 }
@@ -819,8 +813,8 @@ impl std::error::Error for AuthError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         use AuthErrorKind::*;
         match &self.kind {
-            InvalidHeaderValue(e) => Some(e),
-            InvalidLength(e) => Some(e),
+            HeaderValue(e) => Some(e),
+            Hmac(e) => Some(e),
             InvalidCanonicalizedResource => None,
         }
     }
@@ -830,8 +824,8 @@ impl Display for AuthError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use AuthErrorKind::*;
         match self.kind {
-            InvalidHeaderValue(_) => f.write_str("failed to parse header value"),
-            InvalidLength(_) => f.write_str("invalid aliyun secret length"),
+            HeaderValue(_) => f.write_str("failed to parse header value"),
+            Hmac(_) => f.write_str("invalid aliyun secret length"),
             InvalidCanonicalizedResource => f.write_str("invalid canonicalized-resource"),
         }
     }
@@ -848,7 +842,7 @@ impl From<http::header::InvalidHeaderValue> for AuthError {
     /// ```
     fn from(value: http::header::InvalidHeaderValue) -> Self {
         Self {
-            kind: AuthErrorKind::InvalidHeaderValue(value),
+            kind: AuthErrorKind::HeaderValue(value),
         }
     }
 }
@@ -861,7 +855,7 @@ impl From<hmac::digest::crypto_common::InvalidLength> for AuthError {
     /// ```
     fn from(value: hmac::digest::crypto_common::InvalidLength) -> Self {
         Self {
-            kind: AuthErrorKind::InvalidLength(value),
+            kind: AuthErrorKind::Hmac(value),
         }
     }
 }

@@ -619,12 +619,12 @@ fn test_error_display() {
     let val = HeaderValue::from_str("\n");
     let header_error = val.unwrap_err();
     let err = AuthError {
-        kind: AuthErrorKind::InvalidHeaderValue(header_error),
+        kind: AuthErrorKind::HeaderValue(header_error),
     };
     assert_eq!(format!("{}", err), "failed to parse header value");
 
     let err = AuthError {
-        kind: AuthErrorKind::InvalidLength(hmac::digest::crypto_common::InvalidLength {}),
+        kind: AuthErrorKind::Hmac(hmac::digest::crypto_common::InvalidLength {}),
     };
     assert_eq!(format!("{}", err), "invalid aliyun secret length");
 
@@ -639,7 +639,7 @@ fn test_error_source() {
     let val = HeaderValue::from_str("\n");
     let header_error = val.unwrap_err();
     let err = AuthError {
-        kind: AuthErrorKind::InvalidHeaderValue(header_error),
+        kind: AuthErrorKind::HeaderValue(header_error),
     };
     assert_eq!(
         format!("{}", err.source().unwrap()),
@@ -647,7 +647,7 @@ fn test_error_source() {
     );
 
     let err = AuthError {
-        kind: AuthErrorKind::InvalidLength(hmac::digest::crypto_common::InvalidLength {}),
+        kind: AuthErrorKind::Hmac(hmac::digest::crypto_common::InvalidLength {}),
     };
     assert_eq!(format!("{}", err.source().unwrap()), "Invalid Length");
 

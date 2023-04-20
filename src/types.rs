@@ -827,6 +827,7 @@ where
 }
 
 impl<'a> InnerDate<'a> {
+    /// # Safety
     /// Const function that creates a new `Date` from a static str.
     pub const unsafe fn from_static(val: &'static str) -> Self {
         Self(Cow::Borrowed(val))
@@ -906,7 +907,7 @@ impl<'a> InnerCanonicalizedResource<'a> {
     pub fn from_bucket<B: AsRef<BucketName>>(bucket: B, query: Option<&str>) -> Self {
         match query {
             Some(q) => {
-                if let Some(_) = QUERY_KEYWORD.iter().find(|&&str| str == q) {
+                if QUERY_KEYWORD.iter().any(|&str| str == q) {
                     return Self::new(format!("/{}/?{}", bucket.as_ref().as_ref(), q));
                 }
 
@@ -921,7 +922,7 @@ impl<'a> InnerCanonicalizedResource<'a> {
     pub fn from_bucket_name(bucket: &BucketName, query: Option<&str>) -> Self {
         match query {
             Some(q) => {
-                if let Some(_) = QUERY_KEYWORD.iter().find(|&&str| str == q) {
+                if QUERY_KEYWORD.iter().any(|&str| str == q) {
                     return Self::new(format!("/{}/?{}", bucket.as_ref(), q));
                 }
 
