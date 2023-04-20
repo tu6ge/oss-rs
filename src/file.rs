@@ -115,12 +115,7 @@ where
 
         let content_length = content.len().to_string();
         let headers = vec![
-            (
-                CONTENT_LENGTH,
-                HeaderValue::from_str(&content_length).map_err(|e| FileError {
-                    kind: FileErrorKind::InvalidContentLength(e),
-                })?,
-            ),
+            (CONTENT_LENGTH, header_from_content_length(&content_length)?),
             (
                 CONTENT_TYPE,
                 content_type.parse().map_err(|e| FileError {
