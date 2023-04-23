@@ -406,6 +406,34 @@ impl FromStr for EndPoint {
     }
 }
 
+const COM: &str = "com";
+const ALIYUNCS: &str = "aliyuncs";
+impl TryFrom<Url> for EndPoint {
+    type Error = InvalidEndPoint;
+    fn try_from(url: Url) -> Result<Self, Self::Error> {
+        use url::Host;
+        let domain = if let Some(Host::Domain(domain)) = url.host() {
+            domain
+        } else {
+            return Err(InvalidEndPoint { _priv: () });
+        };
+        let mut url_pieces = domain.rsplit('.');
+
+        match (url_pieces.next(), url_pieces.next()) {
+            (Some(COM), Some(ALIYUNCS)) => (),
+            _ => return Err(InvalidEndPoint { _priv: () }),
+        }
+
+        match url_pieces.next() {
+            Some(endpoint) => match EndPoint::from_host_piece(endpoint) {
+                Ok(end) => Ok(end),
+                _ => return Err(InvalidEndPoint { _priv: () }),
+            },
+            _ => return Err(InvalidEndPoint { _priv: () }),
+        }
+    }
+}
+
 const OSS_DOMAIN_PREFIX: &str = "https://oss-";
 #[allow(dead_code)]
 const OSS_INTERNAL: &str = "-internal";
@@ -446,6 +474,7 @@ impl<'a> EndPoint {
     /// assert!(EndPoint::new("abc-def234ab").is_ok());
     /// assert!(EndPoint::new("abc-def*#$%^ab").is_err());
     /// assert!(EndPoint::new("cn-jinan").is_ok());
+    /// assert!(EndPoint::new("cn-jinan").is_ok());
     /// assert!(EndPoint::new("oss-cn-jinan").is_err());
     /// ```
     pub fn new(url: &'a str) -> Result<Self, InvalidEndPoint> {
@@ -453,6 +482,14 @@ impl<'a> EndPoint {
         if url.is_empty() {
             return Err(InvalidEndPoint { _priv: () });
         }
+        // 是否是内网
+        let is_internal = url.ends_with("-internal");
+        let url = if is_internal {
+            let len = url.len();
+            &url[..len - 9]
+        } else {
+            url
+        };
 
         let kind = if url.contains(SHANGHAI_L) {
             Ok(CnShanghai)
@@ -501,14 +538,13 @@ impl<'a> EndPoint {
         match kind {
             Ok(k) => Ok(Self {
                 kind: k,
-                is_internal: false,
+                is_internal,
             }),
             Err(e) => Err(e),
         }
     }
 
     /// 从 oss 域名中提取 Endpoint 信息
-    #[cfg(feature = "auth")]
     pub(crate) fn from_host_piece(url: &'a str) -> Result<Self, InvalidEndPoint> {
         if !url.starts_with("oss-") {
             return Err(InvalidEndPoint { _priv: () });
@@ -525,15 +561,13 @@ impl<'a> EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
     /// use reqwest::Url;
-    /// let endpoint = EndPoint::new("shanghai").unwrap();
+    /// let mut endpoint = EndPoint::new("shanghai").unwrap();
     /// assert_eq!(
     ///     endpoint.to_url(),
     ///     Url::parse("https://oss-cn-shanghai.aliyuncs.com").unwrap()
     /// );
     ///
-    /// use std::env::set_var;
-    /// set_var("ALIYUN_OSS_INTERNAL", "true");
-    /// let endpoint = EndPoint::new("shanghai").unwrap();
+    /// endpoint.set_internal(true);
     /// assert_eq!(
     ///     endpoint.to_url(),
     ///     Url::parse("https://oss-cn-shanghai-internal.aliyuncs.com").unwrap()
