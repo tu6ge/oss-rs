@@ -163,6 +163,21 @@ mod test_endpoint {
 
         assert!(matches!(endpoint.kind, EndPointKind::CnQingdao));
         assert_eq!(endpoint.is_internal, true);
+
+        let url = Url::parse("https://192.168.3.1/").unwrap();
+        assert!(EndPoint::try_from(url).is_err());
+
+        let url = Url::parse("https://oss-cn-qingdao-internal.aliyuncs.cn/").unwrap();
+        assert!(EndPoint::try_from(url).is_err());
+
+        let url = Url::parse("https://oss-cn-qingdao-internal.aliyun.com/").unwrap();
+        assert!(EndPoint::try_from(url).is_err());
+
+        let url = Url::parse("https://aliyuncs.com/").unwrap();
+        assert!(EndPoint::try_from(url).is_err());
+
+        let url = Url::parse("https://-cn-qingdao.aliyuncs.com/").unwrap();
+        assert!(EndPoint::try_from(url).is_err());
     }
 }
 
