@@ -12,6 +12,8 @@ aliyun OSS 的一个异步/同步客户端，包含以下功能：
 
 [![Coverage Status](https://coveralls.io/repos/github/tu6ge/oss-rs/badge.svg?branch=master)](https://coveralls.io/github/tu6ge/oss-rs?branch=master) [![Test and Publish](https://github.com/tu6ge/oss-rs/actions/workflows/publish.yml/badge.svg)](https://github.com/tu6ge/oss-rs/actions/workflows/publish.yml)
 
+> 现在的破坏性更新，都是为了 1.0 版本能够稳定
+
 ## 使用方法
 
 [查看文档](https://docs.rs/aliyun-oss-client/)
