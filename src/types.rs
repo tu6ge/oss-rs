@@ -140,10 +140,11 @@ impl<'a> InnerKeySecret<'a> {
 
 /// # OSS 的可用区
 /// [aliyun docs](https://help.aliyun.com/document_detail/31837.htm)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EndPoint {
     pub(crate) kind: EndPointKind,
+    /// default false
     pub(crate) is_internal: bool,
 }
 
@@ -267,15 +268,6 @@ impl EndPoint {
         kind: EndPointKind::ApSouthEast1,
         is_internal: false,
     };
-}
-
-impl Default for EndPoint {
-    fn default() -> Self {
-        Self {
-            kind: EndPointKind::default(),
-            is_internal: false,
-        }
-    }
 }
 
 /// # OSS 的可用区种类 enum
@@ -427,9 +419,9 @@ impl TryFrom<Url> for EndPoint {
         match url_pieces.next() {
             Some(endpoint) => match EndPoint::from_host_piece(endpoint) {
                 Ok(end) => Ok(end),
-                _ => return Err(InvalidEndPoint { _priv: () }),
+                _ => Err(InvalidEndPoint { _priv: () }),
             },
-            _ => return Err(InvalidEndPoint { _priv: () }),
+            _ => Err(InvalidEndPoint { _priv: () }),
         }
     }
 }
@@ -535,13 +527,7 @@ impl<'a> EndPoint {
             Ok(Other(Cow::Owned(url.to_owned())))
         };
 
-        match kind {
-            Ok(k) => Ok(Self {
-                kind: k,
-                is_internal,
-            }),
-            Err(e) => Err(e),
-        }
+        kind.map(|kind| Self { kind, is_internal })
     }
 
     /// 从 oss 域名中提取 Endpoint 信息
