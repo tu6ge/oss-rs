@@ -19,6 +19,7 @@ use http::{
     HeaderValue, Method,
 };
 use reqwest::Url;
+use std::env;
 #[cfg(all(feature = "blocking", test))]
 use std::rc::Rc;
 #[cfg(test)]
@@ -78,7 +79,7 @@ impl<M: Default + Clone> Client<M> {
         Self::new(
             "foo1".into(),
             "foo2".into(),
-            EndPoint::CnQingdao,
+            EndPoint::CN_QINGDAO,
             "bar".try_into().unwrap(),
         )
     }
@@ -97,6 +98,9 @@ impl<M: Default + Clone> Client<M> {
     }
 
     /// # 通过环境变量初始化 Client
+    ///
+    /// 如果在 Aliyun ECS 上，可将
+    /// 环境变量 `ALIYUN_OSS_INTERNAL` 设置为 `true`, `1`, `yes`, `Y` ，即可使用 internal 网络请求 OSS 接口
     ///
     /// 示例
     /// ```rust
@@ -121,9 +125,21 @@ impl<M: Default + Clone> Client<M> {
         auth_builder.key(key_id);
         auth_builder.secret(key_secret);
 
+        let mut endpoint = get_endpoint(&endpoint)?;
+
+        if let Ok(is_internal) = env::var("ALIYUN_OSS_INTERNAL") {
+            if is_internal == "true"
+                || is_internal == "1"
+                || is_internal == "yes"
+                || is_internal == "Y"
+            {
+                endpoint.set_internal(true);
+            }
+        }
+
         Ok(Self::from_builder(
             auth_builder,
-            get_endpoint(&endpoint)?,
+            endpoint,
             get_bucket(&bucket)?,
         ))
     }

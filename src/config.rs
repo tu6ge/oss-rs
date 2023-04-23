@@ -337,20 +337,31 @@ impl BucketBase {
             source: "ALIYUN_ENDPOINT".to_string(),
             kind: InvalidConfigKind::VarError(e),
         })?;
+        let mut endpoint = EndPoint::from_str(&endpoint).map_err(|e| InvalidConfig {
+            source: endpoint,
+            kind: InvalidConfigKind::EndPoint(e),
+        })?;
+
+        if let Ok(is_internal) = env::var("ALIYUN_OSS_INTERNAL") {
+            if is_internal == "true"
+                || is_internal == "1"
+                || is_internal == "yes"
+                || is_internal == "Y"
+            {
+                endpoint.set_internal(true);
+            }
+        }
+
         let bucket = env::var("ALIYUN_BUCKET").map_err(|e| InvalidConfig {
             source: "ALIYUN_BUCKET".to_string(),
             kind: InvalidConfigKind::VarError(e),
         })?;
-
         Ok(Self {
             name: BucketName::from_str(&bucket).map_err(|e| InvalidConfig {
                 source: bucket,
                 kind: InvalidConfigKind::BucketName(e),
             })?,
-            endpoint: EndPoint::from_str(&endpoint).map_err(|e| InvalidConfig {
-                source: endpoint,
-                kind: InvalidConfigKind::EndPoint(e),
-            })?,
+            endpoint,
         })
     }
 
@@ -438,17 +449,6 @@ impl BucketBase {
     /// bucket.try_set_endpoint("shanghai").unwrap();
     /// let url = bucket.to_url();
     /// assert_eq!(url.as_str(), "https://abc.oss-cn-shanghai.aliyuncs.com/");
-    ///
-    /// use std::env::set_var;
-    /// set_var("ALIYUN_OSS_INTERNAL", "true");
-    /// let mut bucket = BucketBase::default();
-    /// bucket.set_name("abc".parse::<BucketName>().unwrap());
-    /// bucket.try_set_endpoint("shanghai").unwrap();
-    /// let url = bucket.to_url();
-    /// assert_eq!(
-    ///     url.as_str(),
-    ///     "https://abc.oss-cn-shanghai-internal.aliyuncs.com/"
-    /// );
     /// ```
     ///
     /// > 因为 BucketName,EndPoint 声明时已做限制,所以 BucketBase 可以安全的转换成 url
@@ -690,6 +690,60 @@ mod tests {
             Url::parse("https://abc.oss-cn-beijing.aliyuncs.com").unwrap()
         );
         assert_eq!(resource, "/abc/");
+    }
+
+    #[test]
+    fn test_bucketbase_to_url() {
+        use std::env::{remove_var, set_var};
+        set_var("ALIYUN_ENDPOINT", "qingdao");
+        set_var("ALIYUN_BUCKET", "foo1");
+        remove_var("ALIYUN_OSS_INTERNAL");
+        let base = BucketBase::from_env().unwrap();
+        let url = base.to_url();
+        assert_eq!(
+            url,
+            Url::parse("https://foo1.oss-cn-qingdao.aliyuncs.com").unwrap()
+        );
+
+        set_var("ALIYUN_OSS_INTERNAL", "true");
+        let base = BucketBase::from_env().unwrap();
+        let url = base.to_url();
+        assert_eq!(
+            url,
+            Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
+        );
+
+        set_var("ALIYUN_OSS_INTERNAL", "0");
+        let base = BucketBase::from_env().unwrap();
+        let url = base.to_url();
+        assert_eq!(
+            url,
+            Url::parse("https://foo1.oss-cn-qingdao.aliyuncs.com").unwrap()
+        );
+
+        set_var("ALIYUN_OSS_INTERNAL", "1");
+        let base = BucketBase::from_env().unwrap();
+        let url = base.to_url();
+        assert_eq!(
+            url,
+            Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
+        );
+
+        set_var("ALIYUN_OSS_INTERNAL", "yes");
+        let base = BucketBase::from_env().unwrap();
+        let url = base.to_url();
+        assert_eq!(
+            url,
+            Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
+        );
+
+        set_var("ALIYUN_OSS_INTERNAL", "Y");
+        let base = BucketBase::from_env().unwrap();
+        let url = base.to_url();
+        assert_eq!(
+            url,
+            Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
+        );
     }
 
     #[test]

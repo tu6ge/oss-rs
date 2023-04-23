@@ -105,9 +105,27 @@ mod test_endpoint {
                 ..
             })
         ));
+
+        assert!(matches!(
+            EndPoint::new("https://oss-cn-qingdao-internal.aliyuncs.com"),
+            Ok(EndPoint {
+                kind: EndPointKind::CnQingdao,
+                is_internal: false,
+            })
+        ));
+        assert!(matches!(
+            EndPoint::new("https://oss-cn-qingdao.aliyuncs.com"),
+            Ok(EndPoint {
+                kind: EndPointKind::CnQingdao,
+                is_internal: false,
+            })
+        ));
+
+        let res = EndPoint::new("abc-internal").unwrap();
+        assert_eq!(res.is_internal, true);
+        assert_eq!(res.as_ref(), "abc");
     }
 
-    #[cfg(feature = "auth")]
     #[test]
     fn test_from_host_piece() {
         assert!(EndPoint::from_host_piece("qingdao").is_err());
@@ -118,8 +136,33 @@ mod test_endpoint {
         );
         assert_eq!(
             EndPoint::from_host_piece("oss-qingdao"),
-            Ok(EndPoint::CnQingdao)
+            Ok(EndPoint {
+                kind: EndPointKind::CnQingdao,
+                is_internal: false,
+            })
         );
+        assert_eq!(
+            EndPoint::from_host_piece("oss-qingdao-internal"),
+            Ok(EndPoint {
+                kind: EndPointKind::CnQingdao,
+                is_internal: true,
+            })
+        );
+    }
+
+    #[test]
+    fn test_from_url() {
+        let url = Url::parse("https://oss-cn-qingdao.aliyuncs.com/").unwrap();
+        let endpoint = EndPoint::try_from(url).unwrap();
+
+        assert!(matches!(endpoint.kind, EndPointKind::CnQingdao));
+        assert_eq!(endpoint.is_internal, false);
+
+        let url = Url::parse("https://oss-cn-qingdao-internal.aliyuncs.com/").unwrap();
+        let endpoint = EndPoint::try_from(url).unwrap();
+
+        assert!(matches!(endpoint.kind, EndPointKind::CnQingdao));
+        assert_eq!(endpoint.is_internal, true);
     }
 }
 
