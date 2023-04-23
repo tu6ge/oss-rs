@@ -3,22 +3,22 @@
 //!
 //! ## Examples
 //! ```rust
-//! # use aliyun_oss_client::auth::AuthBuilder;
-//! use chrono::Utc;
+//! # use aliyun_oss_client::auth::RequestWithOSS;
 //! use http::Method;
-//! let mut auth_builder = AuthBuilder::default();
-//! auth_builder.key("my_key");
-//! auth_builder.secret("my_secret");
-//! auth_builder.method(&Method::GET);
-//! auth_builder.date(Utc::now());
-//! auth_builder.canonicalized_resource("/abc/?bucketInfo");
 //!
-//! let builder = reqwest::Client::default()
-//!     .request(
-//!         Method::GET,
-//!         "https://abc.oss-cn-shanghai.aliyuncs.com/?bucketInfo",
-//!     )
-//!     .headers(auth_builder.get_headers().unwrap());
+//! async fn run() {
+//!     let client = reqwest::Client::default();
+//!     let mut request = client
+//!         .request(
+//!             Method::GET,
+//!             "https://foo.oss-cn-shanghai.aliyuncs.com/?bucketInfo",
+//!         )
+//!         .build()
+//!         .unwrap();
+//!     request.with_oss("key1".into(), "secret2".into()).unwrap();
+//!     let response = client.execute(request).await;
+//!     println!("{:?}", response);
+//! }
 //! ```
 
 use crate::{

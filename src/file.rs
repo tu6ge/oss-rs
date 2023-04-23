@@ -63,7 +63,8 @@
 //!
 //!         let res = obj
 //!             .put_oss(content, "application/pdf")
-//!             .await.map_err(OssError::from)?;
+//!             .await
+//!             .map_err(OssError::from)?;
 //!
 //!         println!("result status: {}", res.status());
 //!     }
