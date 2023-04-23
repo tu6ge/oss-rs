@@ -46,7 +46,7 @@ mod test_core {
     #[test]
     fn object_base_debug() {
         let object = ObjectBase::<ArcPointer>::default();
-        assert_eq!(format!("{object:?}"), "ObjectBase { bucket: BucketBase { endpoint: CnHangzhou, name: BucketName(\"a\") }, path: ObjectPathInner(\"\") }");
+        assert_eq!(format!("{object:?}"), "ObjectBase { bucket: BucketBase { endpoint: EndPoint { kind: CnHangzhou, is_internal: false }, name: BucketName(\"a\") }, path: ObjectPathInner(\"\") }");
     }
 
     #[test]

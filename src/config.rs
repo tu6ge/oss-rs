@@ -225,20 +225,6 @@ impl FromStr for BucketBase {
     /// assert_eq!(bucket.name(), "abc");
     /// assert_eq!(bucket.endpoint(), EndPoint::CnShanghai);
     ///
-    /// let bucket: BucketBase = "abc.oss-cn-jinan.aliyuncs.com".parse().unwrap();
-    /// assert_eq!(bucket.name(), "abc");
-    /// assert_eq!(
-    ///     bucket.endpoint(),
-    ///     EndPoint::Other(Cow::Borrowed("cn-jinan"))
-    /// );
-    ///
-    /// let bucket: BucketBase = "abc.oss-cn-jinan".parse().unwrap();
-    /// assert_eq!(bucket.name(), "abc");
-    /// assert_eq!(
-    ///     bucket.endpoint(),
-    ///     EndPoint::Other(Cow::Borrowed("cn-jinan"))
-    /// );
-    ///
     /// assert!("abc*#!".parse::<BucketBase>().is_err());
     /// assert!("abc".parse::<BucketBase>().is_err());
     /// ```
@@ -580,6 +566,10 @@ impl PartialEq<Url> for BucketBase {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
+    use crate::types::EndPointKind;
+
     use super::*;
 
     #[test]
@@ -755,6 +745,26 @@ mod tests {
                 ..
             }
         ));
+
+        let bucket: BucketBase = "abc.oss-cn-jinan.aliyuncs.com".parse().unwrap();
+        assert_eq!(bucket.name(), "abc");
+        assert_eq!(
+            bucket.endpoint(),
+            EndPoint {
+                kind: EndPointKind::Other(Cow::Borrowed("cn-jinan")),
+                is_internal: false,
+            }
+        );
+
+        let bucket: BucketBase = "abc.oss-cn-jinan".parse().unwrap();
+        assert_eq!(bucket.name(), "abc");
+        assert_eq!(
+            bucket.endpoint(),
+            EndPoint {
+                kind: EndPointKind::Other(Cow::Borrowed("cn-jinan")),
+                is_internal: false,
+            }
+        );
     }
 
     #[test]

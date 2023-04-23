@@ -1,11 +1,9 @@
-use std::borrow::Cow;
-
 use chrono::{TimeZone, Utc};
 use http::HeaderValue;
 use reqwest::Url;
 
 use crate::{
-    types::{CanonicalizedResource, InvalidBucketName},
+    types::{CanonicalizedResource, EndPointKind, InvalidBucketName},
     BucketName, EndPoint, KeyId, KeySecret,
 };
 
@@ -38,7 +36,10 @@ fn endpoint() {
 
     assert_eq!(end.as_ref(), "aaa");
 
-    let end1 = EndPoint::Other(Cow::Borrowed("aaa"));
+    let end1 = EndPoint {
+        kind: EndPointKind::Other("aaa".into()),
+        is_internal: false,
+    };
     assert_eq!(end1.as_ref(), "aaa");
 
     assert!(EndPoint::new("").is_err());
@@ -52,6 +53,8 @@ fn endpoint() {
 }
 
 mod test_endpoint {
+    use std::borrow::Cow;
+
     use super::*;
 
     #[test]
@@ -93,6 +96,14 @@ mod test_endpoint {
         assert!(matches!(
             EndPoint::new("ap-southeast-1"),
             Ok(EndPoint::ApSouthEast1)
+        ));
+
+        assert!(matches!(
+            EndPoint::new("weifang"),
+            Ok(EndPoint {
+                kind: EndPointKind::Other(Cow::Owned(_)),
+                ..
+            })
         ));
     }
 
