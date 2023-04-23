@@ -2,9 +2,10 @@
 
 use crate::{
     types::{
-        object::{ObjectPathInner, UrlObjectPath},
+        core::SetOssQuery,
+        object::{ObjectPathInner, SetObjectPath},
         BucketName, CanonicalizedResource, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId,
-        KeySecret, UrlQuery,
+        KeySecret,
     },
     Query,
 };
@@ -482,7 +483,7 @@ impl BucketBase {
     #[inline]
     pub fn get_url_resource(&self, query: &Query) -> (Url, CanonicalizedResource) {
         let mut url = self.to_url();
-        url.set_search_query(query);
+        url.set_oss_query(query);
 
         let resource = CanonicalizedResource::from_bucket_query(self, query);
 

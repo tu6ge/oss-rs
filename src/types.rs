@@ -19,7 +19,7 @@ pub mod object;
 mod test;
 
 #[cfg(feature = "core")]
-pub use self::core::{ContentRange, Query, QueryKey, QueryValue, UrlQuery};
+pub use self::core::{ContentRange, Query, QueryKey, QueryValue, SetOssQuery};
 
 /// 阿里云 OSS 的签名 key
 #[derive(Clone, Debug, PartialEq, Eq, Default)]

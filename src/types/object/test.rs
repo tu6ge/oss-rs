@@ -9,8 +9,8 @@ mod test_core {
     use crate::builder::ArcPointer;
     use crate::config::BucketBase;
     use crate::types::object::invalid::InvalidObjectBaseKind;
-    use crate::types::object::InvalidObjectDir;
-    use crate::types::object::{InvalidObjectBase, InvalidObjectPath, ObjectBase, OssFullUrl};
+    use crate::types::object::{FromOss, InvalidObjectDir};
+    use crate::types::object::{InvalidObjectBase, InvalidObjectPath, ObjectBase};
     use crate::{BucketName, ObjectDir, ObjectPath};
 
     #[test]

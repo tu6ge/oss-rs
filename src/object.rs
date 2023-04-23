@@ -90,10 +90,12 @@ use crate::decode::{InnerListError, ListError, RefineObject, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
-use crate::types::object::InvalidObjectDir;
 use crate::types::{
-    object::{CommonPrefixes, InvalidObjectPath, ObjectBase, ObjectDir, ObjectPath},
-    CanonicalizedResource, Query, QueryKey, QueryValue, UrlQuery, CONTINUATION_TOKEN,
+    core::SetOssQuery,
+    object::{
+        CommonPrefixes, InvalidObjectDir, InvalidObjectPath, ObjectBase, ObjectDir, ObjectPath,
+    },
+    CanonicalizedResource, Query, QueryKey, QueryValue, CONTINUATION_TOKEN,
 };
 use crate::{BucketName, Client, EndPoint};
 use async_stream::try_stream;
@@ -306,7 +308,7 @@ impl ObjectList<ArcPointer> {
             }),
             Some(query) => {
                 let mut url = self.bucket.to_url();
-                url.set_search_query(&query);
+                url.set_oss_query(&query);
 
                 let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
 

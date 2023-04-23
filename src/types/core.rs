@@ -321,27 +321,27 @@ impl PartialEq<Query> for Query {
 
 /// 为 Url 拼接 [`Query`] 数据
 /// [`Query`]: crate::types::Query
-pub trait UrlQuery {
+pub trait SetOssQuery {
     /// 给 Url 结构体增加 `set_search_query` 方法
-    fn set_search_query(&mut self, query: &Query);
+    fn set_oss_query(&mut self, query: &Query);
 }
 
-impl UrlQuery for Url {
+impl SetOssQuery for Url {
     /// 将查询参数拼接到 API 的 Url 上
     ///
     /// # 例子
     /// ```
     /// use aliyun_oss_client::types::Query;
-    /// use aliyun_oss_client::types::UrlQuery;
+    /// use aliyun_oss_client::types::SetOssQuery;
     /// use reqwest::Url;
     ///
     /// let query = Query::from_iter([("abc", "def")]);
     /// let mut url = Url::parse("https://exapmle.com").unwrap();
-    /// url.set_search_query(&query);
+    /// url.set_oss_query(&query);
     /// assert_eq!(url.as_str(), "https://exapmle.com/?list-type=2&abc=def");
     /// assert_eq!(url.query(), Some("list-type=2&abc=def"));
     /// ```
-    fn set_search_query(&mut self, query: &Query) {
+    fn set_oss_query(&mut self, query: &Query) {
         self.set_query(Some(&query.to_oss_string()));
     }
 }

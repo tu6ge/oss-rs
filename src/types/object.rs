@@ -509,12 +509,12 @@ impl Debug for InvalidObjectPath {
 impl std::error::Error for InvalidObjectPath {}
 
 /// 将 object 的路径拼接到 Url 上去
-pub trait UrlObjectPath {
+pub trait SetObjectPath {
     /// 为 Url 添加方法
     fn set_object_path(&mut self, path: &ObjectPathInner);
 }
 
-impl UrlObjectPath for Url {
+impl SetObjectPath for Url {
     fn set_object_path(&mut self, path: &ObjectPathInner) {
         self.set_path(path.as_ref());
     }
@@ -779,13 +779,15 @@ impl Debug for InvalidObjectDir {
 
 impl std::error::Error for InvalidObjectDir {}
 
-/// 给 Url 设置一个初始化方法，根据 OSS 的配置信息，返回文件的完整 OSS Url
-pub trait OssFullUrl {
-    /// 根据配置信息，计算完整的 Url
+/// 根据 OSS 的配置信息初始化外部类型
+pub trait FromOss {
+    /// 根据配置信息，计算外部类型的具体实现
     fn from_oss(endpoint: &EndPoint, bucket: &BucketName, path: &ObjectPath) -> Self;
 }
 
-impl OssFullUrl for Url {
+/// 给 Url 设置一个初始化方法，根据 OSS 的配置信息，返回文件的完整 OSS Url
+impl FromOss for Url {
+    /// 根据配置信息，计算完整的 Url
     fn from_oss(endpoint: &EndPoint, bucket: &BucketName, path: &ObjectPath) -> Self {
         let mut end_url = endpoint.to_url();
 
