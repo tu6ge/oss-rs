@@ -1,4 +1,4 @@
-use crate::builder::BuilderError;
+use crate::{builder::BuilderError, errors::OssService};
 use http::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Method,
@@ -97,32 +97,15 @@ impl RequestBuilder {
     pub fn send_adjust_error(self) -> Result<Response, BuilderError> {
         match self.middleware {
             Some(m) => m.handle(self.inner.build().unwrap()),
-            None => self
-                .inner
-                .send()
-                .map_err(BuilderError::from)?
-                .handle_error(),
+            None => check_http_status(self.inner.send().map_err(BuilderError::from)?),
         }
     }
 }
 
-pub trait BlockingReqeustHandler {
-    fn handle_error(self) -> Result<Self, BuilderError>
-    where
-        Self: Sized;
-}
-
-impl BlockingReqeustHandler for Response {
-    /// # 收集并处理 OSS 接口返回的错误
-    fn handle_error(self) -> Result<Response, BuilderError> {
-        use crate::errors::OssService;
-
-        if self.status().is_success() {
-            return Ok(self);
-        }
-
-        let status = self.status();
-
-        Err(OssService::new(&self.text()?, &status).into())
+fn check_http_status(response: Response) -> Result<Response, BuilderError> {
+    if response.status().is_success() {
+        return Ok(response);
     }
+    let status = response.status();
+    Err(OssService::new2(response.text()?, &status).into())
 }
