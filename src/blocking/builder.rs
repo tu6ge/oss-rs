@@ -102,7 +102,7 @@ impl RequestBuilder {
     }
 }
 
-fn check_http_status(response: Response) -> Result<Response, BuilderError> {
+pub(crate) fn check_http_status(response: Response) -> Result<Response, BuilderError> {
     if response.status().is_success() {
         return Ok(response);
     }

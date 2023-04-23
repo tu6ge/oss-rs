@@ -191,7 +191,7 @@ mod handle_error {
     #[cfg(feature = "blocking")]
     #[test]
     fn test_blocking_has_error() {
-        use crate::blocking::builder::BlockingReqeustHandler;
+        use crate::blocking::builder::check_http_status as blocking_check_http_status;
         use reqwest::blocking::Response as BlockingResponse;
 
         let http = HttpResponse::builder()
@@ -213,7 +213,7 @@ mod handle_error {
             .unwrap();
         let response: BlockingResponse = http.into();
 
-        let res = response.handle_error();
+        let res = blocking_check_http_status(response);
 
         assert!(res.is_err());
         let err = res.unwrap_err();
@@ -225,7 +225,7 @@ mod handle_error {
     #[cfg(feature = "blocking")]
     #[test]
     fn test_blocking_ok() {
-        use crate::blocking::builder::BlockingReqeustHandler;
+        use crate::blocking::builder::check_http_status as blocking_check_http_status;
         use reqwest::blocking::Response as BlockingResponse;
 
         let http = HttpResponse::builder()
@@ -235,7 +235,7 @@ mod handle_error {
             .unwrap();
         let response: BlockingResponse = http.into();
 
-        let res = response.handle_error();
+        let res = blocking_check_http_status(response);
         assert!(res.is_ok());
         let ok = res.unwrap();
         assert_eq!(ok.status(), 200);
@@ -248,7 +248,7 @@ mod handle_error {
             .unwrap();
         let response: BlockingResponse = http.into();
 
-        let res = response.handle_error();
+        let res = blocking_check_http_status(response);
         assert!(res.is_ok());
         let ok = res.unwrap();
         assert_eq!(ok.status(), 204);
