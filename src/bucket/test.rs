@@ -192,7 +192,7 @@ async fn test_get_bucket_info() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(Bucket { base: BucketBase { endpoint: CnShanghai, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, storage_class: Standard })"#
+        r#"Ok(Bucket { base: BucketBase { endpoint: EndPoint { kind: CnShanghai, is_internal: false }, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, storage_class: Standard })"#
     );
 }
 

@@ -140,9 +140,148 @@ impl<'a> InnerKeySecret<'a> {
 
 /// # OSS 的可用区
 /// [aliyun docs](https://help.aliyun.com/document_detail/31837.htm)
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct EndPoint {
+    pub(crate) kind: EndPointKind,
+    pub(crate) is_internal: bool,
+}
+
+impl EndPoint {
+    /// 杭州
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_HANGZHOU")]
+    pub const CnHangzhou: EndPoint = EndPoint {
+        kind: EndPointKind::CnHangzhou,
+        is_internal: false,
+    };
+    /// 杭州
+    pub const CN_HANGZHOU: EndPoint = EndPoint {
+        kind: EndPointKind::CnHangzhou,
+        is_internal: false,
+    };
+
+    /// 上海
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_SHANGHAI")]
+    pub const CnShanghai: EndPoint = EndPoint {
+        kind: EndPointKind::CnShanghai,
+        is_internal: false,
+    };
+    /// 上海
+    pub const CN_SHANGHAI: EndPoint = EndPoint {
+        kind: EndPointKind::CnShanghai,
+        is_internal: false,
+    };
+
+    /// 青岛
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_QINGDAO")]
+    pub const CnQingdao: EndPoint = EndPoint {
+        kind: EndPointKind::CnQingdao,
+        is_internal: false,
+    };
+    /// 青岛
+    pub const CN_QINGDAO: EndPoint = EndPoint {
+        kind: EndPointKind::CnQingdao,
+        is_internal: false,
+    };
+
+    /// 北京
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_BEIJING")]
+    pub const CnBeijing: EndPoint = EndPoint {
+        kind: EndPointKind::CnBeijing,
+        is_internal: false,
+    };
+    /// 北京
+    pub const CN_BEIJING: EndPoint = EndPoint {
+        kind: EndPointKind::CnBeijing,
+        is_internal: false,
+    };
+
+    /// 张家口
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_ZHANGJIAKOU")]
+    pub const CnZhangjiakou: EndPoint = EndPoint {
+        kind: EndPointKind::CnZhangjiakou,
+        is_internal: false,
+    };
+    /// 张家口
+    pub const CN_ZHANGJIAKOU: EndPoint = EndPoint {
+        kind: EndPointKind::CnZhangjiakou,
+        is_internal: false,
+    };
+
+    /// 香港
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_HONGKONG")]
+    pub const CnHongkong: EndPoint = EndPoint {
+        kind: EndPointKind::CnHongkong,
+        is_internal: false,
+    };
+    /// 香港
+    pub const CN_HONGKONG: EndPoint = EndPoint {
+        kind: EndPointKind::CnHongkong,
+        is_internal: false,
+    };
+
+    /// 深圳
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_SHENZHEN")]
+    pub const CnShenzhen: EndPoint = EndPoint {
+        kind: EndPointKind::CnShenzhen,
+        is_internal: false,
+    };
+    /// 深圳
+    pub const CN_SHENZHEN: EndPoint = EndPoint {
+        kind: EndPointKind::CnShenzhen,
+        is_internal: false,
+    };
+
+    /// UsWest1
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::US_WEST_1")]
+    pub const UsWest1: EndPoint = EndPoint {
+        kind: EndPointKind::UsWest1,
+        is_internal: false,
+    };
+    /// UsWest1
+    pub const US_WEST_1: EndPoint = EndPoint {
+        kind: EndPointKind::UsWest1,
+        is_internal: false,
+    };
+
+    /// UsEast1
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::US_EAST_1")]
+    pub const UsEast1: EndPoint = EndPoint {
+        kind: EndPointKind::UsEast1,
+        is_internal: false,
+    };
+    /// UsEast1
+    pub const US_EAST_1: EndPoint = EndPoint {
+        kind: EndPointKind::UsEast1,
+        is_internal: false,
+    };
+
+    /// ApSouthEast1
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::AP_SOUTH_EAST_1")]
+    pub const ApSouthEast1: EndPoint = EndPoint {
+        kind: EndPointKind::ApSouthEast1,
+        is_internal: false,
+    };
+    /// ApSouthEast1
+    pub const AP_SOUTH_EAST_1: EndPoint = EndPoint {
+        kind: EndPointKind::ApSouthEast1,
+        is_internal: false,
+    };
+}
+
+impl Default for EndPoint {
+    fn default() -> Self {
+        Self {
+            kind: EndPointKind::default(),
+            is_internal: false,
+        }
+    }
+}
+
+/// # OSS 的可用区种类 enum
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 #[non_exhaustive]
-pub enum EndPoint {
+pub(crate) enum EndPointKind {
     /// 杭州可用区
     #[default]
     CnHangzhou,
@@ -181,22 +320,22 @@ const AP_SOUTH_EAST1: &str = "ap-southeast-1";
 
 impl AsRef<str> for EndPoint {
     /// ```
-    /// # use aliyun_oss_client::types::EndPoint::*;
+    /// # use aliyun_oss_client::types::EndPoint;
     ///
-    /// assert_eq!(CnHangzhou.as_ref(), "cn-hangzhou");
-    /// assert_eq!(CnShanghai.as_ref(), "cn-shanghai");
-    /// assert_eq!(CnQingdao.as_ref(), "cn-qingdao");
-    /// assert_eq!(CnBeijing.as_ref(), "cn-beijing");
-    /// assert_eq!(CnZhangjiakou.as_ref(), "cn-zhangjiakou");
-    /// assert_eq!(CnHongkong.as_ref(), "cn-hongkong");
-    /// assert_eq!(CnShenzhen.as_ref(), "cn-shenzhen");
-    /// assert_eq!(UsWest1.as_ref(), "us-west-1");
-    /// assert_eq!(UsEast1.as_ref(), "us-east-1");
-    /// assert_eq!(ApSouthEast1.as_ref(), "ap-southeast-1");
+    /// assert_eq!(EndPoint::CnHangzhou.as_ref(), "cn-hangzhou");
+    /// assert_eq!(EndPoint::CnShanghai.as_ref(), "cn-shanghai");
+    /// assert_eq!(EndPoint::CnQingdao.as_ref(), "cn-qingdao");
+    /// assert_eq!(EndPoint::CnBeijing.as_ref(), "cn-beijing");
+    /// assert_eq!(EndPoint::CnZhangjiakou.as_ref(), "cn-zhangjiakou");
+    /// assert_eq!(EndPoint::CnHongkong.as_ref(), "cn-hongkong");
+    /// assert_eq!(EndPoint::CnShenzhen.as_ref(), "cn-shenzhen");
+    /// assert_eq!(EndPoint::UsWest1.as_ref(), "us-west-1");
+    /// assert_eq!(EndPoint::UsEast1.as_ref(), "us-east-1");
+    /// assert_eq!(EndPoint::ApSouthEast1.as_ref(), "ap-southeast-1");
     /// ```
     fn as_ref(&self) -> &str {
-        use EndPoint::*;
-        match self {
+        use EndPointKind::*;
+        match &self.kind {
             CnHangzhou => HANGZHOU,
             CnShanghai => SHANGHAI,
             CnQingdao => QINGDAO,
@@ -214,8 +353,8 @@ impl AsRef<str> for EndPoint {
 
 impl Display for EndPoint {
     /// ```
-    /// # use aliyun_oss_client::types::EndPoint::*;
-    /// assert_eq!(format!("{}", CnHangzhou), "cn-hangzhou");
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// assert_eq!(format!("{}", EndPoint::CnHangzhou), "cn-hangzhou");
     /// ```
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_ref())
@@ -287,7 +426,10 @@ impl<'a> EndPoint {
     /// # Safety
     /// 用于静态定义其他可用区
     pub const unsafe fn from_static2(url: &'static str) -> Self {
-        EndPoint::Other(Cow::Borrowed(url))
+        Self {
+            kind: EndPointKind::Other(Cow::Borrowed(url)),
+            is_internal: false,
+        }
     }
 
     /// 初始化 endpoint enum
@@ -299,12 +441,6 @@ impl<'a> EndPoint {
     ///     Ok(EndPoint::CnShanghai)
     /// ));
     ///
-    /// let weifang = "weifang".to_string();
-    /// assert!(matches!(
-    ///     EndPoint::new("weifang"),
-    ///     Ok(EndPoint::Other(Cow::Owned(weifang)))
-    /// ));
-    ///
     /// assert!(EndPoint::new("abc-").is_err());
     /// assert!(EndPoint::new("-abc").is_err());
     /// assert!(EndPoint::new("abc-def234ab").is_ok());
@@ -313,12 +449,12 @@ impl<'a> EndPoint {
     /// assert!(EndPoint::new("oss-cn-jinan").is_err());
     /// ```
     pub fn new(url: &'a str) -> Result<Self, InvalidEndPoint> {
-        use EndPoint::*;
+        use EndPointKind::*;
         if url.is_empty() {
             return Err(InvalidEndPoint { _priv: () });
         }
 
-        if url.contains(SHANGHAI_L) {
+        let kind = if url.contains(SHANGHAI_L) {
             Ok(CnShanghai)
         } else if url.contains(HANGZHOU_L) {
             Ok(CnHangzhou)
@@ -360,6 +496,14 @@ impl<'a> EndPoint {
             }
 
             Ok(Other(Cow::Owned(url.to_owned())))
+        };
+
+        match kind {
+            Ok(k) => Ok(Self {
+                kind: k,
+                is_internal: false,
+            }),
+            Err(e) => Err(e),
         }
     }
 
@@ -370,6 +514,11 @@ impl<'a> EndPoint {
             return Err(InvalidEndPoint { _priv: () });
         }
         Self::new(&url[4..])
+    }
+
+    /// 设置 internal，当在 Aliyun ECS 上执行时，设为 true 会更高效，默认是 false
+    pub fn set_internal(&mut self, is_internal: bool) {
+        self.is_internal = is_internal;
     }
 
     /// 转化成 Url
@@ -391,12 +540,11 @@ impl<'a> EndPoint {
     /// );
     /// ```
     pub fn to_url(&self) -> Url {
-        use std::env;
         let mut url = String::from(OSS_DOMAIN_PREFIX);
         url.push_str(self.as_ref());
 
         // internal
-        if env::var("ALIYUN_OSS_INTERNAL").is_ok() {
+        if self.is_internal {
             url.push_str(OSS_INTERNAL);
         }
 
