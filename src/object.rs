@@ -819,7 +819,7 @@ impl Error for BuildInItemError {
 /// Xml 转化为内置 Object 时的错误集合
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum BuildInItemErrorKind {
+enum BuildInItemErrorKind {
     /// 转换数字类型的错误
     Size(ParseIntError),
 
