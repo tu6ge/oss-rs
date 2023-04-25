@@ -151,120 +151,120 @@ pub struct EndPoint {
 impl EndPoint {
     /// 杭州
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_HANGZHOU")]
-    pub const CnHangzhou: EndPoint = EndPoint {
+    pub const CnHangzhou: Self = Self {
         kind: EndPointKind::CnHangzhou,
         is_internal: false,
     };
     /// 杭州
-    pub const CN_HANGZHOU: EndPoint = EndPoint {
+    pub const CN_HANGZHOU: Self = Self {
         kind: EndPointKind::CnHangzhou,
         is_internal: false,
     };
 
     /// 上海
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_SHANGHAI")]
-    pub const CnShanghai: EndPoint = EndPoint {
+    pub const CnShanghai: Self = Self {
         kind: EndPointKind::CnShanghai,
         is_internal: false,
     };
     /// 上海
-    pub const CN_SHANGHAI: EndPoint = EndPoint {
+    pub const CN_SHANGHAI: Self = Self {
         kind: EndPointKind::CnShanghai,
         is_internal: false,
     };
 
     /// 青岛
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_QINGDAO")]
-    pub const CnQingdao: EndPoint = EndPoint {
+    pub const CnQingdao: Self = Self {
         kind: EndPointKind::CnQingdao,
         is_internal: false,
     };
     /// 青岛
-    pub const CN_QINGDAO: EndPoint = EndPoint {
+    pub const CN_QINGDAO: Self = Self {
         kind: EndPointKind::CnQingdao,
         is_internal: false,
     };
 
     /// 北京
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_BEIJING")]
-    pub const CnBeijing: EndPoint = EndPoint {
+    pub const CnBeijing: Self = Self {
         kind: EndPointKind::CnBeijing,
         is_internal: false,
     };
     /// 北京
-    pub const CN_BEIJING: EndPoint = EndPoint {
+    pub const CN_BEIJING: Self = Self {
         kind: EndPointKind::CnBeijing,
         is_internal: false,
     };
 
     /// 张家口
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_ZHANGJIAKOU")]
-    pub const CnZhangjiakou: EndPoint = EndPoint {
+    pub const CnZhangjiakou: Self = Self {
         kind: EndPointKind::CnZhangjiakou,
         is_internal: false,
     };
     /// 张家口
-    pub const CN_ZHANGJIAKOU: EndPoint = EndPoint {
+    pub const CN_ZHANGJIAKOU: Self = Self {
         kind: EndPointKind::CnZhangjiakou,
         is_internal: false,
     };
 
     /// 香港
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_HONGKONG")]
-    pub const CnHongkong: EndPoint = EndPoint {
+    pub const CnHongkong: Self = Self {
         kind: EndPointKind::CnHongkong,
         is_internal: false,
     };
     /// 香港
-    pub const CN_HONGKONG: EndPoint = EndPoint {
+    pub const CN_HONGKONG: Self = Self {
         kind: EndPointKind::CnHongkong,
         is_internal: false,
     };
 
     /// 深圳
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_SHENZHEN")]
-    pub const CnShenzhen: EndPoint = EndPoint {
+    pub const CnShenzhen: Self = Self {
         kind: EndPointKind::CnShenzhen,
         is_internal: false,
     };
     /// 深圳
-    pub const CN_SHENZHEN: EndPoint = EndPoint {
+    pub const CN_SHENZHEN: Self = Self {
         kind: EndPointKind::CnShenzhen,
         is_internal: false,
     };
 
     /// UsWest1
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::US_WEST_1")]
-    pub const UsWest1: EndPoint = EndPoint {
+    pub const UsWest1: Self = Self {
         kind: EndPointKind::UsWest1,
         is_internal: false,
     };
     /// UsWest1
-    pub const US_WEST_1: EndPoint = EndPoint {
+    pub const US_WEST_1: Self = Self {
         kind: EndPointKind::UsWest1,
         is_internal: false,
     };
 
     /// UsEast1
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::US_EAST_1")]
-    pub const UsEast1: EndPoint = EndPoint {
+    pub const UsEast1: Self = Self {
         kind: EndPointKind::UsEast1,
         is_internal: false,
     };
     /// UsEast1
-    pub const US_EAST_1: EndPoint = EndPoint {
+    pub const US_EAST_1: Self = Self {
         kind: EndPointKind::UsEast1,
         is_internal: false,
     };
 
     /// ApSouthEast1
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::AP_SOUTH_EAST_1")]
-    pub const ApSouthEast1: EndPoint = EndPoint {
+    pub const ApSouthEast1: Self = Self {
         kind: EndPointKind::ApSouthEast1,
         is_internal: false,
     };
     /// ApSouthEast1
-    pub const AP_SOUTH_EAST_1: EndPoint = EndPoint {
+    pub const AP_SOUTH_EAST_1: Self = Self {
         kind: EndPointKind::ApSouthEast1,
         is_internal: false,
     };
