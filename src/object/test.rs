@@ -38,7 +38,7 @@ mod tests {
         let object_list = init_object_list(Some(String::from("foo3")), vec![]);
         assert_eq!(
             format!("{object_list:?}"),
-            "ObjectList { bucket: BucketBase { endpoint: EndPoint { kind: CnShanghai, is_internal: false }, name: BucketName(\"abc\") }, prefix: Some(ObjectDir(\"foo2/\")), max_keys: 100, key_count: 200, next_continuation_token: \"foo3\", common_prefixes: [], search_query: Query { inner: {Custom(\"key1\"): InnerQueryValue(\"value1\")} } }"
+            "ObjectList { bucket: BucketBase { endpoint: EndPoint { kind: CnShanghai, is_internal: false }, name: BucketName(\"abc\") }, prefix: Some(ObjectDir(\"foo2/\")), max_keys: 100, key_count: 200, next_continuation_token: \"foo3\", common_prefixes: [], search_query: Query { inner: {InnerQueryKey { kind: Custom(\"key1\") }: InnerQueryValue(\"value1\")} } }"
         );
     }
 

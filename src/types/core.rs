@@ -137,19 +137,6 @@ impl IntoIterator for Query {
     type Item = (QueryKey, QueryValue);
     type IntoIter = std::vec::IntoIter<Self::Item>;
     /// # 使用 Vec 转 Query
-    /// 例子
-    /// ```
-    /// # use aliyun_oss_client::Query;
-    /// # use aliyun_oss_client::QueryKey;
-    /// # use aliyun_oss_client::QueryValue;
-    /// # use assert_matches::assert_matches;
-    /// let query = Query::from_iter(vec![("foo", "bar")]);
-    /// let list: Vec<_> = query.into_iter().collect();
-    /// assert_eq!(list.len(), 1);
-    /// assert_matches!(&list[0].0, &QueryKey::Custom(_));
-    /// let value: QueryValue = "bar".parse().unwrap();
-    /// assert_eq!(list[0].1, value);
-    /// ```
     fn into_iter(self) -> Self::IntoIter {
         self.inner.into_iter().collect::<Vec<_>>().into_iter()
     }
@@ -358,7 +345,94 @@ impl SetOssQuery for Url {
 /// 查询条件的键
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
-pub enum InnerQueryKey<'a> {
+pub struct InnerQueryKey<'a> {
+    kind: QueryKeyEnum<'a>,
+}
+
+impl InnerQueryKey<'_> {
+    /// 对Object名字进行分组的字符。所有Object名字包含指定的前缀，第一次出现delimiter字符之间的Object作为一组元素（即CommonPrefixes）
+    /// 示例值 `/`
+    pub const DELIMITER: Self = Self {
+        kind: QueryKeyEnum::Delimiter,
+    };
+    #[deprecated(since = "0.13.0", note = "replace with QueryKey::DELIMITER")]
+    pub const Delimiter: Self = Self {
+        kind: QueryKeyEnum::Delimiter,
+    };
+
+    /// 设定从start-after之后按字母排序开始返回Object。
+    /// start-after用来实现分页显示效果，参数的长度必须小于1024字节。
+    /// 做条件查询时，即使start-after在列表中不存在，也会从符合start-after字母排序的下一个开始打印。
+    pub const START_AFTER: Self = Self {
+        kind: QueryKeyEnum::StartAfter,
+    };
+    #[deprecated(since = "0.13.0", note = "replace with QueryKey::START_AFTER")]
+    pub const StartAfter: Self = Self {
+        kind: QueryKeyEnum::StartAfter,
+    };
+
+    /// 指定List操作需要从此token开始。您可从ListObjectsV2（GetBucketV2）结果中的NextContinuationToken获取此token。
+    /// 用于分页，返回下一页的数据
+    pub const CONTINUATION_TOKEN: Self = Self {
+        kind: QueryKeyEnum::ContinuationToken,
+    };
+    #[deprecated(since = "0.13.0", note = "replace with QueryKey::CONTINUATION_TOKEN")]
+    pub const ContinuationToken: Self = Self {
+        kind: QueryKeyEnum::ContinuationToken,
+    };
+
+    /// 指定返回Object的最大数。
+    /// 取值：大于0小于等于1000
+    pub const MAX_KEYS: Self = Self {
+        kind: QueryKeyEnum::MaxKeys,
+    };
+    #[deprecated(since = "0.13.0", note = "replace with QueryKey::MAX_KEYS")]
+    pub const MaxKeys: Self = Self {
+        kind: QueryKeyEnum::MaxKeys,
+    };
+
+    /// # 限定返回文件的Key必须以prefix作为前缀。
+    /// 如果把prefix设为某个文件夹名，则列举以此prefix开头的文件，即该文件夹下递归的所有文件和子文件夹。
+    ///
+    /// 在设置prefix的基础上，将delimiter设置为正斜线（/）时，返回值就只列举该文件夹下的文件，文件夹下的子文件夹名返回在CommonPrefixes中，
+    /// 子文件夹下递归的所有文件和文件夹不显示。
+    ///
+    /// 例如，一个Bucket中有三个Object，分别为fun/test.jpg、fun/movie/001.avi和fun/movie/007.avi。如果设定prefix为fun/，
+    /// 则返回三个Object；如果在prefix设置为fun/的基础上，将delimiter设置为正斜线（/），则返回fun/test.jpg和fun/movie/。
+    /// ## 要求
+    /// - 参数的长度必须小于1024字节。
+    /// - 设置prefix参数时，不能以正斜线（/）开头。如果prefix参数置空，则默认列举Bucket内的所有Object。
+    /// - 使用prefix查询时，返回的Key中仍会包含prefix。
+    pub const PREFIX: Self = Self {
+        kind: QueryKeyEnum::Prefix,
+    };
+    #[deprecated(since = "0.13.0", note = "replace with QueryKey::PREFIX")]
+    pub const Prefix: Self = Self {
+        kind: QueryKeyEnum::Prefix,
+    };
+
+    /// 对返回的内容进行编码并指定编码的类型。
+    pub const ENCODING_TYPE: Self = Self {
+        kind: QueryKeyEnum::EncodingType,
+    };
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::ENCODING_TYPE")]
+    pub const EncodingType: Self = Self {
+        kind: QueryKeyEnum::EncodingType,
+    };
+
+    /// 指定是否在返回结果中包含owner信息。
+    pub const FETCH_OWNER: Self = Self {
+        kind: QueryKeyEnum::FetchOwner,
+    };
+    #[deprecated(since = "0.13.0", note = "replace with EndPoint::FETCH_OWNER")]
+    pub const FetchOwner: Self = Self {
+        kind: QueryKeyEnum::FetchOwner,
+    };
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+enum QueryKeyEnum<'a> {
     /// 对Object名字进行分组的字符。所有Object名字包含指定的前缀，第一次出现delimiter字符之间的Object作为一组元素（即CommonPrefixes）
     /// 示例值 `/`
     Delimiter,
@@ -413,12 +487,12 @@ impl AsRef<str> for InnerQueryKey<'_> {
     /// assert_eq!(QueryKey::MaxKeys.as_ref(), "max-keys");
     /// assert_eq!(QueryKey::Prefix.as_ref(), "prefix");
     /// assert_eq!(QueryKey::EncodingType.as_ref(), "encoding-type");
-    /// assert_eq!(QueryKey::Custom(Cow::Borrowed("abc")).as_ref(), "abc");
+    /// assert_eq!(QueryKey::new("abc").as_ref(), "abc");
     /// ```
     fn as_ref(&self) -> &str {
-        use InnerQueryKey::*;
+        use QueryKeyEnum::*;
 
-        match self {
+        match &self.kind {
             Delimiter => "delimiter",
             StartAfter => "start-after",
             ContinuationToken => "continuation-token",
@@ -493,15 +567,13 @@ impl<'a> InnerQueryKey<'a> {
     /// assert!(QueryKey::new("prefix") == QueryKey::Prefix);
     /// assert!(QueryKey::new("encoding-type") == QueryKey::EncodingType);
     ///
-    /// let key = QueryKey::new("abc");
-    /// assert_matches!(key, QueryKey::Custom(_));
     /// ```
     /// *`fetch-owner` 功能未实现，特殊说明*
     pub fn new(val: impl Into<Cow<'a, str>>) -> Self {
-        use InnerQueryKey::*;
+        use QueryKeyEnum::*;
 
         let val = val.into();
-        if val.contains(DELIMITER) {
+        let kind = if val.contains(DELIMITER) {
             Delimiter
         } else if val.contains(START_AFTER) {
             StartAfter
@@ -517,7 +589,8 @@ impl<'a> InnerQueryKey<'a> {
             unimplemented!("parse xml not support fetch owner");
         } else {
             Custom(val)
-        }
+        };
+        Self { kind }
     }
 
     /// # Examples
@@ -531,15 +604,12 @@ impl<'a> InnerQueryKey<'a> {
     /// assert!(QueryKey::from_static("max-keys") == QueryKey::MaxKeys);
     /// assert!(QueryKey::from_static("prefix") == QueryKey::Prefix);
     /// assert!(QueryKey::from_static("encoding-type") == QueryKey::EncodingType);
-    ///
-    /// let key = QueryKey::from_static("abc");
-    /// assert_matches!(key, QueryKey::Custom(_));
     /// ```
     /// *`fetch-owner` 功能未实现，特殊说明*
     pub fn from_static(val: &str) -> Self {
-        use InnerQueryKey::*;
+        use QueryKeyEnum::*;
 
-        if val.contains(DELIMITER) {
+        let kind = if val.contains(DELIMITER) {
             Delimiter
         } else if val.contains(START_AFTER) {
             StartAfter
@@ -555,7 +625,8 @@ impl<'a> InnerQueryKey<'a> {
             unimplemented!("parse xml not support fetch owner");
         } else {
             Custom(Cow::Owned(val.to_owned()))
-        }
+        };
+        Self { kind }
     }
 }
 
@@ -567,6 +638,28 @@ mod test_query_key {
     #[should_panic]
     fn test_fetch_owner() {
         QueryKey::new("fetch-owner");
+    }
+
+    #[test]
+    fn test_custom() {
+        let key = QueryKey::new("abc");
+        assert!(matches!(key.kind, QueryKeyEnum::Custom(_)));
+    }
+
+    #[test]
+    fn test_into_iter() {
+        let query = Query::from_iter(vec![("foo", "bar")]);
+        let list: Vec<_> = query.into_iter().collect();
+        assert_eq!(list.len(), 1);
+        assert!(matches!(&list[0].0.kind, &QueryKeyEnum::Custom(_)));
+        let value: QueryValue = "bar".parse().unwrap();
+        assert_eq!(list[0].1, value);
+    }
+
+    #[test]
+    fn test_from_static() {
+        let key = QueryKey::from_static("abc");
+        assert!(matches!(key.kind, QueryKeyEnum::Custom(_)));
     }
 }
 
