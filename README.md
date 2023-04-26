@@ -10,7 +10,7 @@ aliyun OSS 的一个异步/同步客户端，包含以下功能：
 - `file` 模块，文件上传，下载，删除等功能，可在 client, bucket, object 等结构体中复用
 - `config` 模块，OSS 配置信息，可用于从数据库读取配置等操作
 
-[![Coverage Status](https://coveralls.io/repos/github/tu6ge/oss-rs/badge.svg?branch=master)](https://coveralls.io/github/tu6ge/oss-rs?branch=master) [![Test and Publish](https://github.com/tu6ge/oss-rs/actions/workflows/publish.yml/badge.svg)](https://github.com/tu6ge/oss-rs/actions/workflows/publish.yml)
+[![Coverage Status](https://coveralls.io/repos/github/tu6ge/oss-rs/badge.svg?branch=master)](https://coveralls.io/github/tu6ge/oss-rs?branch=master) [![Test and Publish](https://github.com/tu6ge/oss-rs/actions/workflows/publish.yml/badge.svg)](https://github.com/tu6ge/oss-rs/actions/workflows/publish.yml) [![Crate](https://img.shields.io/crates/v/aliyun-oss-client.svg)](https://crates.io/crates/aliyun-oss-client) [![MSRV](https://img.shields.io/badge/rustc-1.62.0+-ab6000.svg)](https://blog.rust-lang.org/2022/06/30/Rust-1.62.0.html)
 
 > 现在的破坏性更新，都是为了 1.0 版本能够稳定
 
