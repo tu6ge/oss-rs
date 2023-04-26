@@ -169,11 +169,12 @@ trait AuthToOssHeader {
 impl AuthToOssHeader for InnerAuth<'_> {
     /// 转化成 OssHeader
     fn to_oss_header(&self) -> OssHeader {
+        const X_OSS_PRE: &str = "x-oss-";
         //return Some("x-oss-copy-source:/honglei123/file1.txt");
         let mut header: Vec<_> = self
             .headers
             .iter()
-            .filter(|(k, _v)| k.as_str().starts_with("x-oss-"))
+            .filter(|(k, _v)| k.as_str().starts_with(X_OSS_PRE))
             .collect();
         if header.is_empty() {
             return OssHeader(None);

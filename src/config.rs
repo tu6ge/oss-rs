@@ -1,6 +1,7 @@
 //! 配置类型
 
 use crate::{
+    consts::{TRUE1, TRUE2, TRUE3, TRUE4},
     types::{
         core::SetOssQuery,
         object::{ObjectPathInner, SetObjectPath},
@@ -17,6 +18,9 @@ use std::{
     str::FromStr,
 };
 use thiserror::Error;
+
+const HTTPS: &str = "https://";
+const OSS_HYPHEN: &str = "oss-";
 
 /// OSS 配置信息
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
@@ -211,8 +215,6 @@ impl AsRef<BucketName> for BucketBase {
     }
 }
 
-const HTTPS: &str = "https://";
-
 impl FromStr for BucketBase {
     type Err = InvalidBucketBase;
     /// 通过域名获取
@@ -259,7 +261,7 @@ impl FromStr for BucketBase {
                 source: bucket.to_string(),
                 kind: InvalidBucketBaseKind::from(e),
             })?,
-            endpoint: EndPoint::new(endpoint.trim_start_matches("oss-")).map_err(|e| {
+            endpoint: EndPoint::new(endpoint.trim_start_matches(OSS_HYPHEN)).map_err(|e| {
                 InvalidBucketBase {
                     source: endpoint.to_string(),
                     kind: InvalidBucketBaseKind::from(e),
@@ -343,10 +345,10 @@ impl BucketBase {
         })?;
 
         if let Ok(is_internal) = env::var("ALIYUN_OSS_INTERNAL") {
-            if is_internal == "true"
-                || is_internal == "1"
-                || is_internal == "yes"
-                || is_internal == "Y"
+            if is_internal == TRUE1
+                || is_internal == TRUE2
+                || is_internal == TRUE3
+                || is_internal == TRUE4
             {
                 endpoint.set_internal(true);
             }

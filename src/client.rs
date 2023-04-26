@@ -7,6 +7,7 @@ use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddlewa
 use crate::builder::Middleware;
 use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware, RequestBuilder};
 use crate::config::{get_bucket, get_endpoint, get_env, BucketBase, Config, InvalidConfig};
+use crate::consts::{TRUE1, TRUE2, TRUE3, TRUE4};
 use crate::file::AlignBuilder;
 use crate::types::{
     object::{InvalidObjectPath, ObjectBase, ObjectPath},
@@ -128,10 +129,10 @@ impl<M: Default + Clone> Client<M> {
         let mut endpoint = get_endpoint(&endpoint)?;
 
         if let Ok(is_internal) = env::var("ALIYUN_OSS_INTERNAL") {
-            if is_internal == "true"
-                || is_internal == "1"
-                || is_internal == "yes"
-                || is_internal == "Y"
+            if is_internal == TRUE1
+                || is_internal == TRUE2
+                || is_internal == TRUE3
+                || is_internal == TRUE4
             {
                 endpoint.set_internal(true);
             }

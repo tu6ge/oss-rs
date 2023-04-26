@@ -3,6 +3,14 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
+const DELIMITER: &str = "delimiter";
+const START_AFTER: &str = "start-after";
+const CONTINUATION_TOKEN: &str = "continuation-token";
+const MAX_KEYS: &str = "max-keys";
+const PREFIX: &str = "prefix";
+const ENCODING_TYPE: &str = "encoding-type";
+const FETCH_OWNER: &str = "fetch-owner";
+
 //===================================================================================================
 /// 查询条件
 ///
@@ -89,7 +97,8 @@ impl Query {
 
     /// 将查询参数拼成 aliyun 接口需要的格式
     pub fn to_oss_string(&self) -> String {
-        let mut query_str = String::from("list-type=2");
+        const LIST_TYPE2: &str = "list-type=2";
+        let mut query_str = String::from(LIST_TYPE2);
         for (key, value) in self.as_ref().iter() {
             query_str += "&";
             query_str += key.as_ref();
@@ -492,19 +501,19 @@ impl<'a> InnerQueryKey<'a> {
         use InnerQueryKey::*;
 
         let val = val.into();
-        if val.contains("delimiter") {
+        if val.contains(DELIMITER) {
             Delimiter
-        } else if val.contains("start-after") {
+        } else if val.contains(START_AFTER) {
             StartAfter
-        } else if val.contains("continuation-token") {
+        } else if val.contains(CONTINUATION_TOKEN) {
             ContinuationToken
-        } else if val.contains("max-keys") {
+        } else if val.contains(MAX_KEYS) {
             MaxKeys
-        } else if val.contains("prefix") {
+        } else if val.contains(PREFIX) {
             Prefix
-        } else if val.contains("encoding-type") {
+        } else if val.contains(ENCODING_TYPE) {
             EncodingType
-        } else if val.contains("fetch-owner") {
+        } else if val.contains(FETCH_OWNER) {
             unimplemented!("parse xml not support fetch owner");
         } else {
             Custom(val)
@@ -530,19 +539,19 @@ impl<'a> InnerQueryKey<'a> {
     pub fn from_static(val: &str) -> Self {
         use InnerQueryKey::*;
 
-        if val.contains("delimiter") {
+        if val.contains(DELIMITER) {
             Delimiter
-        } else if val.contains("start-after") {
+        } else if val.contains(START_AFTER) {
             StartAfter
-        } else if val.contains("continuation-token") {
+        } else if val.contains(CONTINUATION_TOKEN) {
             ContinuationToken
-        } else if val.contains("max-keys") {
+        } else if val.contains(MAX_KEYS) {
             MaxKeys
-        } else if val.contains("prefix") {
+        } else if val.contains(PREFIX) {
             Prefix
-        } else if val.contains("encoding-type") {
+        } else if val.contains(ENCODING_TYPE) {
             EncodingType
-        } else if val.contains("fetch-owner") {
+        } else if val.contains(FETCH_OWNER) {
             unimplemented!("parse xml not support fetch owner");
         } else {
             Custom(Cow::Owned(val.to_owned()))

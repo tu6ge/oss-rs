@@ -108,6 +108,34 @@ use crate::{
 #[cfg(test)]
 mod test;
 
+const PREFIX: &[u8] = b"Prefix";
+const COMMON_PREFIX: &[u8] = b"CommonPrefixes";
+const NAME: &[u8] = b"Name";
+const MAX_KEYS: &[u8] = b"MaxKeys";
+const KEY_COUNT: &[u8] = b"KeyCount";
+const IS_TRUNCATED: &[u8] = b"IsTruncated";
+const NEXT_CONTINUATION_TOKEN: &[u8] = b"NextContinuationToken";
+const KEY: &[u8] = b"Key";
+const LAST_MODIFIED: &[u8] = b"LastModified";
+const E_TAG: &[u8] = b"ETag";
+const TYPE: &[u8] = b"Type";
+const SIZE: &[u8] = b"Size";
+const STORAGE_CLASS: &[u8] = b"StorageClass";
+const BUCKET: &[u8] = b"Bucket";
+
+const CREATION_DATE: &[u8] = b"CreationDate";
+const EXTRANET_ENDPOINT: &[u8] = b"ExtranetEndpoint";
+const INTRANET_ENDPOINT: &[u8] = b"IntranetEndpoint";
+const LOCATION: &[u8] = b"Location";
+
+const MARKER: &[u8] = b"Marker";
+const NEXT_MARKER: &[u8] = b"NextMarker";
+const ID: &[u8] = b"ID";
+const DISPLAY_NAME: &[u8] = b"DisplayName";
+const CONTENTS: &[u8] = b"Contents";
+
+const TRUE: &str = "true";
+
 /// 将一个 object 的数据写入到 rust 类型
 pub trait RefineObject<Error: StdError + 'static> {
     /// 提取 key
@@ -177,32 +205,6 @@ pub trait RefineObject<Error: StdError + 'static> {
         Ok(())
     }
 }
-
-const PREFIX: &[u8] = b"Prefix";
-const COMMON_PREFIX: &[u8] = b"CommonPrefixes";
-const NAME: &[u8] = b"Name";
-const MAX_KEYS: &[u8] = b"MaxKeys";
-const KEY_COUNT: &[u8] = b"KeyCount";
-const IS_TRUNCATED: &[u8] = b"IsTruncated";
-const NEXT_CONTINUATION_TOKEN: &[u8] = b"NextContinuationToken";
-const KEY: &[u8] = b"Key";
-const LAST_MODIFIED: &[u8] = b"LastModified";
-const E_TAG: &[u8] = b"ETag";
-const TYPE: &[u8] = b"Type";
-const SIZE: &[u8] = b"Size";
-const STORAGE_CLASS: &[u8] = b"StorageClass";
-const BUCKET: &[u8] = b"Bucket";
-
-const CREATION_DATE: &[u8] = b"CreationDate";
-const EXTRANET_ENDPOINT: &[u8] = b"ExtranetEndpoint";
-const INTRANET_ENDPOINT: &[u8] = b"IntranetEndpoint";
-const LOCATION: &[u8] = b"Location";
-
-const MARKER: &[u8] = b"Marker";
-const NEXT_MARKER: &[u8] = b"NextMarker";
-const ID: &[u8] = b"ID";
-const DISPLAY_NAME: &[u8] = b"DisplayName";
-const CONTENTS: &[u8] = b"Contents";
 
 /// 将 object 列表写入到 rust 类型
 pub trait RefineObjectList<T, Error, ItemErr = Error>
@@ -309,7 +311,7 @@ where
                         MAX_KEYS => self.set_max_keys(&reader.read_text(e.to_end().name())?)?,
                         KEY_COUNT => self.set_key_count(&reader.read_text(e.to_end().name())?)?,
                         IS_TRUNCATED => {
-                            //is_truncated = reader.read_text(e.to_end().name())?.to_string() == "true"
+                            //is_truncated = reader.read_text(e.to_end().name())?.to_string() == TRUE
                         }
                         NEXT_CONTINUATION_TOKEN => {
                             self.set_next_continuation_token_str(
@@ -412,8 +414,6 @@ pub trait RefineBucket<Error: StdError + 'static> {
         Ok(())
     }
 }
-
-const TRUE: &str = "true";
 
 /// 将 bucket 列表的数据写入到 rust 类型
 pub trait RefineBucketList<T: RefineBucket<ItemErr>, Error, ItemErr = Error>

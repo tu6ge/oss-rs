@@ -249,6 +249,8 @@ pub mod client;
 #[cfg(feature = "core")]
 pub mod config;
 
+mod consts;
+
 #[cfg(feature = "decode")]
 pub mod decode;
 

@@ -97,6 +97,9 @@ use infer::Infer;
 #[cfg(test)]
 mod test;
 
+const ETAG: &str = "ETag";
+const RANGE: &str = "Range";
+
 /// # 文件的相关操作
 ///
 /// 包括 上传，下载，删除等功能
@@ -456,7 +459,7 @@ where
 
         let result = content
             .headers()
-            .get("ETag")
+            .get(ETAG)
             .ok_or(FileError {
                 kind: FileErrorKind::EtagNotFound,
             })?
@@ -508,7 +511,7 @@ where
         })?;
 
         #[allow(clippy::unwrap_used)]
-        let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
+        let list: Vec<(_, HeaderValue)> = vec![(RANGE.parse().unwrap(), range.into().into())];
 
         let content = self
             .builder_with_header(Method::GET, url, canonicalized, list)?
@@ -706,7 +709,10 @@ use self::error_impl::FileErrorKind;
 #[cfg(feature = "blocking")]
 pub mod blocking {
 
-    use super::{error_impl::FileErrorKind, header_from_content_length, FileError, GetStdWithPath};
+    use super::{
+        error_impl::FileErrorKind, header_from_content_length, FileError, GetStdWithPath, ETAG,
+        RANGE,
+    };
     use crate::{
         blocking::builder::RequestBuilder,
         bucket::Bucket,
@@ -794,7 +800,7 @@ pub mod blocking {
 
             let result = content
                 .headers()
-                .get("ETag")
+                .get(ETAG)
                 .ok_or(FileError {
                     kind: FileErrorKind::EtagNotFound,
                 })?
@@ -847,7 +853,7 @@ pub mod blocking {
 
             #[allow(clippy::unwrap_used)]
             let headers: Vec<(_, HeaderValue)> =
-                vec![("Range".parse().unwrap(), range.into().into())];
+                vec![(RANGE.parse().unwrap(), range.into().into())];
 
             Ok(self
                 .builder_with_header(Method::GET, url, canonicalized, headers)?

@@ -21,6 +21,34 @@ mod test;
 #[cfg(feature = "core")]
 pub use self::core::{ContentRange, Query, QueryKey, QueryValue, SetOssQuery};
 
+const OSS_DOMAIN_PREFIX: &str = "https://oss-";
+#[allow(dead_code)]
+const OSS_INTERNAL: &str = "-internal";
+const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
+const OSS_HYPHEN: &str = "oss-";
+
+const HANGZHOU: &str = "cn-hangzhou";
+const SHANGHAI: &str = "cn-shanghai";
+const QINGDAO: &str = "cn-qingdao";
+const BEIJING: &str = "cn-beijing";
+const ZHANGJIAKOU: &str = "cn-zhangjiakou";
+const HONGKONG: &str = "cn-hongkong";
+const SHENZHEN: &str = "cn-shenzhen";
+const US_WEST1: &str = "us-west-1";
+const US_EAST1: &str = "us-east-1";
+const AP_SOUTH_EAST1: &str = "ap-southeast-1";
+
+const HANGZHOU_L: &str = "hangzhou";
+const SHANGHAI_L: &str = "shanghai";
+const QINGDAO_L: &str = "qingdao";
+const BEIJING_L: &str = "beijing";
+const ZHANGJIAKOU_L: &str = "zhangjiakou";
+const HONGKONG_L: &str = "hongkong";
+const SHENZHEN_L: &str = "shenzhen";
+
+const COM: &str = "com";
+const ALIYUNCS: &str = "aliyuncs";
+
 /// 阿里云 OSS 的签名 key
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct InnerKeyId<'a>(Cow<'a, str>);
@@ -299,17 +327,6 @@ pub(crate) enum EndPointKind {
     Other(Cow<'static, str>),
 }
 
-const HANGZHOU: &str = "cn-hangzhou";
-const SHANGHAI: &str = "cn-shanghai";
-const QINGDAO: &str = "cn-qingdao";
-const BEIJING: &str = "cn-beijing";
-const ZHANGJIAKOU: &str = "cn-zhangjiakou";
-const HONGKONG: &str = "cn-hongkong";
-const SHENZHEN: &str = "cn-shenzhen";
-const US_WEST1: &str = "us-west-1";
-const US_EAST1: &str = "us-east-1";
-const AP_SOUTH_EAST1: &str = "ap-southeast-1";
-
 impl AsRef<str> for EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
@@ -353,14 +370,6 @@ impl Display for EndPoint {
     }
 }
 
-const HANGZHOU_L: &str = "hangzhou";
-const SHANGHAI_L: &str = "shanghai";
-const QINGDAO_L: &str = "qingdao";
-const BEIJING_L: &str = "beijing";
-const ZHANGJIAKOU_L: &str = "zhangjiakou";
-const HONGKONG_L: &str = "hongkong";
-const SHENZHEN_L: &str = "shenzhen";
-
 impl TryFrom<String> for EndPoint {
     type Error = InvalidEndPoint;
     /// 字符串转 endpoint
@@ -398,8 +407,6 @@ impl FromStr for EndPoint {
     }
 }
 
-const COM: &str = "com";
-const ALIYUNCS: &str = "aliyuncs";
 impl TryFrom<Url> for EndPoint {
     type Error = InvalidEndPoint;
     fn try_from(url: Url) -> Result<Self, Self::Error> {
@@ -425,11 +432,6 @@ impl TryFrom<Url> for EndPoint {
         }
     }
 }
-
-const OSS_DOMAIN_PREFIX: &str = "https://oss-";
-#[allow(dead_code)]
-const OSS_INTERNAL: &str = "-internal";
-const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
 
 impl<'a> EndPoint {
     /// 通过字符串字面值初始化 endpoint
@@ -470,12 +472,13 @@ impl<'a> EndPoint {
     /// assert!(EndPoint::new("oss-cn-jinan").is_err());
     /// ```
     pub fn new(url: &'a str) -> Result<Self, InvalidEndPoint> {
+        const OSS_STR: &str = "oss";
         use EndPointKind::*;
         if url.is_empty() {
             return Err(InvalidEndPoint { _priv: () });
         }
         // 是否是内网
-        let is_internal = url.ends_with("-internal");
+        let is_internal = url.ends_with(OSS_INTERNAL);
         let url = if is_internal {
             let len = url.len();
             &url[..len - 9]
@@ -508,7 +511,7 @@ impl<'a> EndPoint {
                 return Err(InvalidEndPoint { _priv: () });
             }
 
-            if url.starts_with("oss") {
+            if url.starts_with(OSS_STR) {
                 return Err(InvalidEndPoint { _priv: () });
             }
 
@@ -532,7 +535,7 @@ impl<'a> EndPoint {
 
     /// 从 oss 域名中提取 Endpoint 信息
     pub(crate) fn from_host_piece(url: &'a str) -> Result<Self, InvalidEndPoint> {
-        if !url.starts_with("oss-") {
+        if !url.starts_with(OSS_HYPHEN) {
             return Err(InvalidEndPoint { _priv: () });
         }
         Self::new(&url[4..])
