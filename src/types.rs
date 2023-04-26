@@ -1408,6 +1408,7 @@ pub enum InnerQueryKey<'a> {
     FetchOwner,
 
     /// 自定义
+    #[deprecated(since = "0.12.0", note = "Please use QueryKey::new() replace it")]
     Custom(Cow<'a, str>),
 }
 
