@@ -89,9 +89,15 @@ mod test_endpoint {
             Ok(EndPoint::CN_SHENZHEN)
         ));
 
-        assert!(matches!(EndPoint::new("us-west-1"), Ok(EndPoint::US_WEST_1)));
+        assert!(matches!(
+            EndPoint::new("us-west-1"),
+            Ok(EndPoint::US_WEST_1)
+        ));
 
-        assert!(matches!(EndPoint::new("us-east-1"), Ok(EndPoint::US_EAST_1)));
+        assert!(matches!(
+            EndPoint::new("us-east-1"),
+            Ok(EndPoint::US_EAST_1)
+        ));
 
         assert!(matches!(
             EndPoint::new("ap-southeast-1"),
