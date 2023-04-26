@@ -1117,7 +1117,7 @@ impl<'a> InnerCanonicalizedResource<'a> {
     #[cfg(feature = "core")]
     #[doc(hidden)]
     pub fn from_bucket_query2(bucket: &BucketName, query: &Query) -> Self {
-        match query.get(QueryKey::ContinuationToken) {
+        match query.get(QueryKey::CONTINUATION_TOKEN) {
             Some(v) => Self::new(format!(
                 "/{}/?continuation-token={}",
                 bucket.as_ref(),

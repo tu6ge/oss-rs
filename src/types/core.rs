@@ -299,13 +299,13 @@ mod tests_query_from_iter {
     use super::*;
     #[test]
     fn test() {
-        let query = Query::from_iter([(QueryKey::MaxKeys, 123u8)]);
-        assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
-        assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
+        let query = Query::from_iter([(QueryKey::MAX_KEYS, 123u8)]);
+        assert_eq!(query.get(QueryKey::MAX_KEYS), Some(&123u8.into()));
+        assert_eq!(query.get(QueryKey::MAX_KEYS), Some(&123u16.into()));
 
-        let query = Query::from_iter([(QueryKey::MaxKeys, 123u16)]);
-        assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u8.into()));
-        assert_eq!(query.get(QueryKey::MaxKeys), Some(&123u16.into()));
+        let query = Query::from_iter([(QueryKey::MAX_KEYS, 123u16)]);
+        assert_eq!(query.get(QueryKey::MAX_KEYS), Some(&123u8.into()));
+        assert_eq!(query.get(QueryKey::MAX_KEYS), Some(&123u16.into()));
     }
 }
 
@@ -355,6 +355,7 @@ impl InnerQueryKey<'_> {
     pub const DELIMITER: Self = Self {
         kind: QueryKeyEnum::Delimiter,
     };
+    /// TODO
     #[deprecated(since = "0.13.0", note = "replace with QueryKey::DELIMITER")]
     pub const Delimiter: Self = Self {
         kind: QueryKeyEnum::Delimiter,
@@ -366,6 +367,7 @@ impl InnerQueryKey<'_> {
     pub const START_AFTER: Self = Self {
         kind: QueryKeyEnum::StartAfter,
     };
+    /// TODO
     #[deprecated(since = "0.13.0", note = "replace with QueryKey::START_AFTER")]
     pub const StartAfter: Self = Self {
         kind: QueryKeyEnum::StartAfter,
@@ -376,6 +378,7 @@ impl InnerQueryKey<'_> {
     pub const CONTINUATION_TOKEN: Self = Self {
         kind: QueryKeyEnum::ContinuationToken,
     };
+    /// TODO
     #[deprecated(since = "0.13.0", note = "replace with QueryKey::CONTINUATION_TOKEN")]
     pub const ContinuationToken: Self = Self {
         kind: QueryKeyEnum::ContinuationToken,
@@ -386,6 +389,7 @@ impl InnerQueryKey<'_> {
     pub const MAX_KEYS: Self = Self {
         kind: QueryKeyEnum::MaxKeys,
     };
+    /// TODO
     #[deprecated(since = "0.13.0", note = "replace with QueryKey::MAX_KEYS")]
     pub const MaxKeys: Self = Self {
         kind: QueryKeyEnum::MaxKeys,
@@ -406,6 +410,7 @@ impl InnerQueryKey<'_> {
     pub const PREFIX: Self = Self {
         kind: QueryKeyEnum::Prefix,
     };
+    /// TODO
     #[deprecated(since = "0.13.0", note = "replace with QueryKey::PREFIX")]
     pub const Prefix: Self = Self {
         kind: QueryKeyEnum::Prefix,
@@ -415,6 +420,7 @@ impl InnerQueryKey<'_> {
     pub const ENCODING_TYPE: Self = Self {
         kind: QueryKeyEnum::EncodingType,
     };
+    /// TODO
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::ENCODING_TYPE")]
     pub const EncodingType: Self = Self {
         kind: QueryKeyEnum::EncodingType,
@@ -424,6 +430,7 @@ impl InnerQueryKey<'_> {
     pub const FETCH_OWNER: Self = Self {
         kind: QueryKeyEnum::FetchOwner,
     };
+    /// TODO
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::FETCH_OWNER")]
     pub const FetchOwner: Self = Self {
         kind: QueryKeyEnum::FetchOwner,

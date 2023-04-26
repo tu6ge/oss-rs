@@ -67,35 +67,35 @@ mod test_endpoint {
     fn test_new() {
         assert!(matches!(
             EndPoint::new("hangzhou"),
-            Ok(EndPoint::CnHangzhou)
+            Ok(EndPoint::CN_HANGZHOU)
         ));
 
-        assert!(matches!(EndPoint::new("qingdao"), Ok(EndPoint::CnQingdao)));
+        assert!(matches!(EndPoint::new("qingdao"), Ok(EndPoint::CN_QINGDAO)));
 
-        assert!(matches!(EndPoint::new("beijing"), Ok(EndPoint::CnBeijing)));
+        assert!(matches!(EndPoint::new("beijing"), Ok(EndPoint::CN_BEIJING)));
 
         assert!(matches!(
             EndPoint::new("zhangjiakou"),
-            Ok(EndPoint::CnZhangjiakou)
+            Ok(EndPoint::CN_ZHANGJIAKOU)
         ));
 
         assert!(matches!(
             EndPoint::new("hongkong"),
-            Ok(EndPoint::CnHongkong)
+            Ok(EndPoint::CN_HONGKONG)
         ));
 
         assert!(matches!(
             EndPoint::new("shenzhen"),
-            Ok(EndPoint::CnShenzhen)
+            Ok(EndPoint::CN_SHENZHEN)
         ));
 
-        assert!(matches!(EndPoint::new("us-west-1"), Ok(EndPoint::UsWest1)));
+        assert!(matches!(EndPoint::new("us-west-1"), Ok(EndPoint::US_WEST_1)));
 
-        assert!(matches!(EndPoint::new("us-east-1"), Ok(EndPoint::UsEast1)));
+        assert!(matches!(EndPoint::new("us-east-1"), Ok(EndPoint::US_EAST_1)));
 
         assert!(matches!(
             EndPoint::new("ap-southeast-1"),
-            Ok(EndPoint::ApSouthEast1)
+            Ok(EndPoint::AP_SOUTH_EAST_1)
         ));
 
         assert!(matches!(
@@ -132,7 +132,7 @@ mod test_endpoint {
 
         assert_eq!(
             EndPoint::from_host_piece("oss-cn-qingdao"),
-            Ok(EndPoint::CnQingdao)
+            Ok(EndPoint::CN_QINGDAO)
         );
         assert_eq!(
             EndPoint::from_host_piece("oss-qingdao"),
@@ -289,7 +289,7 @@ mod tests_canonicalized_resource {
 
         let mut query = Query::new();
         query.insert("list-type", "2");
-        query.insert(QueryKey::ContinuationToken, "foo");
+        query.insert(QueryKey::CONTINUATION_TOKEN, "foo");
         let resource = CanonicalizedResource::from_bucket_query2(&bucket, &query);
         assert_eq!(
             resource,

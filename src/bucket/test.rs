@@ -346,14 +346,14 @@ async fn test_get_object_list() {
     let list = res.unwrap();
     assert_object_list::<ArcPointer>(
         list,
-        EndPoint::CnShanghai,
+        EndPoint::CN_SHANGHAI,
         "abc".parse().unwrap(),
         None,
         100,
         23,
         String::default(),
         CommonPrefixes::from_iter([]),
-        Query::from_iter([(QueryKey::MaxKeys, 5u16)]),
+        Query::from_iter([(QueryKey::MAX_KEYS, 5u16)]),
     );
 }
 

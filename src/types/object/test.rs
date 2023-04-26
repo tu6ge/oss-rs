@@ -146,7 +146,7 @@ mod test_core {
     #[test]
     fn test_url_from_oss() {
         use crate::EndPoint;
-        let endpoint = EndPoint::CnQingdao;
+        let endpoint = EndPoint::CN_QINGDAO;
         let bucket = BucketName::new("foo").unwrap();
         let path = ObjectPath::new("file1").unwrap();
 

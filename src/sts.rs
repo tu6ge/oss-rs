@@ -85,7 +85,7 @@ mod tests {
         let client = Client::new_with_sts(
             "foo1".into(),
             "foo2".into(),
-            EndPoint::CnShanghai,
+            EndPoint::CN_SHANGHAI,
             BucketName::new("abc").unwrap(),
             "bar",
         )

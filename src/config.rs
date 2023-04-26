@@ -668,7 +668,7 @@ mod tests {
 
     #[test]
     fn test_get_url_resource_with_path() {
-        let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnBeijing);
+        let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CN_BEIJING);
 
         let path = "path".try_into().unwrap();
         let (url, resource) = base.get_url_resource_with_path(&path);
@@ -682,7 +682,7 @@ mod tests {
 
     #[test]
     fn test_get_url_resource_with_bucket() {
-        let endpoint = EndPoint::CnBeijing;
+        let endpoint = EndPoint::CN_BEIJING;
         let bucket = BucketName::new("abc").unwrap();
         let query = Query::new();
 
