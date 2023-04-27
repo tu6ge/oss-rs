@@ -5,7 +5,7 @@ async fn main() {
     let client = Client::new_with_sts(
         "STS.xxxxxxxx".into(),
         "EVd6dXew6xxxxxxxxxxxxxxxxxxxxxxxxxxx".into(),
-        EndPoint::CnShanghai,
+        EndPoint::CN_SHANGHAI,
         BucketName::new("yyyyyy").unwrap(),
         "CAIS4gF1q6Ft5Bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".to_string(),
     )

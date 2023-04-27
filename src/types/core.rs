@@ -565,7 +565,6 @@ impl<'a> InnerQueryKey<'a> {
     /// # Examples
     /// ```
     /// # use aliyun_oss_client::QueryKey;
-    /// # use assert_matches::assert_matches;
     /// let key = QueryKey::new("delimiter");
     /// assert!(key == QueryKey::Delimiter);
     /// assert!(QueryKey::new("start-after") == QueryKey::StartAfter);
@@ -603,7 +602,6 @@ impl<'a> InnerQueryKey<'a> {
     /// # Examples
     /// ```
     /// # use aliyun_oss_client::QueryKey;
-    /// # use assert_matches::assert_matches;
     /// let key = QueryKey::from_static("delimiter");
     /// assert!(key == QueryKey::Delimiter);
     /// assert!(QueryKey::from_static("start-after") == QueryKey::StartAfter);

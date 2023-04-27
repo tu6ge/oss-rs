@@ -15,7 +15,7 @@ struct MyObject {
 impl MyObject {
     const KEY_ID: KeyId = KeyId::from_static("xxxxxxxxxxxxxxxx");
     const KEY_SECRET: KeySecret = KeySecret::from_static("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-    const END_POINT: EndPoint = EndPoint::CnShanghai;
+    const END_POINT: EndPoint = EndPoint::CN_SHANGHAI;
     const BUCKET: BucketName = unsafe { BucketName::from_static2("xxxxxx") };
 
     fn new(path: &Path) -> Result<MyObject, FileError> {

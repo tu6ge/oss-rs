@@ -37,7 +37,7 @@ impl GetStdWithPath<MyPath> for MyClient {
     fn get_std_with_path(&self, path: MyPath) -> Option<(Url, CanonicalizedResource)> {
         let bucket = std::env::var("ALIYUN_BUCKET").unwrap();
 
-        let end_point = EndPoint::CnShanghai;
+        let end_point = EndPoint::CN_SHANGHAI;
         let bucket = BucketName::new(bucket).unwrap();
         let base = BucketBase::new(bucket, end_point);
         let obj_path = ObjectPath::try_from(path.0).unwrap();
@@ -49,7 +49,7 @@ impl GetStdWithPath<MyPath> for Client {
     fn get_std_with_path(&self, path: MyPath) -> Option<(Url, CanonicalizedResource)> {
         let bucket = std::env::var("ALIYUN_BUCKET").unwrap();
 
-        let end_point = EndPoint::CnShanghai;
+        let end_point = EndPoint::CN_SHANGHAI;
         let bucket = BucketName::new(bucket).unwrap();
         let base = BucketBase::new(bucket, end_point);
         let obj_path = ObjectPath::try_from(path.0).unwrap();

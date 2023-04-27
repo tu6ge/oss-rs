@@ -268,7 +268,6 @@ pub mod sts;
 
 pub mod types;
 
-#[allow(soft_unstable)]
 #[cfg(test)]
 mod tests;
 
