@@ -1218,13 +1218,30 @@ pub enum ObjectAcl {
 pub enum StorageClass {
     /// Standard 默认
     #[default]
+    #[deprecated(since = "0.12", note = "Please use StorageClass::STANDARD replace it")]
     Standard,
     /// IA
     IA,
+
     /// Archive
+    #[deprecated(since = "0.12", note = "Please use StorageClass::ARCHIVE replace it")]
     Archive,
+
     /// ColdArchive
+    #[deprecated(
+        since = "0.12",
+        note = "Please use StorageClass::COLD_ARCHIVE replace it"
+    )]
     ColdArchive,
+}
+
+impl StorageClass {
+    /// Archive
+    pub const ARCHIVE: Self = Self::Archive;
+    /// Standard
+    pub const STANDARD: Self = Self::Standard;
+    /// ColdArchive
+    pub const COLD_ARCHIVE: Self = Self::ColdArchive;
 }
 
 /// 未来计划支持的功能
