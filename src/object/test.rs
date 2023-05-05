@@ -1,3 +1,5 @@
+use crate::object::{StorageClass, StorageClassKind};
+
 #[cfg(test)]
 mod tests {
     use super::super::ObjectList;
@@ -389,14 +391,6 @@ mod item_error {
         let mut object = Object::<ArcPointer>::default();
 
         assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "aaa").is_ok());
-        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "AAA").is_ok());
-        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "iii").is_ok());
-        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "III").is_ok());
-        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "sss").is_ok());
-        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "SSS").is_ok());
-        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "ccc").is_ok());
-        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "CCC").is_ok());
-        assert!(RefineObject::<BuildInItemError>::set_storage_class(&mut object, "").is_err());
         let err =
             RefineObject::<BuildInItemError>::set_storage_class(&mut object, "xxx").unwrap_err();
         assert_eq!(
@@ -409,6 +403,31 @@ mod item_error {
             "BuildInItemError { source: \"xxx\", kind: InvalidStorageClass }"
         );
     }
+}
+
+#[test]
+fn test_storage_class_new() {
+    let value = StorageClass::new("archive").unwrap();
+    assert_eq!(value.kind, StorageClassKind::Archive);
+    let value = StorageClass::new("Archive").unwrap();
+    assert_eq!(value.kind, StorageClassKind::Archive);
+
+    let value = StorageClass::new("IA").unwrap();
+    assert_eq!(value.kind, StorageClassKind::IA);
+    let value = StorageClass::new("ia").unwrap();
+    assert_eq!(value.kind, StorageClassKind::IA);
+
+    let value = StorageClass::new("standard").unwrap();
+    assert_eq!(value.kind, StorageClassKind::Standard);
+    let value = StorageClass::new("Standard").unwrap();
+    assert_eq!(value.kind, StorageClassKind::Standard);
+
+    let value = StorageClass::new("cold_archive").unwrap();
+    assert_eq!(value.kind, StorageClassKind::ColdArchive);
+    let value = StorageClass::new("ColdArchive").unwrap();
+    assert_eq!(value.kind, StorageClassKind::ColdArchive);
+
+    assert!(StorageClass::new("eeeeee").is_none());
 }
 
 mod list_error {

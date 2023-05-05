@@ -752,23 +752,10 @@ impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
 
     #[inline]
     fn set_storage_class(&mut self, storage_class: &str) -> Result<(), BuildInItemError> {
-        let start_char = storage_class.chars().next().ok_or(BuildInItemError {
+        self.storage_class = StorageClass::new(storage_class).ok_or(BuildInItemError {
             source: storage_class.to_string(),
             kind: BuildInItemErrorKind::InvalidStorageClass,
         })?;
-
-        self.storage_class = match start_char {
-            'a' | 'A' => StorageClass::Archive,
-            'i' | 'I' => StorageClass::IA,
-            's' | 'S' => StorageClass::Standard,
-            'c' | 'C' => StorageClass::ColdArchive,
-            _ => {
-                return Err(BuildInItemError {
-                    source: storage_class.to_string(),
-                    kind: BuildInItemErrorKind::InvalidStorageClass,
-                })
-            }
-        };
         Ok(())
     }
 }
@@ -1417,7 +1404,14 @@ pub enum ObjectAcl {
 
 /// 存储类型
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub enum StorageClass {
+#[non_exhaustive]
+pub struct StorageClass {
+    kind: StorageClassKind,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+enum StorageClassKind {
     /// Standard 默认
     #[default]
     Standard,
@@ -1427,6 +1421,39 @@ pub enum StorageClass {
     Archive,
     /// ColdArchive
     ColdArchive,
+}
+
+impl StorageClass {
+    /// Archive
+    pub const ARCHIVE: Self = Self {
+        kind: StorageClassKind::Archive,
+    };
+    /// IA
+    pub const IA: Self = Self {
+        kind: StorageClassKind::IA,
+    };
+    /// Standard
+    pub const STANDARD: Self = Self {
+        kind: StorageClassKind::Standard,
+    };
+    /// ColdArchive
+    pub const COLD_ARCHIVE: Self = Self {
+        kind: StorageClassKind::ColdArchive,
+    };
+
+    /// init StorageClass
+    pub fn new(s: &str) -> Option<StorageClass> {
+        let start_char = s.chars().next()?;
+
+        let kind = match start_char {
+            'a' | 'A' => StorageClassKind::Archive,
+            'i' | 'I' => StorageClassKind::IA,
+            's' | 'S' => StorageClassKind::Standard,
+            'c' | 'C' => StorageClassKind::ColdArchive,
+            _ => return None,
+        };
+        Some(Self { kind })
+    }
 }
 
 /// 未来计划支持的功能

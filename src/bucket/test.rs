@@ -192,7 +192,7 @@ async fn test_get_bucket_info() {
     //println!("{:?}", res);
     assert_eq!(
         format!("{:?}", res),
-        r#"Ok(Bucket { base: BucketBase { endpoint: EndPoint { kind: CnShanghai, is_internal: false }, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, storage_class: Standard })"#
+        r#"Ok(Bucket { base: BucketBase { endpoint: EndPoint { kind: CnShanghai, is_internal: false }, name: BucketName("barname") }, creation_date: 2016-11-05T13:10:10Z, storage_class: StorageClass { kind: Standard } })"#
     );
 }
 
@@ -422,7 +422,7 @@ fn bucket(client: Client) -> Bucket {
     Bucket::<ArcPointer>::new(
         "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
         creation_date,
-        StorageClass::Archive,
+        StorageClass::ARCHIVE,
         Arc::new(client),
     )
 }
@@ -523,25 +523,7 @@ fn test_get_blocking_object_list() {
 fn test_set_storage_class() {
     let mut bucket = Bucket::<ArcPointer>::default();
 
-    bucket.set_storage_class("archive").unwrap();
-    assert_eq!(bucket.storage_class, StorageClass::Archive);
-    bucket.set_storage_class("Archive").unwrap();
-    assert_eq!(bucket.storage_class, StorageClass::Archive);
-
-    bucket.set_storage_class("IA").unwrap();
-    assert_eq!(bucket.storage_class, StorageClass::IA);
-    bucket.set_storage_class("ia").unwrap();
-    assert_eq!(bucket.storage_class, StorageClass::IA);
-
-    bucket.set_storage_class("standard").unwrap();
-    assert_eq!(bucket.storage_class, StorageClass::Standard);
-    bucket.set_storage_class("Standard").unwrap();
-    assert_eq!(bucket.storage_class, StorageClass::Standard);
-
-    bucket.set_storage_class("cold_archive").unwrap();
-    assert_eq!(bucket.storage_class, StorageClass::ColdArchive);
-    bucket.set_storage_class("ColdArchive").unwrap();
-    assert_eq!(bucket.storage_class, StorageClass::ColdArchive);
+    assert!(bucket.set_storage_class("archive").is_ok());
 
     let err = bucket.set_storage_class("eeeeee").unwrap_err();
     assert!(matches!(

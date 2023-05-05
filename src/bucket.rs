@@ -231,23 +231,10 @@ impl<T: PointerFamily> RefineBucket<BucketError> for Bucket<T> {
     }
 
     fn set_storage_class(&mut self, storage_class: &str) -> Result<(), BucketError> {
-        let start_char = storage_class.chars().next().ok_or(BucketError {
+        self.storage_class = StorageClass::new(storage_class).ok_or(BucketError {
             source: storage_class.to_string(),
             kind: BucketErrorKind::InvalidStorageClass,
         })?;
-
-        self.storage_class = match start_char {
-            'a' | 'A' => StorageClass::Archive,
-            'i' | 'I' => StorageClass::IA,
-            's' | 'S' => StorageClass::Standard,
-            'c' | 'C' => StorageClass::ColdArchive,
-            _ => {
-                return Err(BucketError {
-                    source: storage_class.to_string(),
-                    kind: BucketErrorKind::InvalidStorageClass,
-                })
-            }
-        };
         Ok(())
     }
 }
