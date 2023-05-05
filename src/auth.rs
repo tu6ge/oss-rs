@@ -649,7 +649,7 @@ trait GenCanonicalizedResource {
 
 /// Oss 域名的几种状态
 #[derive(PartialEq, Debug, Eq)]
-pub enum OssHost {
+enum OssHost {
     /// 有 bucket 的，包含 bucket 名字
     Bucket(BucketName),
     /// 只有 endpoint
