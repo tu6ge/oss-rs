@@ -1,7 +1,6 @@
 use aliyun_oss_client::{
-    builder::ArcPointer,
     decode::RefineObject,
-    object::ObjectList,
+    object::ObjectListSync,
     types::object::{InvalidObjectDir, ObjectDir, ObjectPathInner},
     BucketName, Client,
 };
@@ -37,7 +36,7 @@ impl From<InvalidObjectDir> for MyError {
     }
 }
 
-type MyList<'a> = ObjectList<ArcPointer, MyObject<'a>, MyError>;
+type MyList<'a> = ObjectListSync<MyObject<'a>, MyError>;
 
 #[tokio::main]
 async fn main() {

@@ -6,9 +6,8 @@
 //!
 //! ```rust,no_run
 //! use aliyun_oss_client::{
-//!     builder::{ArcPointer, BuilderError},
 //!     decode::RefineObject,
-//!     object::ObjectList,
+//!     object::ObjectListSync,
 //!     types::object::{InvalidObjectDir, ObjectDir, ObjectPath},
 //!     BucketName, Client,
 //! };
@@ -54,7 +53,7 @@
 //!     }
 //! }
 //!
-//! type MyList = ObjectList<ArcPointer, MyObject, MyError>;
+//! type MyList = ObjectListSync<MyObject, MyError>;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -137,6 +136,9 @@ pub struct ObjectList<
     search_query: Query,
     ph_err: PhantomData<E>,
 }
+
+/// sync ObjectList alias
+pub type ObjectListSync<Item, Error> = ObjectList<ArcPointer, Item, Error>;
 
 impl<T: PointerFamily, Item: RefineObject<E>, E: Error> fmt::Debug for ObjectList<T, Item, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
