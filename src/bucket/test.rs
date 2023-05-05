@@ -498,7 +498,7 @@ fn test_get_blocking_object_list() {
     let bucket = Bucket::<RcPointer>::new(
         "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
         creation_date,
-        StorageClass::Archive,
+        StorageClass::ARCHIVE,
         Rc::new(client),
     );
 

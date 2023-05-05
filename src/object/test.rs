@@ -241,7 +241,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            StorageClass::Archive,
+            StorageClass::ARCHIVE,
         );
 
         let object2 = init_object(
@@ -251,7 +251,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            StorageClass::Archive,
+            StorageClass::ARCHIVE,
         );
 
         assert!(object1 == object2);
@@ -263,7 +263,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            StorageClass::Archive,
+            StorageClass::ARCHIVE,
         );
 
         assert!(object1 != object3);
@@ -275,7 +275,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            StorageClass::Archive,
+            StorageClass::ARCHIVE,
         );
         assert!(object1 != object3);
 
@@ -286,7 +286,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             12,
-            StorageClass::Archive,
+            StorageClass::ARCHIVE,
         );
         assert!(object1 != object3);
 
@@ -297,7 +297,7 @@ mod blocking_tests {
             "efoo2",
             "tyfoo1",
             12,
-            StorageClass::Archive,
+            StorageClass::ARCHIVE,
         );
         assert!(object1 != object3);
 
@@ -308,7 +308,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo3",
             12,
-            StorageClass::Archive,
+            StorageClass::ARCHIVE,
         );
         assert!(object1 != object3);
 
@@ -319,7 +319,7 @@ mod blocking_tests {
             "efoo1",
             "tyfoo1",
             256,
-            StorageClass::Archive,
+            StorageClass::ARCHIVE,
         );
         assert!(object1 != object3);
 
