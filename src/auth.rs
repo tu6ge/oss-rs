@@ -68,7 +68,7 @@ impl<'a> InnerAuth<'a> {
         self.access_key_id
     }
 
-    fn set_secret(&mut self, secret: KeySecret) {
+    fn set_secret(&mut self, secret: InnerKeySecret<'a>) {
         self.access_key_secret = secret;
     }
     fn set_method(&mut self, method: Method) {
@@ -603,13 +603,13 @@ pub trait RequestWithOSS {
     /// 输入 key，secret，以及 Request 中的 method，header,url，query
     /// 等信息，计算 OSS 签名
     /// 并把签名后的 header 信息，传递给 self
-    fn with_oss(&mut self, key: KeyId, secret: KeySecret) -> AuthResult<()>;
+    fn with_oss(&mut self, key: InnerKeyId, secret: InnerKeySecret) -> AuthResult<()>;
 }
 
 use reqwest::{Request, Url};
 
 impl RequestWithOSS for Request {
-    fn with_oss(&mut self, key: KeyId, secret: KeySecret) -> AuthResult<()> {
+    fn with_oss(&mut self, key: InnerKeyId, secret: InnerKeySecret) -> AuthResult<()> {
         let mut auth = InnerAuth::default();
         auth.set_key(key);
         auth.set_secret(secret);
@@ -629,7 +629,7 @@ impl RequestWithOSS for Request {
 /// 根据 Url 计算 [`CanonicalizedResource`]
 ///
 /// [`CanonicalizedResource`]: crate::types::CanonicalizedResource
-pub trait GenCanonicalizedResource {
+trait GenCanonicalizedResource {
     /// 计算并返回 [`CanonicalizedResource`]， 无法计算则返回 `None`
     ///
     /// [`CanonicalizedResource`]: crate::types::CanonicalizedResource
