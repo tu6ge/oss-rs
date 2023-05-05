@@ -130,10 +130,9 @@ impl RequestBuilder {
     /// 发送请求，获取响应后，直接返回 Response
     pub async fn send(self) -> Result<Response, BuilderError> {
         match self.middleware {
-            Some(m) =>
-            {
-                #[allow(clippy::unwrap_used)]
-                m.handle(self.inner.build().unwrap()).await
+            Some(m) => {
+                m.handle(self.inner.build().map_err(BuilderError::from)?)
+                    .await
             }
             None => self.inner.send().await.map_err(BuilderError::from),
         }
@@ -142,10 +141,9 @@ impl RequestBuilder {
     /// 发送请求，获取响应后，解析 xml 文件，如果有错误，返回 Err 否则返回 Response
     pub async fn send_adjust_error(self) -> Result<Response, BuilderError> {
         match self.middleware {
-            Some(m) =>
-            {
-                #[allow(clippy::unwrap_used)]
-                m.handle(self.inner.build().unwrap()).await
+            Some(m) => {
+                m.handle(self.inner.build().map_err(BuilderError::from)?)
+                    .await
             }
             None => check_http_status(self.inner.send().await.map_err(BuilderError::from)?)
                 .await
