@@ -638,14 +638,12 @@ pub trait GenCanonicalizedResource {
     /// 根据 Url 计算 bucket 名称和 Endpoint
     fn oss_host(&self) -> OssHost;
 
-    /// 根据 Url 的 query 计算 [`Query`]
+    /// 根据 Url 的 query 计算 [`CanonicalizedResource`]
     ///
-    /// [`Query`]: crate::types::Query
+    /// [`CanonicalizedResource`]: crate::types::CanonicalizedResource
     fn object_list_resource(&self, bucket: &BucketName) -> CanonicalizedResource;
 
-    /// 根据 Url 的 path 计算当前使用的 [`ObjectPathInner`]
-    ///
-    /// [`ObjectPathInner`]: crate::types::object::ObjectPathInner
+    /// 根据 Url 的 path 计算当前使用的 Object 文件路径
     fn object_path(&self) -> Option<Cow<'_, str>>;
 }
 
