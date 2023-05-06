@@ -507,23 +507,11 @@ impl<'a> EndPoint {
         } else if url.contains(AP_SOUTH_EAST1) {
             Ok(ApSouthEast1)
         } else {
-            if url.starts_with('-') || url.ends_with('-') {
+            if url.starts_with('-') || url.ends_with('-') || url.starts_with(OSS_STR) {
                 return Err(InvalidEndPoint { _priv: () });
             }
 
-            if url.starts_with(OSS_STR) {
-                return Err(InvalidEndPoint { _priv: () });
-            }
-
-            fn valid_character(c: char) -> bool {
-                match c {
-                    _ if c.is_ascii_lowercase() => true,
-                    _ if c.is_numeric() => true,
-                    '-' => true,
-                    _ => false,
-                }
-            }
-            if !url.chars().all(valid_character) {
+            if !url.chars().all(valid_oss_character) {
                 return Err(InvalidEndPoint { _priv: () });
             }
 
@@ -726,23 +714,11 @@ impl<'a> BucketName {
     pub fn new(bucket: impl Into<Cow<'static, str>>) -> Result<Self, InvalidBucketName> {
         let bucket = bucket.into();
 
-        if bucket.is_empty() {
+        if bucket.is_empty() || bucket.starts_with('-') || bucket.ends_with('-') {
             return Err(InvalidBucketName { _priv: () });
         }
 
-        if bucket.starts_with('-') || bucket.ends_with('-') {
-            return Err(InvalidBucketName { _priv: () });
-        }
-
-        fn valid_character(c: char) -> bool {
-            match c {
-                _ if c.is_ascii_lowercase() => true,
-                _ if c.is_numeric() => true,
-                '-' => true,
-                _ => false,
-            }
-        }
-        if !bucket.chars().all(valid_character) {
+        if !bucket.chars().all(valid_oss_character) {
             return Err(InvalidBucketName { _priv: () });
         }
 
@@ -761,23 +737,11 @@ impl<'a> BucketName {
     /// assert!(BucketName::from_static("abc-def*#$%^ab").is_err());
     /// ```
     pub fn from_static(bucket: &'a str) -> Result<Self, InvalidBucketName> {
-        if bucket.is_empty() {
+        if bucket.is_empty() || bucket.starts_with('-') || bucket.ends_with('-') {
             return Err(InvalidBucketName { _priv: () });
         }
 
-        if bucket.starts_with('-') || bucket.ends_with('-') {
-            return Err(InvalidBucketName { _priv: () });
-        }
-
-        fn valid_character(c: char) -> bool {
-            match c {
-                _ if c.is_ascii_lowercase() => true,
-                _ if c.is_numeric() => true,
-                '-' => true,
-                _ => false,
-            }
-        }
-        if !bucket.chars().all(valid_character) {
+        if !bucket.chars().all(valid_oss_character) {
             return Err(InvalidBucketName { _priv: () });
         }
 
@@ -787,6 +751,15 @@ impl<'a> BucketName {
     /// # Safety
     pub const unsafe fn from_static2(bucket: &'static str) -> Self {
         Self(Cow::Borrowed(bucket))
+    }
+}
+
+fn valid_oss_character(c: char) -> bool {
+    match c {
+        _ if c.is_ascii_lowercase() => true,
+        _ if c.is_numeric() => true,
+        '-' => true,
+        _ => false,
     }
 }
 
