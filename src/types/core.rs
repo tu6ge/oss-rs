@@ -813,13 +813,16 @@ use http::HeaderValue;
 use reqwest::Url;
 
 /// 用于指定返回内容的区域的 type
-pub struct ContentRange {
-    start: Option<u32>,
-    end: Option<u32>,
+pub struct ContentRange<Num> {
+    start: Option<Num>,
+    end: Option<Num>,
 }
 
-impl From<Range<u32>> for ContentRange {
-    fn from(r: Range<u32>) -> Self {
+unsafe impl<Num> Send for ContentRange<Num> {}
+unsafe impl<Num> Sync for ContentRange<Num> {}
+
+impl<Num> From<Range<Num>> for ContentRange<Num> {
+    fn from(r: Range<Num>) -> Self {
         Self {
             start: Some(r.start),
             end: Some(r.end),
@@ -827,8 +830,8 @@ impl From<Range<u32>> for ContentRange {
     }
 }
 
-impl From<RangeFull> for ContentRange {
-    fn from(_f: RangeFull) -> Self {
+impl From<RangeFull> for ContentRange<u32> {
+    fn from(_: RangeFull) -> Self {
         Self {
             start: None,
             end: None,
@@ -836,8 +839,8 @@ impl From<RangeFull> for ContentRange {
     }
 }
 
-impl From<RangeFrom<u32>> for ContentRange {
-    fn from(f: RangeFrom<u32>) -> Self {
+impl<Num> From<RangeFrom<Num>> for ContentRange<Num> {
+    fn from(f: RangeFrom<Num>) -> Self {
         Self {
             start: Some(f.start),
             end: None,
@@ -845,8 +848,8 @@ impl From<RangeFrom<u32>> for ContentRange {
     }
 }
 
-impl From<RangeTo<u32>> for ContentRange {
-    fn from(t: RangeTo<u32>) -> Self {
+impl<Num> From<RangeTo<Num>> for ContentRange<Num> {
+    fn from(t: RangeTo<Num>) -> Self {
         Self {
             start: None,
             end: Some(t.end),
@@ -854,35 +857,45 @@ impl From<RangeTo<u32>> for ContentRange {
     }
 }
 
-impl From<ContentRange> for HeaderValue {
-    /// # 转化成 OSS 需要的格式
-    /// @link [OSS 文档](https://help.aliyun.com/document_detail/31980.html)
-    ///
-    /// ```
-    /// use reqwest::header::HeaderValue;
-    /// # use aliyun_oss_client::types::ContentRange;
-    /// fn abc<R: Into<ContentRange>>(range: R) -> HeaderValue {
-    ///     range.into().into()
-    /// }
-    ///
-    /// assert_eq!(abc(..), HeaderValue::from_str("bytes=0-").unwrap());
-    /// assert_eq!(abc(1..), HeaderValue::from_str("bytes=1-").unwrap());
-    /// assert_eq!(abc(10..20), HeaderValue::from_str("bytes=10-20").unwrap());
-    /// assert_eq!(abc(..20), HeaderValue::from_str("bytes=0-20").unwrap());
-    /// ```
-    fn from(con: ContentRange) -> HeaderValue {
-        let string = match (con.start, con.end) {
-            (Some(ref start), Some(ref end)) => format!("bytes={}-{}", start, end),
-            (Some(ref start), None) => format!("bytes={}-", start),
-            (None, Some(ref end)) => format!("bytes=0-{}", end),
-            (None, None) => "bytes=0-".to_string(),
-        };
+macro_rules! generate_range {
+    ($($t:ty)*) => ($(
+        impl From<ContentRange<$t>> for HeaderValue {
+            /// # 转化成 OSS 需要的格式
+            /// @link [OSS 文档](https://help.aliyun.com/document_detail/31980.html)
+            fn from(con: ContentRange<$t>) -> HeaderValue {
+                let string = match (con.start, con.end) {
+                    (Some(ref start), Some(ref end)) => format!("bytes={}-{}", start, end),
+                    (Some(ref start), None) => format!("bytes={}-", start),
+                    (None, Some(ref end)) => format!("bytes=0-{}", end),
+                    (None, None) => "bytes=0-".to_string(),
+                };
 
-        HeaderValue::from_str(&string).unwrap_or_else(|_| {
-            panic!(
-                "content-range into header-value failed, content-range is : {}",
-                string
-            )
-        })
+                HeaderValue::from_str(&string).unwrap_or_else(|_| {
+                    panic!(
+                        "content-range into header-value failed, content-range is : {}",
+                        string
+                    )
+                })
+            }
+        }
+    )*)
+}
+
+generate_range!(u8 u16 u32 u64 u128 i8 i16 i32 i64 i128);
+
+#[cfg(test)]
+mod test_range {
+    #[test]
+    fn test() {
+        use super::ContentRange;
+        use reqwest::header::HeaderValue;
+        fn abc<R: Into<ContentRange<u32>>>(range: R) -> HeaderValue {
+            range.into().into()
+        }
+
+        assert_eq!(abc(..), HeaderValue::from_str("bytes=0-").unwrap());
+        assert_eq!(abc(1..), HeaderValue::from_str("bytes=1-").unwrap());
+        assert_eq!(abc(10..20), HeaderValue::from_str("bytes=10-20").unwrap());
+        assert_eq!(abc(..20), HeaderValue::from_str("bytes=0-20").unwrap());
     }
 }

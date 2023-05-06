@@ -140,10 +140,11 @@ where
     /// 参数可指定范围:
     /// - `..` 获取文件的所有内容，常规大小的文件，使用这个即可
     /// - `..100`, `100..200`, `200..` 可用于获取文件的部分内容，一般用于大文件
-    async fn get_oss<R: Into<ContentRange> + Send + Sync>(
-        &self,
-        range: R,
-    ) -> Result<Vec<u8>, FileError> {
+    async fn get_oss<Num, R>(&self, range: R) -> Result<Vec<u8>, FileError>
+    where
+        R: Into<ContentRange<Num>> + Send + Sync,
+        ContentRange<Num>: Into<HeaderValue>,
+    {
         let (url, canonicalized) = self.get_std().ok_or(FileError {
             kind: FileErrorKind::NotFoundCanonicalizedResource,
         })?;
@@ -501,11 +502,11 @@ where
     }
 
     /// # 获取 OSS 上文件的部分或全部内容
-    async fn get_object<R: Into<ContentRange> + Send + Sync>(
-        &self,
-        path: Path,
-        range: R,
-    ) -> Result<Vec<u8>, FileError> {
+    async fn get_object<Num, R>(&self, path: Path, range: R) -> Result<Vec<u8>, FileError>
+    where
+        R: Into<ContentRange<Num>> + Send + Sync,
+        ContentRange<Num>: Into<HeaderValue>,
+    {
         let (url, canonicalized) = self.get_std_with_path(path).ok_or(FileError {
             kind: FileErrorKind::NotFoundCanonicalizedResource,
         })?;
@@ -842,11 +843,11 @@ pub mod blocking {
         }
 
         /// # 获取文件内容
-        fn get_object<R: Into<ContentRange>>(
-            &self,
-            path: Path,
-            range: R,
-        ) -> Result<Vec<u8>, FileError> {
+        fn get_object<Num, R>(&self, path: Path, range: R) -> Result<Vec<u8>, FileError>
+        where
+            R: Into<ContentRange<Num>>,
+            ContentRange<Num>: Into<HeaderValue>,
+        {
             let (url, canonicalized) = self.get_std_with_path(path).ok_or(FileError {
                 kind: FileErrorKind::NotFoundCanonicalizedResource,
             })?;
