@@ -65,7 +65,7 @@ default = [
 core = [
   "reqwest",
   "async-trait",
-  "futures",
+  #"futures",
   "futures-core",
   "async-stream",
   "thiserror",
@@ -87,7 +87,6 @@ async-stream = {version = "^0.3", optional = true}
 async-trait = {version = "^0.1", optional = true}
 base64 = {version = "^0.21", optional = true}
 chrono = {version = "^0.4", optional = true}
-futures = {version = "^0.3", optional = true}
 futures-core = {version = "^0.3", optional = true}
 hmac = {version = "^0.12", optional = true}
 http= {version = "^0.2", optional = true}
@@ -103,6 +102,7 @@ url= {version = "^2", optional = true}
 assert_matches = "1.5.0"
 chrono = {version = "^0.4"}
 dotenv = "0.15.0"
+futures = {version = "^0.3"}
 http= {version = "^0.2"}
 mockall = "0.11.2"
 mockall_double= "0.3.0"
