@@ -100,8 +100,8 @@ impl<M: Default + Clone> Client<M> {
 
     /// # 通过环境变量初始化 Client
     ///
-    /// 如果在 Aliyun ECS 上，可将
-    /// 环境变量 `ALIYUN_OSS_INTERNAL` 设置为 `true`, `1`, `yes`, `Y` ，即可使用 internal 网络请求 OSS 接口
+    /// 如果在 Aliyun ECS 上，可将环境变量 `ALIYUN_OSS_INTERNAL`
+    /// 设置为 `true` / `1` / `yes` / `Y` ，即可使用 internal 网络请求 OSS 接口
     ///
     /// 示例
     /// ```rust

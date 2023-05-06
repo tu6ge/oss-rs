@@ -334,6 +334,9 @@ impl BucketBase {
     /// set_var("ALIYUN_BUCKET", "foo1");
     /// assert!(BucketBase::from_env().is_ok());
     /// ```
+    ///
+    /// 如果在 Aliyun ECS 上，可将环境变量 `ALIYUN_OSS_INTERNAL`
+    /// 设置为 `true` / `1` / `yes` / `Y` ，即可使用 internal 网络请求 OSS 接口
     pub fn from_env() -> Result<Self, InvalidConfig> {
         let endpoint = env::var("ALIYUN_ENDPOINT").map_err(|e| InvalidConfig {
             source: "ALIYUN_ENDPOINT".to_string(),

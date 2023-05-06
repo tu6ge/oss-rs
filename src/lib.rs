@@ -56,7 +56,10 @@ let client = aliyun_oss_client::Client::new(
 
 ## 支持内网访问 Version +0.9
 
-在阿里云的 ECS 上请求 OSS 接口，使用内网 API 有更高的效率，只需要在 ECS 上设置 `ALIYUN_OSS_INTERNAL` 环境变量为 `true` 即可
+~~在阿里云的 ECS 上请求 OSS 接口，使用内网 API 有更高的效率，只需要在 ECS 上设置 `ALIYUN_OSS_INTERNAL` 环境变量为 `true` 即可~~
+
+从 `0.12` 版本开始，只有在 [`Client::from_env`] 和 [`BucketBase::from_env`] 这两个方法中 `ALIYUN_OSS_INTERNAL` 环境变量才起作用，
+其他地方，请使用 [`EndPoint::set_internal`] 进行切换
 
 ### 查询所有的 bucket 信息
 
@@ -219,6 +222,9 @@ let client = aliyun_oss_client::Client::new(
 [`put_content_base`]: crate::file::Files::put_content_base
 [`get_object`]: crate::file::Files::get_object
 [`delete_object`]: crate::file::Files::delete_object
+[`Client::from_env`]: crate::client::Client::from_env
+[`BucketBase::from_env`]: crate::config::BucketBase::from_env
+[`EndPoint::set_internal`]: crate::EndPoint::set_internal
 */
 
 #![cfg_attr(all(feature = "bench", test), feature(test))]
