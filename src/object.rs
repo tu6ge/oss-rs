@@ -7,7 +7,7 @@
 //! ```rust,no_run
 //! use aliyun_oss_client::{
 //!     decode::RefineObject,
-//!     object::ObjectListSync,
+//!     object::Objects,
 //!     types::object::{InvalidObjectDir, ObjectDir, ObjectPath},
 //!     BucketName, Client,
 //! };
@@ -53,7 +53,7 @@
 //!     }
 //! }
 //!
-//! type MyList = ObjectListSync<MyObject, MyError>;
+//! type MyList = Objects<MyObject, MyError>;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -116,6 +116,7 @@ use std::vec::IntoIter;
 mod test;
 
 /// # 存放对象列表的结构体
+/// before name is `ObjectList`
 /// TODO impl core::ops::Index
 #[derive(Clone)]
 #[non_exhaustive]
@@ -138,7 +139,12 @@ pub struct ObjectList<
 }
 
 /// sync ObjectList alias
-pub type ObjectListSync<Item, Error> = ObjectList<ArcPointer, Item, Error>;
+pub type Objects<Item = Object<ArcPointer>, Error = BuildInItemError> =
+    ObjectList<ArcPointer, Item, Error>;
+/// blocking ObjectList alias
+#[cfg(feature = "blocking")]
+pub type ObjectsBlocking<Item = Object<RcPointer>, Error = BuildInItemError> =
+    ObjectList<RcPointer, Item, Error>;
 
 impl<T: PointerFamily, Item: RefineObject<E>, E: Error> fmt::Debug for ObjectList<T, Item, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

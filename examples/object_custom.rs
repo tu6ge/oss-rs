@@ -1,6 +1,6 @@
 use aliyun_oss_client::{
     decode::RefineObject,
-    object::ObjectListSync,
+    object::Objects,
     types::object::{InvalidObjectDir, ObjectDir, ObjectPathInner},
     BucketName, Client,
 };
@@ -36,7 +36,7 @@ impl From<InvalidObjectDir> for MyError {
     }
 }
 
-type MyList<'a> = ObjectListSync<MyObject<'a>, MyError>;
+type MyList<'a> = Objects<MyObject<'a>, MyError>;
 
 #[tokio::main]
 async fn main() {

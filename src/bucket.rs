@@ -54,8 +54,17 @@ pub struct ListBuckets<
     ph_err: PhantomData<E>,
 }
 
+/// # bucket list struct
+/// before name : `ListBuckets`
+//pub type Buckets<P, Item, Error> = ListBuckets<P, Item, Error>;
+
 /// sync ListBuckets alias
-pub type ListBucketsSync<Item ,Error> = ListBuckets<ArcPointer, Item, Error>;
+pub type Buckets<Item = Bucket<ArcPointer>, Error = BucketError> =
+    ListBuckets<ArcPointer, Item, Error>;
+/// blocking ListBuckets alias
+#[cfg(feature = "blocking")]
+pub type BucketsBlocking<Item = Bucket<RcPointer>, Error = BucketError> =
+    ListBuckets<RcPointer, Item, Error>;
 
 impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: Error> fmt::Debug
     for ListBuckets<T, Item, E>
@@ -85,16 +94,16 @@ impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
 impl<Item: RefineBucket<E>, E: Error> Default for ListBuckets<ArcPointer, Item, E> {
     fn default() -> Self {
         Self {
-            prefix: String::default(),
-            marker: String::default(),
-            max_keys: 0,
-            is_truncated: false,
-            next_marker: String::default(),
-            id: String::default(),
-            display_name: String::default(),
-            buckets: Vec::default(),
-            client: Arc::default(),
-            ph_err: PhantomData,
+            prefix: Default::default(),
+            marker: Default::default(),
+            max_keys: Default::default(),
+            is_truncated: Default::default(),
+            next_marker: Default::default(),
+            id: Default::default(),
+            display_name: Default::default(),
+            buckets: Default::default(),
+            client: Default::default(),
+            ph_err: Default::default(),
         }
     }
 }
