@@ -54,6 +54,9 @@ pub struct ListBuckets<
     ph_err: PhantomData<E>,
 }
 
+/// sync ListBuckets alias
+pub type ListBucketsSync<Item ,Error> = ListBuckets<ArcPointer, Item, Error>;
+
 impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: Error> fmt::Debug
     for ListBuckets<T, Item, E>
 {
