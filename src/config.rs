@@ -325,6 +325,13 @@ impl BucketBase {
         Self { name, endpoint }
     }
 
+    /// # 调整 API 指向是否为内网
+    ///
+    /// 当在 Aliyun ECS 上执行时，设为 true 会更高效，默认是 false
+    pub fn set_internal(&mut self, is_internal: bool) {
+        self.endpoint.is_internal = is_internal;
+    }
+
     /// # 通过环境变量初始化
     /// ## 举例
     /// ```
@@ -620,6 +627,17 @@ mod tests {
         assert_as_ref_key_secret(&config);
         assert_as_ref_endpoint(&config);
         assert_as_ref_bucket(&config);
+    }
+
+    #[test]
+    fn test_set_internal() {
+        let mut base = BucketBase::new("abc".try_into().unwrap(), "qingdao".try_into().unwrap());
+        let BucketBase { endpoint, .. } = base.clone();
+        assert!(endpoint.is_internal == false);
+
+        base.set_internal(true);
+        let BucketBase { endpoint, .. } = base;
+        assert!(endpoint.is_internal == true);
     }
 
     #[test]
