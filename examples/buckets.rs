@@ -14,16 +14,16 @@ fn main() {
     let client = client::Client::<ClientWithMiddleware>::from_env().unwrap();
     //let headers = None;
     let response = client.get_bucket_list().unwrap();
-    println!("buckets list: {:?}", response.buckets.first().unwrap());
+    println!("buckets list: {:?}", response.to_vec().first().unwrap());
 
     let mut query = Query::new();
     query.insert("max-keys".to_string(), "5".to_string());
     query.insert("prefix".to_string(), "babel".to_string());
 
-    let buckets = response.buckets;
-    let the_bucket = &buckets[1];
-    println!(
-        "bucket object list: {:?}",
-        the_bucket.get_object_list(query)
-    );
+    // let buckets = response.to_vec();
+    // let the_bucket = &buckets[1];
+    // println!(
+    //     "bucket object list: {:?}",
+    //     the_bucket.get_object_list(query)
+    // );
 }

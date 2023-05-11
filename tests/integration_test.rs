@@ -161,7 +161,7 @@ mod test_blocking {
 
         let bucket_list = client.get_bucket_list().unwrap();
 
-        let buckets = bucket_list.buckets;
+        let buckets = bucket_list.to_vec();
         let the_bucket = &buckets[0];
         let object_list = the_bucket.get_object_list(vec![("max-keys".into(), "2".into())]);
         assert_matches!(object_list, Ok(_));

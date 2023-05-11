@@ -108,6 +108,7 @@ impl<Item: RefineBucket<E>, E: Error> Default for ListBuckets<ArcPointer, Item, 
     }
 }
 
+#[oss_gen_rc]
 impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
     /// 获取 prefix
     pub fn prefix_string(&self) -> &String {
