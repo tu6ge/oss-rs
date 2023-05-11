@@ -78,6 +78,7 @@
 //! }
 //! ```
 
+use crate::bucket::Bucket;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
 use crate::builder::{ArcPointer, BuilderError, PointerFamily};
@@ -299,6 +300,13 @@ impl<Item: RefineObject<E>, E: Error> ObjectList<ArcPointer, Item, E> {
     /// 设置 Client
     pub(crate) fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
+    }
+
+    pub(crate) fn from_bucket(bucket: &Bucket) -> Objects {
+        let mut list = Objects::<Object>::default();
+        list.bucket = bucket.base.clone();
+        list.client = Arc::clone(&bucket.client);
+        list
     }
 
     /// 获取 Client 引用
@@ -963,35 +971,36 @@ impl Client {
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`] 文档
     ///
     /// [`get_object_list`]: crate::bucket::Bucket::get_object_list
+    #[inline(always)]
     pub async fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
-        self,
+        &self,
         query: Q,
     ) -> Result<ObjectList, ExtractListError> {
-        let bucket = BucketBase::new(
-            self.get_bucket_name().to_owned(),
-            self.get_endpoint().to_owned(),
-        );
+        self.get_object_list2(Query::from_iter(query)).await
+    }
+
+    /// 查询默认 bucket 的文件列表
+    pub async fn get_object_list2(&self, query: Query) -> Result<ObjectList, ExtractListError> {
+        let bucket = BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned());
+
+        let (bucket_url, resource) = bucket.get_url_resource(&query);
+        let bucket_arc = Arc::new(bucket.clone());
 
         let mut list = ObjectList::<ArcPointer>::default();
-        list.set_bucket(bucket.clone());
+        list.set_bucket(bucket);
 
-        let bucket_arc = Arc::new(bucket.clone());
         let init_object = || {
             let mut object = Object::<ArcPointer>::default();
             object.base.set_bucket(bucket_arc.clone());
             object
         };
 
-        let query = Query::from_iter(query);
-
-        let (bucket_url, resource) = bucket.get_url_resource(&query);
-
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
         list.decode(&content.text().await?, init_object)?;
 
-        list.set_client(Arc::new(self));
+        list.set_client(Arc::new(self.clone()));
         list.set_search_query(query);
 
         Ok(list)

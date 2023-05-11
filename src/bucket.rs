@@ -12,7 +12,7 @@ use crate::decode::{InnerItemError, ListError, RefineBucket, RefineBucketList, R
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
-use crate::object::{ExtractListError, Object, ObjectList, StorageClass};
+use crate::object::{ExtractListError, Object, ObjectList, Objects, StorageClass};
 use crate::types::{
     CanonicalizedResource, InvalidBucketName, InvalidEndPoint, Query, QueryKey, QueryValue,
     BUCKET_INFO,
@@ -149,7 +149,7 @@ impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
 #[derive(Clone)]
 #[non_exhaustive]
 pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
-    base: BucketBase,
+    pub(crate) base: BucketBase,
     // bucket_info: Option<Bucket<'b>>,
     // bucket: Option<Bucket<'c>>,
     creation_date: DateTime<Utc>,
@@ -166,7 +166,7 @@ pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
     // pub kms_master_key_id: Option<&'a str>,
     // pub cross_region_replication: &'a str,
     // pub transfer_acceleration: &'a str,
-    client: PointerSel::PointerType,
+    pub(crate) client: PointerSel::PointerType,
 }
 
 impl<T: PointerFamily> fmt::Debug for Bucket<T> {
@@ -370,30 +370,30 @@ impl Bucket {
     /// - `vec![("max-keys".into(), "5".into())]` Vec(可变长度)
     /// - `vec![("max-keys".into(), 5u8.into())]` 数字类型
     /// - `vec![("max-keys".into(), 1000u16.into())]` u16 数字类型
+    #[inline(always)]
     pub async fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
         &self,
         query: Q,
     ) -> Result<ObjectList, ExtractListError> {
-        let query = Query::from_iter(query);
+        self.get_object_list2(Query::from_iter(query)).await
+    }
 
+    /// # 查询 Object 列表
+    pub async fn get_object_list2(&self, query: Query) -> Result<ObjectList, ExtractListError> {
         let bucket_arc = Arc::new(self.base.clone());
 
         let init_object = || {
-            let mut object = Object::<ArcPointer>::default();
+            let mut object = Object::default();
             object.base.set_bucket(bucket_arc.clone());
             object
         };
-        let mut list = ObjectList::<ArcPointer>::default();
+        let mut list = Objects::<Object>::from_bucket(self);
 
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
-
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
-
         list.decode(&content.text().await?, init_object)?;
 
-        list.set_bucket(self.base.clone());
-        list.set_client(self.client());
         list.set_search_query(query);
 
         Ok(list)

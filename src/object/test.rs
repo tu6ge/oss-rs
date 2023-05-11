@@ -1,4 +1,11 @@
-use crate::object::{StorageClass, StorageClassKind};
+use crate::{
+    bucket::Bucket,
+    decode::RefineBucket,
+    object::{StorageClass, StorageClassKind},
+    Client, EndPoint,
+};
+
+use super::{Object, Objects};
 
 #[cfg(test)]
 mod tests {
@@ -568,4 +575,20 @@ mod extract_list_error {
         assert_eq!(format!("{}", err), "no more file");
         assert!(err.source().is_none());
     }
+}
+
+#[test]
+fn test_from_bucket() {
+    use crate::Client;
+    use std::sync::Arc;
+
+    let mut client = Client::default();
+    client.endpoint = "shanghai".try_into().unwrap();
+    let mut bucket = Bucket::default();
+    bucket.set_name("aaa").unwrap();
+    bucket.client = Arc::new(client);
+
+    let objects = Objects::<Object>::from_bucket(&bucket);
+    assert_eq!(objects.bucket.name(), "aaa");
+    assert_eq!(objects.client.endpoint, EndPoint::CN_SHANGHAI);
 }

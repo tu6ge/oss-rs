@@ -36,8 +36,8 @@ where
 {
     auth_builder: AuthBuilder,
     client_middleware: M,
-    endpoint: EndPoint,
-    bucket: BucketName,
+    pub(crate) endpoint: EndPoint,
+    pub(crate) bucket: BucketName,
     timeout: Option<Duration>,
 }
 
