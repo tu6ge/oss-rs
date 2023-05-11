@@ -302,8 +302,8 @@ impl<Item: RefineObject<E>, E: Error> ObjectList<ArcPointer, Item, E> {
         self.client = client;
     }
 
-    pub(crate) fn from_bucket(bucket: &Bucket) -> Objects {
-        let mut list = Objects::<Object>::default();
+    pub(crate) fn from_bucket(bucket: &Bucket<ArcPointer>) -> ObjectList<ArcPointer> {
+        let mut list = ObjectList::<ArcPointer>::default();
         list.bucket = bucket.base.clone();
         list.client = Arc::clone(&bucket.client);
         list
