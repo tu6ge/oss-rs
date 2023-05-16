@@ -1,6 +1,7 @@
 //! 异常处理模块
 
 use http::StatusCode;
+use reqwest::Url;
 use std::{
     fmt::{self, Display},
     io,
@@ -158,17 +159,11 @@ impl From<InnerItemError> for OssErrorKind {
 /// 如果解析 xml 格式错误，则会返回默认值，默认值的 status = 200
 #[derive(Debug, Error, PartialEq, Eq)]
 pub struct OssService {
-    #[doc(hidden)]
-    pub code: String,
-
-    #[doc(hidden)]
-    pub status: StatusCode,
-
-    #[doc(hidden)]
-    pub message: String,
-
-    #[doc(hidden)]
-    pub request_id: String,
+    pub(crate) code: String,
+    status: StatusCode,
+    message: String,
+    request_id: String,
+    url: Url,
 }
 
 impl Default for OssService {
@@ -178,6 +173,7 @@ impl Default for OssService {
             status: StatusCode::default(),
             message: "Parse aliyun response xml error message failed.".to_owned(),
             request_id: "XXXXXXXXXXXXXXXXXXXXXXXX".to_owned(),
+            url: "https://oss.aliyuncs.com".parse().unwrap(),
         }
     }
 }
@@ -189,13 +185,20 @@ impl fmt::Display for OssService {
             .field("status", &self.status)
             .field("message", &self.message)
             .field("request_id", &self.request_id)
+            .field("url", &self.url.as_str())
             .finish()
+    }
+}
+
+impl AsRef<Url> for OssService {
+    fn as_ref(&self) -> &Url {
+        &self.url
     }
 }
 
 impl<'a> OssService {
     /// 解析 oss 的错误信息
-    pub fn new(source: &'a str, status: &StatusCode) -> Self {
+    pub fn new(source: &'a str, status: &StatusCode, url: &Url) -> Self {
         match (
             source.find("<Code>"),
             source.find("</Code>"),
@@ -216,13 +219,14 @@ impl<'a> OssService {
                 status: *status,
                 message: source[message0 + 9..message1].to_owned(),
                 request_id: source[request_id0 + 11..request_id1].to_owned(),
+                url: url.to_owned(),
             },
             _ => Self::default(),
         }
     }
 
     /// 解析 oss 的错误信息
-    pub fn new2(source: String, status: &StatusCode) -> Self {
+    pub fn new2(source: String, status: &StatusCode, url: Url) -> Self {
         match (
             source.find("<Code>"),
             source.find("</Code>"),
@@ -243,9 +247,15 @@ impl<'a> OssService {
                 status: *status,
                 message: source[message0 + 9..message1].to_owned(),
                 request_id: source[request_id0 + 11..request_id1].to_owned(),
+                url: url,
             },
             _ => Self::default(),
         }
+    }
+
+    /// 返回报错接口的 url
+    pub fn url(&self) -> &Url {
+        &self.url
     }
 }
 
@@ -266,9 +276,10 @@ mod tests {
                     status: StatusCode::OK,
                     message: "mes1".to_owned(),
                     request_id: "xx".to_owned(),
+                    url: "https://oss.aliyuncs.com".parse().unwrap()
                 }
             ),
-            "OssService { code: \"abc\", status: 200, message: \"mes1\", request_id: \"xx\" }"
+            "OssService { code: \"abc\", status: 200, message: \"mes1\", request_id: \"xx\", url: \"https://oss.aliyuncs.com/\" }"
         );
     }
 
@@ -285,14 +296,52 @@ mod tests {
     }
 
     #[test]
-    fn oss_service_new() {
+    fn test_oss_service_fmt() {
+        let oss_err = OssService {
+            code: "OSS_TEST_CODE".to_string(),
+            status: StatusCode::default(),
+            message: "foo_msg".to_string(),
+            request_id: "foo_req_id".to_string(),
+            url: "https://oss.aliyuncs.com".parse().unwrap(),
+        };
+
         assert_eq!(
-            OssService::new("abc", &StatusCode::OK),
+        format!("{}", oss_err),
+        "OssService { code: \"OSS_TEST_CODE\", status: 200, message: \"foo_msg\", request_id: \"foo_req_id\", url: \"https://oss.aliyuncs.com/\" }"
+            .to_string()
+    );
+    }
+
+    #[test]
+    fn test_oss_service_new() {
+        let content = r#"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+    <Error>
+        <Code>RequestTimeTooSkewed</Code>
+        <Message>bar</Message>
+        <RequestId>63145DB90BFD85303279D56B</RequestId>
+        <HostId>honglei123.oss-cn-shanghai.aliyuncs.com</HostId>
+        <MaxAllowedSkewMilliseconds>900000</MaxAllowedSkewMilliseconds>
+        <RequestTime>2022-09-04T07:11:33.000Z</RequestTime>
+        <ServerTime>2022-09-04T08:11:37.000Z</ServerTime>
+    </Error>
+    "#;
+        let url = "https://oss.aliyuncs.com".parse().unwrap();
+        let service = OssService::new(content, &StatusCode::default(), &url);
+        assert_eq!(service.code, format!("RequestTimeTooSkewed"));
+        assert_eq!(service.message, format!("bar"));
+        assert_eq!(service.request_id, format!("63145DB90BFD85303279D56B"))
+    }
+
+    #[test]
+    fn oss_service_new() {
+        let url = "https://oss.aliyuncs.com".parse().unwrap();
+        assert_eq!(
+            OssService::new("abc", &StatusCode::OK, &url),
             OssService::default()
         );
 
         assert_eq!(
-            OssService::new2("abc".to_string(), &StatusCode::OK),
+            OssService::new2("abc".to_string(), &StatusCode::OK, url),
             OssService::default()
         );
     }

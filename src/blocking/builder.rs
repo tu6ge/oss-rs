@@ -106,6 +106,7 @@ pub(crate) fn check_http_status(response: Response) -> Result<Response, BuilderE
     if response.status().is_success() {
         return Ok(response);
     }
+    let url = response.url().clone();
     let status = response.status();
-    Err(OssService::new2(response.text()?, &status).into())
+    Err(OssService::new2(response.text()?, &status, url).into())
 }

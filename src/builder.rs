@@ -244,7 +244,8 @@ pub(crate) async fn check_http_status(response: Response) -> Result<Response, Bu
     if response.status().is_success() {
         return Ok(response);
     }
+    let url = response.url().clone();
     let status = response.status();
     let text = response.text().await?;
-    Err(OssService::new2(text, &status).into())
+    Err(OssService::new2(text, &status, url).into())
 }
