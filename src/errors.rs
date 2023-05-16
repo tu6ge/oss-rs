@@ -306,10 +306,14 @@ mod tests {
         };
 
         assert_eq!(
-        format!("{}", oss_err),
-        "OssService { code: \"OSS_TEST_CODE\", status: 200, message: \"foo_msg\", request_id: \"foo_req_id\", url: \"https://oss.aliyuncs.com/\" }"
+            format!("{}", oss_err),
+            "OssService { code: \"OSS_TEST_CODE\", status: 200, message: \"foo_msg\", request_id: \"foo_req_id\", url: \"https://oss.aliyuncs.com/\" }"
             .to_string()
-    );
+        );
+        let url = oss_err.as_ref();
+        assert_eq!(*url, Url::parse("https://oss.aliyuncs.com").unwrap());
+        let url = oss_err.url();
+        assert_eq!(*url, Url::parse("https://oss.aliyuncs.com").unwrap());
     }
 
     #[test]
