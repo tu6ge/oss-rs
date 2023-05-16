@@ -43,13 +43,13 @@ mod error {
             kind: BuilderErrorKind::OssService(OssService::default()),
         };
         assert_eq!(format!("{err}"), "http status is not success");
-        assert_eq!(format!("{}", err.source().unwrap()), "OssService { code: \"Undefined\", status: 200, message: \"Parse aliyun response xml error message failed.\", request_id: \"XXXXXXXXXXXXXXXXXXXXXXXX\" }");
+        assert_eq!(format!("{}", err.source().unwrap()), "OssService { code: \"Undefined\", status: 200, message: \"Parse aliyun response xml error message failed.\", request_id: \"XXXXXXXXXXXXXXXXXXXXXXXX\", url: \"https://oss.aliyuncs.com/\" }");
 
         fn bar() -> BuilderError {
             OssService::default().into()
         }
 
-        assert_eq!(format!("{:?}", bar()), "BuilderError { kind: OssService(OssService { code: \"Undefined\", status: 200, message: \"Parse aliyun response xml error message failed.\", request_id: \"XXXXXXXXXXXXXXXXXXXXXXXX\" }) }")
+        assert_eq!(format!("{:?}", bar()), "BuilderError { kind: OssService(OssService { code: \"Undefined\", status: 200, message: \"Parse aliyun response xml error message failed.\", request_id: \"XXXXXXXXXXXXXXXXXXXXXXXX\", url: Url { scheme: \"https\", cannot_be_a_base: false, username: \"\", password: None, host: Some(Domain(\"oss.aliyuncs.com\")), port: None, path: \"/\", query: None, fragment: None } }) }")
     }
 
     #[test]
