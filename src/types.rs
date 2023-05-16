@@ -7,10 +7,6 @@ use std::{
     str::FromStr,
 };
 
-use chrono::{DateTime, TimeZone};
-use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
-use url::Url;
-
 #[cfg(feature = "core")]
 pub mod core;
 #[cfg(feature = "core")]
@@ -68,13 +64,6 @@ impl Display for InnerKeyId<'_> {
     }
 }
 
-impl TryInto<HeaderValue> for InnerKeyId<'_> {
-    type Error = InvalidHeaderValue;
-    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-        HeaderValue::from_str(self.as_ref())
-    }
-}
-
 impl From<String> for KeyId {
     fn from(s: String) -> KeyId {
         Self(Cow::Owned(s))
@@ -117,21 +106,6 @@ impl AsRef<str> for InnerKeySecret<'_> {
 impl Display for InnerKeySecret<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
-    }
-}
-
-impl TryInto<HeaderValue> for InnerKeySecret<'_> {
-    type Error = InvalidHeaderValue;
-
-    /// ```
-    /// # use aliyun_oss_client::types::KeySecret;
-    /// # use http::header::HeaderValue;
-    /// let secret = KeySecret::new("foo");
-    /// let value: HeaderValue = secret.try_into().unwrap();
-    /// assert_eq!(value.to_str().unwrap(), "foo");
-    /// ```
-    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-        HeaderValue::from_str(self.as_ref())
     }
 }
 
@@ -407,6 +381,10 @@ impl FromStr for EndPoint {
     }
 }
 
+#[cfg(any(feature = "core", feature = "auth"))]
+use url::Url;
+
+#[cfg(any(feature = "core", feature = "auth"))]
 impl TryFrom<Url> for EndPoint {
     type Error = InvalidEndPoint;
     fn try_from(url: Url) -> Result<Self, Self::Error> {
@@ -552,6 +530,7 @@ impl<'a> EndPoint {
     ///     Url::parse("https://oss-cn-shanghai-internal.aliyuncs.com").unwrap()
     /// );
     /// ```
+    #[cfg(any(feature = "core", feature = "auth"))]
     pub fn to_url(&self) -> Url {
         let mut url = String::from(OSS_DOMAIN_PREFIX);
         url.push_str(self.as_ref());
@@ -616,6 +595,7 @@ impl PartialEq<EndPoint> for &str {
     }
 }
 
+#[cfg(any(feature = "core", feature = "auth"))]
 impl PartialEq<Url> for EndPoint {
     /// # 相等比较
     /// ```
@@ -655,12 +635,6 @@ impl Default for BucketName {
     }
 }
 
-// impl TryInto<HeaderValue> for BucketName {
-//     type Error = InvalidHeaderValue;
-//     fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-//         HeaderValue::from_str(self.as_ref())
-//     }
-// }
 impl TryFrom<String> for BucketName {
     type Error = InvalidBucketName;
     /// ```
@@ -847,19 +821,6 @@ impl Display for InnerContentMd5<'_> {
     }
 }
 
-impl TryInto<HeaderValue> for InnerContentMd5<'_> {
-    type Error = InvalidHeaderValue;
-    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-        HeaderValue::from_str(self.as_ref())
-    }
-}
-
-impl TryInto<HeaderValue> for &InnerContentMd5<'_> {
-    type Error = InvalidHeaderValue;
-    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-        HeaderValue::from_str(self.as_ref())
-    }
-}
 impl From<String> for ContentMd5 {
     /// ```
     /// # use aliyun_oss_client::types::ContentMd5;
@@ -907,18 +868,6 @@ impl Display for ContentType {
     }
 }
 
-impl TryInto<HeaderValue> for ContentType {
-    type Error = InvalidHeaderValue;
-    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-        HeaderValue::from_str(self.as_ref())
-    }
-}
-impl TryFrom<HeaderValue> for ContentType {
-    type Error = ToStrError;
-    fn try_from(value: HeaderValue) -> Result<Self, Self::Error> {
-        Ok(Self(Cow::Owned(value.to_str()?.to_owned())))
-    }
-}
 impl From<String> for ContentType {
     fn from(s: String) -> Self {
         Self(Cow::Owned(s))
@@ -957,13 +906,10 @@ impl Display for InnerDate<'_> {
     }
 }
 
-impl TryInto<HeaderValue> for InnerDate<'_> {
-    type Error = InvalidHeaderValue;
-    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-        HeaderValue::from_str(self.as_ref())
-    }
-}
+#[cfg(feature = "auth")]
+use chrono::{DateTime, TimeZone};
 
+#[cfg(feature = "auth")]
 impl<Tz: TimeZone> From<DateTime<Tz>> for Date
 where
     Tz::Offset: fmt::Display,
@@ -1001,12 +947,6 @@ impl Display for InnerCanonicalizedResource<'_> {
     }
 }
 
-impl TryInto<HeaderValue> for InnerCanonicalizedResource<'_> {
-    type Error = InvalidHeaderValue;
-    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-        HeaderValue::from_str(self.as_ref())
-    }
-}
 impl From<String> for CanonicalizedResource {
     fn from(s: String) -> Self {
         Self(Cow::Owned(s))
@@ -1157,5 +1097,69 @@ impl PartialEq<InnerCanonicalizedResource<'_>> for &str {
     #[inline]
     fn eq(&self, other: &InnerCanonicalizedResource<'_>) -> bool {
         self == &other.0
+    }
+}
+
+#[cfg(any(feature = "core", feature = "auth"))]
+mod covert_header {
+    use super::*;
+    use http::header::{HeaderValue, InvalidHeaderValue, ToStrError};
+
+    impl TryInto<HeaderValue> for InnerKeyId<'_> {
+        type Error = InvalidHeaderValue;
+        fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+            HeaderValue::from_str(self.as_ref())
+        }
+    }
+    impl TryInto<HeaderValue> for InnerKeySecret<'_> {
+        type Error = InvalidHeaderValue;
+
+        /// ```
+        /// # use aliyun_oss_client::types::KeySecret;
+        /// # use http::header::HeaderValue;
+        /// let secret = KeySecret::new("foo");
+        /// let value: HeaderValue = secret.try_into().unwrap();
+        /// assert_eq!(value.to_str().unwrap(), "foo");
+        /// ```
+        fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+            HeaderValue::from_str(self.as_ref())
+        }
+    }
+    impl TryInto<HeaderValue> for InnerContentMd5<'_> {
+        type Error = InvalidHeaderValue;
+        fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+            HeaderValue::from_str(self.as_ref())
+        }
+    }
+
+    impl TryInto<HeaderValue> for &InnerContentMd5<'_> {
+        type Error = InvalidHeaderValue;
+        fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+            HeaderValue::from_str(self.as_ref())
+        }
+    }
+    impl TryInto<HeaderValue> for ContentType {
+        type Error = InvalidHeaderValue;
+        fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+            HeaderValue::from_str(self.as_ref())
+        }
+    }
+    impl TryFrom<HeaderValue> for ContentType {
+        type Error = ToStrError;
+        fn try_from(value: HeaderValue) -> Result<Self, Self::Error> {
+            Ok(Self(Cow::Owned(value.to_str()?.to_owned())))
+        }
+    }
+    impl TryInto<HeaderValue> for InnerDate<'_> {
+        type Error = InvalidHeaderValue;
+        fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+            HeaderValue::from_str(self.as_ref())
+        }
+    }
+    impl TryInto<HeaderValue> for InnerCanonicalizedResource<'_> {
+        type Error = InvalidHeaderValue;
+        fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
+            HeaderValue::from_str(self.as_ref())
+        }
     }
 }
