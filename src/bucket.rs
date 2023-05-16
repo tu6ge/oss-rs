@@ -420,7 +420,7 @@ impl Bucket<RcPointer> {
             object
         };
 
-        let mut list = ObjectList::<RcPointer>::default();
+        let mut list = ObjectList::<RcPointer>::from_bucket(&self);
 
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
 
@@ -428,9 +428,6 @@ impl Bucket<RcPointer> {
         let content = response.send_adjust_error()?;
 
         list.decode(&content.text()?, init_object)?;
-
-        list.set_bucket(self.base.clone());
-        list.set_client(self.client());
         list.set_search_query(query);
 
         Ok(list)

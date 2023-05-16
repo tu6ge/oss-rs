@@ -2,7 +2,7 @@ use crate::{
     bucket::Bucket,
     decode::RefineBucket,
     object::{StorageClass, StorageClassKind},
-    Client, EndPoint,
+    EndPoint,
 };
 
 use super::{Object, Objects};

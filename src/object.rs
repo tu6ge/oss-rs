@@ -328,12 +328,14 @@ impl ObjectList<ArcPointer> {
 
                 let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
 
-                let response = self.builder(Method::GET, url, canonicalized)?;
-                let content = response.send_adjust_error().await?;
+                let response = self
+                    .builder(Method::GET, url, canonicalized)?
+                    .send_adjust_error()
+                    .await?;
 
                 let mut list = ObjectList::<ArcPointer>::default();
-                list.set_client(self.client());
-                list.set_bucket(self.bucket.clone());
+                list.client = self.client();
+                list.bucket = self.bucket.clone();
 
                 let bucket_arc = Arc::new(self.bucket.clone());
 
@@ -343,7 +345,7 @@ impl ObjectList<ArcPointer> {
                     object
                 };
 
-                list.decode(&content.text().await?, init_object)?;
+                list.decode(&response.text().await?, init_object)?;
 
                 list.set_search_query(query);
                 Ok(list)
