@@ -128,15 +128,19 @@ impl OssError {
 #[derive(Debug, Error, PartialEq, Eq)]
 pub struct OssService {
     #[doc(hidden)]
+    #[deprecated(since = "0.12.0", note = "change to private")]
     pub code: String,
 
     #[doc(hidden)]
+    #[deprecated(since = "0.12.0", note = "change to private")]
     pub status: StatusCode,
 
     #[doc(hidden)]
+    #[deprecated(since = "0.12.0", note = "change to private")]
     pub message: String,
 
     #[doc(hidden)]
+    #[deprecated(since = "0.12.0", note = "change to private")]
     pub request_id: String,
 }
 
