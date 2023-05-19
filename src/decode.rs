@@ -238,15 +238,6 @@ where
         Ok(())
     }
 
-    /// 提取翻页信息，有下一页，返回 Some, 否则返回 None
-    #[deprecated(
-        since = "0.12.0",
-        note = "Option is redundant, replace with set_next_continuation_token_str"
-    )]
-    fn set_next_continuation_token(&mut self, _token: Option<&str>) -> Result<(), Error> {
-        Ok(())
-    }
-
     /// 提取翻页信息 token
     fn set_next_continuation_token_str(&mut self, _token: &str) -> Result<(), Error> {
         Ok(())
