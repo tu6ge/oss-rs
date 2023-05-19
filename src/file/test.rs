@@ -6,7 +6,7 @@ mod tests_get_std {
     use reqwest::Url;
     use std::sync::Arc;
 
-    use crate::file::get_std::Sealed;
+    use crate::file::GetStd;
     use crate::{
         builder::ArcPointer,
         object::Object,
@@ -49,7 +49,7 @@ mod tests_get_std {
     #[test]
     fn test_object_ref() {
         let object = Object::<ArcPointer>::default();
-        let res = Sealed::get_std(&object);
+        let res = GetStd::get_std(&object);
         assert!(res.is_some());
         let (url, resource) = res.unwrap();
 
@@ -68,7 +68,7 @@ mod test_get_std_with_path {
         bucket::Bucket,
         builder::ArcPointer,
         client::ClientArc,
-        file::get_std_with_path::Sealed,
+        file::GetStdWithPath,
         object::Object,
         types::{object::ObjectBase, CanonicalizedResource},
         ObjectPath,

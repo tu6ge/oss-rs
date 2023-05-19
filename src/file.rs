@@ -87,8 +87,9 @@ use crate::{
     bucket::Bucket,
     builder::{ArcPointer, BuilderError, RequestBuilder},
     decode::RefineObject,
-    object::ObjectList,
-    types::{object::ObjectPath, CanonicalizedResource, ContentRange},
+    object::{Object, ObjectList},
+    types::object::{ObjectBase, ObjectPath},
+    types::{CanonicalizedResource, ContentRange},
 };
 #[cfg(feature = "put_file")]
 use infer::Infer;
@@ -177,57 +178,28 @@ where
     }
 }
 
-pub use get_std::GetStd;
+/// 获取请求 OSS 接口需要的信息
+pub trait GetStd {
+    /// 获取 `Url` 和 `CanonicalizedResource`
+    fn get_std(&self) -> Option<(Url, CanonicalizedResource)>;
+}
 
-mod get_std {
-    use url::Url;
-
-    use crate::{
-        builder::ArcPointer,
-        object::Object,
-        types::{object::ObjectBase, CanonicalizedResource},
-    };
-
-    /// 获取请求 OSS 接口需要的信息
-    pub trait GetStd: Sealed {}
-
-    impl GetStd for ObjectBase<ArcPointer> {}
-    impl GetStd for Object<ArcPointer> {}
-
-    pub trait Sealed {
-        /// 获取 `Url` 和 `CanonicalizedResource`
-        fn get_std(&self) -> Option<(Url, CanonicalizedResource)>;
-    }
-
-    impl Sealed for ObjectBase<ArcPointer> {
-        #[inline(always)]
-        fn get_std(&self) -> Option<(Url, CanonicalizedResource)> {
-            Some(self.get_url_resource([]))
-        }
-    }
-
-    impl Sealed for Object<ArcPointer> {
-        #[inline(always)]
-        fn get_std(&self) -> Option<(Url, CanonicalizedResource)> {
-            Some(self.base.get_url_resource([]))
-        }
+impl GetStd for ObjectBase<ArcPointer> {
+    fn get_std(&self) -> Option<(Url, CanonicalizedResource)> {
+        Some(self.get_url_resource([]))
     }
 }
 
-pub use get_std_with_path::GetStdWithPath;
-
-mod get_std_with_path {
-    use url::Url;
-
-    use crate::types::CanonicalizedResource;
-
-    /// 根据给定路径，获取请求 OSS 接口需要的信息
-    pub trait GetStdWithPath<Path>: Sealed<Path> {}
-
-    pub trait Sealed<Path> {
-        /// 根据 path 获取 `Url` 和 `CanonicalizedResource`
-        fn get_std_with_path(&self, _path: Path) -> Option<(Url, CanonicalizedResource)>;
+impl GetStd for Object<ArcPointer> {
+    fn get_std(&self) -> Option<(Url, CanonicalizedResource)> {
+        Some(self.base.get_url_resource([]))
     }
+}
+
+/// 根据给定路径，获取请求 OSS 接口需要的信息
+pub trait GetStdWithPath<Path> {
+    /// 根据 path 获取 `Url` 和 `CanonicalizedResource`
+    fn get_std_with_path(&self, _path: Path) -> Option<(Url, CanonicalizedResource)>;
 }
 
 #[doc(hidden)]
@@ -240,10 +212,7 @@ pub mod std_path_impl {
     #[cfg(feature = "blocking")]
     use crate::client::ClientRc;
 
-    use super::{
-        get_std_with_path::{GetStdWithPath, Sealed},
-        GetStd,
-    };
+    use super::{GetStd, GetStdWithPath};
     use crate::{
         bucket::Bucket,
         builder::ArcPointer,
@@ -257,35 +226,13 @@ pub mod std_path_impl {
     use oss_derive::oss_gen_rc;
     use reqwest::Url;
 
-    #[oss_gen_rc]
-    impl GetStdWithPath<String> for ClientArc {}
-    #[oss_gen_rc]
-    impl GetStdWithPath<&str> for ClientArc {}
-    #[oss_gen_rc]
-    impl GetStdWithPath<ObjectPath> for ClientArc {}
-    #[oss_gen_rc]
-    impl<Path: AsRef<ObjectPath>> GetStdWithPath<Path> for ClientArc {}
-    impl<B: AsRef<BucketBase>> GetStdWithPath<String> for B {}
-    impl<B: AsRef<BucketBase>> GetStdWithPath<&str> for B {}
-    impl<B: AsRef<BucketBase>> GetStdWithPath<ObjectPath> for B {}
-    impl<B: AsRef<BucketBase>> GetStdWithPath<&ObjectPath> for B {}
-    #[oss_gen_rc]
-    impl GetStdWithPath<ObjectBase<ArcPointer>> for Bucket {}
-    #[oss_gen_rc]
-    impl GetStdWithPath<&ObjectBase<ArcPointer>> for Bucket {}
-    impl<Item: RefineObject<E> + Send + Sync, E: Error + Send + Sync, U: GetStd> GetStdWithPath<U>
-        for ObjectList<ArcPointer, Item, E>
-    {
-    }
-
     /// # 用于在 Client 上对文件进行操作
     ///
     /// 文件路径可以是 `String` 类型
     ///
     /// [`ObjectPath`]: crate::ObjectPath
     #[oss_gen_rc]
-    impl Sealed<String> for ClientArc {
-        #[inline(always)]
+    impl GetStdWithPath<String> for ClientArc {
         fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
             let object_path = path.try_into().ok()?;
             Some(get_url_resource(self, self, &object_path))
@@ -298,8 +245,7 @@ pub mod std_path_impl {
     ///
     /// [`ObjectPath`]: crate::ObjectPath
     #[oss_gen_rc]
-    impl Sealed<&str> for ClientArc {
-        #[inline(always)]
+    impl GetStdWithPath<&str> for ClientArc {
         fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
             let object_path = path.try_into().ok()?;
             Some(get_url_resource(self, self, &object_path))
@@ -312,8 +258,7 @@ pub mod std_path_impl {
     ///
     /// [`ObjectPath`]: crate::ObjectPath
     #[oss_gen_rc]
-    impl Sealed<ObjectPath> for ClientArc {
-        #[inline(always)]
+    impl GetStdWithPath<ObjectPath> for ClientArc {
         fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
             Some(get_url_resource(self, self, &path))
         }
@@ -325,8 +270,7 @@ pub mod std_path_impl {
     ///
     /// [`&ObjectPath`]: crate::ObjectPath
     #[oss_gen_rc]
-    impl<Path: AsRef<ObjectPath>> Sealed<Path> for ClientArc {
-        #[inline(always)]
+    impl<Path: AsRef<ObjectPath>> GetStdWithPath<Path> for ClientArc {
         fn get_std_with_path(&self, path: Path) -> Option<(Url, CanonicalizedResource)> {
             Some(get_url_resource(self, self, path.as_ref()))
         }
@@ -335,8 +279,7 @@ pub mod std_path_impl {
     /// # 用于在 Bucket 上对文件进行操作
     ///
     /// 文件路径可以是 `String` 类型
-    impl<B: AsRef<BucketBase>> Sealed<String> for B {
-        #[inline(always)]
+    impl<B: AsRef<BucketBase>> GetStdWithPath<String> for B {
         fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
             let path = path.try_into().ok()?;
             Some(self.as_ref().get_url_resource_with_path(&path))
@@ -346,8 +289,7 @@ pub mod std_path_impl {
     /// # 用于在 Bucket 上对文件进行操作
     ///
     /// 文件路径可以是 `&str` 类型
-    impl<B: AsRef<BucketBase>> Sealed<&str> for B {
-        #[inline(always)]
+    impl<B: AsRef<BucketBase>> GetStdWithPath<&str> for B {
         fn get_std_with_path(&self, path: &str) -> Option<(Url, CanonicalizedResource)> {
             let path = path.try_into().ok()?;
             Some(self.as_ref().get_url_resource_with_path(&path))
@@ -359,8 +301,8 @@ pub mod std_path_impl {
     /// 文件路径可以是 [`ObjectPath`] 类型
     ///
     /// [`ObjectPath`]: crate::ObjectPath
-    impl<B: AsRef<BucketBase>> Sealed<ObjectPath> for B {
-        #[inline(always)]
+    impl<B: AsRef<BucketBase>> GetStdWithPath<ObjectPath> for B {
+        #[inline]
         fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
             Some(self.as_ref().get_url_resource_with_path(&path))
         }
@@ -371,8 +313,8 @@ pub mod std_path_impl {
     /// 文件路径可以是 [`&ObjectPath`] 类型
     ///
     /// [`&ObjectPath`]: crate::ObjectPath
-    impl<B: AsRef<BucketBase>> Sealed<&ObjectPath> for B {
-        #[inline(always)]
+    impl<B: AsRef<BucketBase>> GetStdWithPath<&ObjectPath> for B {
+        #[inline]
         fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
             Some(self.as_ref().get_url_resource_with_path(path))
         }
@@ -384,8 +326,8 @@ pub mod std_path_impl {
     ///
     /// [`ObjectBase`]: crate::types::object::ObjectBase
     #[oss_gen_rc]
-    impl Sealed<ObjectBase<ArcPointer>> for Bucket {
-        #[inline(always)]
+    impl GetStdWithPath<ObjectBase<ArcPointer>> for Bucket {
+        #[inline]
         fn get_std_with_path(
             &self,
             base: ObjectBase<ArcPointer>,
@@ -400,8 +342,8 @@ pub mod std_path_impl {
     ///
     /// [`&ObjectBase`]: crate::types::object::ObjectBase
     #[oss_gen_rc]
-    impl Sealed<&ObjectBase<ArcPointer>> for Bucket {
-        #[inline(always)]
+    impl GetStdWithPath<&ObjectBase<ArcPointer>> for Bucket {
+        #[inline]
         fn get_std_with_path(
             &self,
             base: &ObjectBase<ArcPointer>,
@@ -415,10 +357,10 @@ pub mod std_path_impl {
     /// 文件路径可以是实现 [`GetStd`] 特征的类型
     ///
     /// [`GetStd`]: crate::file::GetStd
-    impl<Item: RefineObject<E> + Send + Sync, E: Error + Send + Sync, U: GetStd> Sealed<U>
+    impl<Item: RefineObject<E> + Send + Sync, E: Error + Send + Sync, U: GetStd> GetStdWithPath<U>
         for ObjectList<ArcPointer, Item, E>
     {
-        #[inline(always)]
+        #[inline]
         fn get_std_with_path(&self, path: U) -> Option<(Url, CanonicalizedResource)> {
             path.get_std()
         }
