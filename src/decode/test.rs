@@ -114,10 +114,6 @@ mod object_list_xml {
                 assert_eq!(key_count, "3");
                 Ok(())
             }
-            fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), MyError> {
-                assert!(matches!(token, None));
-                Ok(())
-            }
             fn set_next_continuation_token_str(&mut self, token: &str) -> Result<(), MyError> {
                 assert!(token.is_empty());
                 Ok(())
@@ -370,12 +366,6 @@ mod object_list_xml {
 
         struct ListB {}
         impl RefineObjectList<ObjectA, MyError, MyError> for ListB {
-            fn set_next_continuation_token(&mut self, token: Option<&str>) -> Result<(), MyError> {
-                assert!(
-                    matches!(token, Some(v) if v=="CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--")
-                );
-                Ok(())
-            }
             fn set_next_continuation_token_str(&mut self, token: &str) -> Result<(), MyError> {
                 assert!(
                     token == "CiphcHBzL1RhdXJpIFB1Ymxpc2ggQXBwXzAuMS42X3g2NF9lbi1VUy5tc2kQAA--"
