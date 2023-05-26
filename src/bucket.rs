@@ -388,7 +388,7 @@ impl Bucket {
             object.base.set_bucket(bucket_arc.clone());
             object
         };
-        let mut list = Objects::<Object>::from_bucket(self);
+        let mut list = Objects::<Object>::from_bucket(self, query.get_max_keys());
 
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
         let response = self.builder(Method::GET, bucket_url, resource)?;
@@ -420,7 +420,7 @@ impl Bucket<RcPointer> {
             object
         };
 
-        let mut list = ObjectList::<RcPointer>::from_bucket(&self);
+        let mut list = ObjectList::<RcPointer>::from_bucket(&self, query.get_max_keys());
 
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
 

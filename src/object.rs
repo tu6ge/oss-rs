@@ -302,11 +302,16 @@ impl<Item: RefineObject<E>, E: Error> ObjectList<ArcPointer, Item, E> {
         self.client = client;
     }
 
-    pub(crate) fn from_bucket(bucket: &Bucket<ArcPointer>) -> ObjectList<ArcPointer> {
-        let mut list = ObjectList::<ArcPointer>::default();
-        list.bucket = bucket.base.clone();
-        list.client = Arc::clone(&bucket.client);
-        list
+    pub(crate) fn from_bucket(
+        bucket: &Bucket<ArcPointer>,
+        capacity: usize,
+    ) -> ObjectList<ArcPointer> {
+        ObjectList::<ArcPointer> {
+            bucket: bucket.base.clone(),
+            client: Arc::clone(&bucket.client),
+            object_list: Vec::with_capacity(capacity),
+            ..Default::default()
+        }
     }
 
     /// 获取 Client 引用
@@ -333,9 +338,12 @@ impl ObjectList<ArcPointer> {
                     .send_adjust_error()
                     .await?;
 
-                let mut list = ObjectList::<ArcPointer>::default();
-                list.client = self.client();
-                list.bucket = self.bucket.clone();
+                let mut list = ObjectList::<ArcPointer> {
+                    client: self.client(),
+                    bucket: self.bucket.clone(),
+                    object_list: Vec::with_capacity(query.get_max_keys()),
+                    ..Default::default()
+                };
 
                 let bucket_arc = Arc::new(self.bucket.clone());
 
@@ -988,8 +996,11 @@ impl Client {
         let (bucket_url, resource) = bucket.get_url_resource(&query);
         let bucket_arc = Arc::new(bucket.clone());
 
-        let mut list = ObjectList::<ArcPointer>::default();
-        list.set_bucket(bucket);
+        let mut list = ObjectList::<ArcPointer> {
+            object_list: Vec::with_capacity(query.get_max_keys()),
+            bucket,
+            ..Default::default()
+        };
 
         let init_object = || {
             let mut object = Object::<ArcPointer>::default();

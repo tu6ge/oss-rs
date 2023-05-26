@@ -588,7 +588,8 @@ fn test_from_bucket() {
     bucket.set_name("aaa").unwrap();
     bucket.client = Arc::new(client);
 
-    let objects = Objects::<Object>::from_bucket(&bucket);
+    let objects = Objects::<Object>::from_bucket(&bucket, 10);
     assert_eq!(objects.bucket.name(), "aaa");
     assert_eq!(objects.client.endpoint, EndPoint::CN_SHANGHAI);
+    assert!(objects.object_list.capacity() >= 10);
 }

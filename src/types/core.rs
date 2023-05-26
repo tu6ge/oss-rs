@@ -10,6 +10,7 @@ const MAX_KEYS: &str = "max-keys";
 const PREFIX: &str = "prefix";
 const ENCODING_TYPE: &str = "encoding-type";
 const FETCH_OWNER: &str = "fetch-owner";
+const DEFAULT_MAX_KEYS: usize = 100;
 
 //===================================================================================================
 /// 查询条件
@@ -122,6 +123,31 @@ impl Query {
             })
             .collect::<Vec<_>>()
             .join("&")
+    }
+
+    pub(crate) fn get_max_keys(&self) -> usize {
+        match self.get(QueryKey::MAX_KEYS) {
+            Some(capacity) => capacity.try_into().unwrap_or(DEFAULT_MAX_KEYS),
+            None => DEFAULT_MAX_KEYS,
+        }
+    }
+}
+
+#[cfg(test)]
+mod test_query {
+    use super::*;
+    #[test]
+    fn get_max_keys() {
+        let query = Query::new();
+        assert_eq!(query.get_max_keys(), 100);
+
+        let mut query = Query::new();
+        query.insert(QueryKey::MAX_KEYS, "10");
+        assert_eq!(query.get_max_keys(), 10);
+
+        let mut query = Query::new();
+        query.insert(QueryKey::MAX_KEYS, "str");
+        assert_eq!(query.get_max_keys(), 100);
     }
 }
 
@@ -773,6 +799,13 @@ impl FromStr for InnerQueryValue<'_> {
     }
 }
 
+impl TryFrom<&InnerQueryValue<'_>> for usize {
+    type Error = ParseIntError;
+    fn try_from(value: &InnerQueryValue<'_>) -> Result<Self, Self::Error> {
+        value.0.parse()
+    }
+}
+
 /// 异常的查询值
 #[derive(Debug)]
 pub struct InvalidQueryValue {
@@ -806,6 +839,7 @@ impl<'a> InnerQueryValue<'a> {
 
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::num::ParseIntError;
 use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
 use std::str::FromStr;
 
