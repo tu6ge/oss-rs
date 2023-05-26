@@ -149,8 +149,13 @@ where
             kind: FileErrorKind::NotFoundCanonicalizedResource,
         })?;
 
-        #[allow(clippy::unwrap_used)]
-        let list: Vec<(_, HeaderValue)> = vec![("Range".parse().unwrap(), range.into().into())];
+        let list: Vec<(_, HeaderValue)> = vec![(
+            {
+                #[allow(clippy::unwrap_used)]
+                RANGE.parse().unwrap()
+            },
+            range.into().into(),
+        )];
 
         let content = self
             .oss_client()
@@ -511,8 +516,13 @@ where
             kind: FileErrorKind::NotFoundCanonicalizedResource,
         })?;
 
-        #[allow(clippy::unwrap_used)]
-        let list: Vec<(_, HeaderValue)> = vec![(RANGE.parse().unwrap(), range.into().into())];
+        let list: Vec<(_, HeaderValue)> = vec![(
+            {
+                #[allow(clippy::unwrap_used)]
+                RANGE.parse().unwrap()
+            },
+            range.into().into(),
+        )];
 
         let content = self
             .builder_with_header(Method::GET, url, canonicalized, list)?
@@ -852,9 +862,13 @@ pub mod blocking {
                 kind: FileErrorKind::NotFoundCanonicalizedResource,
             })?;
 
-            #[allow(clippy::unwrap_used)]
-            let headers: Vec<(_, HeaderValue)> =
-                vec![(RANGE.parse().unwrap(), range.into().into())];
+            let headers: Vec<(_, HeaderValue)> = vec![(
+                {
+                    #[allow(clippy::unwrap_used)]
+                    RANGE.parse().unwrap()
+                },
+                range.into().into(),
+            )];
 
             Ok(self
                 .builder_with_header(Method::GET, url, canonicalized, headers)?

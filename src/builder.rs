@@ -170,13 +170,13 @@ impl BuilderError {
 #[derive(Debug)]
 #[non_exhaustive]
 pub(crate) enum BuilderErrorKind {
-    Reqwest(reqwest::Error),
+    Reqwest(Box<reqwest::Error>),
 
-    OssService(OssService),
+    OssService(Box<OssService>),
 
-    Auth(AuthError),
+    Auth(Box<AuthError>),
 
-    Config(InvalidConfig),
+    Config(Box<InvalidConfig>),
 
     #[cfg(test)]
     Bar,
@@ -213,14 +213,14 @@ impl Error for BuilderError {
 impl From<reqwest::Error> for BuilderError {
     fn from(value: reqwest::Error) -> Self {
         Self {
-            kind: BuilderErrorKind::Reqwest(value),
+            kind: BuilderErrorKind::Reqwest(Box::new(value)),
         }
     }
 }
 impl From<OssService> for BuilderError {
     fn from(value: OssService) -> Self {
         Self {
-            kind: BuilderErrorKind::OssService(value),
+            kind: BuilderErrorKind::OssService(Box::new(value)),
         }
     }
 }
@@ -228,14 +228,14 @@ impl From<OssService> for BuilderError {
 impl From<AuthError> for BuilderError {
     fn from(value: AuthError) -> Self {
         Self {
-            kind: BuilderErrorKind::Auth(value),
+            kind: BuilderErrorKind::Auth(Box::new(value)),
         }
     }
 }
 impl From<InvalidConfig> for BuilderError {
     fn from(value: InvalidConfig) -> Self {
         Self {
-            kind: BuilderErrorKind::Config(value),
+            kind: BuilderErrorKind::Config(Box::new(value)),
         }
     }
 }

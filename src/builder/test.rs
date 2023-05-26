@@ -40,7 +40,7 @@ mod error {
     #[test]
     fn from_oss() {
         let err = BuilderError {
-            kind: BuilderErrorKind::OssService(OssService::default()),
+            kind: BuilderErrorKind::OssService(Box::new(OssService::default())),
         };
         assert_eq!(format!("{err}"), "http status is not success");
         assert_eq!(format!("{}", err.source().unwrap()), "OssService { code: \"Undefined\", status: 200, message: \"Parse aliyun response xml error message failed.\", request_id: \"XXXXXXXXXXXXXXXXXXXXXXXX\", url: \"https://oss.aliyuncs.com/\" }");
@@ -62,9 +62,9 @@ mod error {
         };
 
         let err = BuilderError {
-            kind: BuilderErrorKind::Auth(AuthError {
+            kind: BuilderErrorKind::Auth(Box::new(AuthError {
                 kind: AuthErrorKind::InvalidCanonicalizedResource,
-            }),
+            })),
         };
         assert_eq!(format!("{err}"), "aliyun auth failed");
         assert_eq!(
@@ -88,7 +88,7 @@ mod error {
     fn from_config() {
         let err = get_endpoint("oss").unwrap_err();
         let err = BuilderError {
-            kind: BuilderErrorKind::Config(err),
+            kind: BuilderErrorKind::Config(Box::new(err)),
         };
         assert_eq!(format!("{err}"), "oss config error");
         assert_eq!(

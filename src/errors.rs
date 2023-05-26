@@ -173,7 +173,10 @@ impl Default for OssService {
             status: StatusCode::default(),
             message: "Parse aliyun response xml error message failed.".to_owned(),
             request_id: "XXXXXXXXXXXXXXXXXXXXXXXX".to_owned(),
-            url: "https://oss.aliyuncs.com".parse().unwrap(),
+            url: {
+                #[allow(clippy::unwrap_used)]
+                "https://oss.aliyuncs.com".parse().unwrap()
+            },
         }
     }
 }
@@ -247,7 +250,7 @@ impl<'a> OssService {
                 status: *status,
                 message: source[message0 + 9..message1].to_owned(),
                 request_id: source[request_id0 + 11..request_id1].to_owned(),
-                url: url,
+                url,
             },
             _ => Self::default(),
         }
