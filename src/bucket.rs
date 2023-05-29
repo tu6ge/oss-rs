@@ -50,6 +50,8 @@ pub struct ListBuckets<
     display_name: String,
     /// 存放单个 bucket 类型的 vec 集合
     buckets: Vec<Item>,
+
+    #[allow(dead_code)]
     client: PointerSel::PointerType,
     ph_err: PhantomData<E>,
 }
@@ -85,8 +87,11 @@ impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: Error> fmt::D
 
 #[oss_gen_rc]
 impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
-    fn set_client(&mut self, client: Arc<ClientArc>) {
-        self.client = Arc::clone(&client);
+    fn from_client(client: Arc<ClientArc>) -> Self {
+        Self {
+            client,
+            ..Default::default()
+        }
     }
 }
 
@@ -359,6 +364,13 @@ impl Bucket<ArcPointer> {
     pub(crate) fn client(&self) -> Arc<ClientArc> {
         Arc::clone(&self.client)
     }
+
+    fn from_client(client: Arc<ClientArc>) -> Self {
+        Self {
+            client,
+            ..Default::default()
+        }
+    }
 }
 
 impl Bucket {
@@ -476,18 +488,12 @@ impl ClientArc {
     pub async fn get_bucket_list(self) -> Result<ListBuckets, ExtractListError> {
         let client_arc = Arc::new(self);
 
-        let init_bucket = || {
-            let mut bucket = Bucket::<ArcPointer>::default();
-            bucket.set_client(client_arc.clone());
-            bucket
-        };
+        let init_bucket = || Bucket::<ArcPointer>::from_client(client_arc.clone());
 
-        let mut bucket_list = ListBuckets::<ArcPointer>::default();
+        let mut bucket_list = ListBuckets::<ArcPointer>::from_client(client_arc.clone());
         client_arc
             .base_bucket_list(&mut bucket_list, init_bucket)
             .await?;
-
-        bucket_list.set_client(client_arc.clone());
 
         Ok(bucket_list)
     }
@@ -505,14 +511,16 @@ impl ClientArc {
         ItemErr: Error + 'static,
         F: FnMut() -> Item,
     {
-        let url = self.get_endpoint_url();
+        let response = self
+            .builder(
+                Method::GET,
+                self.get_endpoint_url(),
+                CanonicalizedResource::default(),
+            )?
+            .send_adjust_error()
+            .await?;
 
-        let canonicalized = CanonicalizedResource::default();
-
-        let response = self.builder(Method::GET, url, canonicalized)?;
-        let content = response.send_adjust_error().await?;
-
-        list.decode(&content.text().await?, init_bucket)?;
+        list.decode(&response.text().await?, init_bucket)?;
 
         Ok(())
     }
@@ -627,15 +635,10 @@ impl ClientRc {
     pub fn get_bucket_list(self) -> Result<ListBuckets<RcPointer>, ExtractListError> {
         let client_arc = Rc::new(self);
 
-        let init_bucket = || {
-            let mut bucket = Bucket::<RcPointer>::default();
-            bucket.set_client(client_arc.clone());
-            bucket
-        };
+        let init_bucket = || Bucket::<RcPointer>::from_client(client_arc.clone());
 
-        let mut bucket_list = ListBuckets::<RcPointer>::default();
+        let mut bucket_list = ListBuckets::<RcPointer>::from_client(client_arc.clone());
         client_arc.base_bucket_list(&mut bucket_list, init_bucket)?;
-        bucket_list.set_client(client_arc.clone());
 
         Ok(bucket_list)
     }
@@ -654,14 +657,15 @@ impl ClientRc {
         ItemErr: Error + 'static,
         F: FnMut() -> Item,
     {
-        let url = self.get_endpoint_url();
+        let response = self
+            .builder(
+                Method::GET,
+                self.get_endpoint_url(),
+                CanonicalizedResource::default(),
+            )?
+            .send_adjust_error()?;
 
-        let canonicalized = CanonicalizedResource::default();
-
-        let response = self.builder(Method::GET, url, canonicalized)?;
-        let content = response.send_adjust_error()?;
-
-        list.decode(&content.text()?, init_bucket)?;
+        list.decode(&response.text()?, init_bucket)?;
 
         Ok(())
     }

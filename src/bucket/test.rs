@@ -7,7 +7,7 @@ use crate::decode::{RefineBucket, RefineBucketList};
 use crate::object::StorageClass;
 use crate::tests::object::assert_object_list;
 use crate::types::object::CommonPrefixes;
-use crate::{EndPoint, Query, QueryKey};
+use crate::{BucketName, EndPoint, Query, QueryKey};
 
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -18,6 +18,36 @@ use crate::client::ClientArc;
 use crate::{builder::Middleware, client::Client};
 
 use super::ListBuckets;
+
+#[test]
+fn test_list_from_client() {
+    let client = Client::<ClientWithMiddleware>::new(
+        "foo1".into(),
+        "foo2".into(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
+    );
+    let client = Arc::new(client);
+    let list = ListBuckets::<ArcPointer>::from_client(client);
+    assert_eq!(list.client.bucket, unsafe {
+        BucketName::from_static2("foo4")
+    });
+}
+
+#[test]
+fn test_bucket_from_client() {
+    let client = Client::<ClientWithMiddleware>::new(
+        "foo1".into(),
+        "foo2".into(),
+        "https://oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
+        "foo4".parse().unwrap(),
+    );
+    let client = Arc::new(client);
+    let bucket = Bucket::<ArcPointer>::from_client(client);
+    assert_eq!(bucket.client.bucket, unsafe {
+        BucketName::from_static2("foo4")
+    });
+}
 
 #[tokio::test]
 async fn test_get_bucket_list() {

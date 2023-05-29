@@ -72,7 +72,7 @@ impl<T: PointerFamily> ObjectBase<T> {
 
     pub(crate) fn init_with_bucket(bucket: T::Bucket) -> Self {
         Self {
-            bucket: bucket,
+            bucket,
             ..Default::default()
         }
     }
