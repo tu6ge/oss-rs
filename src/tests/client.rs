@@ -201,7 +201,6 @@ mod handle_error {
 
         let res = check_http_status(response).await;
 
-        assert!(res.is_err());
         let BuilderError { kind } = res.unwrap_err();
         match kind {
             BuilderErrorKind::OssService(b) => {
@@ -270,11 +269,14 @@ mod handle_error {
 
         let res = blocking_check_http_status(response);
 
-        assert!(res.is_err());
-        let err = res.unwrap_err();
-        assert!(
-            matches!(err, BuilderError{kind:BuilderErrorKind::OssService(OssService{code,..}) } if code=="foo_code")
-        );
+        let BuilderError { kind } = res.unwrap_err();
+        match kind {
+            BuilderErrorKind::OssService(b) => {
+                let OssService { code, .. } = *b;
+                assert!(code == "foo_code");
+            }
+            _ => unreachable!(),
+        }
     }
 
     #[cfg(feature = "blocking")]
