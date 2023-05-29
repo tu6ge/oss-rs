@@ -828,7 +828,7 @@ mod some_tests {
     #[test]
     fn test_error_list_from_item() {
         let err = InnerListError {
-            kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
+            kind: ListErrorKind::Xml(Box::new(quick_xml::Error::TextNotFound)),
         };
         assert_eq!(format!("{err}"), "Cannot read text, expecting Event::Text");
 
@@ -845,7 +845,7 @@ mod some_tests {
     #[test]
     fn test_error_list_from_xml() {
         let err = InnerListError {
-            kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
+            kind: ListErrorKind::Xml(Box::new(quick_xml::Error::TextNotFound)),
         };
         assert_eq!(format!("{err}"), "Cannot read text, expecting Event::Text");
 

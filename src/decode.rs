@@ -592,7 +592,7 @@ impl InnerListError {
     #[allow(dead_code)]
     pub(crate) fn from_xml() -> Self {
         Self {
-            kind: ListErrorKind::Xml(quick_xml::Error::TextNotFound),
+            kind: ListErrorKind::Xml(Box::new(quick_xml::Error::TextNotFound)),
         }
     }
 
@@ -634,7 +634,7 @@ impl From<InnerItemError> for InnerListError {
 impl From<quick_xml::Error> for InnerListError {
     fn from(value: quick_xml::Error) -> Self {
         Self {
-            kind: ListErrorKind::Xml(value),
+            kind: ListErrorKind::Xml(Box::new(value)),
         }
     }
 }
@@ -647,7 +647,7 @@ enum ListErrorKind {
     Item(InnerItemError),
 
     #[non_exhaustive]
-    Xml(quick_xml::Error),
+    Xml(Box<quick_xml::Error>),
 
     #[non_exhaustive]
     Custom(Box<dyn StdError + 'static>),
