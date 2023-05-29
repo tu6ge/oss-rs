@@ -419,23 +419,25 @@ impl<Item: RefineObject<E>, E: Error + 'static> ObjectList<ArcPointer, Item, E> 
 
 #[cfg(feature = "blocking")]
 impl ObjectList<RcPointer> {
+    fn clone_base(&self) -> Self {
+        Self {
+            client: Rc::clone(&self.client),
+            bucket: self.bucket.clone(),
+            search_query: self.search_query.clone(),
+            max_keys: self.max_keys,
+            object_list: Vec::with_capacity(self.max_keys as usize),
+            ..Default::default()
+        }
+    }
     /// 从 OSS 获取 object 列表信息
     pub fn get_object_list(&mut self) -> Result<Self, ExtractListError> {
         let name = self.bucket.get_name();
 
         let client = self.client();
 
-        let mut list = Self::default();
-        list.set_client(Rc::clone(&client));
-        list.set_bucket(self.bucket.clone());
-        list.set_search_query(self.search_query.clone());
+        let mut list = ObjectList::<RcPointer>::clone_base(self);
 
-        let bucket_arc = Rc::new(self.bucket.clone());
-        let init_object = || {
-            let mut object = Object::<RcPointer>::default();
-            object.base.set_bucket(bucket_arc.clone());
-            object
-        };
+        let init_object = || Object::<RcPointer>::from_bucket(Rc::new(self.bucket.clone()));
 
         client
             .base_object_list(
