@@ -355,11 +355,6 @@ impl<T: PointerFamily> Bucket<T> {
 
 #[oss_gen_rc]
 impl Bucket<ArcPointer> {
-    /// 为 Bucket struct 设置 Client
-    fn set_client(&mut self, client: Arc<ClientArc>) {
-        self.client = client;
-    }
-
     /// 获取 Bucket 的 Client 信息
     pub(crate) fn client(&self) -> Arc<ClientArc> {
         Arc::clone(&self.client)
@@ -527,13 +522,13 @@ impl ClientArc {
 
     /// 从 OSS 上获取默认的 bucket 信息
     pub async fn get_bucket_info(self) -> Result<Bucket, ExtractItemError> {
-        let name = self.get_bucket_name();
+        let name = self.get_bucket_name().clone();
 
-        let mut bucket = Bucket::<ArcPointer>::default();
+        let arc_client = Arc::new(self);
 
-        self.base_bucket_info(name.to_owned(), &mut bucket).await?;
+        let mut bucket = Bucket::<ArcPointer>::from_client(arc_client.clone());
 
-        bucket.set_client(Arc::new(self));
+        arc_client.base_bucket_info(name, &mut bucket).await?;
 
         Ok(bucket)
     }
@@ -672,13 +667,13 @@ impl ClientRc {
 
     /// 获取当前的 bucket 的信息
     pub fn get_bucket_info(self) -> Result<Bucket<RcPointer>, ExtractItemError> {
-        let name = self.get_bucket_name();
+        let name = self.get_bucket_name().clone();
 
-        let mut bucket = Bucket::<RcPointer>::default();
+        let arc_client = Rc::new(self);
 
-        self.base_bucket_info(name.to_owned(), &mut bucket)?;
+        let mut bucket = Bucket::<RcPointer>::from_client(arc_client.clone());
 
-        bucket.set_client(Rc::new(self));
+        arc_client.base_bucket_info(name, &mut bucket)?;
 
         Ok(bucket)
     }
