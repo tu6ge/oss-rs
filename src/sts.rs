@@ -63,10 +63,11 @@ impl<M: Default + Clone> STS for Client<M> {
         let mut auth_builder = AuthBuilder::default();
         auth_builder.key(access_key_id);
         auth_builder.secret(access_key_secret);
-        auth_builder.header_insert(
-            SECURITY_TOKEN,
-            security_token.try_into().map_err(|e| e.into())?,
-        );
+        auth_builder.header_insert(SECURITY_TOKEN, {
+            let mut token = security_token.try_into().map_err(|e| e.into())?;
+            token.set_sensitive(true);
+            token
+        });
 
         Ok(Self::from_builder(auth_builder, endpoint, bucket))
     }
