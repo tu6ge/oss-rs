@@ -176,6 +176,8 @@ pub struct EndPoint {
     pub(crate) is_internal: bool,
 }
 
+// TODO
+#[allow(non_upper_case_globals)]
 impl EndPoint {
     /// 杭州
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_HANGZHOU")]
