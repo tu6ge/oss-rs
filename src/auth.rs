@@ -610,12 +610,14 @@ use reqwest::{Request, Url};
 
 impl RequestWithOSS for Request {
     fn with_oss(&mut self, key: InnerKeyId, secret: InnerKeySecret) -> AuthResult<()> {
-        let mut auth = InnerAuth::default();
-        auth.set_key(key);
-        auth.set_secret(secret);
+        let mut auth = InnerAuth {
+            access_key_id: key,
+            access_key_secret: secret,
+            method: self.method().clone(),
+            date: Utc::now().into(),
+            ..Default::default()
+        };
 
-        auth.set_method(self.method().clone());
-        auth.set_date(Utc::now().into());
         auth.set_canonicalized_resource(self.url().canonicalized_resource().ok_or(AuthError {
             kind: AuthErrorKind::InvalidCanonicalizedResource,
         })?);
