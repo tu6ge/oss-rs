@@ -383,17 +383,14 @@ impl Bucket {
     pub async fn get_object_list2(&self, query: Query) -> Result<ObjectList, ExtractListError> {
         let bucket_arc = Arc::new(self.base.clone());
 
-        let init_object = || {
-            let mut object = Object::default();
-            object.base.set_bucket(bucket_arc.clone());
-            object
-        };
         let mut list = Objects::<Object>::from_bucket(self, query.get_max_keys());
 
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
-        list.decode(&content.text().await?, init_object)?;
+        list.decode(&content.text().await?, || {
+            Object::from_bucket(bucket_arc.clone())
+        })?;
 
         list.set_search_query(query);
 
@@ -414,12 +411,6 @@ impl Bucket<RcPointer> {
 
         let bucket_arc = Rc::new(self.base.clone());
 
-        let init_object = || {
-            let mut object = Object::<RcPointer>::default();
-            object.base.set_bucket(bucket_arc.clone());
-            object
-        };
-
         let mut list = ObjectList::<RcPointer>::from_bucket(&self, query.get_max_keys());
 
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
@@ -427,7 +418,9 @@ impl Bucket<RcPointer> {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text()?, init_object)?;
+        list.decode(&content.text()?, || {
+            Object::<RcPointer>::from_bucket(bucket_arc.clone())
+        })?;
         list.set_search_query(query);
 
         Ok(list)

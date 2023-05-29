@@ -345,15 +345,9 @@ impl ObjectList<ArcPointer> {
                     ..Default::default()
                 };
 
-                let bucket_arc = Arc::new(self.bucket.clone());
-
-                let init_object = || {
-                    let mut object = Object::<ArcPointer>::default();
-                    object.base.set_bucket(bucket_arc.clone());
-                    object
-                };
-
-                list.decode(&response.text().await?, init_object)?;
+                list.decode(&response.text().await?, || {
+                    Object::from_bucket(Arc::new(self.bucket.clone()))
+                })?;
 
                 list.set_search_query(query);
                 Ok(list)
@@ -555,6 +549,13 @@ impl<T: PointerFamily> Object<T> {
             _type,
             size,
             storage_class,
+        }
+    }
+
+    pub(crate) fn from_bucket(bucket: T::Bucket) -> Self {
+        Self {
+            base: ObjectBase::<T>::init_with_bucket(bucket),
+            ..Default::default()
         }
     }
 
@@ -1002,16 +1003,12 @@ impl Client {
             ..Default::default()
         };
 
-        let init_object = || {
-            let mut object = Object::<ArcPointer>::default();
-            object.base.set_bucket(bucket_arc.clone());
-            object
-        };
-
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
-        list.decode(&content.text().await?, init_object)?;
+        list.decode(&content.text().await?, || {
+            Object::from_bucket(bucket_arc.clone())
+        })?;
 
         list.set_client(Arc::new(self.clone()));
         list.set_search_query(query);
@@ -1237,12 +1234,6 @@ impl ClientRc {
 
         let bucket_arc = Rc::new(bucket);
 
-        let init_object = || {
-            let mut object = Object::<RcPointer>::default();
-            object.base.set_bucket(bucket_arc.clone());
-            object
-        };
-
         let query = Query::from_iter(query);
 
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
@@ -1250,7 +1241,9 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text()?, init_object)?;
+        list.decode(&content.text()?, || {
+            Object::<RcPointer>::from_bucket(bucket_arc.clone())
+        })?;
 
         list.set_client(Rc::new(self));
         list.set_search_query(query);

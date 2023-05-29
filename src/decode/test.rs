@@ -161,11 +161,7 @@ mod object_list_xml {
 
         let mut list = ListB {};
 
-        //let base_arc = Arc::new(base);
-
-        let init_object = || ObjectA {};
-
-        let res = list.decode(xml, init_object);
+        let res = list.decode(xml, || ObjectA {});
 
         assert!(res.is_ok());
     }
@@ -763,9 +759,7 @@ mod some_tests {
 
         let mut list = ListA {};
 
-        let init_object = || ObjectA {};
-
-        let res = list.decode(xml, init_object);
+        let res = list.decode(xml, || ObjectA {});
 
         assert!(res.is_ok());
     }

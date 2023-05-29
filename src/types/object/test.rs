@@ -44,6 +44,14 @@ mod test_core {
     }
 
     #[test]
+    fn init_with_bucket() {
+        let bucket = Arc::new("abc.qingdao".parse().unwrap());
+        let base = ObjectBase::<ArcPointer>::init_with_bucket(bucket);
+
+        assert!(base.bucket.get_name().as_ref() == "abc");
+    }
+
+    #[test]
     fn object_base_debug() {
         let object = ObjectBase::<ArcPointer>::default();
         assert_eq!(format!("{object:?}"), "ObjectBase { bucket: BucketBase { endpoint: EndPoint { kind: CnHangzhou, is_internal: false }, name: BucketName(\"a\") }, path: ObjectPathInner(\"\") }");

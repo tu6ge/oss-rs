@@ -179,6 +179,13 @@ mod tests {
     }
 
     #[test]
+    fn test_object_from_bucket() {
+        let bucket = Arc::new("abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap());
+        let object = Object::<ArcPointer>::from_bucket(bucket);
+        assert_eq!(object.base.bucket_name().as_ref(), "abc");
+    }
+
+    #[test]
     fn test_object_builder() {
         let bucket = Arc::new(BucketBase::new(
             "abc".parse().unwrap(),

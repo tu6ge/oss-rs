@@ -70,6 +70,13 @@ impl<T: PointerFamily> ObjectBase<T> {
         self.bucket = bucket;
     }
 
+    pub(crate) fn init_with_bucket(bucket: T::Bucket) -> Self {
+        Self {
+            bucket: bucket,
+            ..Default::default()
+        }
+    }
+
     /// 为 Object 元信息设置文件路径
     pub fn set_path<P>(&mut self, path: P) -> Result<(), InvalidObjectPath>
     where
