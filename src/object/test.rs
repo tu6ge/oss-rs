@@ -13,9 +13,9 @@ mod tests {
     use crate::{
         builder::ArcPointer,
         config::BucketBase,
-        object::{Object, ObjectBuilder, StorageClass},
+        object::{Object, ObjectArc, StorageClass},
         types::{object::ObjectPath, QueryValue},
-        Client,
+        Client, EndPoint,
     };
     use chrono::{DateTime, NaiveDateTime, Utc};
     use std::sync::Arc;
@@ -188,10 +188,12 @@ mod tests {
     #[test]
     fn test_object_builder() {
         let bucket = Arc::new(BucketBase::new(
-            "abc".parse().unwrap(),
-            "qingdao".parse().unwrap(),
+            "bucket-name".parse().unwrap(),
+            EndPoint::CN_QINGDAO,
         ));
-        let object = ObjectBuilder::<ArcPointer>::new(bucket, "abc".parse::<ObjectPath>().unwrap())
+        let mut builder = ObjectArc::builder(bucket, "abc".parse::<ObjectPath>().unwrap());
+
+        builder
             .last_modified(DateTime::<Utc>::from_utc(
                 NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
                 Utc,
@@ -199,10 +201,12 @@ mod tests {
             .etag("foo1".to_owned())
             .set_type("foo2".to_owned())
             .size(123)
-            .storage_class(StorageClass::IA)
-            .build();
+            .storage_class(StorageClass::IA);
+
+        let object = builder.build();
 
         assert_eq!(object.base.path().as_ref(), "abc");
+        assert_eq!(object.base.bucket_name().as_ref(), "bucket-name");
         assert_eq!(object.last_modified.to_string(), "1970-01-02 10:10:00 UTC");
         assert_eq!(object.etag, "foo1");
         assert_eq!(object._type, "foo2");

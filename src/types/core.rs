@@ -600,7 +600,6 @@ impl<'a> InnerQueryKey<'a> {
     /// assert!(QueryKey::new("max-keys") == QueryKey::MaxKeys);
     /// assert!(QueryKey::new("prefix") == QueryKey::Prefix);
     /// assert!(QueryKey::new("encoding-type") == QueryKey::EncodingType);
-    ///
     /// ```
     /// *`fetch-owner` 功能未实现，特殊说明*
     pub fn new(val: impl Into<Cow<'a, str>>) -> Self {

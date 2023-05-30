@@ -497,6 +497,9 @@ pub struct Object<PointerSel: PointerFamily = ArcPointer> {
     storage_class: StorageClass,
 }
 
+/// 异步的 Object struct
+pub type ObjectArc = Object<ArcPointer>;
+
 impl<T: PointerFamily> Default for Object<T> {
     fn default() -> Self {
         Object {
@@ -663,6 +666,34 @@ impl<T: PointerFamily> Object<T> {
     pub fn path_string(&self) -> String {
         self.base.path().to_string()
     }
+
+    /// # Object 构建器
+    /// 用例
+    /// ```
+    /// # use aliyun_oss_client::{config::BucketBase, ObjectPath, object::{ObjectArc, StorageClass},EndPoint};
+    /// # use std::sync::Arc;
+    /// # use chrono::{DateTime, NaiveDateTime, Utc};
+    /// let bucket = Arc::new(BucketBase::new(
+    ///     "bucket-name".parse().unwrap(),
+    ///     EndPoint::CN_QINGDAO,
+    /// ));
+    /// let mut builder = ObjectArc::builder(bucket, "abc".parse::<ObjectPath>().unwrap());
+    ///
+    /// builder
+    ///     .last_modified(DateTime::<Utc>::from_utc(
+    ///         NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
+    ///         Utc,
+    ///     ))
+    ///     .etag("foo1".to_owned())
+    ///     .set_type("foo2".to_owned())
+    ///     .size(123)
+    ///     .storage_class(StorageClass::IA);
+    ///
+    /// let object = builder.build();
+    /// ```
+    pub fn builder(bucket: T::Bucket, path: ObjectPath) -> ObjectBuilder<T> {
+        ObjectBuilder::<T>::new(bucket, path)
+    }
 }
 
 impl Object<ArcPointer> {
@@ -684,8 +715,8 @@ pub struct ObjectBuilder<T: PointerFamily = ArcPointer> {
 
 impl<T: PointerFamily> ObjectBuilder<T> {
     /// 初始化 Object 构建器
-    pub fn new<P: Into<ObjectPath>>(bucket: T::Bucket, key: P) -> Self {
-        let base = ObjectBase::<T>::new2(bucket, key.into());
+    pub fn new(bucket: T::Bucket, path: ObjectPath) -> Self {
+        let base = ObjectBase::<T>::new2(bucket, path);
         Self {
             object: Object {
                 base,
@@ -703,31 +734,31 @@ impl<T: PointerFamily> ObjectBuilder<T> {
     }
 
     /// 设置 last_modified
-    pub fn last_modified(mut self, date: DateTime<Utc>) -> Self {
+    pub fn last_modified(&mut self, date: DateTime<Utc>) -> &mut Self {
         self.object.last_modified = date;
         self
     }
 
     /// 设置 etag
-    pub fn etag(mut self, etag: String) -> Self {
+    pub fn etag(&mut self, etag: String) -> &mut Self {
         self.object.etag = etag;
         self
     }
 
     /// 设置 type
-    pub fn set_type(mut self, _type: String) -> Self {
+    pub fn set_type(&mut self, _type: String) -> &mut Self {
         self.object._type = _type;
         self
     }
 
     /// 设置 size
-    pub fn size(mut self, size: u64) -> Self {
+    pub fn size(&mut self, size: u64) -> &mut Self {
         self.object.size = size;
         self
     }
 
     /// 设置 storage_class
-    pub fn storage_class(mut self, storage_class: StorageClass) -> Self {
+    pub fn storage_class(&mut self, storage_class: StorageClass) -> &mut Self {
         self.object.storage_class = storage_class;
         self
     }
