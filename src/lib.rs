@@ -255,6 +255,7 @@ pub mod client;
 #[cfg(feature = "core")]
 pub mod config;
 
+#[allow(dead_code)]
 mod consts;
 
 #[cfg(feature = "decode")]
@@ -275,6 +276,7 @@ pub mod sts;
 pub mod types;
 
 #[cfg(test)]
+#[allow(dead_code)]
 mod tests;
 
 #[cfg(feature = "core")]
