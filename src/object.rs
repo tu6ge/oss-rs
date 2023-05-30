@@ -666,34 +666,6 @@ impl<T: PointerFamily> Object<T> {
     pub fn path_string(&self) -> String {
         self.base.path().to_string()
     }
-
-    /// # Object 构建器
-    /// 用例
-    /// ```
-    /// # use aliyun_oss_client::{config::BucketBase, ObjectPath, object::{ObjectArc, StorageClass},EndPoint};
-    /// # use std::sync::Arc;
-    /// # use chrono::{DateTime, NaiveDateTime, Utc};
-    /// let bucket = Arc::new(BucketBase::new(
-    ///     "bucket-name".parse().unwrap(),
-    ///     EndPoint::CN_QINGDAO,
-    /// ));
-    /// let mut builder = ObjectArc::builder(bucket, "abc".parse::<ObjectPath>().unwrap());
-    ///
-    /// builder
-    ///     .last_modified(DateTime::<Utc>::from_utc(
-    ///         NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
-    ///         Utc,
-    ///     ))
-    ///     .etag("foo1".to_owned())
-    ///     .set_type("foo2".to_owned())
-    ///     .size(123)
-    ///     .storage_class(StorageClass::IA);
-    ///
-    /// let object = builder.build();
-    /// ```
-    pub fn builder(bucket: T::Bucket, path: ObjectPath) -> ObjectBuilder<T> {
-        ObjectBuilder::<T>::new(bucket, path)
-    }
 }
 
 impl Object<ArcPointer> {
@@ -705,6 +677,37 @@ impl Object<ArcPointer> {
             path.try_into().unwrap(),
         ));
         object
+    }
+}
+
+#[oss_gen_rc]
+impl Object<ArcPointer> {
+    /// # Object 构建器
+    /// 用例
+    /// ```
+    /// # use aliyun_oss_client::{config::BucketBase, ObjectPath, object::{ObjectArc, StorageClass},EndPoint};
+    /// # use chrono::{DateTime, NaiveDateTime, Utc};
+    /// let bucket = BucketBase::new(
+    ///     "bucket-name".parse().unwrap(),
+    ///     EndPoint::CN_QINGDAO,
+    /// );
+    /// let mut builder = ObjectArc::builder("abc".parse::<ObjectPath>().unwrap());
+    ///
+    /// builder
+    ///     .bucket_base(bucket)
+    ///     .last_modified(DateTime::<Utc>::from_utc(
+    ///         NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
+    ///         Utc,
+    ///     ))
+    ///     .etag("foo1".to_owned())
+    ///     .set_type("foo2".to_owned())
+    ///     .size(123)
+    ///     .storage_class(StorageClass::IA);
+    ///
+    /// let object = builder.build();
+    /// ```
+    pub fn builder(path: ObjectPath) -> ObjectBuilder<ArcPointer> {
+        ObjectBuilder::<ArcPointer>::new(Arc::default(), path)
     }
 }
 
@@ -731,6 +734,12 @@ impl<T: PointerFamily> ObjectBuilder<T> {
                 storage_class: StorageClass::default(),
             },
         }
+    }
+
+    /// 设置元信息
+    pub fn bucket(&mut self, bucket: T::Bucket) -> &mut Self {
+        self.object.base.set_bucket(bucket);
+        self
     }
 
     /// 设置 last_modified
@@ -766,6 +775,15 @@ impl<T: PointerFamily> ObjectBuilder<T> {
     /// 返回 object
     pub fn build(self) -> Object<T> {
         self.object
+    }
+}
+
+#[oss_gen_rc]
+impl ObjectBuilder<ArcPointer> {
+    /// 设置元信息
+    pub fn bucket_base(&mut self, base: BucketBase) -> &mut Self {
+        self.object.base.set_bucket(Arc::new(base));
+        self
     }
 }
 

@@ -191,9 +191,10 @@ mod tests {
             "bucket-name".parse().unwrap(),
             EndPoint::CN_QINGDAO,
         ));
-        let mut builder = ObjectArc::builder(bucket, "abc".parse::<ObjectPath>().unwrap());
+        let mut builder = ObjectArc::builder("abc".parse::<ObjectPath>().unwrap());
 
         builder
+            .bucket(bucket)
             .last_modified(DateTime::<Utc>::from_utc(
                 NaiveDateTime::from_timestamp_opt(123000, 0).unwrap(),
                 Utc,
@@ -212,6 +213,12 @@ mod tests {
         assert_eq!(object._type, "foo2");
         assert_eq!(object.size, 123);
         assert_eq!(object.storage_class, StorageClass::IA);
+
+        let bucket_base = BucketBase::new("bucket-name2".parse().unwrap(), EndPoint::CN_QINGDAO);
+        let mut builder = ObjectArc::builder("abc".parse::<ObjectPath>().unwrap());
+        builder.bucket_base(bucket_base);
+        let object2 = builder.build();
+        assert_eq!(object2.base.bucket_name().as_ref(), "bucket-name2");
     }
 }
 
