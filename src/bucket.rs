@@ -193,7 +193,7 @@ impl Default for Bucket<ArcPointer> {
             base: BucketBase::default(),
             creation_date: DateTime::<Utc>::from_utc(
                 #[allow(clippy::unwrap_used)]
-                NaiveDateTime::from_timestamp_opt(61, 0).unwrap(),
+                NaiveDateTime::from_timestamp_opt(0, 0).unwrap(),
                 Utc,
             ),
             //extranet_endpoint: String::default(),
