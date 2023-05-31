@@ -96,10 +96,7 @@ fn test_builder_with_header() {
         request.headers().get("accesskeyid"),
         Some(&HeaderValue::from_str("foo1").unwrap())
     );
-    assert_eq!(
-        request.headers().get("secretaccesskey"),
-        Some(&HeaderValue::from_str("foo2").unwrap())
-    );
+    assert_eq!(request.headers().get("secretaccesskey"), None);
     assert_eq!(
         request.headers().get("verb"),
         Some(&HeaderValue::from_str("POST").unwrap())

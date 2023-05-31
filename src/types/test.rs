@@ -23,11 +23,23 @@ fn key_id() {
 #[test]
 fn secret() {
     let secret = KeySecret::new("aaa");
-    assert_eq!(format!("{secret}"), "aaa");
+    assert_eq!(format!("{secret}"), "******secret******");
+    assert_eq!(secret.as_str(), "aaa");
 
-    let key2 = KeySecret::from_static("aaa");
-    assert_eq!(format!("{key2}"), "aaa");
-    assert_eq!(key2.as_bytes(), b"aaa");
+    let key2 = KeySecret::from_static("bbb");
+    assert_eq!(format!("{key2}"), "******secret******");
+    assert_eq!(key2.as_str(), "bbb");
+}
+
+#[test]
+fn encryption() {
+    let secret = KeySecret::new("aaa");
+    let result = secret.encryption(b"bbb").unwrap();
+    assert_eq!(result, "nGG1u/pDDcCCgw9xP87bPPJxWTY=");
+
+    let secret = KeySecret::new("aaa");
+    let result = secret.encryption_string("bbb".into()).unwrap();
+    assert_eq!(result, "nGG1u/pDDcCCgw9xP87bPPJxWTY=");
 }
 
 #[test]

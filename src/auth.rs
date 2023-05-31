@@ -122,7 +122,6 @@ impl<'a> InnerAuth<'a> {
 trait AuthToHeaderMap {
     fn get_original_header(&self) -> HeaderMap;
     fn get_header_key(&self) -> Result<HeaderValue, InvalidHeaderValue>;
-    fn get_header_secret(&self) -> Result<HeaderValue, InvalidHeaderValue>;
     fn get_header_method(&self) -> Result<HeaderValue, InvalidHeaderValue>;
     fn get_header_md5(&self) -> Option<HeaderValue>;
     fn get_header_date(&self) -> Result<HeaderValue, InvalidHeaderValue>;
@@ -138,13 +137,6 @@ impl AuthToHeaderMap for InnerAuth<'_> {
     }
     fn get_header_key(&self) -> Result<HeaderValue, InvalidHeaderValue> {
         self.access_key_id.as_ref().try_into()
-    }
-    fn get_header_secret(&self) -> Result<HeaderValue, InvalidHeaderValue> {
-        self.access_key_secret.as_ref().try_into().map(|secret| {
-            let mut value: HeaderValue = secret;
-            value.set_sensitive(true);
-            value
-        })
     }
     fn get_header_method(&self) -> Result<HeaderValue, InvalidHeaderValue> {
         self.method.as_str().try_into()
@@ -274,7 +266,6 @@ trait AuthHeader {
 }
 
 const ACCESS_KEY_ID: &str = "AccessKeyId";
-const SECRET_ACCESS_KEY: &str = "SecretAccessKey";
 const VERB_IDENT: &str = "VERB";
 const CONTENT_MD5: &str = "Content-MD5";
 const DATE: &str = "Date";
@@ -286,7 +277,6 @@ impl AuthHeader for HeaderMap {
         let mut map = auth.get_original_header();
 
         map.insert(ACCESS_KEY_ID, auth.get_header_key()?);
-        map.insert(SECRET_ACCESS_KEY, auth.get_header_secret()?);
         map.insert(VERB_IDENT, auth.get_header_method()?);
 
         if let Some(a) = auth.get_header_md5() {
@@ -319,7 +309,6 @@ impl AppendAuthHeader for HeaderMap {
         self.extend(auth.get_original_header());
 
         self.insert(ACCESS_KEY_ID, auth.get_header_key()?);
-        self.insert(SECRET_ACCESS_KEY, auth.get_header_secret()?);
         self.insert(VERB_IDENT, auth.get_header_method()?);
 
         if let Some(a) = auth.get_header_md5() {
@@ -432,28 +421,13 @@ impl<'a> SignString<'a> {
 
     #[cfg(test)]
     fn secret_string(&self) -> String {
-        self.secret.as_ref().to_string()
+        self.secret.as_str().to_string()
     }
 
     // 转化成签名
     fn to_sign(&self) -> Result<Sign, hmac::digest::crypto_common::InvalidLength> {
-        use base64::engine::general_purpose::STANDARD;
-        use base64::Engine;
-        use hmac::{Hmac, Mac};
-        use sha1::Sha1;
-        type HmacSha1 = Hmac<Sha1>;
-
-        let secret = self.secret.as_ref().as_bytes();
-        let data_u8 = self.data.as_bytes();
-
-        let mut mac = HmacSha1::new_from_slice(secret)?;
-
-        mac.update(data_u8);
-
-        let sha1 = mac.finalize().into_bytes();
-
         Ok(Sign {
-            data: STANDARD.encode(sha1),
+            data: self.secret.encryption(self.data.as_bytes())?,
             key: self.key.clone(),
         })
     }
@@ -883,7 +857,7 @@ mod builder_tests {
     fn with_headers() {
         let builder = AuthBuilder::default();
         let before_len = builder.build().get_headers().unwrap().len();
-        assert!(before_len == 6);
+        assert_eq!(before_len, 5);
 
         let mut builder = AuthBuilder::default();
         builder.with_headers(Some({
@@ -892,11 +866,11 @@ mod builder_tests {
             headers
         }));
         let len = builder.build().get_headers().unwrap().len();
-        assert!(len == 7);
+        assert_eq!(len, 6);
 
         let mut builder = AuthBuilder::default();
         builder.with_headers(None);
         let len = builder.build().get_headers().unwrap().len();
-        assert!(len == 6);
+        assert_eq!(len, 5);
     }
 }

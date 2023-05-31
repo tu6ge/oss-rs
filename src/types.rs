@@ -108,30 +108,9 @@ pub struct InnerKeySecret<'a>(Cow<'a, str>);
 /// 静态作用域的 InnerKeySecret
 pub type KeySecret = InnerKeySecret<'static>;
 
-impl AsRef<str> for InnerKeySecret<'_> {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
 impl Display for InnerKeySecret<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl TryInto<HeaderValue> for InnerKeySecret<'_> {
-    type Error = InvalidHeaderValue;
-
-    /// ```
-    /// # use aliyun_oss_client::types::KeySecret;
-    /// # use http::header::HeaderValue;
-    /// let secret = KeySecret::new("foo");
-    /// let value: HeaderValue = secret.try_into().unwrap();
-    /// assert_eq!(value.to_str().unwrap(), "foo");
-    /// ```
-    fn try_into(self) -> Result<HeaderValue, InvalidHeaderValue> {
-        HeaderValue::from_str(self.as_ref())
+        write!(f, "******secret******")
     }
 }
 
@@ -158,9 +137,41 @@ impl<'a> InnerKeySecret<'a> {
         Self(Cow::Borrowed(secret))
     }
 
-    /// 转化成 bytes
-    pub fn as_bytes(&self) -> &[u8] {
-        self.as_ref().as_bytes()
+    #[cfg(test)]
+    pub(crate) fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// 加密 String 数据
+    #[inline]
+    pub fn encryption_string(
+        &self,
+        string: String,
+    ) -> Result<String, hmac::digest::crypto_common::InvalidLength> {
+        self.encryption(string.as_bytes())
+    }
+
+    /// # 加密数据
+    /// 这种加密方式可保证秘钥明文只会存在于 `InnerKeySecret` 类型内，不会被读取或复制
+    pub fn encryption(
+        &self,
+        data: &[u8],
+    ) -> Result<String, hmac::digest::crypto_common::InvalidLength> {
+        use base64::engine::general_purpose::STANDARD;
+        use base64::Engine;
+        use hmac::{Hmac, Mac};
+        use sha1::Sha1;
+        type HmacSha1 = Hmac<Sha1>;
+
+        let secret = self.0.as_bytes();
+
+        let mut mac = HmacSha1::new_from_slice(secret)?;
+
+        mac.update(data);
+
+        let sha1 = mac.finalize().into_bytes();
+
+        Ok(STANDARD.encode(sha1))
     }
 }
 
