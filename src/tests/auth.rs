@@ -296,7 +296,7 @@ fn header_map_from_auth() {
     auth.expect_get_header_key()
         .times(1)
         .returning(|| Ok("foo1".parse().unwrap()));
-    
+
     auth.expect_get_header_method()
         .times(1)
         .returning(|| Ok("foo3".parse().unwrap()));

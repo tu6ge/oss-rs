@@ -121,7 +121,10 @@ impl<'a> InnerKeySecret<'a> {
     }
 
     /// 转化成 bytes
-    #[deprecated(since = "0.12.0", note = "since next release,lib do not provide plaintext output of the secret key")]
+    #[deprecated(
+        since = "0.12.0",
+        note = "since next release,lib do not provide plaintext output of the secret key"
+    )]
     pub fn as_bytes(&self) -> &[u8] {
         self.as_ref().as_bytes()
     }
