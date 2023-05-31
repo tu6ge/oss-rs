@@ -251,14 +251,12 @@ mod auth_to_header_map {
         );
 
         let key = auth.get_header_key().unwrap();
-        let secret = auth.get_header_secret().unwrap();
         let verb = auth.get_header_method().unwrap();
         let md5 = auth.get_header_md5().unwrap();
         let date = auth.get_header_date().unwrap();
         let resource = auth.get_header_resource().unwrap();
 
         assert_eq!(key, HeaderValue::from_bytes(b"foo1").unwrap());
-        assert_eq!(secret, HeaderValue::from_bytes(b"foo2").unwrap());
         assert_eq!(verb, HeaderValue::from_bytes(b"POST").unwrap());
         assert_eq!(md5, HeaderValue::from_bytes(b"foo4").unwrap());
         assert_eq!(
@@ -298,9 +296,7 @@ fn header_map_from_auth() {
     auth.expect_get_header_key()
         .times(1)
         .returning(|| Ok("foo1".parse().unwrap()));
-    auth.expect_get_header_secret()
-        .times(1)
-        .returning(|| Ok("foo2".parse().unwrap()));
+    
     auth.expect_get_header_method()
         .times(1)
         .returning(|| Ok("foo3".parse().unwrap()));
@@ -321,10 +317,6 @@ fn header_map_from_auth() {
 
     let map = map.unwrap();
     assert_eq!(map.get("AccessKeyId").unwrap().to_str().unwrap(), "foo1");
-    assert_eq!(
-        map.get("SecretAccessKey").unwrap().to_str().unwrap(),
-        "foo2"
-    );
 }
 
 #[test]
@@ -504,10 +496,9 @@ mod get_headers {
 
         assert!(map.is_ok());
         let map = map.unwrap();
-        assert_eq!(map.len(), 8);
+        assert_eq!(map.len(), 7);
         assert_eq!(map.get("Content-Type").unwrap(), &"foo6");
         assert_eq!(map.get("accesskeyid").unwrap(), &"foo1");
-        assert_eq!(map.get("secretaccesskey").unwrap(), &"foo2");
         assert_eq!(map.get("verb").unwrap(), &"POST");
         assert_eq!(map.get("content-md5").unwrap(), &"foo4");
         assert_eq!(map.get("date").unwrap(), &"foo_date");
