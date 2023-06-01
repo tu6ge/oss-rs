@@ -41,6 +41,8 @@ use mockall::automock;
 use std::fmt::{Debug, Display};
 use std::{borrow::Cow, convert::TryInto};
 
+pub mod query;
+
 #[cfg(test)]
 mod test;
 
