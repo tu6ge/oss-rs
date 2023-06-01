@@ -125,32 +125,23 @@ mod test {
 
     use super::{Object, QueryAuth};
 
-    fn init_object(path: ObjectPath) -> crate::Result<Object> {
+    fn init_object(path: ObjectPath) -> Object {
         let bucket = "foo";
 
-        Ok(Object::new(
-            EndPoint::CN_QINGDAO,
-            bucket.parse().unwrap(),
-            path,
-        ))
+        Object::new(EndPoint::CN_QINGDAO, bucket.parse().unwrap(), path)
     }
 
-    fn init_auth(path: ObjectPath, expires: i64) -> crate::Result<QueryAuth> {
-        let object = init_object(path)?;
+    fn init_auth(path: ObjectPath, expires: i64) -> QueryAuth {
+        let object = init_object(path);
         let key_id = "key_id";
         let key_secret = "secret_id";
 
-        Ok(QueryAuth::new_with_object(
-            object,
-            key_id.into(),
-            key_secret.into(),
-            expires,
-        ))
+        QueryAuth::new_with_object(object, key_id.into(), key_secret.into(), expires)
     }
 
     #[test]
     fn get_url_resource() {
-        let object = init_object("abc.png".parse().unwrap()).unwrap();
+        let object = init_object("abc.png".parse().unwrap());
 
         let (url, res) = object.get_url_resource();
         assert_eq!(
@@ -162,19 +153,19 @@ mod test {
 
     #[test]
     fn sign_string() {
-        let auth = init_auth("abc.png".parse().unwrap(), 100).unwrap();
+        let auth = init_auth("abc.png".parse().unwrap(), 100);
         assert_eq!(auth.sign_string(), "GET\n\n\n100\n/foo/abc.png");
     }
 
     #[test]
     fn signature() {
-        let auth = init_auth("abc.png".parse().unwrap(), 123).unwrap();
+        let auth = init_auth("abc.png".parse().unwrap(), 123);
         assert_eq!(auth.signature(), "kcbz1nvZ9LwdlKC33Ml03K5DHkk=");
     }
 
     #[test]
     fn to_url() {
-        let auth = init_auth("abc.png".parse().unwrap(), 123).unwrap();
+        let auth = init_auth("abc.png".parse().unwrap(), 123);
         let url = auth.to_url().unwrap();
         assert_eq!(url.as_str(), "https://foo.oss-cn-qingdao.aliyuncs.com/abc.png?OSSAccessKeyId=key_id&Expires=123&Signature=kcbz1nvZ9LwdlKC33Ml03K5DHkk%3D");
 
