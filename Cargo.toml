@@ -27,7 +27,7 @@ repository = "https://github.com/tu6ge/oss-rs"
 documentation = "https://docs.rs/aliyun-oss-client"
 
 [dependencies.oss_derive]
-version = "0.9.7"
+version = "0.10.0"
 path = "./oss_derive"
 optional = true
 
