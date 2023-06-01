@@ -1,3 +1,96 @@
+##  (2023-06-01)
+
+## [0.12.0](https://github.com/tu6ge/oss-rs/compare/0.11.2...0.12.0) (2023-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* **object:** object 构建器调整
+* **object:** object 构建器调整
+* **decode:** remove set_next_continuation_token
+* **error:** set field to private
+* **types:** change QueryKey to struct
+* **types:** change EndPoint to struct
+* **decode:** remove ItemError trait
+* **types:** change Query insert method
+* **decode:** next_token remove Option warp
+
+### Features
+
+* **auth:** 为 Request 附加 with_oss 方法 ([114c1e0](https://github.com/tu6ge/oss-rs/commit/114c1e0f2e90cfe4e458631ab0a63765c5c9fe8c))
+* **auth:** change AuthError to struct ([a4b7962](https://github.com/tu6ge/oss-rs/commit/a4b79626d400cc7b650676b11a6d4e148ce2a4fc))
+* **auth:** change with_oss args type ([21820c7](https://github.com/tu6ge/oss-rs/commit/21820c7439c2ca1755681a346fc6e0b9735f6e87))
+* **auth:** set OssHost trait to private ([2befdb5](https://github.com/tu6ge/oss-rs/commit/2befdb538f0de5920a795ace2296146d3c0650a0))
+* **auth:** set_sensitive with secret ([7a02e84](https://github.com/tu6ge/oss-rs/commit/7a02e840597b6a5e7eddfa7ca1af7da795b08f41))
+* **bucket:** add to_vec method in blocking ([2d63089](https://github.com/tu6ge/oss-rs/commit/2d63089f6d5bae6dd5ee8d369d9ff26ac04a536f))
+* **bucket:** change BucketError to struct ([70dfe5b](https://github.com/tu6ge/oss-rs/commit/70dfe5bfd0d8cd2ef30affaf94a21df39661083f))
+* **bucket:** change ExtractItemError to struct ([ff317e9](https://github.com/tu6ge/oss-rs/commit/ff317e915893456d4a78ecb6db5f52203ea08123))
+* **builder:** add Box in Error enum ([5117b52](https://github.com/tu6ge/oss-rs/commit/5117b5272a346629f5ae528d65403317fee280ae))
+* **builder:** change BuilderError to struct ([cd7f123](https://github.com/tu6ge/oss-rs/commit/cd7f123e7f8aec46c97f871e6e88899c0ee1d581))
+* **config:** add set_internal in BucketBase ([576de60](https://github.com/tu6ge/oss-rs/commit/576de60b980612583f025f6369f086fe2aa3f067))
+* **config:** change InvalidConfig to struct ([c80355d](https://github.com/tu6ge/oss-rs/commit/c80355dce74e73e0ec20bbd7078c34ff308f67ea))
+* **config:** fixed InvalidConfig display info ([7f31892](https://github.com/tu6ge/oss-rs/commit/7f31892fa22da97d9968f80a07f682fc04ce133e))
+* **core:** decode xml return more info ([0c3170f](https://github.com/tu6ge/oss-rs/commit/0c3170f6a6598ee3857ef28176cffcbff8532240))
+* **core:** decoupling in Errors ([9610ad6](https://github.com/tu6ge/oss-rs/commit/9610ad6d9e5aa616800c9f84084e92e59cdba0fc))
+* **core:** default datetime value update ([a8c2bed](https://github.com/tu6ge/oss-rs/commit/a8c2bed9b7c2b7f00caaaaef21aa24bc31440c6a))
+* **core:** renamed ObjectList, ListBuckets ([8c17aa9](https://github.com/tu6ge/oss-rs/commit/8c17aa96b62148460ebc46c5943cfcd5f7efd3db))
+* **decode:** 解析 xml 错误时，返回更多信息 ([c1dad3d](https://github.com/tu6ge/oss-rs/commit/c1dad3d2e93a93a61e1aadaa6d6c2289063d437f))
+* **decode:** add Box in Error enum ([985cb45](https://github.com/tu6ge/oss-rs/commit/985cb453b020a3937d050b027b8066add9bec856))
+* **decode:** Add non_exhaustive in Error type ([f39f76b](https://github.com/tu6ge/oss-rs/commit/f39f76bfc73d6a6f0ad4fe643b8a9a6c22ccf556))
+* **decode:** Add non_exhaustive in InnerListError ([72f33c9](https://github.com/tu6ge/oss-rs/commit/72f33c904a0ebb6ccf69282027fc3b055d699b76))
+* **decode:** change enum to struct InnerListError ([5ea1a06](https://github.com/tu6ge/oss-rs/commit/5ea1a06b4eda9c6378c6d09052355216db1fc59c))
+* **decode:** change Error in trait ([0dd2c1b](https://github.com/tu6ge/oss-rs/commit/0dd2c1bf916b3e7fd1e1981be87910764808f7ce))
+* **decode:** next_token remove Option warp ([d91f473](https://github.com/tu6ge/oss-rs/commit/d91f473eba2c2ea1d7e2285da06d8ac73483b5c3))
+* **decode:** remove ItemError trait ([e0c8424](https://github.com/tu6ge/oss-rs/commit/e0c8424d5367deeef5297986f3ba1588b224416c))
+* **decode:** remove set_next_continuation_token ([dd005f8](https://github.com/tu6ge/oss-rs/commit/dd005f88dcb9f84319418809be9c7c41a17ac527))
+* **decode:** set ListErrorKind to private ([5adfb2a](https://github.com/tu6ge/oss-rs/commit/5adfb2a732f5462866ebea96c3d265cd902e0adc))
+* **derive:** remove #[derive(CustomItemError)] ([db6cca3](https://github.com/tu6ge/oss-rs/commit/db6cca3243ec5c1caed2b6931af16c825d91c09a))
+* **error:** change OssError to struct ([e089790](https://github.com/tu6ge/oss-rs/commit/e0897909f0b747caefc828f284a5e91bc11000d7))
+* **error:** remove Input in Error enum ([e8c6d4e](https://github.com/tu6ge/oss-rs/commit/e8c6d4e10fc170cb77b3aef9840e2499e06e0a83))
+* **error:** set field to private ([e0bbc43](https://github.com/tu6ge/oss-rs/commit/e0bbc4398c7bd247db2360e67b04b5ba6d09081a))
+* **file:** change FileError to struct ([7fb1a0a](https://github.com/tu6ge/oss-rs/commit/7fb1a0aa0b34033b75f7370174a6421d94dcb6de))
+* **file:** change OssError enum item ([a489952](https://github.com/tu6ge/oss-rs/commit/a489952831c7111ea7ad7470f73c0086356520d5))
+* **file:** get_object support more num type ([c8c111b](https://github.com/tu6ge/oss-rs/commit/c8c111bd5323979cb738ced9c4f087aa10dccf27))
+* **file:** rename BlockingFiles ([25bb539](https://github.com/tu6ge/oss-rs/commit/25bb5395d60acbf00d857f02d74989b037c9a1a0))
+* **lint:** remove warning lint ([9915737](https://github.com/tu6ge/oss-rs/commit/9915737e7199e99d2226ac5a92bc0746966d6497))
+* **object:** add ListBucketsSync type alias ([8f567ae](https://github.com/tu6ge/oss-rs/commit/8f567aec82e1b3c872e66bd2ca3fc0a5df862957))
+* **object:** add new method of StorageClass ([11ebb58](https://github.com/tu6ge/oss-rs/commit/11ebb589cc42a2cb22348092eee5d59a6422708d))
+* **object:** add ObjectListSync type ([e8012be](https://github.com/tu6ge/oss-rs/commit/e8012be630e1fc34c007cae60c8ec572fa350f9f))
+* **object:** change BuildInItemError to struct ([5a8b4b5](https://github.com/tu6ge/oss-rs/commit/5a8b4b5b33dec4e8de96230f6eb0c5d228f48fd3))
+* **object:** change ExtractListError to struct ([8af9d72](https://github.com/tu6ge/oss-rs/commit/8af9d7286d1756b98425a72961e4262158ab9030))
+* **object:** change ObjectListError to struct ([d3cfe3c](https://github.com/tu6ge/oss-rs/commit/d3cfe3c14406e82155d694b6b7d85ab8335c0d63))
+* **object:** object 构建器调整 ([d693e50](https://github.com/tu6ge/oss-rs/commit/d693e50fe575fba3bcbeac3ca4155900d3f299bc))
+* **object:** object 构建器调整 ([5a094b3](https://github.com/tu6ge/oss-rs/commit/5a094b3ea8f6891d628c0c050731ac03bff166dd))
+* **object:** set BuildInItemErrorKind private ([6f6b198](https://github.com/tu6ge/oss-rs/commit/6f6b19833b92c88a013d6aa67a229d0baef05b51))
+* **object:** set object_list to private in struct ([ba66764](https://github.com/tu6ge/oss-rs/commit/ba667644ff0b57a8eeae8ba9ff2e0803c04a0ace))
+* **sts:** set sensitive security-token ([b9dad10](https://github.com/tu6ge/oss-rs/commit/b9dad10af1246891693bb1d1cc9a361532a385ec))
+* **type:** change InvalidObjectBase inner ([0e37837](https://github.com/tu6ge/oss-rs/commit/0e37837b3404b89d50ace749d9761fa6e798067f))
+* **types:** 从 env 转化配置的时候，处理 endpoint 的情况 ([8e95b37](https://github.com/tu6ge/oss-rs/commit/8e95b3758f63605e2c6a25d9088a2a315ba86da2))
+* **types:** 升级 KeySecret 类型的安全性 ([29c44fc](https://github.com/tu6ge/oss-rs/commit/29c44fc4d07aaac38016dadc0f255503c7d12cf7))
+* **types:** add non_exhaustive in QueryKey ([2601b03](https://github.com/tu6ge/oss-rs/commit/2601b037efc5332793b9232845605aaa9155058a))
+* **types:** Add priv in inner type ([671cb12](https://github.com/tu6ge/oss-rs/commit/671cb12ea54b132897e12767993880e9308e6b23))
+* **types:** change EndPoint to struct ([32628ee](https://github.com/tu6ge/oss-rs/commit/32628eec1224f7f8ad9cfa938e05f0e6b185b5c6))
+* **types:** change InvalidBucketName display info ([71df709](https://github.com/tu6ge/oss-rs/commit/71df7093407a61818d4c5621ed1f6f5b4cfb6308))
+* **types:** change InvalidObjectDir display info ([8da7edf](https://github.com/tu6ge/oss-rs/commit/8da7edf3a30613759e439f1c8991b7b0a26caece))
+* **types:** change Query insert method ([8e041c8](https://github.com/tu6ge/oss-rs/commit/8e041c807e66d8dae31fadf91a86e6a3288b9f31))
+* **types:** change QueryKey to struct ([12fe959](https://github.com/tu6ge/oss-rs/commit/12fe959ec5a4373e0e86fad05d2fea3de2de8e16))
+* **types:** Date only from DateTime ([bdfed8c](https://github.com/tu6ge/oss-rs/commit/bdfed8c3b09f5788b0881c50b719ce96c7288ae4))
+* **types:** rename Trait ([4fc1b87](https://github.com/tu6ge/oss-rs/commit/4fc1b87767abf34cc6875767c63f61ab95360301))
+* **types:** set ObjectBase::new to pub(crate) ([7746c73](https://github.com/tu6ge/oss-rs/commit/7746c73fe63f24f7170f88bbb471066b29e70424))
+
+
+### Bug Fixes
+
+* **auth:** 解决模块之间的依赖问题 ([3965c77](https://github.com/tu6ge/oss-rs/commit/3965c77cfe0b6d29e2489601d940e5c89ead9d6b))
+* no default features ([98220d4](https://github.com/tu6ge/oss-rs/commit/98220d46d4f0ddf43c39e1100c5e92b492b6cca7))
+* **object:** fixed macro error ([c7d4b4e](https://github.com/tu6ge/oss-rs/commit/c7d4b4efc9d12f74cddc74b76ec810dd962077c9))
+
+
+### Reverts
+
+* Revert "feat(file)!: GetStd GetStdWithPath remove method" ([799cbff](https://github.com/tu6ge/oss-rs/commit/799cbff462b2bec0afbe72a11907ca73dd8971f3))
+* Revert "fix(test)" ([9a3a7c5](https://github.com/tu6ge/oss-rs/commit/9a3a7c5356a60cef505b398caacf1e30d1fc9d80))
+
 #  (2023-03-24)
 
 
