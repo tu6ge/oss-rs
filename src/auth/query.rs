@@ -1,5 +1,5 @@
 //! # 在 Url (即 query) 中包含签名
-//! 
+//!
 //! [aliyun docs](https://help.aliyun.com/document_detail/31952.html)
 
 use url::Url;
