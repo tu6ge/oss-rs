@@ -13,7 +13,7 @@ use url::Url;
 
 #[cfg(feature = "core")]
 pub mod core;
-#[cfg(feature = "core")]
+
 pub mod object;
 #[cfg(test)]
 mod test;
