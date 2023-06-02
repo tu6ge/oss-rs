@@ -10,9 +10,7 @@ use std::{
     str::FromStr,
 };
 
-use super::{CanonicalizedResource, InvalidBucketName};
-use crate::builder::PointerFamily;
-use crate::{object::Object, BucketName, EndPoint};
+use crate::{BucketName, EndPoint};
 
 #[cfg(test)]
 mod test;
@@ -200,13 +198,6 @@ impl TryFrom<&Path> for ObjectPathInner<'_> {
         } else {
             val.parse()
         }
-    }
-}
-
-impl<T: PointerFamily> From<Object<T>> for ObjectPathInner<'static> {
-    #[inline]
-    fn from(obj: Object<T>) -> Self {
-        obj.base.path
     }
 }
 

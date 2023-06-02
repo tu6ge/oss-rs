@@ -90,6 +90,7 @@ use crate::decode::{InnerListError, ListError, RefineObject, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
+use crate::types::object::ObjectPathInner;
 use crate::types::{
     core::SetOssQuery,
     object::{
@@ -677,6 +678,13 @@ impl Object<ArcPointer> {
             path.try_into().unwrap(),
         ));
         object
+    }
+}
+
+impl<T: PointerFamily> From<Object<T>> for ObjectPathInner<'static> {
+    #[inline]
+    fn from(obj: Object<T>) -> Self {
+        obj.base.path
     }
 }
 

@@ -4,7 +4,8 @@ use oss_derive::oss_gen_rc;
 use url::Url;
 
 use super::{
-    CanonicalizedResource, InvalidBucketName, InvalidObjectPath, ObjectPath, SetObjectPath,
+    super::{CanonicalizedResource, InvalidBucketName},
+    InvalidObjectPath, ObjectPath, SetObjectPath,
 };
 use crate::builder::{ArcPointer, PointerFamily};
 use crate::{config::BucketBase, BucketName, QueryKey, QueryValue};
@@ -20,7 +21,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct ObjectBase<PointerSel: PointerFamily = ArcPointer> {
     pub(super) bucket: PointerSel::Bucket,
-    pub(super) path: ObjectPath,
+    pub(crate) path: ObjectPath,
 }
 
 impl<T: PointerFamily> Default for ObjectBase<T> {
