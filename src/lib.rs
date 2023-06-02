@@ -292,12 +292,13 @@ pub use http::{
 };
 #[cfg(feature = "decode")]
 pub use oss_derive::DecodeListError;
-#[cfg(feature = "core")]
+
 pub use types::{
     object::{ObjectDir, ObjectPath},
-    Query, QueryKey, QueryValue,
+    BucketName, EndPoint, KeyId, KeySecret,
 };
-pub use types::{BucketName, EndPoint, KeyId, KeySecret};
+#[cfg(feature = "core")]
+pub use types::{Query, QueryKey, QueryValue};
 
 #[cfg(all(doctest, not(tarpaulin)))]
 #[doc = include_str!("../README.md")]
