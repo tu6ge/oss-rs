@@ -327,4 +327,11 @@ mod tests_canonicalized_resource {
             CanonicalizedResource::from_object(("foo", "bar"), [("foo2".into(), "bar2".into())]);
         assert!(resource == "/foo/bar?foo2=bar2");
     }
+
+    #[test]
+    fn test_from_object_str() {
+        use super::CanonicalizedResource;
+        let resource = CanonicalizedResource::from_object_str("foo", "bar");
+        assert!(resource.as_ref() == "/foo/bar");
+    }
 }

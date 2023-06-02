@@ -1139,6 +1139,10 @@ impl<'a> InnerCanonicalizedResource<'a> {
         }
     }
 
+    fn from_object_str(bucket: &str, path: &str) -> Self {
+        Self::new(format!("/{}/{}", bucket, path))
+    }
+
     #[cfg(feature = "auth")]
     pub(crate) fn from_object_without_query<B: AsRef<str>, P: AsRef<str>>(
         bucket: B,
@@ -1183,7 +1187,7 @@ pub fn get_url_resource(
     let mut url = url_from_bucket(endpoint, bucket);
     url.set_object_path(path);
 
-    let resource = CanonicalizedResource::from_object((bucket.as_ref(), path.as_ref()), []);
+    let resource = CanonicalizedResource::from_object_str(bucket.as_ref(), path.as_ref());
 
     (url, resource)
 }
