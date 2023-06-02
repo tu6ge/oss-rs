@@ -5,8 +5,8 @@ use crate::{
     types::{
         core::SetOssQuery,
         object::{ObjectPathInner, SetObjectPath},
-        BucketName, CanonicalizedResource, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId,
-        KeySecret,
+        url_from_bucket, BucketName, CanonicalizedResource, EndPoint, InvalidBucketName,
+        InvalidEndPoint, KeyId, KeySecret,
     },
     Query,
 };
@@ -502,39 +502,7 @@ impl BucketBase {
     }
 }
 
-fn url_from_bucket(endpoint: &EndPoint, bucket: &BucketName) -> Url {
-    let url = format!(
-        "https://{}.oss-{}.aliyuncs.com",
-        bucket.as_ref(),
-        endpoint.as_ref()
-    );
-    url.parse().unwrap_or_else(|_| {
-        unreachable!("covert to url failed, bucket: {bucket}, endpoint: {endpoint}")
-    })
-}
-
-/// 根据 endpoint， bucket， path 获取接口信息
-pub fn get_url_resource(
-    endpoint: &EndPoint,
-    bucket: &BucketName,
-    path: &ObjectPathInner,
-) -> (Url, CanonicalizedResource) {
-    let mut url = url_from_bucket(endpoint, bucket);
-    url.set_object_path(path);
-
-    let resource = CanonicalizedResource::from_object((bucket.as_ref(), path.as_ref()), []);
-
-    (url, resource)
-}
-
-/// 根据 endpoint， bucket， path 获取接口信息
-pub fn get_url_resource2<E: AsRef<EndPoint>, B: AsRef<BucketName>>(
-    endpoint: E,
-    bucket: B,
-    path: &ObjectPathInner,
-) -> (Url, CanonicalizedResource) {
-    get_url_resource(endpoint.as_ref(), bucket.as_ref(), path)
-}
+pub use crate::types::{get_url_resource, get_url_resource2};
 
 #[doc(hidden)]
 pub(crate) fn get_url_resource_with_bucket(

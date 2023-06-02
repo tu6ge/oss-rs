@@ -5,8 +5,8 @@
 use url::Url;
 
 use crate::{
-    config::get_url_resource, types::CanonicalizedResource, BucketName, EndPoint, KeyId, KeySecret,
-    ObjectPath,
+    types::{get_url_resource, CanonicalizedResource},
+    BucketName, EndPoint, KeyId, KeySecret, ObjectPath,
 };
 
 /// Object struct
