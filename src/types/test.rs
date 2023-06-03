@@ -67,7 +67,10 @@ fn endpoint() {
 }
 
 mod test_endpoint {
-    use std::{borrow::Cow, env::{set_var, remove_var}};
+    use std::{
+        borrow::Cow,
+        env::{remove_var, set_var},
+    };
 
     use super::*;
 

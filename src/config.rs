@@ -569,7 +569,10 @@ impl PartialEq<Url> for BucketBase {
 
 #[cfg(test)]
 mod tests {
-    use std::{borrow::Cow, env::{set_var, remove_var}};
+    use std::{
+        borrow::Cow,
+        env::{remove_var, set_var},
+    };
 
     use crate::types::EndPointKind;
 
