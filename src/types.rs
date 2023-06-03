@@ -1168,7 +1168,7 @@ impl<'a> InnerCanonicalizedResource<'a> {
         }
     }
 
-    fn from_object_str(bucket: &str, path: &str) -> Self {
+    pub(crate) fn from_object_str(bucket: &str, path: &str) -> Self {
         Self::new(format!("/{}/{}", bucket, path))
     }
 

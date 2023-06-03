@@ -45,7 +45,7 @@ impl<'a> QueryAuth<'a> {
         }
     }
     fn get_resource(&self, path: &ObjectPath) -> CanonicalizedResource {
-        CanonicalizedResource::from_object((self.bucket.as_ref(), path.as_ref()), [])
+        CanonicalizedResource::from_object_str(self.bucket.as_ref(), path.as_ref())
     }
     fn get_url(&self, path: &ObjectPath) -> Url {
         let mut url = url_from_bucket(&self.endpoint, &self.bucket);
