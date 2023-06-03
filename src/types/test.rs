@@ -1,3 +1,5 @@
+use std::env::set_var;
+
 use chrono::{TimeZone, Utc};
 use http::HeaderValue;
 use reqwest::Url;
@@ -65,7 +67,7 @@ fn endpoint() {
 }
 
 mod test_endpoint {
-    use std::borrow::Cow;
+    use std::{borrow::Cow, env::set_var};
 
     use super::*;
 
@@ -145,6 +147,22 @@ mod test_endpoint {
     }
 
     #[test]
+    fn test_from_env() {
+        let has_err = EndPoint::from_env();
+        assert!(has_err.is_err());
+
+        set_var("ALIYUN_ENDPOINT", "qingdao");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert_eq!(endpoint.kind, EndPointKind::CnQingdao);
+        assert!(!endpoint.is_internal);
+
+        set_var("ALIYUN_OSS_INTERNAL", "true");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert_eq!(endpoint.kind, EndPointKind::CnQingdao);
+        assert!(endpoint.is_internal);
+    }
+
+    #[test]
     fn test_from_host_piece() {
         assert!(EndPoint::from_host_piece("qingdao").is_err());
 
@@ -215,6 +233,16 @@ fn bucket_name() {
     let invalid = InvalidBucketName { _priv: () };
     let invalid2 = InvalidBucketName { _priv: () };
     assert!(invalid == invalid2);
+}
+
+#[test]
+fn bucket_name_from_env() {
+    let bucket = BucketName::from_env();
+    assert!(bucket.is_err());
+
+    set_var("ALIYUN_BUCKET", "abc");
+    let name = BucketName::from_env().unwrap();
+    assert_eq!(name, "abc");
 }
 
 #[test]

@@ -24,7 +24,6 @@ use crate::config::Config;
 impl<'a> From<&'a Config> for QueryAuth<'a> {
     fn from(config: &'a Config) -> Self {
         let (access_key_id, access_secret_key, bucket, endpoint) = config.get_all_ref();
-
         Self::new(access_key_id, access_secret_key, endpoint, bucket)
     }
 }
@@ -96,9 +95,73 @@ impl<'a> QueryAuth<'a> {
     }
 }
 
+#[cfg(feature = "core")]
 #[cfg(test)]
 mod test {
-    use crate::{EndPoint, ObjectPath};
+    use url::Url;
+
+    use crate::{config::Config, BucketName, EndPoint};
 
     use super::QueryAuth;
+
+    fn init_config() -> Config {
+        Config::new(
+            "foo",
+            "foo2",
+            EndPoint::CN_QINGDAO,
+            BucketName::new("aaa").unwrap(),
+        )
+    }
+
+    #[test]
+    fn get_resource() {
+        let config = init_config();
+        let auth = QueryAuth::from(&config);
+        let res = auth.get_resource(&"img.png".parse().unwrap());
+        assert_eq!(res.as_ref(), "/aaa/img.png");
+    }
+
+    #[test]
+    fn get_url() {
+        let config = init_config();
+        let auth = QueryAuth::from(&config);
+        let url = auth.get_url(&"img.png".parse().unwrap());
+        assert_eq!(
+            url.as_str(),
+            "https://aaa.oss-cn-qingdao.aliyuncs.com/img.png"
+        );
+    }
+
+    #[test]
+    fn sign_string() {
+        let config = init_config();
+        let auth = QueryAuth::from(&config);
+        let string = auth.sign_string(&"img.png".parse().unwrap(), 1200);
+        assert_eq!(string, "GET\n\n\n1200\n/aaa/img.png");
+    }
+
+    #[test]
+    fn signature() {
+        let config = init_config();
+        let auth = QueryAuth::from(&config);
+        let string = auth.signature(&"img.png".parse().unwrap(), 1200);
+        assert_eq!(string, "EQQzNJZptBDl8xJ6n2mQRG7oxkY=");
+    }
+
+    #[test]
+    fn to_url() {
+        let config = init_config();
+        let auth = QueryAuth::from(&config);
+        let string = auth.to_url(&"img.png".parse().unwrap(), 1200);
+        assert_eq!(string.as_str(), "https://aaa.oss-cn-qingdao.aliyuncs.com/img.png?OSSAccessKeyId=foo&Expires=1200&Signature=EQQzNJZptBDl8xJ6n2mQRG7oxkY%3D");
+    }
+
+    #[test]
+    fn signature_url() {
+        let config = init_config();
+        let auth = QueryAuth::from(&config);
+        let mut url: Url = "https://example.com/image2.png".parse().unwrap();
+        auth.signature_url(&mut url, &"img.png".parse().unwrap(), 1200);
+        assert_eq!(url.as_str(), "https://example.com/image2.png?OSSAccessKeyId=foo&Expires=1200&Signature=EQQzNJZptBDl8xJ6n2mQRG7oxkY%3D");
+    }
 }

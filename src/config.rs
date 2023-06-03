@@ -569,7 +569,7 @@ impl PartialEq<Url> for BucketBase {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
+    use std::{borrow::Cow, env::set_var};
 
     use crate::types::EndPointKind;
 
@@ -629,6 +629,19 @@ mod tests {
         base.set_internal(true);
         let BucketBase { endpoint, .. } = base;
         assert!(endpoint.is_internal == true);
+    }
+
+    #[test]
+    fn test_from_env() {
+        set_var("ALIYUN_KEY_ID", "foo");
+        set_var("ALIYUN_KEY_SECRET", "foo2");
+        set_var("ALIYUN_ENDPOINT", "qingdao");
+        set_var("ALIYUN_BUCKET", "foo3");
+        let config = Config::from_env().unwrap();
+        assert_eq!(config.key.as_ref(), "foo");
+        assert_eq!(config.secret.as_str(), "foo2");
+        assert_eq!(&config.endpoint, &EndPoint::CN_QINGDAO);
+        assert_eq!(config.bucket.as_ref(), "foo3");
     }
 
     #[test]
