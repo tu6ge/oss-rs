@@ -569,7 +569,7 @@ impl PartialEq<Url> for BucketBase {
 
 #[cfg(test)]
 mod tests {
-    use std::{borrow::Cow, env::set_var};
+    use std::{borrow::Cow, env::{set_var, remove_var}};
 
     use crate::types::EndPointKind;
 
@@ -637,6 +637,7 @@ mod tests {
         set_var("ALIYUN_KEY_SECRET", "foo2");
         set_var("ALIYUN_ENDPOINT", "qingdao");
         set_var("ALIYUN_BUCKET", "foo3");
+        remove_var("ALIYUN_OSS_INTERNAL");
         let config = Config::from_env().unwrap();
         assert_eq!(config.key.as_ref(), "foo");
         assert_eq!(config.secret.as_str(), "foo2");

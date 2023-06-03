@@ -67,7 +67,7 @@ fn endpoint() {
 }
 
 mod test_endpoint {
-    use std::{borrow::Cow, env::set_var};
+    use std::{borrow::Cow, env::{set_var, remove_var}};
 
     use super::*;
 
@@ -152,6 +152,7 @@ mod test_endpoint {
         assert!(has_err.is_err());
 
         set_var("ALIYUN_ENDPOINT", "qingdao");
+        remove_var("ALIYUN_OSS_INTERNAL");
         let endpoint = EndPoint::from_env().unwrap();
         assert_eq!(endpoint.kind, EndPointKind::CnQingdao);
         assert!(!endpoint.is_internal);
