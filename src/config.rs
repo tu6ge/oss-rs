@@ -72,6 +72,26 @@ impl Config {
         }
     }
 
+    /// use env init Config
+    pub fn from_env() -> Result<Self, InvalidConfig> {
+        let key_id = get_env("ALIYUN_KEY_ID")?;
+        let key_secret = get_env("ALIYUN_KEY_SECRET")?;
+
+        let endpoint = EndPoint::from_env().map_err(|e| InvalidConfig {
+            source: String::default(),
+            kind: InvalidConfigKind::EndPoint(e),
+        })?;
+        Ok(Config {
+            key: key_id.into(),
+            secret: key_secret.into(),
+            endpoint,
+            bucket: BucketName::from_env().map_err(|e| InvalidConfig {
+                source: String::default(),
+                kind: InvalidConfigKind::BucketName(e),
+            })?,
+        })
+    }
+
     /// 初始化 OSS 配置信息
     ///
     /// [未稳定] 暂不公开
@@ -108,6 +128,9 @@ impl Config {
 
     pub(crate) fn get_all(self) -> (KeyId, KeySecret, BucketName, EndPoint) {
         (self.key, self.secret, self.bucket, self.endpoint)
+    }
+    pub(crate) fn get_all_ref(&self) -> (&KeyId, &KeySecret, &BucketName, &EndPoint) {
+        (&self.key, &self.secret, &self.bucket, &self.endpoint)
     }
 }
 

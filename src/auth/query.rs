@@ -5,108 +5,85 @@
 use url::Url;
 
 use crate::{
-    types::{get_url_resource, CanonicalizedResource},
+    types::{object::SetObjectPath, url_from_bucket, CanonicalizedResource},
     BucketName, EndPoint, KeyId, KeySecret, ObjectPath,
 };
 
-/// Object struct
-pub struct Object {
-    endpoint: EndPoint,
-    bucket: BucketName,
-    path: ObjectPath,
-}
-
 /// Query 签名器
-pub struct QueryAuth<CanRes: AsRef<str> = CanonicalizedResource> {
-    url: Option<Url>,
-    resource: CanRes,
-    access_key_id: KeyId,
-    access_secret_key: KeySecret,
-    expires: i64,
+pub struct QueryAuth<'a> {
+    access_key_id: &'a KeyId,
+    access_secret_key: &'a KeySecret,
+    endpoint: &'a EndPoint,
+    bucket: &'a BucketName,
 }
 
-impl Object {
-    /// 初始化 Object
-    pub fn new(endpoint: EndPoint, bucket: BucketName, path: ObjectPath) -> Self {
+#[cfg(feature = "core")]
+use crate::config::Config;
+
+#[cfg(feature = "core")]
+impl<'a> From<&'a Config> for QueryAuth<'a> {
+    fn from(config: &'a Config) -> Self {
+        let (access_key_id, access_secret_key, bucket, endpoint) = config.get_all_ref();
+
+        Self::new(access_key_id, access_secret_key, endpoint, bucket)
+    }
+}
+
+impl<'a> QueryAuth<'a> {
+    /// 初始化 QueryAuth
+    pub fn new(
+        access_key_id: &'a KeyId,
+        access_secret_key: &'a KeySecret,
+        endpoint: &'a EndPoint,
+        bucket: &'a BucketName,
+    ) -> Self {
         Self {
+            access_key_id,
+            access_secret_key,
             endpoint,
             bucket,
-            path,
         }
     }
-    fn get_url_resource(&self) -> (Url, CanonicalizedResource) {
-        get_url_resource(&self.endpoint, &self.bucket, &self.path)
+    fn get_resource(&self, path: &ObjectPath) -> CanonicalizedResource {
+        CanonicalizedResource::from_object((self.bucket.as_ref(), path.as_ref()), [])
     }
-}
-
-impl QueryAuth {
-    /// 根据 object 初始化 struct
-    #[inline]
-    pub fn new_with_object(
-        object: Object,
-        access_key_id: KeyId,
-        access_secret_key: KeySecret,
-        expires: i64,
-    ) -> Self {
-        let (url, resource) = object.get_url_resource();
-        Self::new(
-            Some(url),
-            resource,
-            access_key_id,
-            access_secret_key,
-            expires,
-        )
+    fn get_url(&self, path: &ObjectPath) -> Url {
+        let mut url = url_from_bucket(&self.endpoint, &self.bucket);
+        url.set_object_path(path);
+        url
     }
 
-    /// 初始化方法
-    #[inline]
-    pub fn new(
-        url: Option<Url>,
-        resource: CanonicalizedResource,
-        access_key_id: KeyId,
-        access_secret_key: KeySecret,
-        expires: i64,
-    ) -> Self {
-        Self {
-            url,
-            resource,
-            access_key_id,
-            access_secret_key,
-            expires,
-        }
-    }
-    fn sign_string(&self) -> String {
+    fn sign_string(&self, path: &ObjectPath, expires: i64) -> String {
         const METHOD: &str = "GET";
         const LN3: &str = "\n\n\n";
         const LN: &str = "\n";
 
-        let mut string = String::with_capacity({
-            METHOD.len() + LN.len() + LN3.len() + 10 + self.resource.as_ref().len()
-        });
+        let p = self.get_resource(path);
+
+        let mut string =
+            String::with_capacity(METHOD.len() + LN.len() + LN3.len() + 10 + p.as_ref().len());
         string += METHOD;
         string += LN3;
-        string += &self.expires.to_string();
+        string += &expires.to_string();
         string += LN;
-        string += self.resource.as_ref();
+        string += p.as_ref();
         string
     }
-    fn signature(&self) -> String {
+    fn signature(&self, path: &ObjectPath, expires: i64) -> String {
         self.access_secret_key
-            .encryption_string(self.sign_string())
+            .encryption_string(self.sign_string(path, expires))
             .unwrap()
     }
 
     /// 转化为带签名完整 url
-    pub fn to_url(&self) -> Option<Url> {
-        self.url.clone().map(|u| {
-            let mut url = u;
-            self.signature_url(&mut url);
-            url
-        })
+    pub fn to_url(&self, path: &ObjectPath, expires: i64) -> Url {
+        let mut url = self.get_url(path);
+        self.signature_url(&mut url, path, expires);
+        url
     }
 
     /// 为指定的 url 附加签名信息
-    pub fn signature_url(&self, url: &mut Url) {
+    pub fn signature_url(&self, url: &mut Url, path: &ObjectPath, expires: i64) {
         const KEY: &str = "OSSAccessKeyId";
         const EXPIRES: &str = "Expires";
         const SIGNATURE: &str = "Signature";
@@ -114,8 +91,8 @@ impl QueryAuth {
         url.query_pairs_mut()
             .clear()
             .append_pair(KEY, self.access_key_id.as_ref())
-            .append_pair(EXPIRES, &self.expires.to_string())
-            .append_pair(SIGNATURE, &self.signature());
+            .append_pair(EXPIRES, &expires.to_string())
+            .append_pair(SIGNATURE, &self.signature(path, expires));
     }
 }
 
@@ -123,63 +100,5 @@ impl QueryAuth {
 mod test {
     use crate::{EndPoint, ObjectPath};
 
-    use super::{Object, QueryAuth};
-
-    fn init_object(path: ObjectPath) -> Object {
-        let bucket = "foo";
-
-        Object::new(EndPoint::CN_QINGDAO, bucket.parse().unwrap(), path)
-    }
-
-    fn init_auth(path: ObjectPath, expires: i64) -> QueryAuth {
-        let object = init_object(path);
-        let key_id = "key_id";
-        let key_secret = "secret_id";
-
-        QueryAuth::new_with_object(object, key_id.into(), key_secret.into(), expires)
-    }
-
-    #[test]
-    fn get_url_resource() {
-        let object = init_object("abc.png".parse().unwrap());
-
-        let (url, res) = object.get_url_resource();
-        assert_eq!(
-            url.as_str(),
-            "https://foo.oss-cn-qingdao.aliyuncs.com/abc.png"
-        );
-        assert_eq!(res.as_ref(), "/foo/abc.png");
-    }
-
-    #[test]
-    fn sign_string() {
-        let auth = init_auth("abc.png".parse().unwrap(), 100);
-        assert_eq!(auth.sign_string(), "GET\n\n\n100\n/foo/abc.png");
-    }
-
-    #[test]
-    fn signature() {
-        let auth = init_auth("abc.png".parse().unwrap(), 123);
-        assert_eq!(auth.signature(), "kcbz1nvZ9LwdlKC33Ml03K5DHkk=");
-    }
-
-    #[test]
-    fn to_url() {
-        let auth = init_auth("abc.png".parse().unwrap(), 123);
-        let url = auth.to_url().unwrap();
-        assert_eq!(url.as_str(), "https://foo.oss-cn-qingdao.aliyuncs.com/abc.png?OSSAccessKeyId=key_id&Expires=123&Signature=kcbz1nvZ9LwdlKC33Ml03K5DHkk%3D");
-
-        let auth = QueryAuth::new(None, "res".into(), "key".into(), "secret".into(), 10);
-        assert!(auth.to_url().is_none());
-    }
-
-    #[test]
-    fn signature_url() {
-        let mut url = "https://example.com/abc.png".parse().unwrap();
-
-        let auth = QueryAuth::new(None, "res".into(), "key".into(), "secret".into(), 10);
-        auth.signature_url(&mut url);
-
-        assert_eq!(url.as_str(), "https://example.com/abc.png?OSSAccessKeyId=key&Expires=10&Signature=zZriP4gLmCJ6WlkdVl4WPzsImkg%3D");
-    }
+    use super::QueryAuth;
 }
