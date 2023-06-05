@@ -646,6 +646,17 @@ mod tests {
         assert_eq!(config.secret.as_str(), "foo2");
         assert_eq!(&config.endpoint, &EndPoint::CN_QINGDAO);
         assert_eq!(config.bucket.as_ref(), "foo3");
+
+        set_var("ALIYUN_ENDPOINT", "ossqd");
+        let config = Config::from_env().unwrap_err();
+        assert!(config.source.len() == 0);
+        assert!(matches!(config.kind, InvalidConfigKind::EndPoint(_)));
+
+        set_var("ALIYUN_ENDPOINT", "hangzhou");
+        set_var("ALIYUN_BUCKET", "foo3-");
+        let config = Config::from_env().unwrap_err();
+        assert!(config.source.len() == 0);
+        assert!(matches!(config.kind, InvalidConfigKind::BucketName(_)));
     }
 
     #[test]
@@ -775,6 +786,27 @@ mod tests {
             url,
             Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
         );
+
+        remove_var("ALIYUN_ENDPOINT");
+        let base = BucketBase::from_env().unwrap_err();
+        assert_eq!(base.source, "ALIYUN_ENDPOINT");
+        assert!(matches!(base.kind, InvalidConfigKind::VarError(_)));
+
+        set_var("ALIYUN_ENDPOINT", "ossqd");
+        let base = BucketBase::from_env().unwrap_err();
+        assert_eq!(base.source, "ossqd");
+        assert!(matches!(base.kind, InvalidConfigKind::EndPoint(_)));
+
+        set_var("ALIYUN_ENDPOINT", "qingdao");
+        remove_var("ALIYUN_BUCKET");
+        let base = BucketBase::from_env().unwrap_err();
+        assert_eq!(base.source, "ALIYUN_BUCKET");
+        assert!(matches!(base.kind, InvalidConfigKind::VarError(_)));
+
+        set_var("ALIYUN_BUCKET", "abc-");
+        let base = BucketBase::from_env().unwrap_err();
+        assert_eq!(base.source, "abc-");
+        assert!(matches!(base.kind, InvalidConfigKind::BucketName(_)));
     }
 
     #[test]

@@ -154,6 +154,10 @@ mod test_endpoint {
         let has_err = EndPoint::from_env();
         assert!(has_err.is_err());
 
+        set_var("ALIYUN_ENDPOINT", "ossaa");
+        let has_err = EndPoint::from_env();
+        assert!(has_err.is_err());
+
         set_var("ALIYUN_ENDPOINT", "qingdao");
         remove_var("ALIYUN_OSS_INTERNAL");
         let endpoint = EndPoint::from_env().unwrap();
@@ -163,6 +167,22 @@ mod test_endpoint {
         set_var("ALIYUN_OSS_INTERNAL", "true");
         let endpoint = EndPoint::from_env().unwrap();
         assert_eq!(endpoint.kind, EndPointKind::CnQingdao);
+        assert!(endpoint.is_internal);
+
+        set_var("ALIYUN_OSS_INTERNAL", "0");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert!(!endpoint.is_internal);
+
+        set_var("ALIYUN_OSS_INTERNAL", "1");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert!(endpoint.is_internal);
+
+        set_var("ALIYUN_OSS_INTERNAL", "yes");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert!(endpoint.is_internal);
+
+        set_var("ALIYUN_OSS_INTERNAL", "Y");
+        let endpoint = EndPoint::from_env().unwrap();
         assert!(endpoint.is_internal);
     }
 
