@@ -1,7 +1,3 @@
-use crate::{builder::ArcPointer, config::BucketBase, EndPoint};
-
-use super::ObjectBase;
-
 #[cfg(feature = "core")]
 mod test_core {
     use std::error::Error;
@@ -15,7 +11,7 @@ mod test_core {
     use crate::types::object::base::invalid::InvalidObjectBaseKind;
     use crate::types::object::{FromOss, InvalidObjectDir};
     use crate::types::object::{InvalidObjectBase, InvalidObjectPath, ObjectBase};
-    use crate::{BucketName, ObjectDir, ObjectPath};
+    use crate::{BucketName, EndPoint, ObjectDir, ObjectPath};
 
     #[test]
     fn object_from_ref_bucket() {
@@ -169,6 +165,18 @@ mod test_core {
             Url::parse("https://foo.oss-cn-qingdao.aliyuncs.com/file1").unwrap()
         );
     }
+
+    #[test]
+    fn to_sign_url() {
+        let object = ObjectBase::<ArcPointer>::from_bucket(
+            BucketBase::new("abc".parse().unwrap(), EndPoint::CN_BEIJING),
+            "path1.png",
+        )
+        .unwrap();
+
+        let url = object.to_sign_url(&"key".into(), &"secret".into(), 1234567890);
+        assert_eq!(url.as_str(), "https://abc.oss-cn-beijing.aliyuncs.com/path1.png?OSSAccessKeyId=key&Expires=1234567890&Signature=Kpqvd4gWgHNlkCfcYzRiHmDO%2Fvw%3D");
+    }
 }
 
 #[cfg(feature = "blocking")]
@@ -205,16 +213,4 @@ mod blocking_tests {
         assert!(object1 != object3);
         assert!(object1 != object4);
     }
-}
-
-#[test]
-fn to_sign_url() {
-    let object = ObjectBase::<ArcPointer>::from_bucket(
-        BucketBase::new("abc".parse().unwrap(), EndPoint::CN_BEIJING),
-        "path1.png",
-    )
-    .unwrap();
-
-    let url = object.to_sign_url(&"key".into(), &"secret".into(), 1234567890);
-    assert_eq!(url.as_str(), "https://abc.oss-cn-beijing.aliyuncs.com/path1.png?OSSAccessKeyId=key&Expires=1234567890&Signature=Kpqvd4gWgHNlkCfcYzRiHmDO%2Fvw%3D");
 }
