@@ -5,7 +5,6 @@
 use url::Url;
 
 use crate::{
-    config::BucketBase,
     types::{object::SetObjectPath, url_from_bucket, CanonicalizedResource},
     BucketName, EndPoint, KeyId, KeySecret, ObjectPath,
 };
@@ -19,7 +18,10 @@ pub struct QueryAuth<'a> {
 }
 
 #[cfg(feature = "core")]
-use crate::{client::Client, config::Config};
+use crate::{
+    client::Client,
+    config::{BucketBase, Config},
+};
 
 #[cfg(feature = "core")]
 impl<'a> From<&'a Config> for QueryAuth<'a> {
