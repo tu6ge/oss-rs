@@ -1,6 +1,23 @@
 //! # 在 Url (即 query) 中包含签名
 //!
 //! [aliyun docs](https://help.aliyun.com/document_detail/31952.html)
+//!
+//! ## 用法
+//! ```
+//! # use aliyun_oss_client::{auth::QueryAuth, EndPoint};
+//! # use chrono::Utc;
+//! let key = "key".into();
+//! let secret = "secret".into();
+//! let bucket = "bucket".parse().unwrap();
+//! let auth = QueryAuth::new(
+//!     &key,
+//!     &secret,
+//!     &EndPoint::CN_QINGDAO,
+//!     &bucket
+//! );
+//! let time = Utc::now().timestamp() + 3600;
+//! let url = auth.to_url(&"pretty.png".parse().unwrap(), time);
+//! ```
 
 use url::Url;
 

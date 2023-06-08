@@ -43,6 +43,8 @@ use std::{borrow::Cow, convert::TryInto};
 
 pub mod query;
 
+pub use query::QueryAuth;
+
 #[cfg(test)]
 mod test;
 
