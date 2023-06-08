@@ -13,13 +13,16 @@ use url::Url;
 
 #[cfg(feature = "core")]
 pub mod core;
-#[cfg(feature = "core")]
+
 pub mod object;
 #[cfg(test)]
 mod test;
 
+use crate::consts::{TRUE1, TRUE2, TRUE3, TRUE4};
+
 #[cfg(feature = "core")]
 pub use self::core::{ContentRange, Query, QueryKey, QueryValue, SetOssQuery};
+use self::object::{ObjectPathInner, SetObjectPath};
 
 const OSS_DOMAIN_PREFIX: &str = "https://oss-";
 #[allow(dead_code)]
@@ -542,6 +545,26 @@ impl<'a> EndPoint {
         Self::new(&url[4..])
     }
 
+    /// use env init Endpoint
+    pub fn from_env() -> Result<Self, InvalidEndPoint> {
+        let endpoint =
+            std::env::var("ALIYUN_ENDPOINT").map_err(|_| InvalidEndPoint { _priv: () })?;
+        let mut endpoint: EndPoint = endpoint
+            .parse()
+            .map_err(|_| InvalidEndPoint { _priv: () })?;
+        if let Ok(is_internal) = std::env::var("ALIYUN_OSS_INTERNAL") {
+            if is_internal == TRUE1
+                || is_internal == TRUE2
+                || is_internal == TRUE3
+                || is_internal == TRUE4
+            {
+                endpoint.set_internal(true);
+            }
+        }
+
+        Ok(endpoint)
+    }
+
     /// # 调整 API 指向是否为内网
     ///
     /// 当在 Aliyun ECS 上执行时，设为 true 会更高效，默认是 false
@@ -736,6 +759,13 @@ impl<'a> BucketName {
         }
 
         Ok(Self(bucket))
+    }
+
+    /// use env init BucketName
+    pub fn from_env() -> Result<Self, InvalidBucketName> {
+        let string = std::env::var("ALIYUN_BUCKET").map_err(|_| InvalidBucketName { _priv: () })?;
+
+        string.parse()
     }
 
     /// Const function that creates a new `BucketName` from a static str.
@@ -1138,6 +1168,10 @@ impl<'a> InnerCanonicalizedResource<'a> {
         }
     }
 
+    pub(crate) fn from_object_str(bucket: &str, path: &str) -> Self {
+        Self::new(format!("/{}/{}", bucket, path))
+    }
+
     #[cfg(feature = "auth")]
     pub(crate) fn from_object_without_query<B: AsRef<str>, P: AsRef<str>>(
         bucket: B,
@@ -1171,4 +1205,38 @@ impl PartialEq<InnerCanonicalizedResource<'_>> for &str {
     fn eq(&self, other: &InnerCanonicalizedResource<'_>) -> bool {
         self == &other.0
     }
+}
+
+/// 根据 endpoint， bucket， path 获取接口信息
+pub fn get_url_resource(
+    endpoint: &EndPoint,
+    bucket: &BucketName,
+    path: &ObjectPathInner,
+) -> (Url, CanonicalizedResource) {
+    let mut url = url_from_bucket(endpoint, bucket);
+    url.set_object_path(path);
+
+    let resource = CanonicalizedResource::from_object_str(bucket.as_ref(), path.as_ref());
+
+    (url, resource)
+}
+
+/// 根据 endpoint， bucket， path 获取接口信息
+pub fn get_url_resource2<E: AsRef<EndPoint>, B: AsRef<BucketName>>(
+    endpoint: E,
+    bucket: B,
+    path: &ObjectPathInner,
+) -> (Url, CanonicalizedResource) {
+    get_url_resource(endpoint.as_ref(), bucket.as_ref(), path)
+}
+
+pub(crate) fn url_from_bucket(endpoint: &EndPoint, bucket: &BucketName) -> Url {
+    let url = format!(
+        "https://{}.oss-{}.aliyuncs.com",
+        bucket.as_ref(),
+        endpoint.as_ref()
+    );
+    url.parse().unwrap_or_else(|_| {
+        unreachable!("covert to url failed, bucket: {bucket}, endpoint: {endpoint}")
+    })
 }

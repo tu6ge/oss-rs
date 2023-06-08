@@ -216,7 +216,7 @@ mod test_try {
 }
 
 mod error {
-    use std::{error::Error, io::ErrorKind};
+    use std::error::Error;
 
     use http::HeaderValue;
 
@@ -229,6 +229,7 @@ mod error {
     #[cfg(feature = "put_file")]
     #[test]
     fn test_file_read() {
+        use std::io::ErrorKind;
         let io_err = std::io::Error::new(ErrorKind::Other, "oh no!");
         let err = FileError {
             kind: FileErrorKind::FileRead(io_err),

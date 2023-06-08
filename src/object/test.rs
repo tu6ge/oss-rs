@@ -1,5 +1,7 @@
 use crate::{
     bucket::Bucket,
+    builder::ArcPointer,
+    config::BucketBase,
     decode::RefineBucket,
     object::{StorageClass, StorageClassKind},
     EndPoint,
@@ -610,4 +612,16 @@ fn test_from_bucket() {
     assert_eq!(objects.bucket.name(), "aaa");
     assert_eq!(objects.client.endpoint, EndPoint::CN_SHANGHAI);
     assert!(objects.object_list.capacity() >= 10);
+}
+
+#[test]
+fn to_sign_url() {
+    let mut builder = Object::<ArcPointer>::builder("img1.png".parse().unwrap());
+    builder.bucket_base(BucketBase::new(
+        "abc".parse().unwrap(),
+        EndPoint::CN_SHANGHAI,
+    ));
+    let object = builder.build();
+    let url = object.to_sign_url(&"key".into(), &"secret".into(), 12345678);
+    assert_eq!(url.as_str(), "https://abc.oss-cn-shanghai.aliyuncs.com/img1.png?OSSAccessKeyId=key&Expires=12345678&Signature=v0HY%2FAKa4c8lnwzUvN9vWlMaem0%3D");
 }

@@ -171,6 +171,13 @@ impl<M: Default + Clone> Client<M> {
         self.get_bucket_base().to_url()
     }
 
+    pub(crate) fn get_key(&self) -> &KeyId {
+        &self.auth_builder.get_key()
+    }
+    pub(crate) fn get_secret(&self) -> &KeySecret {
+        &self.auth_builder.get_secret()
+    }
+
     pub(crate) fn get_endpoint(&self) -> &EndPoint {
         &self.endpoint
     }

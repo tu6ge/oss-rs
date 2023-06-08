@@ -5,8 +5,8 @@ use crate::{
     types::{
         core::SetOssQuery,
         object::{ObjectPathInner, SetObjectPath},
-        BucketName, CanonicalizedResource, EndPoint, InvalidBucketName, InvalidEndPoint, KeyId,
-        KeySecret,
+        url_from_bucket, BucketName, CanonicalizedResource, EndPoint, InvalidBucketName,
+        InvalidEndPoint, KeyId, KeySecret,
     },
     Query,
 };
@@ -72,6 +72,26 @@ impl Config {
         }
     }
 
+    /// use env init Config
+    pub fn from_env() -> Result<Self, InvalidConfig> {
+        let key_id = get_env("ALIYUN_KEY_ID")?;
+        let key_secret = get_env("ALIYUN_KEY_SECRET")?;
+
+        let endpoint = EndPoint::from_env().map_err(|e| InvalidConfig {
+            source: String::default(),
+            kind: InvalidConfigKind::EndPoint(e),
+        })?;
+        Ok(Config {
+            key: key_id.into(),
+            secret: key_secret.into(),
+            endpoint,
+            bucket: BucketName::from_env().map_err(|e| InvalidConfig {
+                source: String::default(),
+                kind: InvalidConfigKind::BucketName(e),
+            })?,
+        })
+    }
+
     /// 初始化 OSS 配置信息
     ///
     /// [未稳定] 暂不公开
@@ -108,6 +128,11 @@ impl Config {
 
     pub(crate) fn get_all(self) -> (KeyId, KeySecret, BucketName, EndPoint) {
         (self.key, self.secret, self.bucket, self.endpoint)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn get_all_ref(&self) -> (&KeyId, &KeySecret, &BucketName, &EndPoint) {
+        (&self.key, &self.secret, &self.bucket, &self.endpoint)
     }
 }
 
@@ -406,6 +431,12 @@ impl BucketBase {
         self.endpoint
     }
 
+    /// 获取 EndPoint 引用
+    #[inline]
+    pub fn endpoint_ref(&self) -> &EndPoint {
+        &self.endpoint
+    }
+
     /// 设置 bucket name
     ///
     /// ```
@@ -502,39 +533,7 @@ impl BucketBase {
     }
 }
 
-fn url_from_bucket(endpoint: &EndPoint, bucket: &BucketName) -> Url {
-    let url = format!(
-        "https://{}.oss-{}.aliyuncs.com",
-        bucket.as_ref(),
-        endpoint.as_ref()
-    );
-    url.parse().unwrap_or_else(|_| {
-        unreachable!("covert to url failed, bucket: {bucket}, endpoint: {endpoint}")
-    })
-}
-
-/// 根据 endpoint， bucket， path 获取接口信息
-pub fn get_url_resource(
-    endpoint: &EndPoint,
-    bucket: &BucketName,
-    path: &ObjectPathInner,
-) -> (Url, CanonicalizedResource) {
-    let mut url = url_from_bucket(endpoint, bucket);
-    url.set_object_path(path);
-
-    let resource = CanonicalizedResource::from_object((bucket.as_ref(), path.as_ref()), []);
-
-    (url, resource)
-}
-
-/// 根据 endpoint， bucket， path 获取接口信息
-pub fn get_url_resource2<E: AsRef<EndPoint>, B: AsRef<BucketName>>(
-    endpoint: E,
-    bucket: B,
-    path: &ObjectPathInner,
-) -> (Url, CanonicalizedResource) {
-    get_url_resource(endpoint.as_ref(), bucket.as_ref(), path)
-}
+pub use crate::types::{get_url_resource, get_url_resource2};
 
 #[doc(hidden)]
 pub(crate) fn get_url_resource_with_bucket(
@@ -578,7 +577,10 @@ impl PartialEq<Url> for BucketBase {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
+    use std::{
+        borrow::Cow,
+        env::{remove_var, set_var},
+    };
 
     use crate::types::EndPointKind;
 
@@ -638,6 +640,31 @@ mod tests {
         base.set_internal(true);
         let BucketBase { endpoint, .. } = base;
         assert!(endpoint.is_internal == true);
+    }
+
+    #[test]
+    fn test_from_env() {
+        set_var("ALIYUN_KEY_ID", "foo");
+        set_var("ALIYUN_KEY_SECRET", "foo2");
+        set_var("ALIYUN_ENDPOINT", "qingdao");
+        set_var("ALIYUN_BUCKET", "foo3");
+        remove_var("ALIYUN_OSS_INTERNAL");
+        let config = Config::from_env().unwrap();
+        assert_eq!(config.key.as_ref(), "foo");
+        assert_eq!(config.secret.as_str(), "foo2");
+        assert_eq!(&config.endpoint, &EndPoint::CN_QINGDAO);
+        assert_eq!(config.bucket.as_ref(), "foo3");
+
+        set_var("ALIYUN_ENDPOINT", "ossqd");
+        let config = Config::from_env().unwrap_err();
+        assert!(config.source.len() == 0);
+        assert!(matches!(config.kind, InvalidConfigKind::EndPoint(_)));
+
+        set_var("ALIYUN_ENDPOINT", "hangzhou");
+        set_var("ALIYUN_BUCKET", "foo3-");
+        let config = Config::from_env().unwrap_err();
+        assert!(config.source.len() == 0);
+        assert!(matches!(config.kind, InvalidConfigKind::BucketName(_)));
     }
 
     #[test]
@@ -767,6 +794,27 @@ mod tests {
             url,
             Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
         );
+
+        remove_var("ALIYUN_ENDPOINT");
+        let base = BucketBase::from_env().unwrap_err();
+        assert_eq!(base.source, "ALIYUN_ENDPOINT");
+        assert!(matches!(base.kind, InvalidConfigKind::VarError(_)));
+
+        set_var("ALIYUN_ENDPOINT", "ossqd");
+        let base = BucketBase::from_env().unwrap_err();
+        assert_eq!(base.source, "ossqd");
+        assert!(matches!(base.kind, InvalidConfigKind::EndPoint(_)));
+
+        set_var("ALIYUN_ENDPOINT", "qingdao");
+        remove_var("ALIYUN_BUCKET");
+        let base = BucketBase::from_env().unwrap_err();
+        assert_eq!(base.source, "ALIYUN_BUCKET");
+        assert!(matches!(base.kind, InvalidConfigKind::VarError(_)));
+
+        set_var("ALIYUN_BUCKET", "abc-");
+        let base = BucketBase::from_env().unwrap_err();
+        assert_eq!(base.source, "abc-");
+        assert!(matches!(base.kind, InvalidConfigKind::BucketName(_)));
     }
 
     #[test]

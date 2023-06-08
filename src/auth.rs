@@ -41,6 +41,10 @@ use mockall::automock;
 use std::fmt::{Debug, Display};
 use std::{borrow::Cow, convert::TryInto};
 
+pub mod query;
+
+pub use query::QueryAuth;
+
 #[cfg(test)]
 mod test;
 
@@ -494,6 +498,13 @@ impl AuthBuilder {
     #[inline]
     pub fn secret<S: Into<KeySecret>>(&mut self, secret: S) {
         self.auth.set_secret(secret.into());
+    }
+
+    pub(crate) fn get_key(&self) -> &KeyId {
+        &self.auth.access_key_id
+    }
+    pub(crate) fn get_secret(&self) -> &KeySecret {
+        &self.auth.access_key_secret
     }
 
     /// 给 verb 赋值

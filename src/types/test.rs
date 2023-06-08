@@ -1,3 +1,5 @@
+use std::env::set_var;
+
 use chrono::{TimeZone, Utc};
 use http::HeaderValue;
 use reqwest::Url;
@@ -65,7 +67,10 @@ fn endpoint() {
 }
 
 mod test_endpoint {
-    use std::borrow::Cow;
+    use std::{
+        borrow::Cow,
+        env::{remove_var, set_var},
+    };
 
     use super::*;
 
@@ -145,6 +150,43 @@ mod test_endpoint {
     }
 
     #[test]
+    fn test_from_env() {
+        let has_err = EndPoint::from_env();
+        assert!(has_err.is_err());
+
+        set_var("ALIYUN_ENDPOINT", "ossaa");
+        let has_err = EndPoint::from_env();
+        assert!(has_err.is_err());
+
+        set_var("ALIYUN_ENDPOINT", "qingdao");
+        remove_var("ALIYUN_OSS_INTERNAL");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert_eq!(endpoint.kind, EndPointKind::CnQingdao);
+        assert!(!endpoint.is_internal);
+
+        set_var("ALIYUN_OSS_INTERNAL", "true");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert_eq!(endpoint.kind, EndPointKind::CnQingdao);
+        assert!(endpoint.is_internal);
+
+        set_var("ALIYUN_OSS_INTERNAL", "0");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert!(!endpoint.is_internal);
+
+        set_var("ALIYUN_OSS_INTERNAL", "1");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert!(endpoint.is_internal);
+
+        set_var("ALIYUN_OSS_INTERNAL", "yes");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert!(endpoint.is_internal);
+
+        set_var("ALIYUN_OSS_INTERNAL", "Y");
+        let endpoint = EndPoint::from_env().unwrap();
+        assert!(endpoint.is_internal);
+    }
+
+    #[test]
     fn test_from_host_piece() {
         assert!(EndPoint::from_host_piece("qingdao").is_err());
 
@@ -215,6 +257,16 @@ fn bucket_name() {
     let invalid = InvalidBucketName { _priv: () };
     let invalid2 = InvalidBucketName { _priv: () };
     assert!(invalid == invalid2);
+}
+
+#[test]
+fn bucket_name_from_env() {
+    let bucket = BucketName::from_env();
+    assert!(bucket.is_err());
+
+    set_var("ALIYUN_BUCKET", "abc");
+    let name = BucketName::from_env().unwrap();
+    assert_eq!(name, "abc");
 }
 
 #[test]
@@ -326,5 +378,12 @@ mod tests_canonicalized_resource {
         let resource =
             CanonicalizedResource::from_object(("foo", "bar"), [("foo2".into(), "bar2".into())]);
         assert!(resource == "/foo/bar?foo2=bar2");
+    }
+
+    #[test]
+    fn test_from_object_str() {
+        use super::CanonicalizedResource;
+        let resource = CanonicalizedResource::from_object_str("foo", "bar");
+        assert!(resource.as_ref() == "/foo/bar");
     }
 }
