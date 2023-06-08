@@ -129,6 +129,8 @@ impl Config {
     pub(crate) fn get_all(self) -> (KeyId, KeySecret, BucketName, EndPoint) {
         (self.key, self.secret, self.bucket, self.endpoint)
     }
+
+    #[allow(dead_code)]
     pub(crate) fn get_all_ref(&self) -> (&KeyId, &KeySecret, &BucketName, &EndPoint) {
         (&self.key, &self.secret, &self.bucket, &self.endpoint)
     }
@@ -427,6 +429,12 @@ impl BucketBase {
     #[inline]
     pub fn endpoint(self) -> EndPoint {
         self.endpoint
+    }
+
+    /// 获取 EndPoint 引用
+    #[inline]
+    pub fn endpoint_ref(&self) -> &EndPoint {
+        &self.endpoint
     }
 
     /// 设置 bucket name

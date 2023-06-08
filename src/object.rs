@@ -98,12 +98,13 @@ use crate::types::{
     },
     CanonicalizedResource, Query, QueryKey, QueryValue, CONTINUATION_TOKEN,
 };
-use crate::{BucketName, Client, EndPoint};
+use crate::{BucketName, Client, EndPoint, KeyId, KeySecret};
 use async_stream::try_stream;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use futures_core::stream::Stream;
 use http::Method;
 use oss_derive::oss_gen_rc;
+use url::Url;
 
 use std::error::Error;
 use std::fmt::{self, Display};
@@ -716,6 +717,11 @@ impl Object<ArcPointer> {
     /// ```
     pub fn builder(path: ObjectPath) -> ObjectBuilder<ArcPointer> {
         ObjectBuilder::<ArcPointer>::new(Arc::default(), path)
+    }
+
+    /// 带签名的 Url 链接
+    pub fn to_sign_url(&self, key: &KeyId, secret: &KeySecret, expires: i64) -> Url {
+        self.base.to_sign_url(key, secret, expires)
     }
 }
 

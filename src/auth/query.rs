@@ -5,6 +5,7 @@
 use url::Url;
 
 use crate::{
+    config::BucketBase,
     types::{object::SetObjectPath, url_from_bucket, CanonicalizedResource},
     BucketName, EndPoint, KeyId, KeySecret, ObjectPath,
 };
@@ -18,18 +19,36 @@ pub struct QueryAuth<'a> {
 }
 
 #[cfg(feature = "core")]
-use crate::config::Config;
+use crate::{client::Client, config::Config};
 
 #[cfg(feature = "core")]
 impl<'a> From<&'a Config> for QueryAuth<'a> {
+    #[inline]
     fn from(config: &'a Config) -> Self {
-        let (access_key_id, access_secret_key, bucket, endpoint) = config.get_all_ref();
-        Self::new(access_key_id, access_secret_key, endpoint, bucket)
+        Self::new(
+            config.as_ref(),
+            config.as_ref(),
+            config.as_ref(),
+            config.as_ref(),
+        )
+    }
+}
+#[cfg(feature = "core")]
+impl<'a, M: Default + Clone> From<&'a Client<M>> for QueryAuth<'a> {
+    #[inline]
+    fn from(client: &'a Client<M>) -> Self {
+        Self::new(
+            client.get_key(),
+            client.get_secret(),
+            client.as_ref(),
+            client.as_ref(),
+        )
     }
 }
 
 impl<'a> QueryAuth<'a> {
     /// 初始化 QueryAuth
+    #[inline]
     pub fn new(
         access_key_id: &'a KeyId,
         access_secret_key: &'a KeySecret,
@@ -42,6 +61,22 @@ impl<'a> QueryAuth<'a> {
             endpoint,
             bucket,
         }
+    }
+
+    /// 通过 BucketBase 初始化
+    #[cfg(feature = "core")]
+    #[inline]
+    pub fn new_with_bucket(
+        access_key_id: &'a KeyId,
+        access_secret_key: &'a KeySecret,
+        base: &'a BucketBase,
+    ) -> Self {
+        Self::new(
+            access_key_id,
+            access_secret_key,
+            base.as_ref(),
+            base.as_ref(),
+        )
     }
     fn get_resource(&self, path: &ObjectPath) -> CanonicalizedResource {
         CanonicalizedResource::from_object_str(self.bucket.as_ref(), path.as_ref())
@@ -59,8 +94,11 @@ impl<'a> QueryAuth<'a> {
 
         let p = self.get_resource(path);
 
-        let mut string =
-            String::with_capacity(METHOD.len() + LN.len() + LN3.len() + 10 + p.as_ref().len());
+        const fn len(path: &str) -> usize {
+            METHOD.len() + LN.len() + LN3.len() + 10 + path.len()
+        }
+
+        let mut string = String::with_capacity(len(p.as_ref()));
         string += METHOD;
         string += LN3;
         string += &expires.to_string();
@@ -100,7 +138,10 @@ impl<'a> QueryAuth<'a> {
 mod test {
     use url::Url;
 
-    use crate::{config::Config, BucketName, EndPoint};
+    use crate::{
+        config::{BucketBase, Config},
+        BucketName, Client, EndPoint,
+    };
 
     use super::QueryAuth;
 
@@ -111,6 +152,35 @@ mod test {
             EndPoint::CN_QINGDAO,
             BucketName::new("aaa").unwrap(),
         )
+    }
+
+    #[test]
+    fn from_client() {
+        let client = Client::new(
+            "foo".into(),
+            "foo2".into(),
+            EndPoint::CN_QINGDAO,
+            "aaa".parse().unwrap(),
+        );
+
+        let auth = QueryAuth::from(&client);
+        assert_eq!(auth.access_key_id.as_ref(), "foo");
+        assert_eq!(auth.access_secret_key.as_str(), "foo2");
+        assert_eq!(auth.endpoint, &EndPoint::CN_QINGDAO);
+        assert_eq!(auth.bucket.as_ref(), "aaa");
+    }
+
+    #[test]
+    fn new_with_bucket() {
+        let key = "foo".into();
+        let secret = "foo2".into();
+        let base = BucketBase::new("aaa".parse().unwrap(), EndPoint::CN_QINGDAO);
+
+        let auth = QueryAuth::new_with_bucket(&key, &secret, &base);
+        assert_eq!(auth.access_key_id.as_ref(), "foo");
+        assert_eq!(auth.access_secret_key.as_str(), "foo2");
+        assert_eq!(auth.endpoint, &EndPoint::CN_QINGDAO);
+        assert_eq!(auth.bucket.as_ref(), "aaa");
     }
 
     #[test]

@@ -498,6 +498,13 @@ impl AuthBuilder {
         self.auth.set_secret(secret.into());
     }
 
+    pub(crate) fn get_key(&self) -> &KeyId {
+        &self.auth.access_key_id
+    }
+    pub(crate) fn get_secret(&self) -> &KeySecret {
+        &self.auth.access_key_secret
+    }
+
     /// 给 verb 赋值
     #[inline]
     pub fn method(&mut self, method: &Method) {

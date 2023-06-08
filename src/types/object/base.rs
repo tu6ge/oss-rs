@@ -7,7 +7,11 @@ use super::{
     super::{CanonicalizedResource, InvalidBucketName},
     InvalidObjectPath, ObjectPath, SetObjectPath,
 };
-use crate::builder::{ArcPointer, PointerFamily};
+use crate::{
+    auth::query::QueryAuth,
+    builder::{ArcPointer, PointerFamily},
+    EndPoint, KeyId, KeySecret,
+};
 use crate::{config::BucketBase, BucketName, QueryKey, QueryValue};
 
 #[cfg(feature = "blocking")]
@@ -160,6 +164,11 @@ impl ObjectBase<ArcPointer> {
         self.bucket.get_name()
     }
 
+    /// 获取 EndPoint 引用
+    pub fn endpoint(&self) -> &EndPoint {
+        self.bucket.endpoint_ref()
+    }
+
     /// 根据提供的查询参数信息，获取当前 object 对应的接口请求参数（ url 和 CanonicalizedResource）
     #[inline]
     pub fn get_url_resource<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
@@ -173,6 +182,12 @@ impl ObjectBase<ArcPointer> {
             CanonicalizedResource::from_object((self.bucket.name(), self.path.as_ref()), query);
 
         (url, resource)
+    }
+
+    /// 带签名的 Url 链接
+    pub fn to_sign_url(&self, key: &KeyId, secret: &KeySecret, expires: i64) -> Url {
+        let auth = QueryAuth::new_with_bucket(key, secret, &self.bucket);
+        auth.to_url(&self.path, expires)
     }
 }
 
