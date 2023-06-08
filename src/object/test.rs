@@ -1,9 +1,10 @@
 use crate::{
     bucket::Bucket,
+    builder::ArcPointer,
     config::BucketBase,
     decode::RefineBucket,
     object::{StorageClass, StorageClassKind},
-    EndPoint, builder::ArcPointer,
+    EndPoint,
 };
 
 use super::{Object, Objects};
