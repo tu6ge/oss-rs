@@ -3,7 +3,7 @@ use crate::{
     config::BucketBase,
     decode::RefineBucket,
     object::{StorageClass, StorageClassKind},
-    EndPoint,
+    EndPoint, builder::ArcPointer,
 };
 
 use super::{Object, Objects};
@@ -615,7 +615,7 @@ fn test_from_bucket() {
 
 #[test]
 fn to_sign_url() {
-    let mut builder = Object::builder("img1.png".parse().unwrap());
+    let mut builder = Object::<ArcPointer>::builder("img1.png".parse().unwrap());
     builder.bucket_base(BucketBase::new(
         "abc".parse().unwrap(),
         EndPoint::CN_SHANGHAI,
