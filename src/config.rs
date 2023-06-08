@@ -795,6 +795,7 @@ mod tests {
             Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
         );
 
+        remove_var("ALIYUN_OSS_INTERNAL");
         remove_var("ALIYUN_ENDPOINT");
         let base = BucketBase::from_env().unwrap_err();
         assert_eq!(base.source, "ALIYUN_ENDPOINT");
