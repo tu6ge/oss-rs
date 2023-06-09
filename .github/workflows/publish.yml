@@ -41,17 +41,17 @@ jobs:
       
       - name: Run Test
         run: |
-          cargo test --lib --no-default-features -- tests
+          cargo test --lib --no-default-features --jobs 1 -- tests
           # --all-features, exclude bench features
-          cargo test --lib --features="blocking,sts,put_file" -- tests
-          cargo test --lib -- tests
-          cargo test --lib --features blocking --no-default-features tests
-          cargo test --lib --features blocking tests
-          cargo test --lib --features sts --no-default-features tests
-          cargo test --lib --features put_file --no-default-features tests
-          cargo test --lib --features core --no-default-features tests
-          cargo test --lib --features auth --no-default-features tests
-          cargo test --lib --features decode --no-default-features tests
+          cargo test --lib --features="blocking,sts,put_file" --jobs 1 -- tests
+          cargo test --lib --jobs 1 -- tests
+          cargo test --lib --jobs 1 --features blocking --no-default-features tests
+          cargo test --lib --jobs 1 --features blocking tests
+          cargo test --lib --jobs 1 --features sts --no-default-features tests
+          cargo test --lib --jobs 1 --features put_file --no-default-features tests
+          cargo test --lib --jobs 1 --features core --no-default-features tests
+          cargo test --lib --jobs 1 --features auth --no-default-features tests
+          cargo test --lib --jobs 1 --features decode --no-default-features tests
           # --all-features, exclude bench features
           cargo test --doc --all-features
           cd oss_derive

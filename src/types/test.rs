@@ -1,4 +1,4 @@
-use std::env::set_var;
+use std::env::{remove_var, set_var};
 
 use chrono::{TimeZone, Utc};
 use http::HeaderValue;
@@ -153,6 +153,7 @@ mod test_endpoint {
 
     #[test]
     fn test_from_env() {
+        remove_var("ALIYUN_ENDPOINT");
         let has_err = EndPoint::from_env();
         assert!(has_err.is_err());
 
@@ -263,6 +264,7 @@ fn bucket_name() {
 
 #[test]
 fn bucket_name_from_env() {
+    remove_var("ALIYUN_BUCKET");
     let bucket = BucketName::from_env();
     assert!(bucket.is_err());
 
