@@ -41,9 +41,9 @@ jobs:
       
       - name: Run Test
         run: |
-          cargo test --lib --no-default-features --jobs 1 -- tests
+          cargo test --lib --jobs 1 --no-default-features -- tests
           # --all-features, exclude bench features
-          cargo test --lib --features="blocking,sts,put_file" --jobs 1 -- tests
+          cargo test --lib --jobs 1 --features="blocking,sts,put_file" -- tests
           cargo test --lib --jobs 1 -- tests
           cargo test --lib --jobs 1 --features blocking --no-default-features tests
           cargo test --lib --jobs 1 --features blocking tests
