@@ -436,21 +436,21 @@ impl TryFrom<Url> for EndPoint {
         let domain = if let Some(Host::Domain(domain)) = url.host() {
             domain
         } else {
-            return Err(InvalidEndPoint { _priv: () });
+            return Err(InvalidEndPoint::new());
         };
         let mut url_pieces = domain.rsplit('.');
 
         match (url_pieces.next(), url_pieces.next()) {
             (Some(COM), Some(ALIYUNCS)) => (),
-            _ => return Err(InvalidEndPoint { _priv: () }),
+            _ => return Err(InvalidEndPoint::new()),
         }
 
         match url_pieces.next() {
             Some(endpoint) => match EndPoint::from_host_piece(endpoint) {
                 Ok(end) => Ok(end),
-                _ => Err(InvalidEndPoint { _priv: () }),
+                _ => Err(InvalidEndPoint::new()),
             },
-            _ => Err(InvalidEndPoint { _priv: () }),
+            _ => Err(InvalidEndPoint::new()),
         }
     }
 }
@@ -497,7 +497,7 @@ impl<'a> EndPoint {
         const OSS_STR: &str = "oss";
         use EndPointKind::*;
         if url.is_empty() {
-            return Err(InvalidEndPoint { _priv: () });
+            return Err(InvalidEndPoint::new());
         }
         // 是否是内网
         let is_internal = url.ends_with(OSS_INTERNAL);
@@ -530,11 +530,11 @@ impl<'a> EndPoint {
             Ok(ApSouthEast1)
         } else {
             if url.starts_with('-') || url.ends_with('-') || url.starts_with(OSS_STR) {
-                return Err(InvalidEndPoint { _priv: () });
+                return Err(InvalidEndPoint::new());
             }
 
             if !url.chars().all(valid_oss_character) {
-                return Err(InvalidEndPoint { _priv: () });
+                return Err(InvalidEndPoint::new());
             }
 
             Ok(Other(Cow::Owned(url.to_owned())))
@@ -546,18 +546,15 @@ impl<'a> EndPoint {
     /// 从 oss 域名中提取 Endpoint 信息
     pub(crate) fn from_host_piece(url: &'a str) -> Result<Self, InvalidEndPoint> {
         if !url.starts_with(OSS_HYPHEN) {
-            return Err(InvalidEndPoint { _priv: () });
+            return Err(InvalidEndPoint::new());
         }
         Self::new(&url[4..])
     }
 
     /// use env init Endpoint
     pub fn from_env() -> Result<Self, InvalidEndPoint> {
-        let endpoint =
-            std::env::var("ALIYUN_ENDPOINT").map_err(|_| InvalidEndPoint { _priv: () })?;
-        let mut endpoint: EndPoint = endpoint
-            .parse()
-            .map_err(|_| InvalidEndPoint { _priv: () })?;
+        let endpoint = std::env::var("ALIYUN_ENDPOINT").map_err(|_| InvalidEndPoint::new())?;
+        let mut endpoint: EndPoint = endpoint.parse().map_err(|_| InvalidEndPoint::new())?;
         if let Ok(is_internal) = std::env::var("ALIYUN_OSS_INTERNAL") {
             if is_internal == TRUE1
                 || is_internal == TRUE2
@@ -612,7 +609,13 @@ impl<'a> EndPoint {
 #[derive(PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct InvalidEndPoint {
-    pub(crate) _priv: (),
+    _priv: (),
+}
+
+impl InvalidEndPoint {
+    pub(crate) fn new() -> InvalidEndPoint {
+        InvalidEndPoint { _priv: () }
+    }
 }
 
 impl Debug for InvalidEndPoint {
@@ -757,11 +760,11 @@ impl<'a> BucketName {
         let bucket = bucket.into();
 
         if bucket.is_empty() || bucket.starts_with('-') || bucket.ends_with('-') {
-            return Err(InvalidBucketName { _priv: () });
+            return Err(InvalidBucketName::new());
         }
 
         if !bucket.chars().all(valid_oss_character) {
-            return Err(InvalidBucketName { _priv: () });
+            return Err(InvalidBucketName::new());
         }
 
         Ok(Self(bucket))
@@ -769,7 +772,7 @@ impl<'a> BucketName {
 
     /// use env init BucketName
     pub fn from_env() -> Result<Self, InvalidBucketName> {
-        let string = std::env::var("ALIYUN_BUCKET").map_err(|_| InvalidBucketName { _priv: () })?;
+        let string = std::env::var("ALIYUN_BUCKET").map_err(|_| InvalidBucketName::new())?;
 
         string.parse()
     }
@@ -787,11 +790,11 @@ impl<'a> BucketName {
     /// ```
     pub fn from_static(bucket: &'a str) -> Result<Self, InvalidBucketName> {
         if bucket.is_empty() || bucket.starts_with('-') || bucket.ends_with('-') {
-            return Err(InvalidBucketName { _priv: () });
+            return Err(InvalidBucketName::new());
         }
 
         if !bucket.chars().all(valid_oss_character) {
-            return Err(InvalidBucketName { _priv: () });
+            return Err(InvalidBucketName::new());
         }
 
         Ok(Self(Cow::Owned(bucket.to_owned())))
@@ -842,7 +845,13 @@ impl PartialEq<BucketName> for &str {
 #[derive(PartialEq)]
 #[non_exhaustive]
 pub struct InvalidBucketName {
-    pub(crate) _priv: (),
+    _priv: (),
+}
+
+impl InvalidBucketName {
+    pub(crate) fn new() -> InvalidBucketName {
+        InvalidBucketName { _priv: () }
+    }
 }
 
 impl Debug for InvalidBucketName {

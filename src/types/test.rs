@@ -246,8 +246,8 @@ mod test_endpoint {
 
 #[test]
 fn invalid_endpoint() {
-    let err1 = InvalidEndPoint { _priv: () };
-    let err2 = InvalidEndPoint { _priv: () };
+    let err1 = InvalidEndPoint::new();
+    let err2 = InvalidEndPoint::new();
 
     assert!(err1 == err2);
 }
@@ -257,8 +257,8 @@ fn bucket_name() {
     let name = unsafe { BucketName::from_static2("aaa") };
     assert_eq!(format!("{name}"), "aaa");
 
-    let invalid = InvalidBucketName { _priv: () };
-    let invalid2 = InvalidBucketName { _priv: () };
+    let invalid = InvalidBucketName::new();
+    let invalid2 = InvalidBucketName::new();
     assert!(invalid == invalid2);
 }
 

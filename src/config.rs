@@ -170,7 +170,7 @@ impl InvalidConfig {
     pub(crate) fn test_bucket() -> Self {
         Self {
             source: "bar".into(),
-            kind: InvalidConfigKind::BucketName(InvalidBucketName { _priv: () }),
+            kind: InvalidConfigKind::BucketName(InvalidBucketName::new()),
         }
     }
 }
@@ -820,7 +820,7 @@ mod tests {
 
     #[test]
     fn test_invalid_bucket_base() {
-        let error = InvalidEndPoint { _priv: () };
+        let error = InvalidEndPoint::new();
         let base_err = InvalidBucketBase {
             source: "abc".to_string(),
             kind: error.into(),
@@ -831,7 +831,7 @@ mod tests {
             "endpoint must not with `-` prefix or `-` suffix or `oss-` prefix"
         );
 
-        let error = InvalidBucketName { _priv: () };
+        let error = InvalidBucketName::new();
         let error2 = InvalidBucketBase {
             source: "abc".to_string(),
             kind: error.into(),

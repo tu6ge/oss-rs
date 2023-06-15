@@ -65,7 +65,7 @@ mod debug {
 
     #[test]
     fn test_endpoint() {
-        let err = Error::from(InvalidEndPoint { _priv: () });
+        let err = Error::from(InvalidEndPoint::new());
         assert_eq!(format!("{err}"), "invalid endpoint");
         assert_eq!(
             format!("{}", err.source().unwrap()),
@@ -73,7 +73,7 @@ mod debug {
         );
 
         fn bar() -> Error {
-            InvalidEndPoint { _priv: () }.into()
+            InvalidEndPoint::new().into()
         }
         assert_eq!(
             format!("{:?}", bar()),
@@ -83,7 +83,7 @@ mod debug {
 
     #[test]
     fn test_bucket_name() {
-        let err = Error::from(InvalidBucketName { _priv: () });
+        let err = Error::from(InvalidBucketName::new());
 
         assert_eq!(format!("{err}"), "invalid bucket name");
         assert_eq!(
@@ -92,7 +92,7 @@ mod debug {
       );
 
         fn bar() -> Error {
-            InvalidBucketName { _priv: () }.into()
+            InvalidBucketName::new().into()
         }
         assert_eq!(
             format!("{:?}", bar()),
@@ -122,13 +122,13 @@ mod debug {
 
     #[test]
     fn test_object_path() {
-        let err = Error::from(InvalidObjectPath { _priv: () });
+        let err = Error::from(InvalidObjectPath::new());
 
         assert_eq!(format!("{err}"), "invalid object path");
         assert_eq!(format!("{}", err.source().unwrap()), "invalid object path");
 
         fn bar() -> Error {
-            InvalidObjectPath { _priv: () }.into()
+            InvalidObjectPath::new().into()
         }
         assert_eq!(
             format!("{:?}", bar()),
@@ -138,7 +138,7 @@ mod debug {
 
     #[test]
     fn test_object_dir() {
-        let err = Error::from(InvalidObjectDir { _priv: () });
+        let err = Error::from(InvalidObjectDir::new());
 
         assert_eq!(format!("{err}"), "invalid object dir");
         assert_eq!(
@@ -147,7 +147,7 @@ mod debug {
         );
 
         fn bar() -> Error {
-            InvalidObjectDir { _priv: () }.into()
+            InvalidObjectDir::new().into()
         }
         assert_eq!(
             format!("{:?}", bar()),
