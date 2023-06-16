@@ -742,10 +742,7 @@ impl<T: PointerFamily> ObjectBuilder<T> {
                     NaiveDateTime::from_timestamp_opt(0, 0).unwrap(),
                     Utc,
                 ),
-                etag: String::default(),
-                _type: String::default(),
-                size: 0,
-                storage_class: StorageClass::default(),
+                ..Default::default()
             },
         }
     }
