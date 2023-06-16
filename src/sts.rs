@@ -27,7 +27,7 @@ use http::{header::InvalidHeaderValue, HeaderValue};
 use crate::{auth::AuthBuilder, client::Client, BucketName, EndPoint, KeyId, KeySecret};
 
 /// 给 Client 增加 STS 能力
-pub trait STS
+pub trait STS: private::Sealed
 where
     Self: Sized,
 {
@@ -45,6 +45,12 @@ where
         ST: TryInto<HeaderValue>,
         ST::Error: Into<InvalidHeaderValue>;
 }
+
+mod private {
+    pub trait Sealed {}
+}
+
+impl<M: Default + Clone> private::Sealed for Client<M> {}
 
 const SECURITY_TOKEN: &str = "x-oss-security-token";
 

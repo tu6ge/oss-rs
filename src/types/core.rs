@@ -343,10 +343,16 @@ impl PartialEq<Query> for Query {
 
 /// 为 Url 拼接 [`Query`] 数据
 /// [`Query`]: crate::types::Query
-pub trait SetOssQuery {
+pub trait SetOssQuery: private::Sealed {
     /// 给 Url 结构体增加 `set_search_query` 方法
     fn set_oss_query(&mut self, query: &Query);
 }
+
+mod private {
+    pub trait Sealed {}
+}
+
+impl private::Sealed for Url {}
 
 impl SetOssQuery for Url {
     /// 将查询参数拼接到 API 的 Url 上

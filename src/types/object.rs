@@ -227,10 +227,16 @@ impl Debug for InvalidObjectPath {
 impl std::error::Error for InvalidObjectPath {}
 
 /// 将 object 的路径拼接到 Url 上去
-pub trait SetObjectPath {
+pub trait SetObjectPath: private::Sealed {
     /// 为 Url 添加方法
     fn set_object_path(&mut self, path: &ObjectPathInner);
 }
+
+mod private {
+    pub trait Sealed {}
+}
+
+impl private::Sealed for Url {}
 
 impl SetObjectPath for Url {
     fn set_object_path(&mut self, path: &ObjectPathInner) {
