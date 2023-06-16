@@ -210,6 +210,8 @@ impl EndPoint {
         kind: EndPointKind::CnHangzhou,
         is_internal: false,
     };
+    /// 杭州
+    pub const HANGZHOU: Self = Self::CN_HANGZHOU;
 
     /// 上海
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_SHANGHAI")]
@@ -222,6 +224,8 @@ impl EndPoint {
         kind: EndPointKind::CnShanghai,
         is_internal: false,
     };
+    /// 上海
+    pub const SHANGHAI: Self = Self::CN_SHANGHAI;
 
     /// 青岛
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_QINGDAO")]
@@ -234,6 +238,8 @@ impl EndPoint {
         kind: EndPointKind::CnQingdao,
         is_internal: false,
     };
+    /// 青岛
+    pub const QINGDAO: Self = Self::CN_QINGDAO;
 
     /// 北京
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_BEIJING")]
@@ -246,6 +252,8 @@ impl EndPoint {
         kind: EndPointKind::CnBeijing,
         is_internal: false,
     };
+    /// 北京
+    pub const BEIJING: Self = Self::CN_BEIJING;
 
     /// 张家口
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_ZHANGJIAKOU")]
@@ -254,7 +262,9 @@ impl EndPoint {
         is_internal: false,
     };
     /// 张家口
-    pub const CN_ZHANGJIAKOU: Self = Self {
+    pub const CN_ZHANGJIAKOU: Self = Self::ZHANGJIAKOU;
+    /// 张家口
+    pub const ZHANGJIAKOU: Self = Self {
         kind: EndPointKind::CnZhangjiakou,
         is_internal: false,
     };
@@ -270,6 +280,8 @@ impl EndPoint {
         kind: EndPointKind::CnHongkong,
         is_internal: false,
     };
+    /// 香港
+    pub const HONGKONG: Self = Self::CN_HONGKONG;
 
     /// 深圳
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_SHENZHEN")]
@@ -282,6 +294,8 @@ impl EndPoint {
         kind: EndPointKind::CnShenzhen,
         is_internal: false,
     };
+    /// 深圳
+    pub const SHENZHEN: Self = Self::CN_SHENZHEN;
 
     /// UsWest1
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::US_WEST_1")]
