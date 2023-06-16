@@ -488,7 +488,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error + 'static> ObjectList<T, 
 }
 
 /// 存放单个对象的结构体
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 #[non_exhaustive]
 pub struct Object<PointerSel: PointerFamily = ArcPointer> {
     pub(crate) base: ObjectBase<PointerSel>,
@@ -1491,13 +1491,13 @@ pub enum ObjectAcl {
 }
 
 /// 存储类型
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub struct StorageClass {
     kind: StorageClassKind,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 enum StorageClassKind {
     /// Standard 默认

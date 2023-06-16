@@ -157,7 +157,7 @@ impl From<InnerItemError> for OssErrorKind {
 /// 当服务器返回的状态码不在 200<=x 且 x<300 范围时，则会返回此错误
 ///
 /// 如果解析 xml 格式错误，则会返回默认值，默认值的 status = 200
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Error, PartialEq, Eq, Hash)]
 pub struct OssService {
     pub(crate) code: String,
     status: StatusCode,

@@ -34,7 +34,7 @@ use std::sync::Arc;
 mod test;
 
 /// # 存储 Bucket 列表的 struct
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 #[non_exhaustive]
 pub struct ListBuckets<
     PointerSel: PointerFamily = ArcPointer,
@@ -152,7 +152,7 @@ impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
 }
 
 /// 内置的存放单个 bucket 的类型
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 #[non_exhaustive]
 pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
     pub(crate) base: BucketBase,

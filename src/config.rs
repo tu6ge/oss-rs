@@ -23,7 +23,7 @@ const HTTPS: &str = "https://";
 const OSS_HYPHEN: &str = "oss-";
 
 /// OSS 配置信息
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
 pub struct Config {
     key: KeyId,
     secret: KeySecret,
@@ -210,7 +210,7 @@ enum InvalidConfigKind {
 
 /// # Bucket 元信息
 /// 包含所属 bucket 名以及所属的 endpoint
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct BucketBase {
     endpoint: EndPoint,
     name: BucketName,

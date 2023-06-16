@@ -22,7 +22,7 @@ use std::sync::Arc;
 
 /// # Object 元信息
 /// 包含所属 bucket endpoint 以及文件路径
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct ObjectBase<PointerSel: PointerFamily = ArcPointer> {
     pub(super) bucket: PointerSel::Bucket,
     pub(crate) path: ObjectPath,

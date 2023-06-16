@@ -53,7 +53,7 @@ const COM: &str = "com";
 const ALIYUNCS: &str = "aliyuncs";
 
 /// 阿里云 OSS 的签名 key
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
 pub struct InnerKeyId<'a>(Cow<'a, str>);
 
 /// 静态作用域的 InnerKeyId
@@ -105,7 +105,7 @@ impl<'a> InnerKeyId<'a> {
 //===================================================================================================
 
 /// 阿里云 OSS 的签名 secret
-#[derive(Clone, PartialEq, Eq, Default)]
+#[derive(Clone, PartialEq, Eq, Default, Hash)]
 pub struct InnerKeySecret<'a>(Cow<'a, str>);
 
 /// 静态作用域的 InnerKeySecret
@@ -188,7 +188,7 @@ impl<'a> InnerKeySecret<'a> {
 
 /// # OSS 的可用区
 /// [aliyun docs](https://help.aliyun.com/document_detail/31837.htm)
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Ord, PartialOrd)]
 #[non_exhaustive]
 pub struct EndPoint {
     pub(crate) kind: EndPointKind,
@@ -335,7 +335,7 @@ impl EndPoint {
 }
 
 /// # OSS 的可用区种类 enum
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash, Ord, PartialOrd)]
 #[non_exhaustive]
 pub(crate) enum EndPointKind {
     /// 杭州可用区
@@ -697,7 +697,7 @@ impl PartialEq<Url> for EndPoint {
 //===================================================================================================
 
 /// 存储 bucket 名字的类型
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BucketName(Cow<'static, str>);
 
 impl AsRef<str> for BucketName {
@@ -902,7 +902,7 @@ impl fmt::Display for InvalidBucketName {
 //===================================================================================================
 
 /// aliyun OSS 的配置 ContentMd5
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
 pub struct InnerContentMd5<'a>(Cow<'a, str>);
 /// 静态作用域的 InnerContentMd5
 pub type ContentMd5 = InnerContentMd5<'static>;
@@ -1017,7 +1017,7 @@ impl ContentType {
 //===================================================================================================
 
 /// 用于计算签名的 Date
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
 pub struct InnerDate<'a>(Cow<'a, str>);
 /// 静态作用域的 InnerDate
 pub type Date = InnerDate<'static>;
@@ -1061,7 +1061,7 @@ impl<'a> InnerDate<'a> {
 //===================================================================================================
 
 /// 计算方式，参考 [aliyun 文档](https://help.aliyun.com/document_detail/31951.htm)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct InnerCanonicalizedResource<'a>(Cow<'a, str>);
 /// 静态作用域的 InnerCanonicalizedResource
 pub type CanonicalizedResource = InnerCanonicalizedResource<'static>;

@@ -24,16 +24,22 @@ use reqwest::{Client, Request, Response};
 #[cfg(test)]
 pub(crate) mod test;
 
-pub trait PointerFamily
+pub trait PointerFamily: private::Sealed
 where
-    Self::Bucket: std::fmt::Debug + Clone + Default,
+    Self::Bucket: std::fmt::Debug + Clone + Default + std::hash::Hash,
 {
     type PointerType;
     type Bucket;
 }
 
+mod private {
+    pub trait Sealed {}
+}
+
 #[derive(Default, Debug)]
 pub struct ArcPointer;
+
+impl private::Sealed for ArcPointer {}
 
 impl PointerFamily for ArcPointer {
     type PointerType = Arc<AliClient<ClientWithMiddleware>>;
@@ -43,6 +49,9 @@ impl PointerFamily for ArcPointer {
 #[cfg(feature = "blocking")]
 #[derive(Default, Debug)]
 pub struct RcPointer;
+
+#[cfg(feature = "blocking")]
+impl private::Sealed for RcPointer {}
 
 #[cfg(feature = "blocking")]
 impl PointerFamily for RcPointer {
