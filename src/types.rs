@@ -606,7 +606,7 @@ impl<'a> EndPoint {
 }
 
 /// 无效的可用区
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 #[non_exhaustive]
 pub struct InvalidEndPoint {
     _priv: (),
@@ -842,7 +842,7 @@ impl PartialEq<BucketName> for &str {
 }
 
 /// 无效的 bucket 名称
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 #[non_exhaustive]
 pub struct InvalidBucketName {
     _priv: (),

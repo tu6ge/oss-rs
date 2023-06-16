@@ -266,32 +266,28 @@ impl FromStr for BucketBase {
             }
         }
         if !domain.chars().all(valid_character) {
-            return Err(InvalidBucketBase {
-                source: domain.to_string(),
-                kind: InvalidBucketBaseKind::Tacitly,
-            });
+            return Err(InvalidBucketBase::new_with_str(
+                domain,
+                InvalidBucketBaseKind::Tacitly,
+            ));
         }
 
-        let (bucket, endpoint) = domain.split_once('.').ok_or(InvalidBucketBase {
-            source: domain.to_string(),
-            kind: InvalidBucketBaseKind::Tacitly,
-        })?;
+        let (bucket, endpoint) = domain
+            .split_once('.')
+            .ok_or(InvalidBucketBase::new_with_str(
+                domain,
+                InvalidBucketBaseKind::Tacitly,
+            ))?;
         let endpoint = match endpoint.find('.') {
             Some(s) => &endpoint[0..s],
             None => endpoint,
         };
 
         Ok(Self {
-            name: BucketName::from_static(bucket).map_err(|e| InvalidBucketBase {
-                source: bucket.to_string(),
-                kind: InvalidBucketBaseKind::from(e),
-            })?,
-            endpoint: EndPoint::new(endpoint.trim_start_matches(OSS_HYPHEN)).map_err(|e| {
-                InvalidBucketBase {
-                    source: endpoint.to_string(),
-                    kind: InvalidBucketBaseKind::from(e),
-                }
-            })?,
+            name: BucketName::from_static(bucket)
+                .map_err(|e| InvalidBucketBase::from_kind(bucket, e))?,
+            endpoint: EndPoint::new(endpoint.trim_start_matches(OSS_HYPHEN))
+                .map_err(|e| InvalidBucketBase::from_kind(endpoint, e))?,
         })
     }
 }
@@ -304,11 +300,30 @@ impl TryFrom<&str> for BucketBase {
 }
 
 /// Bucket 元信息的错误集
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct InvalidBucketBase {
-    pub(crate) source: String,
-    pub(crate) kind: InvalidBucketBaseKind,
+    source: String,
+    kind: InvalidBucketBaseKind,
+}
+
+impl InvalidBucketBase {
+    pub(crate) fn new(source: String, kind: InvalidBucketBaseKind) -> Self {
+        Self { source, kind }
+    }
+
+    pub(crate) fn new_with_str(source: &str, kind: InvalidBucketBaseKind) -> Self {
+        Self::new(source.to_string(), kind)
+    }
+
+    pub(crate) fn from_kind<K: Into<InvalidBucketBaseKind>>(source: &str, kind: K) -> Self {
+        Self::new(source.to_string(), kind.into())
+    }
+
+    /// 原始字符串
+    pub fn source_string(self) -> String {
+        self.source
+    }
 }
 
 impl Display for InvalidBucketBase {
@@ -328,7 +343,7 @@ impl Error for InvalidBucketBase {
 }
 
 /// Bucket 元信息的错误集
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 #[non_exhaustive]
 pub(crate) enum InvalidBucketBaseKind {
     #[doc(hidden)]

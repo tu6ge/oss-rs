@@ -308,7 +308,7 @@ pub mod invalid {
     impl From<InvalidBucketBase> for InvalidObjectBase {
         fn from(value: InvalidBucketBase) -> Self {
             Self {
-                source: value.source.to_owned(),
+                source: value.clone().source_string(),
                 kind: InvalidObjectBaseKind::Bucket(value),
             }
         }
