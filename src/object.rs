@@ -163,8 +163,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error> fmt::Debug for ObjectLis
     }
 }
 
-#[oss_gen_rc]
-impl<Item: RefineObject<E>, E: Error> Default for ObjectList<ArcPointer, Item, E> {
+impl<T: PointerFamily, Item: RefineObject<E>, E: Error> Default for ObjectList<T, Item, E> {
     fn default() -> Self {
         Self {
             bucket: BucketBase::default(),
@@ -174,7 +173,7 @@ impl<Item: RefineObject<E>, E: Error> Default for ObjectList<ArcPointer, Item, E
             object_list: Vec::new(),
             next_continuation_token: String::default(),
             common_prefixes: CommonPrefixes::default(),
-            client: Arc::new(ClientArc::default()),
+            client: T::PointerType::default(),
             search_query: Query::default(),
             ph_err: PhantomData,
         }

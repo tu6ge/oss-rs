@@ -27,6 +27,7 @@ pub(crate) mod test;
 pub trait PointerFamily: private::Sealed
 where
     Self::Bucket: std::fmt::Debug + Clone + Default + std::hash::Hash,
+    Self::PointerType: Default,
 {
     type PointerType;
     type Bucket;

@@ -95,8 +95,7 @@ impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
     }
 }
 
-#[oss_gen_rc]
-impl<Item: RefineBucket<E>, E: Error> Default for ListBuckets<ArcPointer, Item, E> {
+impl<T: PointerFamily, Item: RefineBucket<E>, E: Error> Default for ListBuckets<T, Item, E> {
     fn default() -> Self {
         Self {
             prefix: Default::default(),
@@ -107,7 +106,7 @@ impl<Item: RefineBucket<E>, E: Error> Default for ListBuckets<ArcPointer, Item, 
             id: Default::default(),
             display_name: Default::default(),
             buckets: Default::default(),
-            client: Default::default(),
+            client: T::PointerType::default(),
             ph_err: Default::default(),
         }
     }
@@ -186,8 +185,7 @@ impl<T: PointerFamily> fmt::Debug for Bucket<T> {
     }
 }
 
-#[oss_gen_rc]
-impl Default for Bucket<ArcPointer> {
+impl<T: PointerFamily> Default for Bucket<T> {
     fn default() -> Self {
         Self {
             base: BucketBase::default(),
@@ -198,7 +196,7 @@ impl Default for Bucket<ArcPointer> {
             ),
             //extranet_endpoint: String::default(),
             storage_class: StorageClass::default(),
-            client: Arc::default(),
+            client: T::PointerType::default(),
         }
     }
 }
