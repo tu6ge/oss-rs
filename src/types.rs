@@ -575,6 +575,11 @@ impl<'a> EndPoint {
         self.is_internal = is_internal;
     }
 
+    /// 返回当前的 endpoint 是否为内网
+    pub fn is_internal(&self) -> bool {
+        self.is_internal
+    }
+
     /// 转化成 Url
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;

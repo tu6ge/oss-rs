@@ -242,6 +242,15 @@ mod test_endpoint {
         let url = Url::parse("https://-cn-qingdao.aliyuncs.com/").unwrap();
         assert!(EndPoint::try_from(url).is_err());
     }
+
+    #[test]
+    fn internal() {
+        let mut endpoint = EndPoint::CN_BEIJING;
+
+        assert!(!endpoint.is_internal());
+        endpoint.set_internal(true);
+        assert!(endpoint.is_internal());
+    }
 }
 
 #[test]

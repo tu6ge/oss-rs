@@ -780,35 +780,19 @@ mod tests {
 
         set_var("ALIYUN_OSS_INTERNAL", "0");
         let base = BucketBase::from_env().unwrap();
-        let url = base.to_url();
-        assert_eq!(
-            url,
-            Url::parse("https://foo1.oss-cn-qingdao.aliyuncs.com").unwrap()
-        );
+        assert!(!base.endpoint().is_internal());
 
         set_var("ALIYUN_OSS_INTERNAL", "1");
         let base = BucketBase::from_env().unwrap();
-        let url = base.to_url();
-        assert_eq!(
-            url,
-            Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
-        );
+        assert!(base.endpoint().is_internal());
 
         set_var("ALIYUN_OSS_INTERNAL", "yes");
         let base = BucketBase::from_env().unwrap();
-        let url = base.to_url();
-        assert_eq!(
-            url,
-            Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
-        );
+        assert!(base.endpoint().is_internal());
 
         set_var("ALIYUN_OSS_INTERNAL", "Y");
         let base = BucketBase::from_env().unwrap();
-        let url = base.to_url();
-        assert_eq!(
-            url,
-            Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
-        );
+        assert!(base.endpoint().is_internal());
 
         remove_var("ALIYUN_OSS_INTERNAL");
         remove_var("ALIYUN_ENDPOINT");
