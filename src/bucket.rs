@@ -85,16 +85,6 @@ impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: Error> fmt::D
     }
 }
 
-#[oss_gen_rc]
-impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
-    fn from_client(client: Arc<ClientArc>) -> Self {
-        Self {
-            client,
-            ..Default::default()
-        }
-    }
-}
-
 impl<T: PointerFamily, Item: RefineBucket<E>, E: Error> Default for ListBuckets<T, Item, E> {
     fn default() -> Self {
         Self {
@@ -114,6 +104,12 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: Error> Default for ListBuckets<
 
 #[oss_gen_rc]
 impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
+    fn from_client(client: Arc<ClientArc>) -> Self {
+        Self {
+            client,
+            ..Default::default()
+        }
+    }
     /// 获取 prefix
     pub fn prefix_string(&self) -> &String {
         &self.prefix
