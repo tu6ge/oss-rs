@@ -105,7 +105,7 @@ impl<'a> InnerKeyId<'a> {
 //===================================================================================================
 
 /// 阿里云 OSS 的签名 secret
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, PartialEq, Eq, Default)]
 pub struct InnerKeySecret<'a>(Cow<'a, str>);
 
 /// 静态作用域的 InnerKeySecret
@@ -114,6 +114,12 @@ pub type KeySecret = InnerKeySecret<'static>;
 impl Display for InnerKeySecret<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "******secret******")
+    }
+}
+
+impl Debug for InnerKeySecret<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("KeySecret").finish()
     }
 }
 

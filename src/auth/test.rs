@@ -506,7 +506,10 @@ mod sign_string_struct {
 fn test_sign_string_debug() {
     let sign = SignString::new("abc", "key".into(), "secret".into());
 
-    assert_eq!(format!("{sign:?}"), "SignString { data: \"abc\", key: InnerKeyId(\"key\"), secret: InnerKeySecret(\"secret\") }");
+    assert_eq!(
+        format!("{sign:?}"),
+        "SignString { data: \"abc\", key: InnerKeyId(\"key\"), secret: KeySecret }"
+    );
 }
 
 #[test]

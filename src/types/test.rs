@@ -31,6 +31,8 @@ fn secret() {
     let key2 = KeySecret::from_static("bbb");
     assert_eq!(format!("{key2}"), "******secret******");
     assert_eq!(key2.as_str(), "bbb");
+
+    assert_eq!(format!("{key2:?}"), "KeySecret");
 }
 
 #[test]
