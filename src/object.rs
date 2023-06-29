@@ -81,7 +81,7 @@
 use crate::bucket::Bucket;
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
-use crate::builder::{ArcPointer, BuilderError, PointerFamily};
+use crate::builder::{ArcPointer, BuilderError, PointerFamily, RequestBuilder};
 use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
@@ -98,18 +98,21 @@ use crate::types::{
     },
     CanonicalizedResource, Query, QueryKey, QueryValue, CONTINUATION_TOKEN,
 };
-use crate::{BucketName, Client, EndPoint, KeyId, KeySecret};
+use crate::{BucketName, Client, EndPoint, Error as OssError, KeyId, KeySecret};
 use async_stream::try_stream;
 use chrono::{DateTime, NaiveDateTime, Utc};
+use futures::FutureExt;
 use futures_core::stream::Stream;
 use http::Method;
 use oss_derive::oss_gen_rc;
+use pin_project::pin_project;
 use url::Url;
 
 use std::error::Error;
 use std::fmt::{self, Display};
 use std::marker::PhantomData;
 use std::num::ParseIntError;
+use std::pin::Pin;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::sync::Arc;
@@ -121,24 +124,44 @@ mod test;
 /// # 存放对象列表的结构体
 /// before name is `ObjectList`
 /// TODO impl core::ops::Index
-#[derive(Clone)]
 #[non_exhaustive]
+#[pin_project]
 pub struct ObjectList<
     P: PointerFamily = ArcPointer,
     Item: RefineObject<E> = Object<P>,
     E: Error + 'static = BuildInItemError,
 > {
+    #[pin]
     pub(crate) bucket: BucketBase,
     prefix: Option<ObjectDir<'static>>,
     max_keys: u32,
     key_count: u64,
     /// 存放单个文件对象的 Vec 集合
     object_list: Vec<Item>,
+    #[pin]
     next_continuation_token: String,
     common_prefixes: CommonPrefixes,
     client: P::PointerType,
+    #[pin]
     search_query: Query,
     ph_err: PhantomData<E>,
+}
+
+impl Clone for ObjectList<ArcPointer, Object<ArcPointer>, BuildInItemError> {
+    fn clone(&self) -> Self {
+        Self {
+            bucket: self.bucket.clone(),
+            prefix: self.prefix.clone(),
+            max_keys: self.max_keys,
+            key_count: self.key_count,
+            object_list: self.object_list.clone(),
+            next_continuation_token: self.next_continuation_token.clone(),
+            common_prefixes: self.common_prefixes.clone(),
+            client: self.client.clone(),
+            search_query: self.search_query.clone(),
+            ph_err: PhantomData,
+        }
+    }
 }
 
 /// sync ObjectList alias
@@ -1362,60 +1385,79 @@ impl Iterator for ObjectList<RcPointer> {
     }
 }
 
-// use std::task::Poll::{self, Ready};
+use std::task::Poll::{self, Ready};
 
-// impl Stream for ObjectList<ArcPointer> {
-//     type Item = ObjectList<ArcPointer>;
+impl Stream for ObjectList<ArcPointer> {
+    type Item = Vec<Object<ArcPointer>>;
 
-//     fn poll_next(
-//         self: std::pin::Pin<&mut Self>,
-//         cx: &mut std::task::Context<'_>,
-//     ) -> Poll<Option<Self::Item>> {
-//         match self.next_query() {
-//             Some(query) => {
-//                 let mut url = self.bucket.to_url();
-//                 url.set_search_query(&query);
+    fn poll_next(
+        self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        let origin = self.clone();
+        let this = self.project();
+        if this.next_continuation_token.is_empty() {
+            return Ready(None);
+        }
 
-//                 let canonicalized = CanonicalizedResource::from_bucket_query(&self.bucket, &query);
+        let query = {
+            let mut search_query = unsafe { this.search_query.get_unchecked_mut().clone() };
+            search_query.insert(CONTINUATION_TOKEN, unsafe {
+                this.next_continuation_token.get_unchecked_mut().clone()
+            });
+            search_query
+        };
 
-//                 let builder = self.builder(Method::GET, url, canonicalized);
-//                 match builder {
-//                     Err(err) => Ready(None),
-//                     Ok(builder) => {
-//                         let waker = cx.waker().clone();
+        let mut url = this.bucket.to_url();
+        url.set_oss_query(&query);
 
-//                         std::thread::spawn(move || {
-//                             let response = builder.send_adjust_error();
+        // dbg!(query.clone());
+        // dbg!(url.clone());
 
-//                             let response = futures::executor::block_on(response);
-//                             let text = response.unwrap().text();
-//                             let text = futures::executor::block_on(text);
+        let base = this.bucket.as_ref();
+        let bucket_name = base.get_name();
 
-//                             let text = text.unwrap();
+        let canonicalized = CanonicalizedResource::from_bucket_query2(bucket_name, &query);
 
-//                             let bucket_arc = Arc::new(self.bucket);
+        let builder = origin.builder(Method::GET, url, canonicalized);
+        match builder {
+            Err(..) => Ready(None),
+            Ok(builder) => {
+                //let waker = cx.waker().clone();
+                let bucket_arc = Arc::new(unsafe { this.bucket.get_unchecked_mut().clone() });
 
-//                             let init_object = || {
-//                                 let object = Object::<ArcPointer>::default();
-//                                 object.base.set_bucket(bucket_arc.clone());
-//                                 object
-//                             };
+                let res = get_list(builder, bucket_arc);
 
-//                             self.decode(&text, init_object).unwrap();
+                let mut pin = Box::pin(res);
 
-//                             self.set_search_query(query);
+                let list = pin.poll_unpin(cx);
 
-//                             waker.wake();
-//                         });
+                list.map(|v| {
+                    v.map(|v| if v.is_empty() { None } else { Some(v) })
+                        .ok()
+                        .flatten()
+                })
+            }
+        }
+    }
+}
 
-//                         Poll::Pending
-//                     }
-//                 }
-//             }
-//             None => Ready(None),
-//         }
-//     }
-// }
+async fn get_list(
+    builder: RequestBuilder,
+    bucket_arc: Arc<BucketBase>,
+) -> Result<Vec<Object<ArcPointer>>, OssError> {
+    let response = builder.send_adjust_error().await?;
+
+    let text = response.text().await?;
+
+    let init_object = || {
+        let mut object = Object::<ArcPointer>::default();
+        object.base.set_bucket(bucket_arc.clone());
+        object
+    };
+
+    Objects::decode_list(&text, init_object).map_err(Into::into)
+}
 
 #[oss_gen_rc]
 impl PartialEq<Object<ArcPointer>> for Object<ArcPointer> {

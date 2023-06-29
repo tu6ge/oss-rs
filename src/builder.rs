@@ -24,7 +24,7 @@ use reqwest::{Client, Request, Response};
 #[cfg(test)]
 pub(crate) mod test;
 
-pub trait PointerFamily: private::Sealed
+pub trait PointerFamily: private::Sealed + Clone
 where
     Self::Bucket: std::fmt::Debug + Clone + Default + std::hash::Hash,
     Self::PointerType: Default,
@@ -37,7 +37,7 @@ mod private {
     pub trait Sealed {}
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct ArcPointer;
 
 impl private::Sealed for ArcPointer {}

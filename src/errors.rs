@@ -40,6 +40,7 @@ impl std::error::Error for OssError {
         use OssErrorKind::*;
         match &self.kind {
             Io(e) => Some(e),
+            Reqwest(e) => Some(e),
             #[cfg(test)]
             Dotenv(e) => Some(e),
             Builder(e) => Some(e),
@@ -73,6 +74,9 @@ impl<T: Into<OssErrorKind>> From<T> for OssError {
 enum OssErrorKind {
     #[error("io error")]
     Io(#[from] io::Error),
+
+    #[error("reqwest error")]
+    Reqwest(#[from] reqwest::Error),
 
     #[doc(hidden)]
     #[error("dotenv error")]

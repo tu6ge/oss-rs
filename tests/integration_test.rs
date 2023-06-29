@@ -75,13 +75,24 @@ mod test_async {
 
     #[tokio::test]
     async fn test_get_object_list() {
+        use futures::StreamExt;
         dotenv().ok();
 
         let client = Client::from_env().unwrap();
 
-        let object_list = client.get_object_list([]).await;
+        let query = [("max-keys".into(), "5".into())];
 
-        assert_matches!(object_list, Ok(_));
+        let object_list = client.get_object_list(query).await;
+
+        //assert_matches!(object_list, Ok(_));
+
+        let mut object_list = object_list.unwrap();
+
+        println!("first {:?}", object_list.clone());
+
+        let second = object_list.next().await;
+
+        println!("second {:?}", second.unwrap());
     }
 
     #[cfg(feature = "put_file")]

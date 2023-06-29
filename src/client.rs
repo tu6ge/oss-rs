@@ -45,7 +45,7 @@ impl<M: Default> Clone for Client<M> {
             client_middleware: M::default(),
             endpoint: self.endpoint.clone(),
             bucket: self.bucket.clone(),
-            timeout: self.timeout.clone(),
+            timeout: self.timeout,
         }
     }
 }
@@ -182,10 +182,10 @@ impl<M> Client<M> {
     }
 
     pub(crate) fn get_key(&self) -> &KeyId {
-        &self.auth_builder.get_key()
+        self.auth_builder.get_key()
     }
     pub(crate) fn get_secret(&self) -> &KeySecret {
-        &self.auth_builder.get_secret()
+        self.auth_builder.get_secret()
     }
 
     pub(crate) fn get_endpoint(&self) -> &EndPoint {

@@ -332,6 +332,39 @@ where
 
         Ok(())
     }
+
+    fn decode_list<F>(xml: &str, mut init_object: F) -> Result<Vec<T>, InnerListError>
+    where
+        F: FnMut() -> T,
+    {
+        let mut result = Vec::new();
+        let mut reader = Reader::from_str(xml);
+        reader.trim_text(true);
+        let mut buf = Vec::with_capacity(xml.len());
+
+        let list = loop {
+            match reader.read_event_into(&mut buf) {
+                Ok(Event::Start(e)) => {
+                    if let CONTENTS = e.name().as_ref() {
+                        // <Contents></Contents> 标签内部的数据对应单个 object 信息
+                        let mut object = init_object();
+                        object.decode(&reader.read_text(e.to_end().name())?)?;
+                        result.push(object);
+                    }
+                }
+                Ok(Event::Eof) => {
+                    break result;
+                } // exits the loop when reaching end of file
+                Err(e) => {
+                    return Err(InnerListError::from(e));
+                }
+                _ => (), // There are several other `Event`s we do not consider here
+            }
+            buf.clear();
+        };
+
+        Ok(list)
+    }
 }
 
 /// 将一个 bucket 的数据写入到 rust 类型
