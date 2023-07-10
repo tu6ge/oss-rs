@@ -149,6 +149,21 @@ pub type Objects<Item = Object<ArcPointer>, Error = BuildInItemError> =
 pub type ObjectsBlocking<Item = Object<RcPointer>, Error = BuildInItemError> =
     ObjectList<RcPointer, Item, Error>;
 
+/// 存放单个对象的结构体
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub struct Object<PointerSel: PointerFamily = ArcPointer> {
+    pub(crate) base: ObjectBase<PointerSel>,
+    last_modified: DateTime<Utc>,
+    etag: String,
+    _type: String,
+    size: u64,
+    storage_class: StorageClass,
+}
+
+/// 异步的 Object struct
+pub type ObjectArc = Object<ArcPointer>;
+
 impl<T: PointerFamily, Item: RefineObject<E>, E: Error> fmt::Debug for ObjectList<T, Item, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ObjectList")
@@ -486,21 +501,6 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error + 'static> ObjectList<T, 
         self.object_list.is_empty()
     }
 }
-
-/// 存放单个对象的结构体
-#[derive(Clone, Debug)]
-#[non_exhaustive]
-pub struct Object<PointerSel: PointerFamily = ArcPointer> {
-    pub(crate) base: ObjectBase<PointerSel>,
-    last_modified: DateTime<Utc>,
-    etag: String,
-    _type: String,
-    size: u64,
-    storage_class: StorageClass,
-}
-
-/// 异步的 Object struct
-pub type ObjectArc = Object<ArcPointer>;
 
 impl<T: PointerFamily> Default for Object<T> {
     fn default() -> Self {
