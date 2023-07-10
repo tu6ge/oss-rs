@@ -106,14 +106,17 @@ use http::Method;
 use oss_derive::oss_gen_rc;
 use url::Url;
 
-use std::error::Error;
-use std::fmt::{self, Display};
-use std::marker::PhantomData;
-use std::num::ParseIntError;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
-use std::sync::Arc;
-use std::vec::IntoIter;
+use std::{
+    error::Error,
+    fmt::{self, Display},
+    marker::PhantomData,
+    num::ParseIntError,
+    slice::{Iter, IterMut},
+    sync::Arc,
+    vec::IntoIter,
+};
 
 #[cfg(test)]
 mod test;
@@ -306,9 +309,24 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error> ObjectList<T, Item, E> {
         }
     }
 
-    /// 将 object 列表转化为迭代器
+    /// 将 object 列表转化实现了 `IntoIter` Trait的外部类型
     pub fn object_iter(self) -> IntoIter<Item> {
         self.object_list.into_iter()
+    }
+
+    /// 将 object 列表转化实现了 `IntoIter` Trait的外部类型
+    pub fn object_into_iter(self) -> IntoIter<Item> {
+        self.object_list.into_iter()
+    }
+
+    /// 返回 object 列表迭代器
+    pub fn object_iter2(&self) -> Iter<Item> {
+        self.object_list.iter()
+    }
+
+    /// 将 object 列表转化为迭代器的可变引用
+    pub fn object_iter_mut(&mut self) -> IterMut<Item> {
+        self.object_list.iter_mut()
     }
 }
 
