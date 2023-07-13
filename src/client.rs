@@ -29,11 +29,7 @@ use std::time::Duration;
 
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
-#[derive(Default, Clone)]
-pub struct Client<M = ClientWithMiddleware>
-where
-    M: Default + Clone,
-{
+pub struct Client<M = ClientWithMiddleware> {
     auth_builder: AuthBuilder,
     client_middleware: M,
     pub(crate) endpoint: EndPoint,
@@ -41,24 +37,48 @@ where
     timeout: Option<Duration>,
 }
 
-impl<M: Default + Clone> AsMut<Option<Duration>> for Client<M> {
+impl<M: Default> Default for Client<M> {
+    fn default() -> Self {
+        Self {
+            auth_builder: AuthBuilder::default(),
+            client_middleware: M::default(),
+            endpoint: EndPoint::default(),
+            bucket: BucketName::default(),
+            timeout: Option::default(),
+        }
+    }
+}
+
+impl<M: Clone> Clone for Client<M> {
+    fn clone(&self) -> Self {
+        Self {
+            auth_builder: self.auth_builder.clone(),
+            client_middleware: self.client_middleware.clone(),
+            endpoint: self.endpoint.clone(),
+            bucket: self.bucket.clone(),
+            timeout: self.timeout.clone(),
+        }
+    }
+}
+
+impl<M> AsMut<Option<Duration>> for Client<M> {
     fn as_mut(&mut self) -> &mut Option<Duration> {
         &mut self.timeout
     }
 }
 
-impl<M: Default + Clone> AsRef<EndPoint> for Client<M> {
+impl<M> AsRef<EndPoint> for Client<M> {
     fn as_ref(&self) -> &EndPoint {
         &self.endpoint
     }
 }
-impl<M: Default + Clone> AsRef<BucketName> for Client<M> {
+impl<M> AsRef<BucketName> for Client<M> {
     fn as_ref(&self) -> &BucketName {
         &self.bucket
     }
 }
 
-impl<M: Default + Clone> Client<M> {
+impl<M: Default> Client<M> {
     /// 使用基本配置信息初始化 Client
     pub fn new(
         access_key_id: KeyId,
@@ -156,7 +176,9 @@ impl<M: Default + Clone> Client<M> {
             timeout: None,
         }
     }
+}
 
+impl<M> Client<M> {
     pub(crate) fn get_bucket_name(&self) -> &BucketName {
         &self.bucket
     }
