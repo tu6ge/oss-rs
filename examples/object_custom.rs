@@ -5,7 +5,6 @@ use aliyun_oss_client::{
     BucketName, Client,
 };
 use dotenv::dotenv;
-use thiserror::Error;
 
 #[derive(Debug)]
 enum MyObject<'a> {
@@ -13,30 +12,17 @@ enum MyObject<'a> {
     Dir(ObjectDir<'a>),
 }
 
-impl RefineObject<MyError> for MyObject<'_> {
-    fn set_key(&mut self, key: &str) -> Result<(), MyError> {
-        let res = key.parse::<ObjectPathInner>();
-
-        *self = match res {
+impl RefineObject<InvalidObjectDir> for MyObject<'_> {
+    fn set_key(&mut self, key: &str) -> Result<(), InvalidObjectDir> {
+        *self = match key.parse() {
             Ok(file) => MyObject::File(file),
             _ => MyObject::Dir(key.parse()?),
         };
-
         Ok(())
     }
 }
 
-#[derive(Debug, Error)]
-#[error("my error")]
-struct MyError(String);
-
-impl From<InvalidObjectDir> for MyError {
-    fn from(value: InvalidObjectDir) -> Self {
-        Self(value.to_string())
-    }
-}
-
-type MyList<'a> = Objects<MyObject<'a>, MyError>;
+type MyList<'a> = Objects<MyObject<'a>>;
 
 #[tokio::main]
 async fn main() {
@@ -49,13 +35,10 @@ async fn main() {
     let init_object = || MyObject::File(ObjectPathInner::default());
 
     let _ = client
-        .base_object_list(
-            "xxxxxx".parse::<BucketName>().unwrap(),
-            [],
-            &mut list,
-            init_object,
-        )
+        .base_object_list(BucketName::from_env().unwrap(), [], &mut list, init_object)
         .await;
+
+    let second = list.get_next_base(init_object).await.unwrap();
 
     println!("list: {:?}", list.to_vec());
 }

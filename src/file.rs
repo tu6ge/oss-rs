@@ -74,8 +74,6 @@
 //! ```
 //! [`File`]: crate::file::File
 
-use std::error::Error;
-
 use async_trait::async_trait;
 use http::{
     header::{HeaderName, CONTENT_LENGTH, CONTENT_TYPE},
@@ -87,7 +85,7 @@ use crate::{
     bucket::Bucket,
     builder::{ArcPointer, BuilderError, RequestBuilder},
     decode::RefineObject,
-    object::{Object, ObjectList},
+    object::{BuildInItemError, Object, ObjectList},
     types::object::{ObjectBase, ObjectPath},
     types::{CanonicalizedResource, ContentRange},
 };
@@ -209,9 +207,6 @@ pub trait GetStdWithPath<Path> {
 
 #[doc(hidden)]
 pub mod std_path_impl {
-
-    use std::error::Error;
-
     #[cfg(feature = "blocking")]
     use crate::builder::RcPointer;
     #[cfg(feature = "blocking")]
@@ -224,7 +219,7 @@ pub mod std_path_impl {
         client::ClientArc,
         config::{get_url_resource2 as get_url_resource, BucketBase},
         decode::RefineObject,
-        object::ObjectList,
+        object::{BuildInItemError, ObjectList},
         types::{object::ObjectBase, CanonicalizedResource},
         ObjectPath,
     };
@@ -362,8 +357,8 @@ pub mod std_path_impl {
     /// 文件路径可以是实现 [`GetStd`] 特征的类型
     ///
     /// [`GetStd`]: crate::file::GetStd
-    impl<Item: RefineObject<E> + Send + Sync, E: Error + Send + Sync, U: GetStd> GetStdWithPath<U>
-        for ObjectList<ArcPointer, Item, E>
+    impl<Item: RefineObject<BuildInItemError> + Send + Sync, U: GetStd> GetStdWithPath<U>
+        for ObjectList<ArcPointer, Item>
     {
         #[inline]
         fn get_std_with_path(&self, path: U) -> Option<(Url, CanonicalizedResource)> {
@@ -695,9 +690,7 @@ impl AlignBuilder for Bucket {
     }
 }
 
-impl<Item: RefineObject<E> + Send + Sync, E: Error + Send + Sync> AlignBuilder
-    for ObjectList<ArcPointer, Item, E>
-{
+impl<Item: Send + Sync> AlignBuilder for ObjectList<ArcPointer, Item> {
     #[inline]
     fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
         &self,

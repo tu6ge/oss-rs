@@ -1,7 +1,7 @@
 //! # Object 相关功能
 //! `ObjectList` 对应文件列表，`Object` 对应的是单个文件对象
 //!
-//! `ObjectList` 也可以支持自定义的类型存储单个文件对象，例如 [issue 12](https://github.com/tu6ge/oss-rs/issues/12) 提到的，有些时候，
+//! `ObjectList` 也可以支持自定义的类型存储单个文件对象，例如 [issue 12] 提到的，有些时候，
 //! Oss 接口不仅返回文件路径，还会返回目录路径，可以使用如下例子进行适配
 //!
 //! ```rust,no_run
@@ -19,41 +19,18 @@
 //!     Dir(ObjectDir<'static>),
 //! }
 //!
-//! impl RefineObject<MyError> for MyObject {
-//!     fn set_key(&mut self, key: &str) -> Result<(), MyError> {
-//!         let res = key.parse::<ObjectPath>();
-//!
-//!         *self = match res {
+//! impl RefineObject<InvalidObjectDir> for MyObject {
+//!     fn set_key(&mut self, key: &str) -> Result<(), InvalidObjectDir> {
+//!         *self = match key.parse() {
 //!             Ok(file) => MyObject::File(file),
-//!             _ => {
-//!                 let re = key.parse::<ObjectDir>();
-//!                 MyObject::Dir(re.unwrap())
-//!             }
+//!             _ => MyObject::Dir(key.parse()?),
 //!         };
 //!
 //!         Ok(())
 //!     }
 //! }
 //!
-//! #[derive(Debug)]
-//! struct MyError(String);
-//!
-//! use std::fmt::{self, Display};
-//!
-//! impl Display for MyError {
-//!     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//!         f.write_fmt(format_args!("{}", self.0))
-//!     }
-//! }
-//! impl std::error::Error for MyError {}
-//!
-//! impl From<InvalidObjectDir> for MyError {
-//!     fn from(value: InvalidObjectDir) -> Self {
-//!         Self(value.to_string())
-//!     }
-//! }
-//!
-//! type MyList = Objects<MyObject, MyError>;
+//! type MyList = Objects<MyObject>;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -66,17 +43,15 @@
 //!     let init_object = || MyObject::File(ObjectPath::default());
 //!
 //!     let _ = client
-//!         .base_object_list(
-//!             "xxxxxx".parse::<BucketName>().unwrap(),
-//!             [],
-//!             &mut list,
-//!             init_object,
-//!         )
+//!         .base_object_list(BucketName::from_env().unwrap(), [], &mut list, init_object)
 //!         .await;
+//!     // 第二页数据
+//!     let second = list.get_next_base(init_object).await;
 //!
 //!     println!("list: {:?}", list.to_vec());
 //! }
 //! ```
+//! [issue 12]: https://github.com/tu6ge/oss-rs/issues/12
 
 use crate::bucket::Bucket;
 #[cfg(feature = "blocking")]
@@ -106,14 +81,15 @@ use http::Method;
 use oss_derive::oss_gen_rc;
 use url::Url;
 
-use std::error::Error;
-use std::fmt::{self, Display};
-use std::marker::PhantomData;
-use std::num::ParseIntError;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
-use std::sync::Arc;
-use std::vec::IntoIter;
+use std::{
+    error::Error,
+    fmt::{self, Display},
+    num::ParseIntError,
+    sync::Arc,
+    vec::IntoIter,
+};
 
 #[cfg(test)]
 mod test;
@@ -123,11 +99,7 @@ mod test;
 /// TODO impl core::ops::Index
 #[derive(Clone)]
 #[non_exhaustive]
-pub struct ObjectList<
-    P: PointerFamily = ArcPointer,
-    Item: RefineObject<E> = Object<P>,
-    E: Error + 'static = BuildInItemError,
-> {
+pub struct ObjectList<P: PointerFamily = ArcPointer, Item = Object<P>> {
     pub(crate) bucket: BucketBase,
     prefix: Option<ObjectDir<'static>>,
     max_keys: u32,
@@ -138,18 +110,30 @@ pub struct ObjectList<
     common_prefixes: CommonPrefixes,
     client: P::PointerType,
     search_query: Query,
-    ph_err: PhantomData<E>,
 }
 
 /// sync ObjectList alias
-pub type Objects<Item = Object<ArcPointer>, Error = BuildInItemError> =
-    ObjectList<ArcPointer, Item, Error>;
+pub type Objects<Item = Object<ArcPointer>> = ObjectList<ArcPointer, Item>;
 /// blocking ObjectList alias
 #[cfg(feature = "blocking")]
-pub type ObjectsBlocking<Item = Object<RcPointer>, Error = BuildInItemError> =
-    ObjectList<RcPointer, Item, Error>;
+pub type ObjectsBlocking<Item = Object<RcPointer>> = ObjectList<RcPointer, Item>;
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: Error> fmt::Debug for ObjectList<T, Item, E> {
+/// 存放单个对象的结构体
+#[derive(Clone, Debug)]
+#[non_exhaustive]
+pub struct Object<PointerSel: PointerFamily = ArcPointer> {
+    pub(crate) base: ObjectBase<PointerSel>,
+    last_modified: DateTime<Utc>,
+    etag: String,
+    _type: String,
+    size: u64,
+    storage_class: StorageClass,
+}
+
+/// 异步的 Object struct
+pub type ObjectArc = Object<ArcPointer>;
+
+impl<T: PointerFamily, Item> fmt::Debug for ObjectList<T, Item> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ObjectList")
             .field("bucket", &self.bucket)
@@ -163,7 +147,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error> fmt::Debug for ObjectLis
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: Error> Default for ObjectList<T, Item, E> {
+impl<P: PointerFamily, Item> Default for ObjectList<P, Item> {
     fn default() -> Self {
         Self {
             bucket: BucketBase::default(),
@@ -173,42 +157,37 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error> Default for ObjectList<T
             object_list: Vec::new(),
             next_continuation_token: String::default(),
             common_prefixes: CommonPrefixes::default(),
-            client: T::PointerType::default(),
+            client: P::PointerType::default(),
             search_query: Query::default(),
-            ph_err: PhantomData,
         }
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: Error> AsMut<Query> for ObjectList<T, Item, E> {
+impl<T: PointerFamily, Item> AsMut<Query> for ObjectList<T, Item> {
     fn as_mut(&mut self) -> &mut Query {
         &mut self.search_query
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: Error> AsRef<BucketBase>
-    for ObjectList<T, Item, E>
-{
+impl<T: PointerFamily, Item> AsRef<BucketBase> for ObjectList<T, Item> {
     fn as_ref(&self) -> &BucketBase {
         &self.bucket
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: Error> AsRef<BucketName>
-    for ObjectList<T, Item, E>
-{
+impl<T: PointerFamily, Item> AsRef<BucketName> for ObjectList<T, Item> {
     fn as_ref(&self) -> &BucketName {
         self.bucket.as_ref()
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: Error> AsRef<EndPoint> for ObjectList<T, Item, E> {
+impl<T: PointerFamily, Item> AsRef<EndPoint> for ObjectList<T, Item> {
     fn as_ref(&self) -> &EndPoint {
         self.bucket.as_ref()
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: Error> ObjectList<T, Item, E> {
+impl<T: PointerFamily, Item> ObjectList<T, Item> {
     /// 文件列表的初始化方法
     #[allow(clippy::too_many_arguments)]
     pub fn new<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
@@ -231,7 +210,6 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error> ObjectList<T, Item, E> {
             common_prefixes: CommonPrefixes::default(),
             client,
             search_query: Query::from_iter(search_query),
-            ph_err: PhantomData,
         }
     }
 
@@ -297,7 +275,7 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error> ObjectList<T, Item, E> {
 }
 
 #[oss_gen_rc]
-impl<Item: RefineObject<E>, E: Error> ObjectList<ArcPointer, Item, E> {
+impl<Item> ObjectList<ArcPointer, Item> {
     /// 设置 Client
     pub(crate) fn set_client(&mut self, client: Arc<ClientArc>) {
         self.client = client;
@@ -395,11 +373,13 @@ impl ObjectList<ArcPointer> {
     }
 }
 
-impl<Item: RefineObject<E>, E: Error + 'static> ObjectList<ArcPointer, Item, E> {
+impl<Item> ObjectList<ArcPointer, Item> {
     /// 自定义 Item 时，获取下一页数据
-    pub async fn get_next_base<F>(&self, init_object: F) -> Result<Self, ExtractListError>
+    pub async fn get_next_base<F, E>(&self, init_object: F) -> Result<Self, ExtractListError>
     where
         F: FnMut() -> Item,
+        Item: RefineObject<E>,
+        E: Error + 'static,
     {
         match self.next_query() {
             None => Err(ExtractListError {
@@ -453,7 +433,7 @@ impl ObjectList<RcPointer> {
     }
 }
 
-impl<T: PointerFamily, Item: RefineObject<E>, E: Error + 'static> ObjectList<T, Item, E> {
+impl<T: PointerFamily, Item> ObjectList<T, Item> {
     /// 设置查询条件
     #[inline]
     pub fn set_search_query(&mut self, search_query: Query) {
@@ -485,21 +465,6 @@ impl<T: PointerFamily, Item: RefineObject<E>, E: Error + 'static> ObjectList<T, 
         self.object_list.is_empty()
     }
 }
-
-/// 存放单个对象的结构体
-#[derive(Clone, Debug, Hash)]
-#[non_exhaustive]
-pub struct Object<PointerSel: PointerFamily = ArcPointer> {
-    pub(crate) base: ObjectBase<PointerSel>,
-    last_modified: DateTime<Utc>,
-    etag: String,
-    _type: String,
-    size: u64,
-    storage_class: StorageClass,
-}
-
-/// 异步的 Object struct
-pub type ObjectArc = Object<ArcPointer>;
 
 impl<T: PointerFamily> Default for Object<T> {
     fn default() -> Self {
@@ -797,7 +762,7 @@ impl ObjectBuilder<ArcPointer> {
     }
 }
 
-impl<T: PointerFamily + Sized> RefineObject<BuildInItemError> for Object<T> {
+impl<T: PointerFamily> RefineObject<BuildInItemError> for Object<T> {
     #[inline]
     fn set_key(&mut self, key: &str) -> Result<(), BuildInItemError> {
         self.base
@@ -911,7 +876,7 @@ enum BuildInItemErrorKind {
 }
 
 impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
-    RefineObjectList<Item, ObjectListError, E> for ObjectList<P, Item, E>
+    RefineObjectList<Item, ObjectListError, E> for ObjectList<P, Item>
 {
     #[inline]
     fn set_key_count(&mut self, key_count: &str) -> Result<(), ObjectListError> {
@@ -942,6 +907,7 @@ impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
         &mut self,
         list: &[std::borrow::Cow<'_, str>],
     ) -> Result<(), ObjectListError> {
+        self.common_prefixes = Vec::with_capacity(list.len());
         for val in list.iter() {
             self.common_prefixes
                 .push(val.parse().map_err(|e| ObjectListError {
