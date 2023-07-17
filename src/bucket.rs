@@ -45,8 +45,6 @@ pub struct ListBuckets<PointerSel: PointerFamily = ArcPointer, Item = Bucket<Poi
     display_name: String,
     /// 存放单个 bucket 类型的 vec 集合
     buckets: Vec<Item>,
-
-    #[allow(dead_code)]
     client: PointerSel::PointerType,
 }
 
