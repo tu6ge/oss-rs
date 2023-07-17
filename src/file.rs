@@ -84,8 +84,7 @@ use reqwest::{Response, Url};
 use crate::{
     bucket::Bucket,
     builder::{ArcPointer, BuilderError, RequestBuilder},
-    decode::RefineObject,
-    object::{BuildInItemError, Object, ObjectList},
+    object::{Object, ObjectList},
     types::object::{ObjectBase, ObjectPath},
     types::{CanonicalizedResource, ContentRange},
 };

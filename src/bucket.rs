@@ -24,7 +24,6 @@ use http::Method;
 use oss_derive::oss_gen_rc;
 use std::error::Error;
 use std::fmt::{self, Display};
-use std::marker::PhantomData;
 use std::num::ParseIntError;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
@@ -36,11 +35,7 @@ mod test;
 /// # 存储 Bucket 列表的 struct
 #[derive(Clone, Hash)]
 #[non_exhaustive]
-pub struct ListBuckets<
-    PointerSel: PointerFamily = ArcPointer,
-    Item: RefineBucket<E> = Bucket<PointerSel>,
-    E: Error + 'static = BucketError,
-> {
+pub struct ListBuckets<PointerSel: PointerFamily = ArcPointer, Item = Bucket<PointerSel>> {
     prefix: String,
     marker: String,
     max_keys: u16,
@@ -53,7 +48,6 @@ pub struct ListBuckets<
 
     #[allow(dead_code)]
     client: PointerSel::PointerType,
-    ph_err: PhantomData<E>,
 }
 
 /// # bucket list struct
@@ -61,16 +55,36 @@ pub struct ListBuckets<
 //pub type Buckets<P, Item, Error> = ListBuckets<P, Item, Error>;
 
 /// sync ListBuckets alias
-pub type Buckets<Item = Bucket<ArcPointer>, Error = BucketError> =
-    ListBuckets<ArcPointer, Item, Error>;
+pub type Buckets<Item = Bucket<ArcPointer>> = ListBuckets<ArcPointer, Item>;
 /// blocking ListBuckets alias
 #[cfg(feature = "blocking")]
-pub type BucketsBlocking<Item = Bucket<RcPointer>, Error = BucketError> =
-    ListBuckets<RcPointer, Item, Error>;
+pub type BucketsBlocking<Item = Bucket<RcPointer>> = ListBuckets<RcPointer, Item>;
 
-impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: Error> fmt::Debug
-    for ListBuckets<T, Item, E>
-{
+/// 内置的存放单个 bucket 的类型
+#[derive(Clone, Hash)]
+#[non_exhaustive]
+pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
+    pub(crate) base: BucketBase,
+    // bucket_info: Option<Bucket<'b>>,
+    // bucket: Option<Bucket<'c>>,
+    creation_date: DateTime<Utc>,
+    //pub extranet_endpoint: String,
+    // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
+    // access_control_list;
+    // pub grant: Grant,
+    // pub data_redundancy_type: Option<DataRedundancyType>,
+    storage_class: StorageClass,
+    // pub versioning: &'a str,
+    // ServerSideEncryptionRule,
+    // ApplyServerSideEncryptionByDefault,
+    // pub sse_algorithm: &'a str,
+    // pub kms_master_key_id: Option<&'a str>,
+    // pub cross_region_replication: &'a str,
+    // pub transfer_acceleration: &'a str,
+    pub(crate) client: PointerSel::PointerType,
+}
+
+impl<T: PointerFamily, Item: fmt::Debug> fmt::Debug for ListBuckets<T, Item> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("ListBuckets")
             .field("prefix", &self.prefix)
@@ -85,7 +99,7 @@ impl<T: PointerFamily, Item: RefineBucket<E> + std::fmt::Debug, E: Error> fmt::D
     }
 }
 
-impl<T: PointerFamily, Item: RefineBucket<E>, E: Error> Default for ListBuckets<T, Item, E> {
+impl<T: PointerFamily, Item> Default for ListBuckets<T, Item> {
     fn default() -> Self {
         Self {
             prefix: Default::default(),
@@ -97,13 +111,12 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: Error> Default for ListBuckets<
             display_name: Default::default(),
             buckets: Default::default(),
             client: T::PointerType::default(),
-            ph_err: Default::default(),
         }
     }
 }
 
 #[oss_gen_rc]
-impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
+impl<Item> ListBuckets<ArcPointer, Item> {
     fn from_client(client: Arc<ClientArc>) -> Self {
         Self {
             client,
@@ -144,30 +157,6 @@ impl<Item: RefineBucket<E>, E: Error> ListBuckets<ArcPointer, Item, E> {
     pub fn is_empty(&self) -> bool {
         self.buckets.is_empty()
     }
-}
-
-/// 内置的存放单个 bucket 的类型
-#[derive(Clone, Hash)]
-#[non_exhaustive]
-pub struct Bucket<PointerSel: PointerFamily = ArcPointer> {
-    pub(crate) base: BucketBase,
-    // bucket_info: Option<Bucket<'b>>,
-    // bucket: Option<Bucket<'c>>,
-    creation_date: DateTime<Utc>,
-    //pub extranet_endpoint: String,
-    // owner 	存放Bucket拥有者信息的容器。父节点：BucketInfo.Bucket
-    // access_control_list;
-    // pub grant: Grant,
-    // pub data_redundancy_type: Option<DataRedundancyType>,
-    storage_class: StorageClass,
-    // pub versioning: &'a str,
-    // ServerSideEncryptionRule,
-    // ApplyServerSideEncryptionByDefault,
-    // pub sse_algorithm: &'a str,
-    // pub kms_master_key_id: Option<&'a str>,
-    // pub cross_region_replication: &'a str,
-    // pub transfer_acceleration: &'a str,
-    pub(crate) client: PointerSel::PointerType,
 }
 
 impl<T: PointerFamily> fmt::Debug for Bucket<T> {
@@ -429,7 +418,7 @@ impl Bucket<RcPointer> {
 }
 
 impl<T: PointerFamily, Item: RefineBucket<E>, E: Error + 'static>
-    RefineBucketList<Item, BucketListError, E> for ListBuckets<T, Item, E>
+    RefineBucketList<Item, BucketListError, E> for ListBuckets<T, Item>
 {
     fn set_prefix(&mut self, prefix: &str) -> Result<(), BucketListError> {
         self.prefix = prefix.to_owned();
