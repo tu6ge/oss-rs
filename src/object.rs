@@ -135,7 +135,6 @@ pub struct Object<PointerSel: PointerFamily = ArcPointer> {
 /// 异步的 Object struct
 pub type ObjectArc = Object<ArcPointer>;
 
-
 /// 存放单个对象的结构体
 #[derive(Clone, Debug)]
 #[non_exhaustive]
@@ -150,7 +149,6 @@ pub struct Object<PointerSel: PointerFamily = ArcPointer> {
 
 /// 异步的 Object struct
 pub type ObjectArc = Object<ArcPointer>;
-
 
 impl<T: PointerFamily, Item> fmt::Debug for ObjectList<T, Item> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
