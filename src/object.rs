@@ -132,9 +132,6 @@ pub struct Object<PointerSel: PointerFamily = ArcPointer> {
     storage_class: StorageClass,
 }
 
-/// 异步的 Object struct
-pub type ObjectArc = Object<ArcPointer>;
-
 /// 存放单个对象的结构体
 #[derive(Clone, Debug)]
 #[non_exhaustive]
