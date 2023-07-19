@@ -713,8 +713,8 @@ impl Display for BucketName {
 }
 
 impl Default for BucketName {
-    #![allow(clippy::unwrap_used)]
     fn default() -> BucketName {
+        #[allow(clippy::unwrap_used)]
         BucketName::new("a").unwrap()
     }
 }

@@ -29,7 +29,6 @@ use std::time::Duration;
 
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
-#[derive(Default)]
 pub struct Client<M = ClientWithMiddleware> {
     auth_builder: AuthBuilder,
     client_middleware: M,
@@ -38,11 +37,23 @@ pub struct Client<M = ClientWithMiddleware> {
     timeout: Option<Duration>,
 }
 
-impl<M: Default> Clone for Client<M> {
+impl<M: Default> Default for Client<M> {
+    fn default() -> Self {
+        Self {
+            auth_builder: AuthBuilder::default(),
+            client_middleware: M::default(),
+            endpoint: EndPoint::default(),
+            bucket: BucketName::default(),
+            timeout: Option::default(),
+        }
+    }
+}
+
+impl<M: Clone> Clone for Client<M> {
     fn clone(&self) -> Self {
         Self {
             auth_builder: self.auth_builder.clone(),
-            client_middleware: M::default(),
+            client_middleware: self.client_middleware.clone(),
             endpoint: self.endpoint.clone(),
             bucket: self.bucket.clone(),
             timeout: self.timeout.clone(),
@@ -166,6 +177,7 @@ impl<M: Default> Client<M> {
         }
     }
 }
+
 impl<M> Client<M> {
     pub(crate) fn get_bucket_name(&self) -> &BucketName {
         &self.bucket

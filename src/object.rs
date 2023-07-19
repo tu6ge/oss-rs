@@ -86,7 +86,9 @@ use std::rc::Rc;
 use std::{
     error::Error,
     fmt::{self, Display},
+    marker::PhantomData,
     num::ParseIntError,
+    slice::{Iter, IterMut},
     sync::Arc,
     vec::IntoIter,
 };
@@ -268,9 +270,24 @@ impl<T: PointerFamily, Item> ObjectList<T, Item> {
         }
     }
 
-    /// 将 object 列表转化为迭代器
+    /// 将 object 列表转化实现了 `IntoIter` Trait的外部类型
     pub fn object_iter(self) -> IntoIter<Item> {
         self.object_list.into_iter()
+    }
+
+    /// 将 object 列表转化实现了 `IntoIter` Trait的外部类型
+    pub fn object_into_iter(self) -> IntoIter<Item> {
+        self.object_list.into_iter()
+    }
+
+    /// 返回 object 列表迭代器
+    pub fn object_iter2(&self) -> Iter<Item> {
+        self.object_list.iter()
+    }
+
+    /// 将 object 列表转化为迭代器的可变引用
+    pub fn object_iter_mut(&mut self) -> IterMut<Item> {
+        self.object_list.iter_mut()
     }
 }
 
