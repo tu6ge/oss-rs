@@ -470,7 +470,7 @@ mod list_error {
 
     #[test]
     fn key_count() {
-        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>>::default();
         let err = RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_key_count(&mut list, "foo").unwrap_err();
         assert_eq!(format!("{err}"), "parse key-count failed, gived str: foo");
         assert_eq!(
@@ -482,7 +482,7 @@ mod list_error {
 
     #[test]
     fn max_keys() {
-        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>>::default();
         let err = RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_max_keys(&mut list, "foo").unwrap_err();
 
         assert_eq!(format!("{err}"), "parse max-keys failed, gived str: foo");
@@ -495,7 +495,7 @@ mod list_error {
 
     #[test]
     fn prefix() {
-        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>>::default();
         let err =
             RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_prefix(
                 &mut list, ".foo",
@@ -515,7 +515,7 @@ mod list_error {
 
     #[test]
     fn common_prefix() {
-        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>>::default();
 
         assert!(RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_common_prefix(&mut list, &[]).is_ok());
 
@@ -539,7 +539,7 @@ mod list_error {
 
     #[test]
     fn next_token() {
-        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>, BuildInItemError>::default();
+        let mut list = ObjectList::<ArcPointer, Object<ArcPointer>>::default();
 
         assert!(RefineObjectList::<Object<ArcPointer>, ObjectListError, BuildInItemError>::set_next_continuation_token_str(&mut list, "aaa").is_ok());
 

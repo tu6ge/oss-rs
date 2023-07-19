@@ -53,7 +53,7 @@ const COM: &str = "com";
 const ALIYUNCS: &str = "aliyuncs";
 
 /// 阿里云 OSS 的签名 key
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
 pub struct InnerKeyId<'a>(Cow<'a, str>);
 
 /// 静态作用域的 InnerKeyId
@@ -105,7 +105,7 @@ impl<'a> InnerKeyId<'a> {
 //===================================================================================================
 
 /// 阿里云 OSS 的签名 secret
-#[derive(Clone, PartialEq, Eq, Default)]
+#[derive(Clone, PartialEq, Eq, Default, Hash)]
 pub struct InnerKeySecret<'a>(Cow<'a, str>);
 
 /// 静态作用域的 InnerKeySecret
@@ -188,7 +188,7 @@ impl<'a> InnerKeySecret<'a> {
 
 /// # OSS 的可用区
 /// [aliyun docs](https://help.aliyun.com/document_detail/31837.htm)
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Ord, PartialOrd)]
 #[non_exhaustive]
 pub struct EndPoint {
     pub(crate) kind: EndPointKind,
@@ -210,6 +210,8 @@ impl EndPoint {
         kind: EndPointKind::CnHangzhou,
         is_internal: false,
     };
+    /// 杭州
+    pub const HANGZHOU: Self = Self::CN_HANGZHOU;
 
     /// 上海
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_SHANGHAI")]
@@ -222,6 +224,8 @@ impl EndPoint {
         kind: EndPointKind::CnShanghai,
         is_internal: false,
     };
+    /// 上海
+    pub const SHANGHAI: Self = Self::CN_SHANGHAI;
 
     /// 青岛
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_QINGDAO")]
@@ -234,6 +238,8 @@ impl EndPoint {
         kind: EndPointKind::CnQingdao,
         is_internal: false,
     };
+    /// 青岛
+    pub const QINGDAO: Self = Self::CN_QINGDAO;
 
     /// 北京
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_BEIJING")]
@@ -246,6 +252,8 @@ impl EndPoint {
         kind: EndPointKind::CnBeijing,
         is_internal: false,
     };
+    /// 北京
+    pub const BEIJING: Self = Self::CN_BEIJING;
 
     /// 张家口
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_ZHANGJIAKOU")]
@@ -254,7 +262,9 @@ impl EndPoint {
         is_internal: false,
     };
     /// 张家口
-    pub const CN_ZHANGJIAKOU: Self = Self {
+    pub const CN_ZHANGJIAKOU: Self = Self::ZHANGJIAKOU;
+    /// 张家口
+    pub const ZHANGJIAKOU: Self = Self {
         kind: EndPointKind::CnZhangjiakou,
         is_internal: false,
     };
@@ -270,6 +280,8 @@ impl EndPoint {
         kind: EndPointKind::CnHongkong,
         is_internal: false,
     };
+    /// 香港
+    pub const HONGKONG: Self = Self::CN_HONGKONG;
 
     /// 深圳
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::CN_SHENZHEN")]
@@ -282,6 +294,8 @@ impl EndPoint {
         kind: EndPointKind::CnShenzhen,
         is_internal: false,
     };
+    /// 深圳
+    pub const SHENZHEN: Self = Self::CN_SHENZHEN;
 
     /// UsWest1
     #[deprecated(since = "0.13.0", note = "replace with EndPoint::US_WEST_1")]
@@ -321,7 +335,7 @@ impl EndPoint {
 }
 
 /// # OSS 的可用区种类 enum
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash, Ord, PartialOrd)]
 #[non_exhaustive]
 pub(crate) enum EndPointKind {
     /// 杭州可用区
@@ -436,21 +450,21 @@ impl TryFrom<Url> for EndPoint {
         let domain = if let Some(Host::Domain(domain)) = url.host() {
             domain
         } else {
-            return Err(InvalidEndPoint { _priv: () });
+            return Err(InvalidEndPoint::new());
         };
         let mut url_pieces = domain.rsplit('.');
 
         match (url_pieces.next(), url_pieces.next()) {
             (Some(COM), Some(ALIYUNCS)) => (),
-            _ => return Err(InvalidEndPoint { _priv: () }),
+            _ => return Err(InvalidEndPoint::new()),
         }
 
         match url_pieces.next() {
             Some(endpoint) => match EndPoint::from_host_piece(endpoint) {
                 Ok(end) => Ok(end),
-                _ => Err(InvalidEndPoint { _priv: () }),
+                _ => Err(InvalidEndPoint::new()),
             },
-            _ => Err(InvalidEndPoint { _priv: () }),
+            _ => Err(InvalidEndPoint::new()),
         }
     }
 }
@@ -497,7 +511,7 @@ impl<'a> EndPoint {
         const OSS_STR: &str = "oss";
         use EndPointKind::*;
         if url.is_empty() {
-            return Err(InvalidEndPoint { _priv: () });
+            return Err(InvalidEndPoint::new());
         }
         // 是否是内网
         let is_internal = url.ends_with(OSS_INTERNAL);
@@ -530,11 +544,11 @@ impl<'a> EndPoint {
             Ok(ApSouthEast1)
         } else {
             if url.starts_with('-') || url.ends_with('-') || url.starts_with(OSS_STR) {
-                return Err(InvalidEndPoint { _priv: () });
+                return Err(InvalidEndPoint::new());
             }
 
             if !url.chars().all(valid_oss_character) {
-                return Err(InvalidEndPoint { _priv: () });
+                return Err(InvalidEndPoint::new());
             }
 
             Ok(Other(Cow::Owned(url.to_owned())))
@@ -546,18 +560,15 @@ impl<'a> EndPoint {
     /// 从 oss 域名中提取 Endpoint 信息
     pub(crate) fn from_host_piece(url: &'a str) -> Result<Self, InvalidEndPoint> {
         if !url.starts_with(OSS_HYPHEN) {
-            return Err(InvalidEndPoint { _priv: () });
+            return Err(InvalidEndPoint::new());
         }
         Self::new(&url[4..])
     }
 
     /// use env init Endpoint
     pub fn from_env() -> Result<Self, InvalidEndPoint> {
-        let endpoint =
-            std::env::var("ALIYUN_ENDPOINT").map_err(|_| InvalidEndPoint { _priv: () })?;
-        let mut endpoint: EndPoint = endpoint
-            .parse()
-            .map_err(|_| InvalidEndPoint { _priv: () })?;
+        let endpoint = std::env::var("ALIYUN_ENDPOINT").map_err(|_| InvalidEndPoint::new())?;
+        let mut endpoint: EndPoint = endpoint.parse().map_err(|_| InvalidEndPoint::new())?;
         if let Ok(is_internal) = std::env::var("ALIYUN_OSS_INTERNAL") {
             if is_internal == TRUE1
                 || is_internal == TRUE2
@@ -576,6 +587,11 @@ impl<'a> EndPoint {
     /// 当在 Aliyun ECS 上执行时，设为 true 会更高效，默认是 false
     pub fn set_internal(&mut self, is_internal: bool) {
         self.is_internal = is_internal;
+    }
+
+    /// 返回当前的 endpoint 是否为内网
+    pub fn is_internal(&self) -> bool {
+        self.is_internal
     }
 
     /// 转化成 Url
@@ -609,10 +625,16 @@ impl<'a> EndPoint {
 }
 
 /// 无效的可用区
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 #[non_exhaustive]
 pub struct InvalidEndPoint {
-    pub(crate) _priv: (),
+    _priv: (),
+}
+
+impl InvalidEndPoint {
+    pub(crate) fn new() -> InvalidEndPoint {
+        InvalidEndPoint { _priv: () }
+    }
 }
 
 impl Debug for InvalidEndPoint {
@@ -675,7 +697,7 @@ impl PartialEq<Url> for EndPoint {
 //===================================================================================================
 
 /// 存储 bucket 名字的类型
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BucketName(Cow<'static, str>);
 
 impl AsRef<str> for BucketName {
@@ -757,11 +779,11 @@ impl<'a> BucketName {
         let bucket = bucket.into();
 
         if bucket.is_empty() || bucket.starts_with('-') || bucket.ends_with('-') {
-            return Err(InvalidBucketName { _priv: () });
+            return Err(InvalidBucketName::new());
         }
 
         if !bucket.chars().all(valid_oss_character) {
-            return Err(InvalidBucketName { _priv: () });
+            return Err(InvalidBucketName::new());
         }
 
         Ok(Self(bucket))
@@ -769,7 +791,7 @@ impl<'a> BucketName {
 
     /// use env init BucketName
     pub fn from_env() -> Result<Self, InvalidBucketName> {
-        let string = std::env::var("ALIYUN_BUCKET").map_err(|_| InvalidBucketName { _priv: () })?;
+        let string = std::env::var("ALIYUN_BUCKET").map_err(|_| InvalidBucketName::new())?;
 
         string.parse()
     }
@@ -787,11 +809,11 @@ impl<'a> BucketName {
     /// ```
     pub fn from_static(bucket: &'a str) -> Result<Self, InvalidBucketName> {
         if bucket.is_empty() || bucket.starts_with('-') || bucket.ends_with('-') {
-            return Err(InvalidBucketName { _priv: () });
+            return Err(InvalidBucketName::new());
         }
 
         if !bucket.chars().all(valid_oss_character) {
-            return Err(InvalidBucketName { _priv: () });
+            return Err(InvalidBucketName::new());
         }
 
         Ok(Self(Cow::Owned(bucket.to_owned())))
@@ -839,10 +861,16 @@ impl PartialEq<BucketName> for &str {
 }
 
 /// 无效的 bucket 名称
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 #[non_exhaustive]
 pub struct InvalidBucketName {
-    pub(crate) _priv: (),
+    _priv: (),
+}
+
+impl InvalidBucketName {
+    pub(crate) fn new() -> InvalidBucketName {
+        InvalidBucketName { _priv: () }
+    }
 }
 
 impl Debug for InvalidBucketName {
@@ -874,7 +902,7 @@ impl fmt::Display for InvalidBucketName {
 //===================================================================================================
 
 /// aliyun OSS 的配置 ContentMd5
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
 pub struct InnerContentMd5<'a>(Cow<'a, str>);
 /// 静态作用域的 InnerContentMd5
 pub type ContentMd5 = InnerContentMd5<'static>;
@@ -989,7 +1017,7 @@ impl ContentType {
 //===================================================================================================
 
 /// 用于计算签名的 Date
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
 pub struct InnerDate<'a>(Cow<'a, str>);
 /// 静态作用域的 InnerDate
 pub type Date = InnerDate<'static>;
@@ -1033,7 +1061,7 @@ impl<'a> InnerDate<'a> {
 //===================================================================================================
 
 /// 计算方式，参考 [aliyun 文档](https://help.aliyun.com/document_detail/31951.htm)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct InnerCanonicalizedResource<'a>(Cow<'a, str>);
 /// 静态作用域的 InnerCanonicalizedResource
 pub type CanonicalizedResource = InnerCanonicalizedResource<'static>;

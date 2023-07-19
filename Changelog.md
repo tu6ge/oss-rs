@@ -1,3 +1,12 @@
+##  (2023-06-09)
+
+### [0.12.1](https://github.com/tu6ge/oss-rs/compare/0.12.0...0.12.1) (2023-06-08)
+
+
+### Features
+
+* **auth:** 在 Url 中包含签名 ([#21](https://github.com/tu6ge/oss-rs/issues/21)) ([a15e644](https://github.com/tu6ge/oss-rs/commit/a15e64486769004f42bedbb2729e6cf5e530e14a)), closes [#20](https://github.com/tu6ge/oss-rs/issues/20)
+
 ##  (2023-06-01)
 
 ## [0.12.0](https://github.com/tu6ge/oss-rs/compare/0.11.2...0.12.0) (2023-06-01)

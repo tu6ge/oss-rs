@@ -22,7 +22,7 @@ use std::sync::Arc;
 
 /// # Object 元信息
 /// 包含所属 bucket endpoint 以及文件路径
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct ObjectBase<PointerSel: PointerFamily = ArcPointer> {
     pub(super) bucket: PointerSel::Bucket,
     pub(crate) path: ObjectPath,
@@ -308,7 +308,7 @@ pub mod invalid {
     impl From<InvalidBucketBase> for InvalidObjectBase {
         fn from(value: InvalidBucketBase) -> Self {
             Self {
-                source: value.source.to_owned(),
+                source: value.clone().source_string(),
                 kind: InvalidObjectBaseKind::Bucket(value),
             }
         }

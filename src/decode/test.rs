@@ -766,7 +766,7 @@ mod some_tests {
 
     #[test]
     fn test_item_from() {
-        let string = InvalidEndPoint { _priv: () };
+        let string = InvalidEndPoint::new();
         let err = InnerItemError::from(string);
         assert_eq!(
             format!("{err}"),
@@ -782,7 +782,7 @@ mod some_tests {
 
     #[test]
     fn test_list_from() {
-        let string = InvalidEndPoint { _priv: () };
+        let string = InvalidEndPoint::new();
         let err: InnerListError = string.into();
         assert_eq!(
             format!("{err}"),
@@ -799,7 +799,7 @@ mod some_tests {
         let err = InnerListError::from_xml();
         assert_eq!(format!("{err}"), "Cannot read text, expecting Event::Text");
 
-        let string = InvalidEndPoint { _priv: () };
+        let string = InvalidEndPoint::new();
         let kind = ListErrorKind::Custom(Box::new(string));
 
         let err = InnerListError { kind };

@@ -69,7 +69,7 @@ mod test_core {
 
         let path = InvalidObjectBase {
             source: "aaa".to_string(),
-            kind: InvalidObjectBaseKind::Path(InvalidObjectPath { _priv: () }),
+            kind: InvalidObjectBaseKind::Path(InvalidObjectPath::new()),
         };
         assert_eq!(format!("{}", path.source().unwrap()), "invalid object path");
         assert_eq!(
@@ -111,7 +111,7 @@ mod test_core {
         assert_eq!(dir, ObjectDir::new("path/").unwrap());
 
         let dir = ObjectDir::try_from("path").unwrap_err();
-        assert!(matches!(dir, InvalidObjectDir { _priv: () }));
+        assert!(matches!(dir, InvalidObjectDir { .. }));
     }
     #[test]
     fn test_dir_from_path() {
@@ -123,7 +123,7 @@ mod test_core {
 
     #[test]
     fn test_invalid_dir_debug() {
-        let err = InvalidObjectDir { _priv: () };
+        let err = InvalidObjectDir::new();
         assert_eq!(
             format!("{err}"),
             "object-dir must end with `/`, and not start with `/`,`.`"
@@ -146,7 +146,7 @@ mod test_core {
 
     #[test]
     fn test_invalid_path_debug() {
-        let err = InvalidObjectPath { _priv: () };
+        let err = InvalidObjectPath::new();
         assert_eq!(format!("{err}"), "invalid object path");
         assert_eq!(format!("{err:?}"), "InvalidObjectPath");
     }

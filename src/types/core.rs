@@ -343,10 +343,16 @@ impl PartialEq<Query> for Query {
 
 /// 为 Url 拼接 [`Query`] 数据
 /// [`Query`]: crate::types::Query
-pub trait SetOssQuery {
+pub trait SetOssQuery: private::Sealed {
     /// 给 Url 结构体增加 `set_search_query` 方法
     fn set_oss_query(&mut self, query: &Query);
 }
+
+mod private {
+    pub trait Sealed {}
+}
+
+impl private::Sealed for Url {}
 
 impl SetOssQuery for Url {
     /// 将查询参数拼接到 API 的 Url 上
@@ -369,7 +375,7 @@ impl SetOssQuery for Url {
 }
 
 /// 查询条件的键
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[non_exhaustive]
 pub struct InnerQueryKey<'a> {
     kind: QueryKeyEnum<'a>,
@@ -465,7 +471,7 @@ impl InnerQueryKey<'_> {
     };
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[non_exhaustive]
 enum QueryKeyEnum<'a> {
     /// 对Object名字进行分组的字符。所有Object名字包含指定的前缀，第一次出现delimiter字符之间的Object作为一组元素（即CommonPrefixes）
@@ -696,7 +702,7 @@ mod test_query_key {
 }
 
 /// 查询条件的值
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd, Ord, Hash)]
 pub struct InnerQueryValue<'a>(Cow<'a, str>);
 /// 查询条件的值
 pub type QueryValue = InnerQueryValue<'static>;

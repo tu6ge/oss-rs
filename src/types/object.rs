@@ -22,7 +22,7 @@ pub use base::{InvalidObjectBase, ObjectBase};
 
 /// OSS Object 存储对象的路径
 /// 不带前缀 `/`
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ObjectPathInner<'a>(Cow<'a, str>);
 
 /// OSS Object 存储对象的路径
@@ -121,10 +121,10 @@ impl<'a> ObjectPathInner<'a> {
     pub fn new(val: impl Into<Cow<'a, str>>) -> Result<Self, InvalidObjectPath> {
         let val = val.into();
         if val.starts_with('/') || val.starts_with('.') || val.ends_with('/') {
-            return Err(InvalidObjectPath { _priv: () });
+            return Err(InvalidObjectPath::new());
         }
         if !val.chars().all(|c| c != '\\') {
-            return Err(InvalidObjectPath { _priv: () });
+            return Err(InvalidObjectPath::new());
         }
         Ok(Self(val))
     }
@@ -179,11 +179,11 @@ impl FromStr for ObjectPathInner<'_> {
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with('/') || s.starts_with('.') || s.ends_with('/') {
-            return Err(InvalidObjectPath { _priv: () });
+            return Err(InvalidObjectPath::new());
         }
 
         if !s.chars().all(|c| c != '\\') {
-            return Err(InvalidObjectPath { _priv: () });
+            return Err(InvalidObjectPath::new());
         }
         Ok(Self(Cow::Owned(s.to_owned())))
     }
@@ -192,7 +192,7 @@ impl FromStr for ObjectPathInner<'_> {
 impl TryFrom<&Path> for ObjectPathInner<'_> {
     type Error = InvalidObjectPath;
     fn try_from(value: &Path) -> Result<Self, Self::Error> {
-        let val = value.to_str().ok_or(InvalidObjectPath { _priv: () })?;
+        let val = value.to_str().ok_or(InvalidObjectPath::new())?;
         if std::path::MAIN_SEPARATOR != '/' {
             val.replace(std::path::MAIN_SEPARATOR, "/").parse()
         } else {
@@ -203,7 +203,13 @@ impl TryFrom<&Path> for ObjectPathInner<'_> {
 
 /// 不合法的文件路径
 pub struct InvalidObjectPath {
-    pub(crate) _priv: (),
+    _priv: (),
+}
+
+impl InvalidObjectPath {
+    pub(crate) fn new() -> Self {
+        Self { _priv: () }
+    }
 }
 
 impl Display for InvalidObjectPath {
@@ -221,10 +227,16 @@ impl Debug for InvalidObjectPath {
 impl std::error::Error for InvalidObjectPath {}
 
 /// 将 object 的路径拼接到 Url 上去
-pub trait SetObjectPath {
+pub trait SetObjectPath: private::Sealed {
     /// 为 Url 添加方法
     fn set_object_path(&mut self, path: &ObjectPathInner);
 }
+
+mod private {
+    pub trait Sealed {}
+}
+
+impl private::Sealed for Url {}
 
 impl SetObjectPath for Url {
     fn set_object_path(&mut self, path: &ObjectPathInner) {
@@ -234,7 +246,7 @@ impl SetObjectPath for Url {
 
 /// OSS Object 对象路径的前缀目录
 /// 不带前缀 `/`, 且必须以 `/` 结尾
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ObjectDir<'a>(Cow<'a, str>);
 
 impl AsRef<str> for ObjectDir<'_> {
@@ -390,10 +402,10 @@ impl<'a> ObjectDir<'a> {
     pub fn new<'b: 'a>(val: impl Into<Cow<'b, str>>) -> Result<Self, InvalidObjectDir> {
         let val = val.into();
         if val.starts_with('/') || val.starts_with('.') || !val.ends_with('/') {
-            return Err(InvalidObjectDir { _priv: () });
+            return Err(InvalidObjectDir::new());
         }
         if !val.chars().all(|c| c != '\\') {
-            return Err(InvalidObjectDir { _priv: () });
+            return Err(InvalidObjectDir::new());
         }
         Ok(Self(val))
     }
@@ -447,11 +459,11 @@ impl FromStr for ObjectDir<'_> {
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with('/') || s.starts_with('.') || !s.ends_with('/') {
-            return Err(InvalidObjectDir { _priv: () });
+            return Err(InvalidObjectDir::new());
         }
 
         if !s.chars().all(|c| c != '\\') {
-            return Err(InvalidObjectDir { _priv: () });
+            return Err(InvalidObjectDir::new());
         }
         Ok(Self(Cow::Owned(s.to_owned())))
     }
@@ -460,7 +472,7 @@ impl FromStr for ObjectDir<'_> {
 impl TryFrom<&Path> for ObjectDir<'_> {
     type Error = InvalidObjectDir;
     fn try_from(value: &Path) -> Result<Self, Self::Error> {
-        let val = value.to_str().ok_or(InvalidObjectDir { _priv: () })?;
+        let val = value.to_str().ok_or(InvalidObjectDir::new())?;
         if std::path::MAIN_SEPARATOR != '/' {
             val.replace(std::path::MAIN_SEPARATOR, "/").parse()
         } else {
@@ -471,7 +483,13 @@ impl TryFrom<&Path> for ObjectDir<'_> {
 
 /// 不合法的文件目录路径
 pub struct InvalidObjectDir {
-    pub(crate) _priv: (),
+    _priv: (),
+}
+
+impl InvalidObjectDir {
+    pub(crate) fn new() -> InvalidObjectDir {
+        InvalidObjectDir { _priv: () }
+    }
 }
 
 impl Display for InvalidObjectDir {
