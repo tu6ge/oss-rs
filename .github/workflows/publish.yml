@@ -43,8 +43,8 @@ jobs:
         run: |
           cargo test --lib -- tests
           cargo test --lib --no-default-features -- tests
-          # --all-features, exclude bench features
-          cargo test --lib --features="blocking,sts,put_file" -- tests
+          # --all-features, exclude env_test features
+          cargo test --lib --features="blocking,sts,put_file,core,auth,decode" -- tests
           cargo test --lib --features blocking --no-default-features tests
           cargo test --lib --features blocking tests
           cargo test --lib --features sts --no-default-features tests

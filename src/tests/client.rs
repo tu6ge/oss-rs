@@ -73,7 +73,7 @@ fn test_blocking_builder_with_header() {
     let client = Client::<ClientWithMiddleware>::new(
         "foo1".into(),
         "foo2".into(),
-        EndPoint::CnQingdao,
+        EndPoint::CN_QINGDAO,
         "foo4".parse().unwrap(),
     );
     let url = "http://foo.example.net/foo".parse().unwrap();

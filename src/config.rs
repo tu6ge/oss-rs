@@ -174,12 +174,12 @@ impl InvalidConfig {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, feature = "env_test"))]
     pub(crate) fn get_source(self) -> String {
         self.source
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, feature = "env_test"))]
     pub(crate) fn kind(&self) -> &InvalidConfigKind {
         &self.kind
     }

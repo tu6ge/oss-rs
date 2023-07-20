@@ -500,9 +500,11 @@ impl AuthBuilder {
         self.auth.set_secret(secret.into());
     }
 
+    #[cfg(feature = "core")]
     pub(crate) fn get_key(&self) -> &KeyId {
         &self.auth.access_key_id
     }
+    #[cfg(feature = "core")]
     pub(crate) fn get_secret(&self) -> &KeySecret {
         &self.auth.access_key_secret
     }
@@ -775,7 +777,7 @@ pub struct AuthError {
 }
 
 impl AuthError {
-    #[cfg(test)]
+    #[cfg(all(test, feature = "core"))]
     pub(crate) fn test_new() -> Self {
         Self {
             kind: AuthErrorKind::InvalidCanonicalizedResource,
