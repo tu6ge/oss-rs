@@ -411,7 +411,7 @@ impl ObjectList<RcPointer> {
         }
     }
     /// 从 OSS 获取 object 列表信息
-    pub fn get_object_list(&mut self) -> Result<Self, ExtractListError> {
+    pub fn get_object_list(&self) -> Result<Self, ExtractListError> {
         let name = self.bucket.get_name();
 
         let client = self.client();
