@@ -78,6 +78,7 @@ sts = ["core", "auth"]
 put_file = ["core", "infer"]
 auth = ["reqwest", "percent-encoding"]
 decode = ["quick-xml", "oss_derive"]
+env_test = []
 # bench = []
 
 [dependencies]

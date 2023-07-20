@@ -1,5 +1,3 @@
-use std::env::{remove_var, set_var};
-
 use http::header::CONTENT_TYPE;
 use http::{HeaderValue, Method};
 
@@ -17,55 +15,6 @@ fn test_get_bucket_url() {
     );
     let url = client.get_bucket_url();
     assert_eq!(url.as_str(), "https://foo4.oss-cn-qingdao.aliyuncs.com/");
-}
-
-#[test]
-fn test_from_env() {
-    set_var("ALIYUN_KEY_ID", "foo1");
-    set_var("ALIYUN_KEY_SECRET", "foo2");
-    set_var("ALIYUN_ENDPOINT", "qingdao");
-    set_var("ALIYUN_BUCKET", "foo4");
-    remove_var("ALIYUN_OSS_INTERNAL");
-    let client = Client::<ClientWithMiddleware>::from_env().unwrap();
-    let url = client.get_bucket_url();
-    assert_eq!(url.as_str(), "https://foo4.oss-cn-qingdao.aliyuncs.com/");
-
-    set_var("ALIYUN_OSS_INTERNAL", "true");
-    let client = Client::<ClientWithMiddleware>::from_env().unwrap();
-    let url = client.get_bucket_url();
-    assert_eq!(
-        url.as_str(),
-        "https://foo4.oss-cn-qingdao-internal.aliyuncs.com/"
-    );
-
-    set_var("ALIYUN_OSS_INTERNAL", "foo4");
-    let client = Client::<ClientWithMiddleware>::from_env().unwrap();
-    let url = client.get_bucket_url();
-    assert_eq!(url.as_str(), "https://foo4.oss-cn-qingdao.aliyuncs.com/");
-
-    set_var("ALIYUN_OSS_INTERNAL", "1");
-    let client = Client::<ClientWithMiddleware>::from_env().unwrap();
-    let url = client.get_bucket_url();
-    assert_eq!(
-        url.as_str(),
-        "https://foo4.oss-cn-qingdao-internal.aliyuncs.com/"
-    );
-
-    set_var("ALIYUN_OSS_INTERNAL", "yes");
-    let client = Client::<ClientWithMiddleware>::from_env().unwrap();
-    let url = client.get_bucket_url();
-    assert_eq!(
-        url.as_str(),
-        "https://foo4.oss-cn-qingdao-internal.aliyuncs.com/"
-    );
-
-    set_var("ALIYUN_OSS_INTERNAL", "Y");
-    let client = Client::<ClientWithMiddleware>::from_env().unwrap();
-    let url = client.get_bucket_url();
-    assert_eq!(
-        url.as_str(),
-        "https://foo4.oss-cn-qingdao-internal.aliyuncs.com/"
-    );
 }
 
 #[test]

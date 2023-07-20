@@ -25,10 +25,10 @@ const OSS_HYPHEN: &str = "oss-";
 /// OSS 配置信息
 #[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
 pub struct Config {
-    key: KeyId,
-    secret: KeySecret,
-    endpoint: EndPoint,
-    bucket: BucketName,
+    pub(crate) key: KeyId,
+    pub(crate) secret: KeySecret,
+    pub(crate) endpoint: EndPoint,
+    pub(crate) bucket: BucketName,
 }
 
 impl AsRef<KeyId> for Config {
@@ -158,7 +158,7 @@ pub(crate) fn get_bucket(name: &str) -> Result<BucketName, InvalidConfig> {
 }
 
 /// Config 错误信息集合
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[non_exhaustive]
 pub struct InvalidConfig {
     source: String,
@@ -172,6 +172,16 @@ impl InvalidConfig {
             source: "bar".into(),
             kind: InvalidConfigKind::BucketName(InvalidBucketName::new()),
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn get_source(self) -> String {
+        self.source
+    }
+
+    #[cfg(test)]
+    pub(crate) fn kind(&self) -> &InvalidConfigKind {
+        &self.kind
     }
 }
 
@@ -195,9 +205,9 @@ impl Error for InvalidConfig {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[non_exhaustive]
-enum InvalidConfigKind {
+pub(crate) enum InvalidConfigKind {
     /// 非法的可用区
     EndPoint(InvalidEndPoint),
 
@@ -592,10 +602,7 @@ impl PartialEq<Url> for BucketBase {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        borrow::Cow,
-        env::{remove_var, set_var},
-    };
+    use std::borrow::Cow;
 
     use crate::types::EndPointKind;
 
@@ -655,31 +662,6 @@ mod tests {
         base.set_internal(true);
         let BucketBase { endpoint, .. } = base;
         assert!(endpoint.is_internal == true);
-    }
-
-    #[test]
-    fn test_from_env() {
-        set_var("ALIYUN_KEY_ID", "foo");
-        set_var("ALIYUN_KEY_SECRET", "foo2");
-        set_var("ALIYUN_ENDPOINT", "qingdao");
-        set_var("ALIYUN_BUCKET", "foo3");
-        remove_var("ALIYUN_OSS_INTERNAL");
-        let config = Config::from_env().unwrap();
-        assert_eq!(config.key.as_ref(), "foo");
-        assert_eq!(config.secret.as_str(), "foo2");
-        assert_eq!(&config.endpoint, &EndPoint::CN_QINGDAO);
-        assert_eq!(config.bucket.as_ref(), "foo3");
-
-        set_var("ALIYUN_ENDPOINT", "ossqd");
-        let config = Config::from_env().unwrap_err();
-        assert!(config.source.len() == 0);
-        assert!(matches!(config.kind, InvalidConfigKind::EndPoint(_)));
-
-        set_var("ALIYUN_ENDPOINT", "hangzhou");
-        set_var("ALIYUN_BUCKET", "foo3-");
-        let config = Config::from_env().unwrap_err();
-        assert!(config.source.len() == 0);
-        assert!(matches!(config.kind, InvalidConfigKind::BucketName(_)));
     }
 
     #[test]
@@ -759,62 +741,23 @@ mod tests {
 
     #[test]
     fn test_bucketbase_to_url() {
-        use std::env::{remove_var, set_var};
-        set_var("ALIYUN_ENDPOINT", "qingdao");
-        set_var("ALIYUN_BUCKET", "foo1");
-        remove_var("ALIYUN_OSS_INTERNAL");
-        let base = BucketBase::from_env().unwrap();
+        let base = BucketBase::new("foo1".parse().unwrap(), EndPoint::CN_QINGDAO);
         let url = base.to_url();
         assert_eq!(
             url,
             Url::parse("https://foo1.oss-cn-qingdao.aliyuncs.com").unwrap()
         );
 
-        set_var("ALIYUN_OSS_INTERNAL", "true");
-        let base = BucketBase::from_env().unwrap();
+        let base = BucketBase::new("foo1".parse().unwrap(), {
+            let mut end = EndPoint::CN_QINGDAO;
+            end.set_internal(true);
+            end
+        });
         let url = base.to_url();
         assert_eq!(
             url,
             Url::parse("https://foo1.oss-cn-qingdao-internal.aliyuncs.com").unwrap()
         );
-
-        set_var("ALIYUN_OSS_INTERNAL", "0");
-        let base = BucketBase::from_env().unwrap();
-        assert!(!base.endpoint().is_internal());
-
-        set_var("ALIYUN_OSS_INTERNAL", "1");
-        let base = BucketBase::from_env().unwrap();
-        assert!(base.endpoint().is_internal());
-
-        set_var("ALIYUN_OSS_INTERNAL", "yes");
-        let base = BucketBase::from_env().unwrap();
-        assert!(base.endpoint().is_internal());
-
-        set_var("ALIYUN_OSS_INTERNAL", "Y");
-        let base = BucketBase::from_env().unwrap();
-        assert!(base.endpoint().is_internal());
-
-        remove_var("ALIYUN_OSS_INTERNAL");
-        remove_var("ALIYUN_ENDPOINT");
-        let base = BucketBase::from_env().unwrap_err();
-        assert_eq!(base.source, "ALIYUN_ENDPOINT");
-        assert!(matches!(base.kind, InvalidConfigKind::VarError(_)));
-
-        set_var("ALIYUN_ENDPOINT", "ossqd");
-        let base = BucketBase::from_env().unwrap_err();
-        assert_eq!(base.source, "ossqd");
-        assert!(matches!(base.kind, InvalidConfigKind::EndPoint(_)));
-
-        set_var("ALIYUN_ENDPOINT", "qingdao");
-        remove_var("ALIYUN_BUCKET");
-        let base = BucketBase::from_env().unwrap_err();
-        assert_eq!(base.source, "ALIYUN_BUCKET");
-        assert!(matches!(base.kind, InvalidConfigKind::VarError(_)));
-
-        set_var("ALIYUN_BUCKET", "abc-");
-        let base = BucketBase::from_env().unwrap_err();
-        assert_eq!(base.source, "abc-");
-        assert!(matches!(base.kind, InvalidConfigKind::BucketName(_)));
     }
 
     #[test]

@@ -69,10 +69,7 @@ fn endpoint() {
 }
 
 mod test_endpoint {
-    use std::{
-        borrow::Cow,
-        env::{remove_var, set_var},
-    };
+    use std::borrow::Cow;
 
     use super::*;
 
@@ -149,44 +146,6 @@ mod test_endpoint {
         let res = EndPoint::new("abc-internal").unwrap();
         assert_eq!(res.is_internal, true);
         assert_eq!(res.as_ref(), "abc");
-    }
-
-    #[test]
-    fn test_from_env() {
-        remove_var("ALIYUN_ENDPOINT");
-        let has_err = EndPoint::from_env();
-        assert!(has_err.is_err());
-
-        set_var("ALIYUN_ENDPOINT", "ossaa");
-        let has_err = EndPoint::from_env();
-        assert!(has_err.is_err());
-
-        set_var("ALIYUN_ENDPOINT", "qingdao");
-        remove_var("ALIYUN_OSS_INTERNAL");
-        let endpoint = EndPoint::from_env().unwrap();
-        assert_eq!(endpoint.kind, EndPointKind::CnQingdao);
-        assert!(!endpoint.is_internal);
-
-        set_var("ALIYUN_OSS_INTERNAL", "true");
-        let endpoint = EndPoint::from_env().unwrap();
-        assert_eq!(endpoint.kind, EndPointKind::CnQingdao);
-        assert!(endpoint.is_internal);
-
-        set_var("ALIYUN_OSS_INTERNAL", "0");
-        let endpoint = EndPoint::from_env().unwrap();
-        assert!(!endpoint.is_internal);
-
-        set_var("ALIYUN_OSS_INTERNAL", "1");
-        let endpoint = EndPoint::from_env().unwrap();
-        assert!(endpoint.is_internal);
-
-        set_var("ALIYUN_OSS_INTERNAL", "yes");
-        let endpoint = EndPoint::from_env().unwrap();
-        assert!(endpoint.is_internal);
-
-        set_var("ALIYUN_OSS_INTERNAL", "Y");
-        let endpoint = EndPoint::from_env().unwrap();
-        assert!(endpoint.is_internal);
     }
 
     #[test]

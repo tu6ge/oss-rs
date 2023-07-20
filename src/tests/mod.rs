@@ -7,6 +7,9 @@ mod errors;
 #[cfg(feature = "core")]
 pub mod object;
 
+#[cfg(feature = "env_test")]
+mod env;
+
 pub async fn reqwest_error() -> reqwest::Error {
     use http::response::Builder;
     use reqwest::Response;

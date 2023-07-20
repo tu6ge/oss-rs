@@ -175,12 +175,7 @@ mod test_try {
     use crate::Client;
 
     fn init_client() -> Client {
-        use std::env::set_var;
-        set_var("ALIYUN_KEY_ID", "foo1");
-        set_var("ALIYUN_KEY_SECRET", "foo2");
-        set_var("ALIYUN_ENDPOINT", "qingdao");
-        set_var("ALIYUN_BUCKET", "foo4");
-        Client::from_env().unwrap()
+        Client::test_init()
     }
 
     #[tokio::test]
