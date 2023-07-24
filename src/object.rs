@@ -1102,11 +1102,9 @@ impl Client {
     ///         key: String::default(),
     ///         other: "abc".to_string(),
     ///     };
-    ///     //let bucket_name = env::var("ALIYUN_BUCKET").unwrap();
-    ///     let bucket_name = "abc".parse::<BucketName>().unwrap();
     ///
     ///     client
-    ///         .base_object_list(bucket_name, [], &mut bucket, init_file)
+    ///         .base_object_list([], &mut bucket, init_file)
     ///         .await?;
     ///
     ///     println!("bucket: {:?}", bucket);
