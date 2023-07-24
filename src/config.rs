@@ -1,6 +1,7 @@
 //! 配置类型
 
 use crate::{
+    client::Client,
     consts::{TRUE1, TRUE2, TRUE3, TRUE4},
     types::{
         core::SetOssQuery,
@@ -306,6 +307,16 @@ impl TryFrom<&str> for BucketBase {
     type Error = InvalidBucketBase;
     fn try_from(str: &str) -> Result<Self, Self::Error> {
         str.parse()
+    }
+}
+
+impl<M> From<Client<M>> for BucketBase {
+    fn from(
+        Client {
+            bucket, endpoint, ..
+        }: Client<M>,
+    ) -> Self {
+        Self::new(bucket, endpoint)
     }
 }
 

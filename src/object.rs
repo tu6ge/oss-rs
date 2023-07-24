@@ -1148,7 +1148,7 @@ impl Client {
         Item: RefineObject<ItemErr>,
         F: FnMut() -> Item,
     {
-        let bucket: &BucketBase = self.as_ref();
+        let bucket = self.get_bucket_base();
         let (bucket_url, resource) = bucket.get_url_resource(query);
 
         let response = self.builder(Method::GET, bucket_url, resource)?;
