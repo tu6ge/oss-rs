@@ -66,6 +66,11 @@ impl<M> AsRef<BucketName> for Client<M> {
         &self.bucket
     }
 }
+impl<M> AsMut<BucketName> for Client<M> {
+    fn as_mut(&mut self) -> &mut BucketName {
+        &mut self.bucket
+    }
+}
 
 impl<M: Default> Client<M> {
     /// 使用基本配置信息初始化 Client

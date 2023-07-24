@@ -297,6 +297,17 @@ impl<Item> ObjectList<ArcPointer, Item> {
     pub(crate) fn client(&self) -> Arc<ClientArc> {
         Arc::clone(&self.client)
     }
+
+    fn clone_base(&self) -> Self {
+        Self {
+            client: Arc::clone(&self.client),
+            bucket: self.bucket.clone(),
+            search_query: self.search_query.clone(),
+            max_keys: self.max_keys,
+            object_list: Vec::with_capacity(self.max_keys as usize),
+            ..Default::default()
+        }
+    }
 }
 
 impl ObjectList<ArcPointer> {
@@ -386,10 +397,10 @@ impl<Item> ObjectList<ArcPointer, Item> {
                 kind: ExtractListErrorKind::NoMoreFile,
             }),
             Some(query) => {
-                let mut list = Self::default();
-                let name = self.bucket.get_name().clone();
+                let mut list = self.clone_base();
+                list.search_query = query.clone();
                 self.client()
-                    .base_object_list(name, query, &mut list, init_object)
+                    .base_object_list(query, &mut list, init_object)
                     .await?;
 
                 Ok(list)
@@ -400,33 +411,19 @@ impl<Item> ObjectList<ArcPointer, Item> {
 
 #[cfg(feature = "blocking")]
 impl ObjectList<RcPointer> {
-    fn clone_base(&self) -> Self {
-        Self {
-            client: Rc::clone(&self.client),
-            bucket: self.bucket.clone(),
-            search_query: self.search_query.clone(),
-            max_keys: self.max_keys,
-            object_list: Vec::with_capacity(self.max_keys as usize),
-            ..Default::default()
-        }
-    }
     /// 从 OSS 获取 object 列表信息
     pub fn get_object_list(&self) -> Result<Self, ExtractListError> {
-        let name = self.bucket.get_name();
-
-        let client = self.client();
-
         let mut list = ObjectList::<RcPointer>::clone_base(self);
 
         let init_object = || Object::<RcPointer>::from_bucket(Rc::new(self.bucket.clone()));
 
-        client
-            .base_object_list(
-                name.to_owned(),
-                self.search_query.clone(),
-                &mut list,
-                init_object,
-            )
+        let (bucket_url, resource) = self.bucket.get_url_resource(&self.search_query);
+
+        let response = self
+            .builder(Method::GET, bucket_url, resource)?
+            .send_adjust_error()?;
+
+        list.decode(&response.text()?, init_object)
             .map_err(ExtractListError::from)?;
 
         Ok(list)
@@ -1119,7 +1116,6 @@ impl Client {
     /// ```
     #[inline]
     pub async fn base_object_list<
-        Name: Into<BucketName>,
         Q: IntoIterator<Item = (QueryKey, QueryValue)>,
         List,
         Item,
@@ -1128,7 +1124,6 @@ impl Client {
         ItemErr: Error + 'static,
     >(
         &self,
-        name: Name,
         query: Q,
         list: &mut List,
         init_object: F,
@@ -1139,16 +1134,13 @@ impl Client {
         F: FnMut() -> Item,
     {
         let query = Query::from_iter(query);
-        let name = name.into();
 
-        self.base_object_list2(&name, &query, list, init_object)
-            .await
+        self.base_object_list2(&query, list, init_object).await
     }
 
     /// # 可将 object 列表导出到外部类型（关注性能）
     pub async fn base_object_list2<List, Item, F, E: ListError, ItemErr: Error + 'static>(
         &self,
-        name: &BucketName,
         query: &Query,
         list: &mut List,
         init_object: F,
@@ -1158,7 +1150,8 @@ impl Client {
         Item: RefineObject<ItemErr>,
         F: FnMut() -> Item,
     {
-        let (bucket_url, resource) = get_url_resource_with_bucket(self.as_ref(), name, query);
+        let bucket = BucketBase::new(self.bucket.clone(), self.get_endpoint().to_owned());
+        let (bucket_url, resource) = bucket.get_url_resource(query);
 
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
@@ -1281,7 +1274,6 @@ impl ClientRc {
     /// 可将 object 列表导出到外部 struct
     #[inline]
     pub fn base_object_list<
-        Name: Into<BucketName>,
         Q: IntoIterator<Item = (QueryKey, QueryValue)>,
         List,
         Item,
@@ -1290,7 +1282,6 @@ impl ClientRc {
         ItemErr: Error + 'static,
     >(
         &self,
-        name: Name,
         query: Q,
         list: &mut List,
         init_object: F,
@@ -1300,7 +1291,7 @@ impl ClientRc {
         Item: RefineObject<ItemErr>,
         F: FnMut() -> Item,
     {
-        let bucket = BucketBase::new(name.into(), self.get_endpoint().to_owned());
+        let bucket = BucketBase::new(self.bucket.clone(), self.get_endpoint().to_owned());
 
         let query = Query::from_iter(query);
         let (bucket_url, resource) = bucket.get_url_resource(&query);
