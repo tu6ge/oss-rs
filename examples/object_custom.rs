@@ -34,11 +34,9 @@ async fn main() {
 
     let init_object = || MyObject::File(ObjectPathInner::default());
 
-    let _ = client
-        .base_object_list(BucketName::from_env().unwrap(), [], &mut list, init_object)
-        .await;
+    let _ = client.base_object_list([], &mut list, init_object).await;
 
-    let second = list.get_next_base(init_object).await.unwrap();
+    let _second = list.get_next_base(init_object).await.unwrap();
 
     println!("list: {:?}", list.to_vec());
 }

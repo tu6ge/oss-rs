@@ -58,14 +58,7 @@ async fn get_with_client() -> Result<(), ExtractListError> {
     };
     let bucket_name = env::var("ALIYUN_BUCKET").unwrap();
 
-    client
-        .base_object_list(
-            bucket_name.parse::<BucketName>().unwrap(),
-            [],
-            &mut bucket,
-            init_file,
-        )
-        .await?;
+    client.base_object_list([], &mut bucket, init_file).await?;
 
     println!("bucket: {:?}", bucket);
 
