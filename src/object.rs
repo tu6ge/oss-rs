@@ -43,7 +43,7 @@
 //!     let init_object = || MyObject::File(ObjectPath::default());
 //!
 //!     let _ = client
-//!         .base_object_list(BucketName::from_env().unwrap(), [], &mut list, init_object)
+//!         .base_object_list([], &mut list, init_object)
 //!         .await;
 //!     // 第二页数据
 //!     let second = list.get_next_base(init_object).await;
@@ -1148,7 +1148,7 @@ impl Client {
         Item: RefineObject<ItemErr>,
         F: FnMut() -> Item,
     {
-        let bucket = BucketBase::new(self.bucket.clone(), self.get_endpoint().to_owned());
+        let bucket: &BucketBase = self.as_ref();
         let (bucket_url, resource) = bucket.get_url_resource(query);
 
         let response = self.builder(Method::GET, bucket_url, resource)?;
