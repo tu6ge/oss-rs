@@ -61,10 +61,12 @@ fn get_with_xml() -> Result<(), InnerListError> {
     let mut bucket = MyBucket::default();
 
     // 利用闭包对 MyFile 做一下初始化设置
-    let init_file = || MyFile {
-        key: String::default(),
-        other: "abc".to_string(),
-    };
+    fn init_file(_list: &MyBucket) -> MyFile {
+        MyFile {
+            key: String::default(),
+            other: "abc".to_string(),
+        }
+    }
 
     bucket.decode(xml, init_file)?;
 

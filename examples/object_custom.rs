@@ -2,7 +2,7 @@ use aliyun_oss_client::{
     decode::RefineObject,
     object::Objects,
     types::object::{InvalidObjectDir, ObjectDir, ObjectPathInner},
-    BucketName, Client,
+    Client,
 };
 use dotenv::dotenv;
 
@@ -32,7 +32,9 @@ async fn main() {
 
     let mut list = MyList::default();
 
-    let init_object = || MyObject::File(ObjectPathInner::default());
+    fn init_object<'a, 'b>(_list: &'a MyList<'b>) -> MyObject<'b> {
+        MyObject::File(ObjectPathInner::default())
+    }
 
     let _ = client.base_object_list([], &mut list, init_object).await;
 

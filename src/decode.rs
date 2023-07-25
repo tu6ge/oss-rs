@@ -278,9 +278,9 @@ where
 
     /// # 由 xml 转 struct 的底层实现
     /// - `init_object` 用于初始化 object 结构体的方法
-    fn decode<F>(&mut self, xml: &str, mut init_object: F) -> Result<(), InnerListError>
+    fn decode<F>(&mut self, xml: &str, init_object: F) -> Result<(), InnerListError>
     where
-        F: FnMut() -> T,
+        F: for<'a> Fn(&'a Self) -> T,
     {
         //println!("from_xml: {:#}", xml);
         let mut result = Vec::new();
@@ -311,7 +311,7 @@ where
                         }
                         CONTENTS => {
                             // <Contents></Contents> 标签内部的数据对应单个 object 信息
-                            let mut object = init_object();
+                            let mut object = init_object(&self);
                             object.decode(&reader.read_text(e.to_end().name())?)?;
                             result.push(object);
                         }

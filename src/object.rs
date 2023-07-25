@@ -60,7 +60,7 @@ use crate::builder::{ArcPointer, BuilderError, PointerFamily};
 use crate::client::ClientArc;
 #[cfg(feature = "blocking")]
 use crate::client::ClientRc;
-use crate::config::{get_url_resource_with_bucket, BucketBase};
+use crate::config::BucketBase;
 use crate::decode::{InnerListError, ListError, RefineObject, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
@@ -335,9 +335,7 @@ impl ObjectList<ArcPointer> {
                     ..Default::default()
                 };
 
-                list.decode(&response.text().await?, || {
-                    Object::from_bucket(Arc::new(self.bucket.clone()))
-                })?;
+                list.decode(&response.text().await?, init_object_with_list)?;
 
                 list.set_search_query(query);
                 Ok(list)
@@ -388,7 +386,7 @@ impl<Item> ObjectList<ArcPointer, Item> {
     /// 自定义 Item 时，获取下一页数据
     pub async fn get_next_base<F, E>(&self, init_object: F) -> Result<Self, ExtractListError>
     where
-        F: FnMut() -> Item,
+        F: Fn(&Self) -> Item,
         Item: RefineObject<E>,
         E: Error + 'static,
     {
@@ -629,6 +627,10 @@ impl<T: PointerFamily> Object<T> {
     pub fn path_string(&self) -> String {
         self.base.path().to_string()
     }
+}
+
+fn init_object_with_list(list: &ObjectList) -> Object {
+    Object::from_bucket(Arc::new(list.bucket.clone()))
 }
 
 impl Object<ArcPointer> {
@@ -1019,7 +1021,6 @@ impl Client {
         let bucket = BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned());
 
         let (bucket_url, resource) = bucket.get_url_resource(&query);
-        let bucket_arc = Arc::new(bucket.clone());
 
         let mut list = ObjectList::<ArcPointer> {
             object_list: Vec::with_capacity(query.get_max_keys()),
@@ -1030,9 +1031,7 @@ impl Client {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
-        list.decode(&content.text().await?, || {
-            Object::from_bucket(bucket_arc.clone())
-        })?;
+        list.decode(&content.text().await?, init_object_with_list)?;
 
         list.set_client(Arc::new(self.clone()));
         list.set_search_query(query);
@@ -1129,7 +1128,7 @@ impl Client {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: FnMut() -> Item,
+        F: Fn(&List) -> Item,
     {
         let query = Query::from_iter(query);
 
@@ -1146,7 +1145,7 @@ impl Client {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: FnMut() -> Item,
+        F: Fn(&List) -> Item,
     {
         let bucket = self.get_bucket_base();
         let (bucket_url, resource) = bucket.get_url_resource(query);

@@ -1,9 +1,7 @@
-use std::env;
-
 use aliyun_oss_client::{
     decode::{RefineObject, RefineObjectList},
     object::ExtractListError,
-    BucketName, Client, DecodeListError,
+    Client, DecodeListError,
 };
 use dotenv::dotenv;
 use thiserror::Error;
@@ -52,11 +50,12 @@ async fn get_with_client() -> Result<(), ExtractListError> {
     let mut bucket = MyBucket::default();
 
     // 利用闭包对 MyFile 做一下初始化设置
-    let init_file = || MyFile {
-        key: String::default(),
-        other: "abc".to_string(),
-    };
-    let bucket_name = env::var("ALIYUN_BUCKET").unwrap();
+    fn init_file(_list: &MyBucket) -> MyFile {
+        MyFile {
+            key: String::default(),
+            other: "abc".to_string(),
+        }
+    }
 
     client.base_object_list([], &mut bucket, init_file).await?;
 

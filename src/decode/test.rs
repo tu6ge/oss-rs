@@ -161,7 +161,7 @@ mod object_list_xml {
 
         let mut list = ListB {};
 
-        let res = list.decode(xml, || ObjectA {});
+        let res = list.decode(xml, |_| ObjectA {});
 
         assert!(res.is_ok());
     }
@@ -409,7 +409,9 @@ mod object_list_xml {
 
         let mut list = ListB {};
 
-        let init_object = || ObjectA {};
+        fn init_object(_list: &ListB) -> ObjectA {
+            ObjectA {}
+        }
 
         let res = list.decode(xml, init_object);
 
@@ -759,7 +761,7 @@ mod some_tests {
 
         let mut list = ListA {};
 
-        let res = list.decode(xml, || ObjectA {});
+        let res = list.decode(xml, |_| ObjectA {});
 
         assert!(res.is_ok());
     }

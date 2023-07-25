@@ -376,9 +376,10 @@ impl Bucket {
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
-        list.decode(&content.text().await?, || {
-            Object::from_bucket(bucket_arc.clone())
-        })?;
+        fn init_object_with_list(list: &ObjectList) -> Object {
+            Object::from_bucket(Arc::new(list.bucket.clone()))
+        }
+        list.decode(&content.text().await?, init_object_with_list)?;
 
         list.set_search_query(query);
 
