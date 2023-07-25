@@ -407,9 +407,11 @@ impl Bucket<RcPointer> {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text()?, || {
-            Object::<RcPointer>::from_bucket(bucket_arc.clone())
-        })?;
+        fn init_object_with_list(list: &ObjectList<RcPointer>) -> Object<RcPointer> {
+            Object::<RcPointer>::from_bucket(Rc::new(list.bucket.clone()))
+        }
+
+        list.decode(&content.text()?, init_object_with_list)?;
         list.set_search_query(query);
 
         Ok(list)
