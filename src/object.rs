@@ -40,7 +40,9 @@
 //!
 //!     let mut list = MyList::default();
 //!
-//!     let init_object = || MyObject::File(ObjectPath::default());
+//!     fn init_object<'a,>(_list: &'a MyList) -> MyObject {
+//!         MyObject::File(ObjectPath::default())
+//!     }
 //!
 //!     let _ = client
 //!         .base_object_list([], &mut list, init_object)
