@@ -409,7 +409,7 @@ mod object_list_xml {
 
         let mut list = ListB {};
 
-        fn init_object(_list: &ListB) -> ObjectA {
+        fn init_object(_list: &mut ListB) -> ObjectA {
             ObjectA {}
         }
 

@@ -32,7 +32,7 @@ async fn main() {
 
     let mut list = MyList::default();
 
-    fn init_object<'a, 'b>(_list: &'a MyList<'b>) -> MyObject<'b> {
+    fn init_object<'a, 'b>(_list: &'a mut MyList<'b>) -> MyObject<'b> {
         MyObject::File(ObjectPathInner::default())
     }
 

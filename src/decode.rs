@@ -41,7 +41,7 @@
 //!
 //! use aliyun_oss_client::DecodeListError;
 //!
-//! // 自定义的 Error 需要实现这两个 Trait，用于内部解析方法在调用时，统一处理异常
+//! // 自定义的 Error 需要实现这个 Trait，用于内部解析方法在调用时，统一处理异常
 //! #[derive(Debug, Error, DecodeListError)]
 //! #[error("my error")]
 //! struct MyError {}
@@ -71,7 +71,8 @@
 //!     let mut bucket = MyBucket::default();
 //!
 //!     // 利用闭包对 MyFile 做一下初始化设置
-//!     fn init_file<'a>(_list: &'a MyBucket) -> MyFile {
+//!     // 可以根据传入的列表信息，为元素添加更多能力
+//!     fn init_file(_list: &mut MyBucket) -> MyFile {
 //!         MyFile {
 //!             key: String::default(),
 //!             other: "abc".to_string(),
@@ -282,7 +283,7 @@ where
     /// - `init_object` 用于初始化 object 结构体的方法
     fn decode<F>(&mut self, xml: &str, init_object: F) -> Result<(), InnerListError>
     where
-        F: for<'a> Fn(&'a Self) -> T,
+        F: for<'a> Fn(&'a mut Self) -> T,
     {
         //println!("from_xml: {:#}", xml);
         let mut result = Vec::new();
@@ -313,7 +314,7 @@ where
                         }
                         CONTENTS => {
                             // <Contents></Contents> 标签内部的数据对应单个 object 信息
-                            let mut object = init_object(&self);
+                            let mut object = init_object(self);
                             object.decode(&reader.read_text(e.to_end().name())?)?;
                             result.push(object);
                         }

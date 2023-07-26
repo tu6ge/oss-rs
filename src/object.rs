@@ -40,7 +40,9 @@
 //!
 //!     let mut list = MyList::default();
 //!
-//!     fn init_object(_list: &MyList) -> MyObject {
+//!     // 利用闭包对 MyFile 做一下初始化设置
+//!     // 可以根据传入的列表信息，为元素添加更多能力
+//!     fn init_object(_list: &mut MyList) -> MyObject {
 //!         MyObject::File(ObjectPath::default())
 //!     }
 //!
@@ -384,9 +386,9 @@ impl ObjectList<ArcPointer> {
 
 impl<Item> ObjectList<ArcPointer, Item> {
     /// 自定义 Item 时，获取下一页数据
-    pub async fn get_next_base<F, E>(&self, init_object: F) -> Result<Self, ExtractListError>
+    pub async fn get_next_base<F, E>(&mut self, init_object: F) -> Result<Self, ExtractListError>
     where
-        F: Fn(&Self) -> Item,
+        F: Fn(&mut Self) -> Item,
         Item: RefineObject<E>,
         E: Error + 'static,
     {
@@ -627,12 +629,12 @@ impl<T: PointerFamily> Object<T> {
     }
 }
 
-fn init_object_with_list(list: &ObjectList) -> Object {
+fn init_object_with_list(list: &mut ObjectList) -> Object {
     Object::from_bucket(Arc::new(list.bucket.clone()))
 }
 
 #[cfg(feature = "blocking")]
-fn init_object_with_list_rc(list: &ObjectList<RcPointer>) -> Object<RcPointer> {
+fn init_object_with_list_rc(list: &mut ObjectList<RcPointer>) -> Object<RcPointer> {
     Object::<RcPointer>::from_bucket(Rc::new(list.bucket.clone()))
 }
 
@@ -1100,7 +1102,7 @@ impl Client {
     ///     let mut bucket = MyBucket::default();
     ///
     ///     // 利用闭包对 MyFile 做一下初始化设置
-    ///     fn init_file(_list: &MyBucket) -> MyFile {
+    ///     fn init_file(_list: &mut MyBucket) -> MyFile {
     ///         MyFile {
     ///             key: String::default(),
     ///             other: "abc".to_string(),
@@ -1131,7 +1133,7 @@ impl Client {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&List) -> Item,
+        F: Fn(&mut List) -> Item,
     {
         let query = Query::from_iter(query);
 
@@ -1148,7 +1150,7 @@ impl Client {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&List) -> Item,
+        F: Fn(&mut List) -> Item,
     {
         let bucket = self.get_bucket_base();
         let (bucket_url, resource) = bucket.get_url_resource(query);
@@ -1287,7 +1289,7 @@ impl ClientRc {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&List) -> Item,
+        F: Fn(&mut List) -> Item,
     {
         let bucket = BucketBase::new(self.bucket.clone(), self.get_endpoint().to_owned());
 
