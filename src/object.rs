@@ -40,13 +40,11 @@
 //!
 //!     let mut list = MyList::default();
 //!
-//!     fn init_object<'a,>(_list: &'a MyList) -> MyObject {
+//!     fn init_object(_list: &MyList) -> MyObject {
 //!         MyObject::File(ObjectPath::default())
 //!     }
 //!
-//!     let _ = client
-//!         .base_object_list([], &mut list, init_object)
-//!         .await;
+//!     let _ = client.base_object_list([], &mut list, init_object).await;
 //!     // 第二页数据
 //!     let second = list.get_next_base(init_object).await;
 //!
@@ -1109,9 +1107,7 @@ impl Client {
     ///         }
     ///     }
     ///
-    ///     client
-    ///         .base_object_list([], &mut bucket, init_file)
-    ///         .await?;
+    ///     client.base_object_list([], &mut bucket, init_file).await?;
     ///
     ///     println!("bucket: {:?}", bucket);
     ///
