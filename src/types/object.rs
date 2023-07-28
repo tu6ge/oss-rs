@@ -253,7 +253,7 @@ impl std::error::Error for InvalidObjectPath {}
 
 impl From<Infallible> for InvalidObjectPath {
     fn from(_: Infallible) -> Self {
-        Self::new()
+        Self { _priv: () }
     }
 }
 
