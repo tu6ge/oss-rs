@@ -407,8 +407,12 @@ impl Bucket<RcPointer> {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        fn init_object_with_list(list: &mut ObjectList<RcPointer>) -> Object<RcPointer> {
-            Object::<RcPointer>::from_bucket(Rc::new(list.bucket.clone()))
+        fn init_object_with_list(
+            list: &mut ObjectList<RcPointer>,
+        ) -> Result<Object<RcPointer>, std::io::Error> {
+            Ok(Object::<RcPointer>::from_bucket(Rc::new(
+                list.bucket.clone(),
+            )))
         }
 
         list.decode(&content.text()?, init_object_with_list)?;
