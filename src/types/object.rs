@@ -215,7 +215,7 @@ impl TryFrom<&[u8]> for ObjectPathInner<'_> {
         use std::str;
 
         str::from_utf8(value)
-            .map_err(|_| InvalidObjectPath::new())
+            .map_err(|_| InvalidObjectPath { _priv: () })
             .and_then(|s| s.parse())
     }
 }
