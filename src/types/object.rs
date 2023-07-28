@@ -4,6 +4,7 @@ use url::Url;
 
 use std::{
     borrow::Cow,
+    convert::Infallible,
     fmt::{self, Debug, Display},
     ops::{Add, AddAssign},
     path::Path,
@@ -154,6 +155,25 @@ impl TryFrom<String> for ObjectPathInner<'_> {
     }
 }
 
+impl TryFrom<&String> for ObjectPathInner<'_> {
+    type Error = InvalidObjectPath;
+    /// ```
+    /// # use aliyun_oss_client::types::object::ObjectPath;
+    /// let path: ObjectPath = String::from("abc").try_into().unwrap();
+    /// assert!(path == "abc");
+    /// ```
+    fn try_from(val: &String) -> Result<Self, Self::Error> {
+        Self::new(val.to_owned())
+    }
+}
+
+impl TryFrom<Box<String>> for ObjectPathInner<'_> {
+    type Error = InvalidObjectPath;
+    fn try_from(val: Box<String>) -> Result<Self, Self::Error> {
+        Self::new(*val)
+    }
+}
+
 impl<'a: 'b, 'b> TryFrom<&'a str> for ObjectPathInner<'b> {
     type Error = InvalidObjectPath;
     fn try_from(val: &'a str) -> Result<Self, Self::Error> {
@@ -189,6 +209,17 @@ impl FromStr for ObjectPathInner<'_> {
     }
 }
 
+impl TryFrom<&[u8]> for ObjectPathInner<'_> {
+    type Error = InvalidObjectPath;
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        use std::str;
+
+        str::from_utf8(value)
+            .map_err(|_| InvalidObjectPath::new())
+            .and_then(|s| s.parse())
+    }
+}
+
 impl TryFrom<&Path> for ObjectPathInner<'_> {
     type Error = InvalidObjectPath;
     fn try_from(value: &Path) -> Result<Self, Self::Error> {
@@ -219,6 +250,12 @@ impl Debug for InvalidObjectPath {
 }
 
 impl std::error::Error for InvalidObjectPath {}
+
+impl From<Infallible> for InvalidObjectPath {
+    fn from(_: Infallible) -> Self {
+        Self::new()
+    }
+}
 
 /// 将 object 的路径拼接到 Url 上去
 pub trait SetObjectPath {
