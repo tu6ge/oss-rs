@@ -376,8 +376,8 @@ impl Bucket {
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
-        fn init_object_with_list(list: &mut ObjectList) -> Object {
-            Object::from_bucket(Arc::new(list.bucket.clone()))
+        fn init_object_with_list(list: &mut ObjectList) -> Result<Object, std::io::Error> {
+            Ok(Object::from_bucket(Arc::new(list.bucket.clone())))
         }
         list.decode(&content.text().await?, init_object_with_list)?;
 

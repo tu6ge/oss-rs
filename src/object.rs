@@ -316,6 +316,7 @@ impl<Item> ObjectList<ArcPointer, Item> {
 
 impl ObjectList<ArcPointer> {
     /// 异步获取下一页的数据
+    /// TODO 改为 unstable
     pub async fn get_next_list(&self) -> Result<ObjectList<ArcPointer>, ExtractListError> {
         match self.next_query() {
             None => Err(ExtractListError {
@@ -390,12 +391,13 @@ impl<Item> ObjectList<ArcPointer, Item> {
     /// # 自定义 Item 时，获取下一页数据
     /// 当没有下一页查询条件时 返回 `None`
     /// 否则尝试获取下一页数据，成功返回 `Some(Ok(_))`, 失败返回 `Some(Err(_))`
-    pub async fn get_next_base<F, E>(
+    pub async fn get_next_base<F, E, FnErr>(
         &mut self,
         init_object: F,
     ) -> Option<Result<Self, ExtractListError>>
     where
-        F: Fn(&mut Self) -> Item,
+        FnErr: Error + 'static,
+        F: Fn(&mut Objects<Item>) -> Result<Item, FnErr>,
         Item: RefineObject<E>,
         E: Error + 'static,
     {
@@ -634,13 +636,17 @@ impl<T: PointerFamily> Object<T> {
     }
 }
 
-fn init_object_with_list(list: &mut ObjectList) -> Object {
-    Object::from_bucket(Arc::new(list.bucket.clone()))
+fn init_object_with_list(list: &mut ObjectList) -> Result<Object, std::io::Error> {
+    Ok(Object::from_bucket(Arc::new(list.bucket.clone())))
 }
 
 #[cfg(feature = "blocking")]
-fn init_object_with_list_rc(list: &mut ObjectList<RcPointer>) -> Object<RcPointer> {
-    Object::<RcPointer>::from_bucket(Rc::new(list.bucket.clone()))
+fn init_object_with_list_rc(
+    list: &mut ObjectList<RcPointer>,
+) -> Result<Object<RcPointer>, std::io::Error> {
+    Ok(Object::<RcPointer>::from_bucket(Rc::new(
+        list.bucket.clone(),
+    )))
 }
 
 impl Object<ArcPointer> {
@@ -1129,6 +1135,7 @@ impl Client {
         F,
         E: ListError,
         ItemErr: Error + 'static,
+        FnErr,
     >(
         &self,
         query: Q,
@@ -1138,7 +1145,8 @@ impl Client {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&mut List) -> Item,
+        FnErr: Error + 'static,
+        F: Fn(&mut List) -> Result<Item, FnErr>,
     {
         let query = Query::from_iter(query);
 
@@ -1146,7 +1154,7 @@ impl Client {
     }
 
     /// # 可将 object 列表导出到外部类型（关注性能）
-    pub async fn base_object_list2<List, Item, F, E: ListError, ItemErr: Error + 'static>(
+    pub async fn base_object_list2<List, Item, F, E: ListError, ItemErr: Error + 'static, FnErr>(
         &self,
         query: &Query,
         list: &mut List,
@@ -1155,7 +1163,8 @@ impl Client {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&mut List) -> Item,
+        FnErr: Error + 'static,
+        F: Fn(&mut List) -> Result<Item, FnErr>,
     {
         let bucket = self.get_bucket_base();
         let (bucket_url, resource) = bucket.get_url_resource(query);
@@ -1172,7 +1181,7 @@ impl Client {
     /// 其包含在 [`ObjectList`] 对象中
     ///
     /// [`ObjectList`]: crate::object::ObjectList
-    pub async fn get_custom_object<Item, F, ItemErr>(
+    pub async fn get_custom_object<Item, F, ItemErr, FnErr>(
         &self,
         query: &Query,
         init_object: F,
@@ -1180,7 +1189,8 @@ impl Client {
     where
         Item: RefineObject<ItemErr>,
         ItemErr: Error + 'static,
-        F: Fn(&mut Objects<Item>) -> Item,
+        FnErr: Error + 'static,
+        F: Fn(&mut Objects<Item>) -> Result<Item, FnErr>,
     {
         let mut list = Objects::<Item>::default();
 
@@ -1314,6 +1324,7 @@ impl ClientRc {
         F,
         E: ListError,
         ItemErr: Error + 'static,
+        FnErr,
     >(
         &self,
         query: Q,
@@ -1323,7 +1334,8 @@ impl ClientRc {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&mut List) -> Item,
+        FnErr: Error + 'static,
+        F: Fn(&mut List) -> Result<Item, FnErr>,
     {
         let bucket = BucketBase::new(self.bucket.clone(), self.get_endpoint().to_owned());
 

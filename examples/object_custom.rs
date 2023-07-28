@@ -32,8 +32,8 @@ async fn main() {
 
     let mut list = MyList::default();
 
-    fn init_object<'a, 'b>(_list: &'a mut MyList<'b>) -> MyObject<'b> {
-        MyObject::File(ObjectPathInner::default())
+    fn init_object<'a, 'b>(_list: &'a mut MyList<'b>) -> Result<MyObject<'b>, InvalidObjectDir> {
+        Ok(MyObject::File(ObjectPathInner::default()))
     }
 
     let _ = client.base_object_list([], &mut list, init_object).await;

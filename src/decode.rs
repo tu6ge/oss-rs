@@ -281,9 +281,13 @@ where
 
     /// # 由 xml 转 struct 的底层实现
     /// - `init_object` 用于初始化 object 结构体的方法
-    fn decode<F>(&mut self, xml: &str, init_object: F) -> Result<(), InnerListError>
+    fn decode<F, E: StdError + 'static>(
+        &mut self,
+        xml: &str,
+        init_object: F,
+    ) -> Result<(), InnerListError>
     where
-        F: for<'a> Fn(&'a mut Self) -> T,
+        F: for<'a> Fn(&'a mut Self) -> Result<T, E>,
     {
         //println!("from_xml: {:#}", xml);
         let mut result = Vec::new();
@@ -314,7 +318,7 @@ where
                         }
                         CONTENTS => {
                             // <Contents></Contents> 标签内部的数据对应单个 object 信息
-                            let mut object = init_object(self);
+                            let mut object = init_object(self).map_err(InnerListError::custom)?;
                             object.decode(&reader.read_text(e.to_end().name())?)?;
                             result.push(object);
                         }
@@ -596,6 +600,12 @@ impl InnerListError {
     pub(crate) fn from_xml() -> Self {
         Self {
             kind: ListErrorKind::Xml(Box::new(quick_xml::Error::TextNotFound)),
+        }
+    }
+
+    fn custom<E: StdError + 'static>(err: E) -> Self {
+        Self {
+            kind: ListErrorKind::Custom(Box::new(err)),
         }
     }
 
