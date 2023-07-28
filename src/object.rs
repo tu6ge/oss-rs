@@ -93,6 +93,8 @@ use std::{
     vec::IntoIter,
 };
 
+// pub mod content;
+
 #[cfg(test)]
 mod test;
 
@@ -385,25 +387,28 @@ impl ObjectList<ArcPointer> {
 }
 
 impl<Item> ObjectList<ArcPointer, Item> {
-    /// 自定义 Item 时，获取下一页数据
-    pub async fn get_next_base<F, E>(&mut self, init_object: F) -> Result<Self, ExtractListError>
+    /// # 自定义 Item 时，获取下一页数据
+    /// 当没有下一页查询条件时 返回 `None`
+    /// 否则尝试获取下一页数据，成功返回 `Some(Ok(_))`, 失败返回 `Some(Err(_))`
+    pub async fn get_next_base<F, E>(
+        &mut self,
+        init_object: F,
+    ) -> Option<Result<Self, ExtractListError>>
     where
         F: Fn(&mut Self) -> Item,
         Item: RefineObject<E>,
         E: Error + 'static,
     {
         match self.next_query() {
-            None => Err(ExtractListError {
-                kind: ExtractListErrorKind::NoMoreFile,
-            }),
+            None => None,
             Some(query) => {
                 let mut list = self.clone_base();
                 list.search_query = query.clone();
-                self.client()
+                let res = self
+                    .client()
                     .base_object_list(query, &mut list, init_object)
-                    .await?;
-
-                Ok(list)
+                    .await;
+                Some(res.map(|_| list))
             }
         }
     }
@@ -1162,6 +1167,28 @@ impl Client {
 
         Ok(())
     }
+
+    /// # 获取包含自定义类型的 object 集合
+    /// 其包含在 [`ObjectList`] 对象中
+    ///
+    /// [`ObjectList`]: crate::object::ObjectList
+    pub async fn get_custom_object<Item, F, ItemErr>(
+        &self,
+        query: &Query,
+        init_object: F,
+    ) -> Result<Objects<Item>, ExtractListError>
+    where
+        Item: RefineObject<ItemErr>,
+        ItemErr: Error + 'static,
+        F: Fn(&mut Objects<Item>) -> Item,
+    {
+        let mut list = Objects::<Item>::default();
+
+        self.base_object_list2(query, &mut list, init_object)
+            .await?;
+
+        Ok(list)
+    }
 }
 
 /// 为 [`base_object_list`] 方法，返回一个统一的 Error
@@ -1171,6 +1198,13 @@ impl Client {
 #[non_exhaustive]
 pub struct ExtractListError {
     pub(crate) kind: ExtractListErrorKind,
+}
+
+impl ExtractListError {
+    /// 判断 Error 类型是否为 "没有更多信息"
+    pub fn is_no_more(&self) -> bool {
+        matches!(self.kind, ExtractListErrorKind::NoMoreFile)
+    }
 }
 
 /// [`ExtractListError`] 类型的枚举

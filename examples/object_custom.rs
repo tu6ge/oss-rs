@@ -38,7 +38,7 @@ async fn main() {
 
     let _ = client.base_object_list([], &mut list, init_object).await;
 
-    let _second = list.get_next_base(init_object).await.unwrap();
+    let _second = list.get_next_base(init_object).await;
 
     println!("list: {:?}", list.to_vec());
 }
