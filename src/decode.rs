@@ -72,11 +72,11 @@
 //!
 //!     // 利用闭包对 MyFile 做一下初始化设置
 //!     // 可以根据传入的列表信息，为元素添加更多能力
-//!     fn init_file(_list: &mut MyBucket) -> MyFile {
-//!         MyFile {
+//!     fn init_file(_list: &mut MyBucket) -> std::io::Result<MyFile> {
+//!         Ok(MyFile {
 //!             key: String::default(),
 //!             other: "abc".to_string(),
-//!         }
+//!         })
 //!     }
 //!
 //!     bucket.decode(xml, init_file)?;

@@ -42,8 +42,8 @@
 //!
 //!     // 利用闭包对 MyFile 做一下初始化设置
 //!     // 可以根据传入的列表信息，为元素添加更多能力
-//!     fn init_object(_list: &mut MyList) -> MyObject {
-//!         MyObject::File(ObjectPath::default())
+//!     fn init_object(_list: &mut MyList) -> std::io::Result<MyObject> {
+//!         Ok(MyObject::File(ObjectPath::default()))
 //!     }
 //!
 //!     let _ = client.base_object_list([], &mut list, init_object).await;
@@ -1113,11 +1113,11 @@ impl Client {
     ///     let mut bucket = MyBucket::default();
     ///
     ///     // 利用闭包对 MyFile 做一下初始化设置
-    ///     fn init_file(_list: &mut MyBucket) -> MyFile {
-    ///         MyFile {
+    ///     fn init_file(_list: &mut MyBucket) -> std::io::Result<MyFile> {
+    ///         Ok(MyFile {
     ///             key: String::default(),
     ///             other: "abc".to_string(),
-    ///         }
+    ///         })
     ///     }
     ///
     ///     client.base_object_list([], &mut bucket, init_file).await?;
