@@ -1113,7 +1113,7 @@ impl Client {
     ///     let mut bucket = MyBucket::default();
     ///
     ///     // 利用闭包对 MyFile 做一下初始化设置
-    ///     fn init_file(_list: &mut MyBucket) -> std::io::Result<MyFile> {
+    ///     fn init_file(_list: &mut MyBucket) -> Result<MyFile, MyError> {
     ///         Ok(MyFile {
     ///             key: String::default(),
     ///             other: "abc".to_string(),
@@ -1320,7 +1320,6 @@ impl ClientRc {
         F,
         E: ListError,
         ItemErr: Error + 'static,
-        FnErr,
     >(
         &self,
         query: Q,
@@ -1330,8 +1329,7 @@ impl ClientRc {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        FnErr: Error + 'static,
-        F: Fn(&mut List) -> Result<Item, FnErr>,
+        F: Fn(&mut List) -> Result<Item, ItemErr>,
     {
         let bucket = BucketBase::new(self.bucket.clone(), self.get_endpoint().to_owned());
 
