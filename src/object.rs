@@ -1112,8 +1112,8 @@ impl Client {
     ///     let mut bucket = MyBucket::default();
     ///
     ///     // 利用闭包对 MyFile 做一下初始化设置
-    ///     fn init_file(_list: &mut MyBucket) -> Result<MyFile, MyError> {
-    ///         Ok(MyFile {
+    ///     fn init_file(_list: &mut MyBucket) -> Option<MyFile> {
+    ///         Some(MyFile {
     ///             key: String::default(),
     ///             other: "abc".to_string(),
     ///         })
