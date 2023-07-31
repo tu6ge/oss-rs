@@ -6,9 +6,12 @@ use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Body, IntoUrl,
 };
-use std::error::Error;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
+use std::{
+    error::Error,
+    io::{self, ErrorKind},
+};
 use std::{fmt::Display, sync::Arc, time::Duration};
 
 use crate::auth::AuthError;
@@ -247,6 +250,30 @@ impl From<InvalidConfig> for BuilderError {
         Self {
             kind: BuilderErrorKind::Config(Box::new(value)),
         }
+    }
+}
+
+impl From<BuilderError> for io::Error {
+    fn from(BuilderError { kind }: BuilderError) -> Self {
+        let kind = match kind {
+            BuilderErrorKind::Reqwest(req) => reqwest_to_io(*req),
+            BuilderErrorKind::OssService(e) => return Self::from(*e),
+            BuilderErrorKind::Auth(_) => ErrorKind::PermissionDenied,
+            BuilderErrorKind::Config(_) => ErrorKind::InvalidInput,
+            #[cfg(test)]
+            BuilderErrorKind::Bar => unreachable!("only used in tests"),
+        };
+        kind.into()
+    }
+}
+
+pub(crate) fn reqwest_to_io(req: reqwest::Error) -> ErrorKind {
+    if req.is_timeout() {
+        ErrorKind::TimedOut
+    } else if req.is_connect() {
+        ErrorKind::ConnectionAborted
+    } else {
+        ErrorKind::Other
     }
 }
 

@@ -65,7 +65,7 @@ default = [
 core = [
   "reqwest",
   "async-trait",
-  #"futures",
+  "futures",
   "futures-core",
   "async-stream",
   "thiserror",
@@ -86,6 +86,7 @@ async-stream = {version = "^0.3", optional = true}
 async-trait = {version = "^0.1", optional = true}
 base64 = {version = "^0.21"}
 chrono = {version = "^0.4"}
+futures = {version = "^0.3", optional = true}
 futures-core = {version = "^0.3", optional = true}
 hmac = {version = "^0.12"}
 http= {version = "^0.2"}

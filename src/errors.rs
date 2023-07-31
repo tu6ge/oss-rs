@@ -262,6 +262,20 @@ impl<'a> OssService {
     }
 }
 
+impl From<OssService> for std::io::Error {
+    fn from(OssService { status, .. }: OssService) -> Self {
+        use std::io::ErrorKind;
+        let kind = if status.is_client_error() {
+            ErrorKind::PermissionDenied
+        } else if status.is_server_error() {
+            ErrorKind::ConnectionReset
+        } else {
+            ErrorKind::ConnectionAborted
+        };
+        kind.into()
+    }
+}
+
 /// 内置的 Result
 pub type OssResult<T> = Result<T, OssError>;
 

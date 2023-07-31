@@ -356,6 +356,8 @@ pub mod std_path_impl {
     /// 文件路径可以是实现 [`GetStd`] 特征的类型
     ///
     /// [`GetStd`]: crate::file::GetStd
+    ///
+    /// TODO remove Send + Sync
     impl<Item: RefineObject<BuildInItemError> + Send + Sync, U: GetStd> GetStdWithPath<U>
         for ObjectList<ArcPointer, Item>
     {
@@ -365,6 +367,9 @@ pub mod std_path_impl {
         }
     }
 }
+
+/// 默认 content-type
+pub const DEFAULT_CONTENT_TYPE: &'static str = "application/octet-stream";
 
 /// # 文件集合的相关操作
 /// 在对文件执行相关操作的时候，需要指定文件路径
@@ -383,7 +388,7 @@ where
 {
     /// # 默认的文件类型
     /// 在上传文件时，如果找不到合适的 mime 类型，可以使用
-    const DEFAULT_CONTENT_TYPE: &'static str = "application/octet-stream";
+    const DEFAULT_CONTENT_TYPE: &'static str = DEFAULT_CONTENT_TYPE;
 
     /// # 上传文件到 OSS
     ///
@@ -575,11 +580,11 @@ impl FileError {
 
 /// 文件模块的 Error 实现方法
 mod error_impl {
-    use std::{error::Error, fmt::Display};
+    use std::{error::Error, fmt::Display, io::ErrorKind};
 
     use http::header::InvalidHeaderValue;
 
-    use crate::builder::BuilderError;
+    use crate::builder::{reqwest_to_io, BuilderError};
 
     use super::FileError;
 
@@ -641,6 +646,29 @@ mod error_impl {
             Self {
                 kind: FileErrorKind::Reqwest(value),
             }
+        }
+    }
+
+    impl From<FileError> for std::io::Error {
+        fn from(FileError { kind }: FileError) -> Self {
+            kind.into()
+        }
+    }
+
+    impl From<FileErrorKind> for std::io::Error {
+        fn from(value: FileErrorKind) -> Self {
+            let kind = match value {
+                #[cfg(feature = "put_file")]
+                FileErrorKind::FileRead(e) => return e,
+                FileErrorKind::InvalidContentLength(_) => ErrorKind::InvalidData,
+                FileErrorKind::InvalidContentType(_) => ErrorKind::InvalidData,
+                FileErrorKind::Build(e) => return e.into(),
+                FileErrorKind::Reqwest(e) => reqwest_to_io(e),
+                FileErrorKind::EtagNotFound => ErrorKind::Interrupted,
+                FileErrorKind::InvalidEtag(_) => ErrorKind::Interrupted,
+                FileErrorKind::NotFoundCanonicalizedResource => ErrorKind::InvalidData,
+            };
+            kind.into()
         }
     }
 }
@@ -736,7 +764,7 @@ pub mod blocking {
     pub trait Files<Path>: AlignBuilder + GetStdWithPath<Path> {
         /// # 默认的文件类型
         /// 在上传文件时，如果找不到合适的 mime 类型，可以使用
-        const DEFAULT_CONTENT_TYPE: &'static str = "application/octet-stream";
+        const DEFAULT_CONTENT_TYPE: &'static str = super::DEFAULT_CONTENT_TYPE;
 
         /// # 上传文件到 OSS
         ///
