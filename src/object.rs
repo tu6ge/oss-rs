@@ -1328,7 +1328,7 @@ impl ClientRc {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&mut List) -> Result<Item, ItemErr>,
+        F: Fn(&mut List) -> Option<Item>,
     {
         let bucket = BucketBase::new(self.bucket.clone(), self.get_endpoint().to_owned());
 

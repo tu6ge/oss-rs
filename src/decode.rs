@@ -587,7 +587,7 @@ impl Display for InnerListError {
             Item(item) => write!(fmt, "{}", item.0),
             Xml(xml) => write!(fmt, "{xml}"),
             Custom(out) => write!(fmt, "{out}"),
-            InitItemFailed => write!(fmt, "init item failed"),
+            InitItemFailed => write!(fmt, "init_object failed"),
         }
     }
 }
