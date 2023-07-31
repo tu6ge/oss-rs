@@ -42,8 +42,8 @@
 //!
 //!     // 利用闭包对 MyFile 做一下初始化设置
 //!     // 可以根据传入的列表信息，为元素添加更多能力
-//!     fn init_object(_list: &mut MyList) -> Result<MyObject, InvalidObjectDir> {
-//!         Ok(MyObject::File(ObjectPath::default()))
+//!     fn init_object(_list: &mut MyList) -> Option<MyObject> {
+//!         Some(MyObject::File(ObjectPath::default()))
 //!     }
 //!
 //!     let _ = client.base_object_list([], &mut list, init_object).await;
@@ -83,7 +83,6 @@ use http::Method;
 use oss_derive::oss_gen_rc;
 use url::Url;
 
-use std::convert::Infallible;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::{
@@ -164,6 +163,7 @@ impl<P: PointerFamily, Item> Default for ObjectList<P, Item> {
             common_prefixes: CommonPrefixes::default(),
             client: P::PointerType::default(),
             search_query: Query::default(),
+            //init_fn: Box::default(),
         }
     }
 }
@@ -215,6 +215,7 @@ impl<T: PointerFamily, Item> ObjectList<T, Item> {
             common_prefixes: CommonPrefixes::default(),
             client,
             search_query: Query::from_iter(search_query),
+            //init_fn: Box::default(),
         }
     }
 
@@ -397,7 +398,7 @@ impl<Item> ObjectList<ArcPointer, Item> {
         init_object: F,
     ) -> Option<Result<Self, ExtractListError>>
     where
-        F: Fn(&mut Objects<Item>) -> Result<Item, E>,
+        F: Fn(&mut Objects<Item>) -> Option<Item>,
         Item: RefineObject<E>,
         E: Error + 'static,
     {
@@ -636,15 +637,13 @@ impl<T: PointerFamily> Object<T> {
     }
 }
 
-fn init_object_with_list(list: &mut ObjectList) -> Result<Object, Infallible> {
-    Ok(Object::from_bucket(Arc::new(list.bucket.clone())))
+fn init_object_with_list(list: &mut ObjectList) -> Option<Object> {
+    Some(Object::from_bucket(Arc::new(list.bucket.clone())))
 }
 
 #[cfg(feature = "blocking")]
-fn init_object_with_list_rc(
-    list: &mut ObjectList<RcPointer>,
-) -> Result<Object<RcPointer>, Infallible> {
-    Ok(Object::<RcPointer>::from_bucket(Rc::new(
+fn init_object_with_list_rc(list: &mut ObjectList<RcPointer>) -> Option<Object<RcPointer>> {
+    Some(Object::<RcPointer>::from_bucket(Rc::new(
         list.bucket.clone(),
     )))
 }
@@ -1144,7 +1143,7 @@ impl Client {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&mut List) -> Result<Item, ItemErr>,
+        F: Fn(&mut List) -> Option<Item>,
     {
         let query = Query::from_iter(query);
 
@@ -1161,7 +1160,7 @@ impl Client {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&mut List) -> Result<Item, ItemErr>,
+        F: Fn(&mut List) -> Option<Item>,
     {
         let bucket = self.get_bucket_base();
         let (bucket_url, resource) = bucket.get_url_resource(query);
@@ -1186,7 +1185,7 @@ impl Client {
     where
         Item: RefineObject<ItemErr>,
         ItemErr: Error + 'static,
-        F: Fn(&mut Objects<Item>) -> Result<Item, ItemErr>,
+        F: Fn(&mut Objects<Item>) -> Option<Item>,
     {
         let mut list = Objects::<Item>::default();
 

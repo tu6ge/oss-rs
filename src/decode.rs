@@ -72,8 +72,8 @@
 //!
 //!     // 利用闭包对 MyFile 做一下初始化设置
 //!     // 可以根据传入的列表信息，为元素添加更多能力
-//!     fn init_file(_list: &mut MyBucket) -> std::io::Result<MyFile> {
-//!         Ok(MyFile {
+//!     fn init_file(_list: &mut MyBucket) -> Option<MyFile> {
+//!         Some(MyFile {
 //!             key: String::default(),
 //!             other: "abc".to_string(),
 //!         })
@@ -281,13 +281,9 @@ where
 
     /// # 由 xml 转 struct 的底层实现
     /// - `init_object` 用于初始化 object 结构体的方法
-    fn decode<F, E: StdError + 'static>(
-        &mut self,
-        xml: &str,
-        init_object: F,
-    ) -> Result<(), InnerListError>
+    fn decode<F>(&mut self, xml: &str, init_object: F) -> Result<(), InnerListError>
     where
-        F: for<'a> Fn(&'a mut Self) -> Result<T, E>,
+        F: for<'a> Fn(&'a mut Self) -> Option<T>,
     {
         //println!("from_xml: {:#}", xml);
         let mut result = Vec::new();
@@ -318,7 +314,8 @@ where
                         }
                         CONTENTS => {
                             // <Contents></Contents> 标签内部的数据对应单个 object 信息
-                            let mut object = init_object(self).map_err(InnerListError::custom)?;
+                            let mut object =
+                                init_object(self).ok_or(InnerListError::init_error())?;
                             object.decode(&reader.read_text(e.to_end().name())?)?;
                             result.push(object);
                         }
@@ -590,6 +587,7 @@ impl Display for InnerListError {
             Item(item) => write!(fmt, "{}", item.0),
             Xml(xml) => write!(fmt, "{xml}"),
             Custom(out) => write!(fmt, "{out}"),
+            InitItemFailed => write!(fmt, "init item failed"),
         }
     }
 }
@@ -606,6 +604,12 @@ impl InnerListError {
     fn custom<E: StdError + 'static>(err: E) -> Self {
         Self {
             kind: ListErrorKind::Custom(Box::new(err)),
+        }
+    }
+
+    fn init_error() -> Self {
+        Self {
+            kind: ListErrorKind::InitItemFailed,
         }
     }
 
@@ -632,6 +636,7 @@ impl InnerListError {
             Item(item) => item.get_source(),
             Xml(xml) => Some(xml),
             Custom(out) => Some(out.as_ref()),
+            InitItemFailed => None,
         }
     }
 }
@@ -664,4 +669,6 @@ enum ListErrorKind {
 
     #[non_exhaustive]
     Custom(Box<dyn StdError + 'static>),
+
+    InitItemFailed,
 }

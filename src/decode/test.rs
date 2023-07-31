@@ -161,9 +161,7 @@ mod object_list_xml {
 
         let mut list = ListB {};
 
-        let res = list.decode(xml, |_| -> Result<ObjectA, std::io::Error> {
-            Ok(ObjectA {})
-        });
+        let res = list.decode(xml, |_| -> Option<ObjectA> { Some(ObjectA {}) });
 
         assert!(res.is_ok());
     }
@@ -411,8 +409,8 @@ mod object_list_xml {
 
         let mut list = ListB {};
 
-        fn init_object(_list: &mut ListB) -> std::io::Result<ObjectA> {
-            Ok(ObjectA {})
+        fn init_object(_list: &mut ListB) -> Option<ObjectA> {
+            Some(ObjectA {})
         }
 
         let res = list.decode(xml, init_object);
@@ -763,9 +761,7 @@ mod some_tests {
 
         let mut list = ListA {};
 
-        let res = list.decode(xml, |_| -> Result<ObjectA, std::io::Error> {
-            Ok(ObjectA {})
-        });
+        let res = list.decode(xml, |_| -> Option<ObjectA> { Some(ObjectA {}) });
 
         assert!(res.is_ok());
     }
