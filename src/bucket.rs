@@ -22,6 +22,7 @@ use crate::{BucketName, EndPoint};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use http::Method;
 use oss_derive::oss_gen_rc;
+use std::convert::Infallible;
 use std::error::Error;
 use std::fmt::{self, Display};
 use std::num::ParseIntError;
@@ -376,7 +377,7 @@ impl Bucket {
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
-        fn init_object_with_list(list: &mut ObjectList) -> Result<Object, std::io::Error> {
+        fn init_object_with_list(list: &mut ObjectList) -> Result<Object, Infallible> {
             Ok(Object::from_bucket(Arc::new(list.bucket.clone())))
         }
         list.decode(&content.text().await?, init_object_with_list)?;
@@ -409,7 +410,7 @@ impl Bucket<RcPointer> {
 
         fn init_object_with_list(
             list: &mut ObjectList<RcPointer>,
-        ) -> Result<Object<RcPointer>, std::io::Error> {
+        ) -> Result<Object<RcPointer>, Infallible> {
             Ok(Object::<RcPointer>::from_bucket(Rc::new(
                 list.bucket.clone(),
             )))

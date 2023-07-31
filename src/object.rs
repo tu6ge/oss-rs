@@ -42,7 +42,7 @@
 //!
 //!     // 利用闭包对 MyFile 做一下初始化设置
 //!     // 可以根据传入的列表信息，为元素添加更多能力
-//!     fn init_object(_list: &mut MyList) -> std::io::Result<MyObject> {
+//!     fn init_object(_list: &mut MyList) -> Result<MyObject, InvalidObjectDir> {
 //!         Ok(MyObject::File(ObjectPath::default()))
 //!     }
 //!
@@ -83,6 +83,7 @@ use http::Method;
 use oss_derive::oss_gen_rc;
 use url::Url;
 
+use std::convert::Infallible;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::{
@@ -391,13 +392,12 @@ impl<Item> ObjectList<ArcPointer, Item> {
     /// # 自定义 Item 时，获取下一页数据
     /// 当没有下一页查询条件时 返回 `None`
     /// 否则尝试获取下一页数据，成功返回 `Some(Ok(_))`, 失败返回 `Some(Err(_))`
-    pub async fn get_next_base<F, E, FnErr>(
+    pub async fn get_next_base<F, E>(
         &mut self,
         init_object: F,
     ) -> Option<Result<Self, ExtractListError>>
     where
-        FnErr: Error + 'static,
-        F: Fn(&mut Objects<Item>) -> Result<Item, FnErr>,
+        F: Fn(&mut Objects<Item>) -> Result<Item, E>,
         Item: RefineObject<E>,
         E: Error + 'static,
     {
@@ -636,14 +636,14 @@ impl<T: PointerFamily> Object<T> {
     }
 }
 
-fn init_object_with_list(list: &mut ObjectList) -> Result<Object, std::io::Error> {
+fn init_object_with_list(list: &mut ObjectList) -> Result<Object, Infallible> {
     Ok(Object::from_bucket(Arc::new(list.bucket.clone())))
 }
 
 #[cfg(feature = "blocking")]
 fn init_object_with_list_rc(
     list: &mut ObjectList<RcPointer>,
-) -> Result<Object<RcPointer>, std::io::Error> {
+) -> Result<Object<RcPointer>, Infallible> {
     Ok(Object::<RcPointer>::from_bucket(Rc::new(
         list.bucket.clone(),
     )))
@@ -1135,7 +1135,6 @@ impl Client {
         F,
         E: ListError,
         ItemErr: Error + 'static,
-        FnErr,
     >(
         &self,
         query: Q,
@@ -1145,8 +1144,7 @@ impl Client {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        FnErr: Error + 'static,
-        F: Fn(&mut List) -> Result<Item, FnErr>,
+        F: Fn(&mut List) -> Result<Item, ItemErr>,
     {
         let query = Query::from_iter(query);
 
@@ -1154,7 +1152,7 @@ impl Client {
     }
 
     /// # 可将 object 列表导出到外部类型（关注性能）
-    pub async fn base_object_list2<List, Item, F, E: ListError, ItemErr: Error + 'static, FnErr>(
+    pub async fn base_object_list2<List, Item, F, E: ListError, ItemErr: Error + 'static>(
         &self,
         query: &Query,
         list: &mut List,
@@ -1163,8 +1161,7 @@ impl Client {
     where
         List: RefineObjectList<Item, E, ItemErr>,
         Item: RefineObject<ItemErr>,
-        FnErr: Error + 'static,
-        F: Fn(&mut List) -> Result<Item, FnErr>,
+        F: Fn(&mut List) -> Result<Item, ItemErr>,
     {
         let bucket = self.get_bucket_base();
         let (bucket_url, resource) = bucket.get_url_resource(query);
@@ -1181,7 +1178,7 @@ impl Client {
     /// 其包含在 [`ObjectList`] 对象中
     ///
     /// [`ObjectList`]: crate::object::ObjectList
-    pub async fn get_custom_object<Item, F, ItemErr, FnErr>(
+    pub async fn get_custom_object<Item, F, ItemErr>(
         &self,
         query: &Query,
         init_object: F,
@@ -1189,8 +1186,7 @@ impl Client {
     where
         Item: RefineObject<ItemErr>,
         ItemErr: Error + 'static,
-        FnErr: Error + 'static,
-        F: Fn(&mut Objects<Item>) -> Result<Item, FnErr>,
+        F: Fn(&mut Objects<Item>) -> Result<Item, ItemErr>,
     {
         let mut list = Objects::<Item>::default();
 
