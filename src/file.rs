@@ -473,6 +473,8 @@ where
                 kind: FileErrorKind::InvalidEtag(e),
             })?;
 
+        // TODO change to result[1..33].to_string()
+        // 不能使用该方案，返回的etag长度不固定
         Ok(result.to_string())
     }
 

@@ -178,6 +178,12 @@ impl BuilderError {
             kind: BuilderErrorKind::Bar,
         }
     }
+
+    pub(crate) fn from_reqwest(reqwest: reqwest::Error) -> Self {
+        Self {
+            kind: BuilderErrorKind::Reqwest(Box::new(reqwest)),
+        }
+    }
 }
 
 #[derive(Debug)]
