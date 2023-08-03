@@ -4,6 +4,7 @@ use std::{
     error::Error,
     fmt::Display,
     io::{Read, Result as IoResult, Seek, SeekFrom, Write},
+    ops::{Deref, DerefMut},
     rc::Rc,
 };
 
@@ -28,6 +29,11 @@ use super::{BuildInItemError, BuildInItemErrorKind, ObjectsBlocking};
 //#[derive(Debug)]
 pub struct Content {
     client: Rc<Client>,
+    inner: Inner,
+}
+
+/// # 内部
+pub struct Inner {
     path: ObjectPath,
     content_size: u64,
     current_pos: u64,
@@ -39,19 +45,103 @@ pub struct Content {
     part_size: usize,
 }
 
+impl Write for Content {
+    // 写入缓冲区
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        if self.content_part.len() >= Inner::MAX_PARTS_COUNT as usize {
+            return Err(ContentError::OverflowMaxPartsCount.into());
+        }
+        let con = if buf.len() < self.part_size {
+            &buf[..]
+        } else {
+            &buf[..self.part_size]
+        };
+        self.content_part.push(con.to_vec());
+
+        Ok(con.len())
+    }
+
+    // 按分片数量选择上传 OSS 的方式
+    fn flush(&mut self) -> IoResult<()> {
+        let len = self.content_part.len();
+
+        //println!("len: {}", len);
+
+        if len == 0 {
+            return Ok(());
+        }
+        if len == 1 {
+            let con = self.content_part.pop().unwrap();
+            return self.upload(con);
+        }
+
+        self.init_multi()?;
+
+        let mut i = 1;
+        let mut size: u64 = 0;
+        self.content_part.reverse();
+        while let Some(item) = self.content_part.pop() {
+            size += item.len() as u64;
+            self.upload_part(i, item)?;
+            i += 1;
+        }
+
+        self.complete_multi()?;
+        self.content_size = size;
+
+        Ok(())
+    }
+}
+
+impl Read for Content {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        let len = buf.len();
+        if len as u64 > Inner::MAX_SIZE {
+            return Err(ContentError::OverflowMaxSize.into());
+        }
+
+        let end = self.current_pos + len as u64;
+        let vec = self
+            .client
+            .get_object(self.path.clone(), self.current_pos..end - 1)?;
+
+        let len = std::cmp::min(vec.len(), buf.len());
+        buf[..len].copy_from_slice(&vec[..len]);
+
+        Ok(len)
+    }
+}
+impl Seek for Content {
+    fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
+        let n = match pos {
+            SeekFrom::Start(p) => p,
+            SeekFrom::End(p) => (self.content_size as i64 - p) as u64,
+            SeekFrom::Current(n) => (self.current_pos as i64 + n) as u64,
+        };
+        self.current_pos = n;
+        Ok(n)
+    }
+}
+
 impl Default for Content {
     fn default() -> Self {
         Self {
             client: Rc::default(),
-            path: ObjectPath::default(),
-            content_size: u64::default(),
-            current_pos: 0,
-            content_part: Vec::default(),
-            content_type: Self::DEFAULT_CONTENT_TYPE,
-            upload_id: String::default(),
-            etag_list: Vec::default(),
-            part_size: 200 * 1024 * 1024, // 200M
+            inner: Inner::default(),
         }
+    }
+}
+
+impl Deref for Content {
+    type Target = Inner;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl DerefMut for Content {
+    fn deref_mut(&mut self) -> &mut Inner {
+        &mut self.inner
     }
 }
 
@@ -59,21 +149,9 @@ impl Default for Content {
 pub type List = ObjectsBlocking<Content>;
 
 impl Content {
-    const DEFAULT_CONTENT_TYPE: &str = DEFAULT_CONTENT_TYPE;
-
-    /// 最大存储容量 48.8 TB, 49664 = 1024 * 48.5
-    const MAX_SIZE: u64 = 1024 * 1024 * 1024 * 49_664;
-    /// 最大 part 数量
-    const MAX_PARTS_COUNT: u16 = 10000;
-    /// 单个 part 的最小尺寸 100K
-    const PART_SIZE_MIN: usize = 102400;
-    /// 单个 part 的最大尺寸 5G
-    const PART_SIZE_MAX: usize = 1024 * 1024 * 1024 * 5;
-
     fn init_object(list: &mut List) -> Option<Content> {
         Some(Content {
             client: list.client(),
-            content_type: Self::DEFAULT_CONTENT_TYPE,
             ..Default::default()
         })
     }
@@ -81,55 +159,8 @@ impl Content {
     pub fn from_client(client: Rc<Client>) -> Content {
         Content {
             client,
-            content_type: Self::DEFAULT_CONTENT_TYPE,
             ..Default::default()
         }
-    }
-    /// 设置 ObjectPath
-    pub fn path<P>(mut self, path: P) -> Result<Self, InvalidObjectPath>
-    where
-        P: TryInto<ObjectPath>,
-        P::Error: Into<InvalidObjectPath>,
-    {
-        self.path = path.try_into().map_err(Into::into)?;
-        Ok(self)
-    }
-    fn content_type_from_key(&mut self, key: &str) {
-        self.content_type = match key.rsplit(".").next() {
-            Some(str) => match str.to_lowercase().as_str() {
-                "jpg" => "image/jpeg",
-                "pdf" => "application/pdf",
-                "png" => "image/png",
-                "gif" => "image/gif",
-                "bmp" => "image/bmp",
-                "zip" => "application/zip",
-                "tar" => "application/x-tar",
-                "gz" => "application/gzip",
-                "txt" => "text/plain",
-                "mp3" => "audio/mpeg",
-                "wav" => "audio/wave",
-                "mp4" => "video/mp4",
-                "mov" => "video/quicktime",
-                "avi" => "video/x-msvideo",
-                "wmv" => "video/x-ms-wmv",
-                "html" => "text/html",
-                "js" => "application/javascript",
-                "css" => "text/css",
-                "php" => "application/x-httpd-php",
-                _ => DEFAULT_CONTENT_TYPE,
-            },
-            None => DEFAULT_CONTENT_TYPE,
-        }
-    }
-
-    /// 设置分块的尺寸
-    pub fn part_size(&mut self, size: usize) -> Result<(), ContentError> {
-        if size > Self::PART_SIZE_MAX || size < Self::PART_SIZE_MIN {
-            return Err(ContentError::OverflowPartSize);
-        }
-        self.part_size = size;
-
-        Ok(())
     }
 
     fn part_canonicalized<'q>(&self, query: &'q str) -> (Url, CanonicalizedResource) {
@@ -142,6 +173,13 @@ impl Content {
             url,
             CanonicalizedResource::new(format!("/{}/{}?{}", bucket, self.path.as_ref(), query)),
         )
+    }
+
+    fn upload(&self, content: Vec<u8>) -> IoResult<()> {
+        self.client
+            .put_content_base(content, self.content_type, self.path.clone())
+            .map(|_| ())
+            .map_err(Into::into)
     }
 
     /// 初始化批量上传
@@ -158,22 +196,6 @@ impl Content {
         self.parse_upload_id(&xml)
     }
 
-    fn parse_upload_id(&mut self, xml: &str) -> Result<(), ContentError> {
-        if let (Some(start), Some(end)) = (xml.find("<UploadId>"), xml.find("</UploadId>")) {
-            let upload_id = &xml[start + 10..end];
-            self.upload_id = upload_id.to_owned();
-            //println!("upload_id {}", upload_id);
-            return Ok(());
-        }
-
-        Err(ContentError::NoFoundUploadId)
-    }
-
-    // /// 初始化批量上传
-    // fn init_multi(&mut self) -> IoResult<()> {
-    //     Ok(())
-    // }
-
     /// 上传分块
     pub fn upload_part(&mut self, index: u16, buf: Vec<u8>) -> Result<(), ContentError> {
         const ETAG: &str = "ETag";
@@ -182,10 +204,10 @@ impl Content {
             return Err(ContentError::NoFoundUploadId);
         }
 
-        if self.etag_list.len() >= Self::MAX_PARTS_COUNT as usize {
+        if self.etag_list.len() >= Inner::MAX_PARTS_COUNT as usize {
             return Err(ContentError::OverflowMaxPartsCount);
         }
-        if buf.len() > Self::PART_SIZE_MAX {
+        if buf.len() > Inner::PART_SIZE_MAX {
             return Err(ContentError::OverflowPartSize);
         }
 
@@ -215,25 +237,6 @@ impl Content {
         self.etag_list.push((index, etag.to_owned()));
 
         Ok(())
-    }
-
-    fn etag_list_xml(&self) -> Result<String, ContentError> {
-        if self.etag_list.is_empty() {
-            return Err(ContentError::EtagListEmpty);
-        }
-        let mut list = String::new();
-        for (index, etag) in self.etag_list.iter() {
-            list.push_str(&format!(
-                "<Part><PartNumber>{}</PartNumber><ETag>{}</ETag></Part>",
-                index,
-                etag.to_str().unwrap()
-            ));
-        }
-
-        Ok(format!(
-            "<CompleteMultipartUpload>{}</CompleteMultipartUpload>",
-            list
-        ))
     }
 
     /// 完成分块上传
@@ -299,7 +302,7 @@ impl Content {
 //     }
 // }
 
-impl RefineObject<BuildInItemError> for Content {
+impl RefineObject<BuildInItemError> for Inner {
     #[inline]
     fn set_key(&mut self, key: &str) -> Result<(), BuildInItemError> {
         self.path = key.parse().map_err(|e| BuildInItemError {
@@ -319,6 +322,108 @@ impl RefineObject<BuildInItemError> for Content {
     }
 }
 
+impl Default for Inner {
+    fn default() -> Self {
+        Self {
+            path: ObjectPath::default(),
+            content_size: u64::default(),
+            current_pos: 0,
+            content_part: Vec::default(),
+            content_type: Self::DEFAULT_CONTENT_TYPE,
+            upload_id: String::default(),
+            etag_list: Vec::default(),
+            part_size: 200 * 1024 * 1024, // 200M
+        }
+    }
+}
+
+impl Inner {
+    const DEFAULT_CONTENT_TYPE: &str = DEFAULT_CONTENT_TYPE;
+
+    /// 最大存储容量 48.8 TB, 49664 = 1024 * 48.5
+    const MAX_SIZE: u64 = 1024 * 1024 * 1024 * 49_664;
+    /// 最大 part 数量
+    const MAX_PARTS_COUNT: u16 = 10000;
+    /// 单个 part 的最小尺寸 100K
+    const PART_SIZE_MIN: usize = 102400;
+    /// 单个 part 的最大尺寸 5G
+    const PART_SIZE_MAX: usize = 1024 * 1024 * 1024 * 5;
+    /// 设置 ObjectPath
+    pub fn path<P>(mut self, path: P) -> Result<Self, InvalidObjectPath>
+    where
+        P: TryInto<ObjectPath>,
+        P::Error: Into<InvalidObjectPath>,
+    {
+        self.path = path.try_into().map_err(Into::into)?;
+        Ok(self)
+    }
+    fn content_type_from_key(&mut self, key: &str) {
+        self.content_type = match key.rsplit(".").next() {
+            Some(str) => match str.to_lowercase().as_str() {
+                "jpg" => "image/jpeg",
+                "pdf" => "application/pdf",
+                "png" => "image/png",
+                "gif" => "image/gif",
+                "bmp" => "image/bmp",
+                "zip" => "application/zip",
+                "tar" => "application/x-tar",
+                "gz" => "application/gzip",
+                "txt" => "text/plain",
+                "mp3" => "audio/mpeg",
+                "wav" => "audio/wave",
+                "mp4" => "video/mp4",
+                "mov" => "video/quicktime",
+                "avi" => "video/x-msvideo",
+                "wmv" => "video/x-ms-wmv",
+                "html" => "text/html",
+                "js" => "application/javascript",
+                "css" => "text/css",
+                "php" => "application/x-httpd-php",
+                _ => DEFAULT_CONTENT_TYPE,
+            },
+            None => DEFAULT_CONTENT_TYPE,
+        }
+    }
+
+    /// 设置分块的尺寸
+    pub fn part_size(&mut self, size: usize) -> Result<(), ContentError> {
+        if size > Self::PART_SIZE_MAX || size < Self::PART_SIZE_MIN {
+            return Err(ContentError::OverflowPartSize);
+        }
+        self.part_size = size;
+
+        Ok(())
+    }
+    fn parse_upload_id(&mut self, xml: &str) -> Result<(), ContentError> {
+        if let (Some(start), Some(end)) = (xml.find("<UploadId>"), xml.find("</UploadId>")) {
+            let upload_id = &xml[start + 10..end];
+            self.upload_id = upload_id.to_owned();
+            //println!("upload_id {}", upload_id);
+            return Ok(());
+        }
+
+        Err(ContentError::NoFoundUploadId)
+    }
+    fn etag_list_xml(&self) -> Result<String, ContentError> {
+        if self.etag_list.is_empty() {
+            return Err(ContentError::EtagListEmpty);
+        }
+        let mut list = String::new();
+        for (index, etag) in self.etag_list.iter() {
+            list.push_str(&format!(
+                "<Part><PartNumber>{}</PartNumber><ETag>{}</ETag></Part>",
+                index,
+                etag.to_str().unwrap()
+            ));
+        }
+
+        Ok(format!(
+            "<CompleteMultipartUpload>{}</CompleteMultipartUpload>",
+            list
+        ))
+    }
+}
+
 #[cfg(test)]
 #[tokio::test]
 async fn main() {
@@ -335,91 +440,6 @@ async fn main() {
     // let mut objcet = Content::from_client(Arc::new(client)).path("aaa").unwrap();
     // let res = objcet.init_multi().await;
     // println!("{res:#?}");
-}
-
-impl Write for Content {
-    // 写入缓冲区
-    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-        if self.content_part.len() >= Self::MAX_PARTS_COUNT as usize {
-            return Err(ContentError::OverflowMaxPartsCount.into());
-        }
-        let con = if buf.len() < self.part_size {
-            &buf[..]
-        } else {
-            &buf[..self.part_size]
-        };
-        self.content_part.push(con.to_vec());
-
-        Ok(con.len())
-    }
-
-    // 按分片数量选择上传 OSS 的方式
-    fn flush(&mut self) -> IoResult<()> {
-        let len = self.content_part.len();
-
-        //println!("len: {}", len);
-
-        if len == 0 {
-            return Ok(());
-        }
-        if len == 1 {
-            return self
-                .client
-                .put_content_base(
-                    self.content_part.pop().unwrap(),
-                    self.content_type,
-                    self.path.clone(),
-                )
-                .map(|_| ())
-                .map_err(Into::into);
-        }
-
-        self.init_multi()?;
-
-        let mut i = 1;
-        let mut size: u64 = 0;
-        self.content_part.reverse();
-        while let Some(item) = self.content_part.pop() {
-            size += item.len() as u64;
-            self.upload_part(i, item)?;
-            i += 1;
-        }
-
-        self.complete_multi()?;
-        self.content_size = size;
-
-        Ok(())
-    }
-}
-
-impl Read for Content {
-    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
-        let len = buf.len();
-        if len as u64 > Self::MAX_SIZE {
-            return Err(ContentError::OverflowMaxSize.into());
-        }
-
-        let end = self.current_pos + len as u64;
-        let vec = self
-            .client
-            .get_object(self.path.clone(), self.current_pos..end - 1)?;
-
-        let len = std::cmp::min(vec.len(), buf.len());
-        buf[..len].copy_from_slice(&vec[..len]);
-
-        Ok(len)
-    }
-}
-impl Seek for Content {
-    fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
-        let n = match pos {
-            SeekFrom::Start(p) => p,
-            SeekFrom::End(p) => (self.content_size as i64 - p) as u64,
-            SeekFrom::Current(n) => (self.current_pos as i64 + n) as u64,
-        };
-        self.current_pos = n;
-        Ok(n)
-    }
 }
 
 impl From<Client> for Content {
