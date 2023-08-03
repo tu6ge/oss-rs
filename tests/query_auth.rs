@@ -1,6 +1,11 @@
-use std::{io::Write, rc::Rc, sync::Arc};
+use std::{
+    io::{Read, Seek, Write},
+    rc::Rc,
+};
 
-use aliyun_oss_client::{auth::query::QueryAuth, config::Config, object::content::Content};
+use aliyun_oss_client::{
+    auth::query::QueryAuth, config::Config, decode::RefineObject, object::content::Content,
+};
 use chrono::Utc;
 use dotenv::dotenv;
 use reqwest::Client;
@@ -29,9 +34,19 @@ fn test_multi_upload() {
         .path("aaabbb3.txt")
         .unwrap();
 
-    objcet.part_size(100 * 1024).unwrap();
+    //objcet.part_size(100 * 1024).unwrap();
 
-    objcet.write_all(&[97; 200 * 1024]).unwrap();
+    // {
+    //     objcet.write_all(b"abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789").unwrap();
+    //     objcet.flush().unwrap()
+    // }
 
-    objcet.flush().unwrap();
+    // println!("finish");
+
+    let mut buf = [0u8; 11];
+    objcet.set_size("72").unwrap();
+    objcet.seek(std::io::SeekFrom::Start(26)).unwrap();
+    objcet.read(&mut buf).unwrap();
+
+    println!("buf: {:?}", buf);
 }

@@ -3,7 +3,7 @@
 use std::{
     error::Error,
     fmt::Display,
-    io::{Result as IoResult, Write},
+    io::{Read, Result as IoResult, Seek, SeekFrom, Write},
     rc::Rc,
 };
 
@@ -29,8 +29,10 @@ use super::{BuildInItemError, BuildInItemErrorKind, ObjectsBlocking};
 pub struct Content {
     client: Rc<Client>,
     path: ObjectPath,
+    content_size: u64,
+    current_pos: u64,
     content_part: Vec<Vec<u8>>,
-    content_type: &'static str, // TODO 默认值
+    content_type: &'static str,
     upload_id: String,
     /// 分片上传返回的 etag
     etag_list: Vec<(u16, HeaderValue)>,
@@ -42,6 +44,8 @@ impl Default for Content {
         Self {
             client: Rc::default(),
             path: ObjectPath::default(),
+            content_size: u64::default(),
+            current_pos: 0,
             content_part: Vec::default(),
             content_type: Self::DEFAULT_CONTENT_TYPE,
             upload_id: String::default(),
@@ -49,15 +53,6 @@ impl Default for Content {
             part_size: 200 * 1024 * 1024, // 200M
         }
     }
-}
-
-#[derive(Default, Debug, PartialEq, Eq, Hash, Clone, PartialOrd, Ord)]
-pub enum MultiStatus {
-    #[default]
-    None,
-    Pending,
-    Completed,
-    Aborted,
 }
 
 /// 带内容的 object 列表
@@ -194,8 +189,6 @@ impl Content {
             return Err(ContentError::OverflowPartSize);
         }
 
-        //self.upload_id = "1E4A7819A08B474CAEE1F55A44D8A7BB".to_string(); // TODO
-
         let query = format!("partNumber={}&uploadId={}", index, self.upload_id);
 
         let (url, resource) = self.part_canonicalized(&query);
@@ -245,13 +238,6 @@ impl Content {
 
     /// 完成分块上传
     pub fn complete_multi(&mut self) -> Result<(), ContentError> {
-        // self.etag_list
-        //     .push((1, r#""59A2A10DD1686F679EE885FC1EBA5183""#.parse().unwrap()));
-        // self.etag_list
-        //     .push((2, r#""59A2A10DD1686F679EE885FC1EBA5183""#.parse().unwrap()));
-
-        //     self.upload_id = "D40834C308C24F18B5ED6CF3A1EA027B".to_string(); // TODO
-
         if self.upload_id.is_empty() {
             return Err(ContentError::NoFoundUploadId);
         }
@@ -324,13 +310,13 @@ impl RefineObject<BuildInItemError> for Content {
         self.content_type_from_key(key);
         Ok(())
     }
-    // /// 提取 size
-    // fn set_size(&mut self, size: &str) -> Result<(), BuildInItemError> {
-    //     // if let Ok(size) = size.parse() {
-    //     //     self.content.reserve(size);
-    //     // }
-    //     Ok(())
-    // }
+    /// 提取 size
+    fn set_size(&mut self, size: &str) -> Result<(), BuildInItemError> {
+        if let Ok(size) = size.parse() {
+            self.content_size = size;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -391,15 +377,47 @@ impl Write for Content {
         self.init_multi()?;
 
         let mut i = 1;
+        let mut size: u64 = 0;
         self.content_part.reverse();
         while let Some(item) = self.content_part.pop() {
+            size += item.len() as u64;
             self.upload_part(i, item)?;
-            i = i + 1;
+            i += 1;
         }
 
         self.complete_multi()?;
+        self.content_size = size;
 
         Ok(())
+    }
+}
+
+impl Read for Content {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        let len = buf.len();
+        if len as u64 > Self::MAX_SIZE {
+            return Err(ContentError::OverflowMaxSize.into());
+        }
+
+        let end = self.current_pos + len as u64;
+        let vec = self
+            .client
+            .get_object(self.path.clone(), self.current_pos..end - 1)?;
+
+        buf.copy_from_slice(vec.as_slice());
+
+        Ok(len)
+    }
+}
+impl Seek for Content {
+    fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
+        let n = match pos {
+            SeekFrom::Start(p) => p,
+            SeekFrom::End(p) => (self.content_size as i64 - p) as u64,
+            SeekFrom::Current(n) => (self.current_pos as i64 + n) as u64,
+        };
+        self.current_pos = n;
+        Ok(n)
     }
 }
 
@@ -433,7 +451,9 @@ pub enum ContentError {
 
     /// part size must be between 100k and 5G
     OverflowPartSize,
-    //OverflowMaxSize,
+
+    /// max size must be lt 48.8TB
+    OverflowMaxSize,
 }
 
 impl Display for ContentError {
@@ -445,6 +465,7 @@ impl Display for ContentError {
             Self::OverflowMaxPartsCount => "overflow max parts count".fmt(f),
             Self::EtagListEmpty => "etag list is empty".fmt(f),
             Self::OverflowPartSize => "part size must be between 100k and 5G".fmt(f),
+            Self::OverflowMaxSize => "max size must be lt 48.8TB".fmt(f),
         }
     }
 }
@@ -457,7 +478,8 @@ impl Error for ContentError {
             | Self::NoFoundEtag
             | Self::OverflowMaxPartsCount
             | Self::EtagListEmpty
-            | Self::OverflowPartSize => None,
+            | Self::OverflowPartSize
+            | Self::OverflowMaxSize => None,
         }
     }
 }
@@ -483,6 +505,7 @@ impl From<ContentError> for std::io::Error {
             OverflowMaxPartsCount => Self::new(InvalidInput, value),
             EtagListEmpty => Self::new(NotFound, value),
             OverflowPartSize => Self::new(Unsupported, value),
+            OverflowMaxSize => Self::new(Unsupported, value),
         }
     }
 }
