@@ -404,7 +404,8 @@ impl Read for Content {
             .client
             .get_object(self.path.clone(), self.current_pos..end - 1)?;
 
-        buf.copy_from_slice(vec.as_slice());
+        let len = std::cmp::min(vec.len(), buf.len());
+        buf[..len].copy_from_slice(&vec[..len]);
 
         Ok(len)
     }
