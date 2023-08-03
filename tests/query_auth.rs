@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read, sync::Arc};
+use std::{io::Write, rc::Rc, sync::Arc};
 
 use aliyun_oss_client::{auth::query::QueryAuth, config::Config, object::content::Content};
 use chrono::Utc;
@@ -19,24 +19,19 @@ async fn run() {
     assert!(client.status().is_success());
 }
 
-#[tokio::test]
-async fn test_multi_upload() {
+#[test]
+fn test_multi_upload() {
     dotenv::dotenv().ok();
 
-    let s = "aaa";
-    let a = &s[0..10];
-    println!("{a}");
-    todo!();
-    let client = aliyun_oss_client::Client::from_env().unwrap();
+    let client = aliyun_oss_client::ClientRc::from_env().unwrap();
 
-    let mut objcet = Content::from_client(Arc::new(client))
-        .path("aaabbb2.txt")
+    let mut objcet = Content::from_client(Rc::new(client))
+        .path("aaabbb3.txt")
         .unwrap();
-    let res = objcet.init_multi().await;
-    println!("{res:#?}");
 
-    // let _ = objcet.upload_part(1, &[98; 200000]).await.unwrap();
-    // let _ = objcet.upload_part(2, &[98; 200000]).await.unwrap();
+    objcet.part_size(100 * 1024).unwrap();
 
-    let _ = objcet.abort_multi().await.unwrap();
+    objcet.write_all(&[97; 200 * 1024]).unwrap();
+
+    objcet.flush().unwrap();
 }

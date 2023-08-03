@@ -57,7 +57,8 @@ required-features = ["sts"]
 
 [features]
 default = [
-  #"blocking",
+  # TODO
+  "blocking",
   "core",
   "sts",
   "put_file",

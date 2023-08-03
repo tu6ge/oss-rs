@@ -75,6 +75,7 @@
 //! [`File`]: crate::file::File
 
 use async_trait::async_trait;
+use chrono::Duration;
 use http::{
     header::{HeaderName, CONTENT_LENGTH, CONTENT_TYPE},
     HeaderValue, Method,
@@ -502,6 +503,7 @@ where
 
         self.builder_with_header(Method::PUT, url, canonicalized, headers)?
             .body(content)
+            //.timeout(std::time::Duration::new(3, 0))
             .send_adjust_error()
             .await
             .map_err(FileError::from)
@@ -662,15 +664,21 @@ mod error_impl {
             let kind = match value {
                 #[cfg(feature = "put_file")]
                 FileErrorKind::FileRead(e) => return e,
-                FileErrorKind::InvalidContentLength(_) => ErrorKind::InvalidData,
-                FileErrorKind::InvalidContentType(_) => ErrorKind::InvalidData,
+                FileErrorKind::InvalidContentLength(e) => {
+                    Self::new(ErrorKind::InvalidData, "invalid content length")
+                }
+                FileErrorKind::InvalidContentType(_) => {
+                    Self::new(ErrorKind::InvalidData, "invalid content type")
+                }
                 FileErrorKind::Build(e) => return e.into(),
                 FileErrorKind::Reqwest(e) => reqwest_to_io(e),
-                FileErrorKind::EtagNotFound => ErrorKind::Interrupted,
-                FileErrorKind::InvalidEtag(_) => ErrorKind::Interrupted,
-                FileErrorKind::NotFoundCanonicalizedResource => ErrorKind::InvalidData,
+                FileErrorKind::EtagNotFound => Self::new(ErrorKind::Interrupted, "etag not found"),
+                FileErrorKind::InvalidEtag(_) => Self::new(ErrorKind::Interrupted, "invalid etag"),
+                FileErrorKind::NotFoundCanonicalizedResource => {
+                    Self::new(ErrorKind::InvalidData, "not found canonicalized resource")
+                }
             };
-            kind.into()
+            kind
         }
     }
 }

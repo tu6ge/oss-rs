@@ -3,55 +3,50 @@
 use std::{
     error::Error,
     fmt::Display,
-    io::{ErrorKind, Result as IoResult, Write},
-    sync::Arc,
+    io::{Result as IoResult, Write},
+    rc::Rc,
 };
 
-use chrono::format::format;
-use futures::{executor::block_on, FutureExt, TryFutureExt};
 use http::{header::CONTENT_LENGTH, HeaderValue, Method};
+use url::Url;
 
 use crate::{
     builder::BuilderError,
     decode::RefineObject,
-    file::{AlignBuilder, Files, DEFAULT_CONTENT_TYPE},
+    file::{blocking::AlignBuilder, BlockingFiles, DEFAULT_CONTENT_TYPE},
     types::{
         object::{InvalidObjectPath, SetObjectPath},
-        CanonicalizedResource, InnerCanonicalizedResource,
+        CanonicalizedResource,
     },
-    Client, ObjectPath,
+    ClientRc as Client, ObjectPath,
 };
 
-use super::{BuildInItemError, BuildInItemErrorKind, Objects};
+use super::{BuildInItemError, BuildInItemErrorKind, ObjectsBlocking};
 
 /// # object 内容
 /// [OSS 分片上传文档](https://help.aliyun.com/zh/oss/user-guide/multipart-upload-12)
 //#[derive(Debug)]
 pub struct Content {
-    client: Arc<Client>,
+    client: Rc<Client>,
     path: ObjectPath,
-    content: Vec<u8>,
+    content_part: Vec<Vec<u8>>,
     content_type: &'static str, // TODO 默认值
     upload_id: String,
     /// 分片上传返回的 etag
     etag_list: Vec<(u16, HeaderValue)>,
-    multi_status: MultiStatus,
     part_size: usize,
-    part_index: u16,
 }
 
 impl Default for Content {
     fn default() -> Self {
         Self {
-            client: Arc::default(),
+            client: Rc::default(),
             path: ObjectPath::default(),
-            content: Vec::default(),
+            content_part: Vec::default(),
             content_type: Self::DEFAULT_CONTENT_TYPE,
             upload_id: String::default(),
             etag_list: Vec::default(),
-            multi_status: MultiStatus::default(),
             part_size: 200 * 1024 * 1024, // 200M
-            part_index: 1,
         }
     }
 }
@@ -66,7 +61,7 @@ pub enum MultiStatus {
 }
 
 /// 带内容的 object 列表
-pub type List = Objects<Content>;
+pub type List = ObjectsBlocking<Content>;
 
 impl Content {
     const DEFAULT_CONTENT_TYPE: &str = DEFAULT_CONTENT_TYPE;
@@ -88,7 +83,7 @@ impl Content {
         })
     }
     /// 从 client 创建
-    pub fn from_client(client: Arc<Client>) -> Content {
+    pub fn from_client(client: Rc<Client>) -> Content {
         Content {
             client,
             content_type: Self::DEFAULT_CONTENT_TYPE,
@@ -132,21 +127,7 @@ impl Content {
         }
     }
 
-    /// 普通尺寸的文件写入
-    // TODO: block_on
-    fn signal_write(&mut self, buf: &[u8]) -> IoResult<usize> {
-        if buf.len() > Self::PART_SIZE_MAX {
-            return Err(ErrorKind::Unsupported.into());
-        }
-        let _ = block_on(self.client.put_content_base(
-            buf.to_vec(),
-            self.content_type,
-            self.path.clone(),
-        ))?;
-
-        Ok(buf.len())
-    }
-
+    /// 设置分块的尺寸
     pub fn part_size(&mut self, size: usize) -> Result<(), ContentError> {
         if size > Self::PART_SIZE_MAX || size < Self::PART_SIZE_MIN {
             return Err(ContentError::OverflowPartSize);
@@ -156,21 +137,28 @@ impl Content {
         Ok(())
     }
 
-    /// 初始化批量上传
-    pub async fn init_multi(&mut self) -> Result<(), ContentError> {
-        const UPLOADS: &str = "uploads";
-
-        let resource = InnerCanonicalizedResource::from_uploads(&self);
+    fn part_canonicalized<'q>(&self, query: &'q str) -> (Url, CanonicalizedResource) {
         let mut url = self.client.get_bucket_url();
         url.set_object_path(&self.path);
-        url.set_query(Some(UPLOADS));
+        url.set_query(Some(query));
+
+        let bucket = self.client.get_bucket_name();
+        (
+            url,
+            CanonicalizedResource::new(format!("/{}/{}?{}", bucket, self.path.as_ref(), query)),
+        )
+    }
+
+    /// 初始化批量上传
+    pub fn init_multi(&mut self) -> Result<(), ContentError> {
+        const UPLOADS: &str = "uploads";
+
+        let (url, resource) = self.part_canonicalized(UPLOADS);
         let xml = self
             .client
             .builder(Method::POST, url, resource)?
-            .send_adjust_error()
-            .await?
-            .text()
-            .await?;
+            .send_adjust_error()?
+            .text()?;
 
         self.parse_upload_id(&xml)
     }
@@ -191,12 +179,8 @@ impl Content {
     //     Ok(())
     // }
 
-    fn part_canonicalized<'q>(&self, query: &'q str) -> CanonicalizedResource {
-        let bucket = self.client.get_bucket_name();
-        CanonicalizedResource::new(format!("/{}/{}?{}", bucket, self.path.as_ref(), query))
-    }
-
-    pub async fn upload_part(&mut self, index: u16, buf: &[u8]) -> Result<(), ContentError> {
+    /// 上传分块
+    pub fn upload_part(&mut self, index: u16, buf: Vec<u8>) -> Result<(), ContentError> {
         const ETAG: &str = "ETag";
 
         if self.upload_id.is_empty() {
@@ -212,14 +196,11 @@ impl Content {
 
         //self.upload_id = "1E4A7819A08B474CAEE1F55A44D8A7BB".to_string(); // TODO
 
-        let mut url = self.client.get_bucket_url();
-        url.set_object_path(&self.path);
         let query = format!("partNumber={}&uploadId={}", index, self.upload_id);
-        url.set_query(Some(&query));
 
-        let resource = self.part_canonicalized(&query);
+        let (url, resource) = self.part_canonicalized(&query);
 
-        let content_length = buf.to_vec().len().to_string();
+        let content_length = buf.len().to_string();
         let headers = vec![(
             CONTENT_LENGTH,
             HeaderValue::from_str(&content_length).unwrap(),
@@ -228,9 +209,8 @@ impl Content {
         let resp = self
             .client
             .builder_with_header(Method::PUT, url, resource, headers)?
-            .body(buf.to_vec())
-            .send_adjust_error()
-            .await?;
+            .body(buf)
+            .send_adjust_error()?;
 
         let etag = resp.headers().get(ETAG).ok_or(ContentError::NoFoundEtag)?;
 
@@ -263,7 +243,8 @@ impl Content {
         ))
     }
 
-    pub async fn complete_multi(&mut self) -> Result<(), ContentError> {
+    /// 完成分块上传
+    pub fn complete_multi(&mut self) -> Result<(), ContentError> {
         // self.etag_list
         //     .push((1, r#""59A2A10DD1686F679EE885FC1EBA5183""#.parse().unwrap()));
         // self.etag_list
@@ -277,12 +258,9 @@ impl Content {
 
         let xml = self.etag_list_xml()?;
 
-        let mut url = self.client.get_bucket_url();
-        url.set_object_path(&self.path);
         let query = format!("uploadId={}", self.upload_id);
-        url.set_query(Some(&query));
 
-        let resource = self.part_canonicalized(&query);
+        let (url, resource) = self.part_canonicalized(&query);
 
         let content_length = xml.len().to_string();
         let headers = vec![(
@@ -295,7 +273,7 @@ impl Content {
             .builder_with_header(Method::POST, url, resource, headers)?
             .body(xml)
             .send_adjust_error()
-            .await?
+            ?
             // .text()
             // .await?
             ;
@@ -307,21 +285,18 @@ impl Content {
         Ok(())
     }
 
-    pub async fn abort_multi(&mut self) -> Result<(), ContentError> {
+    /// 取消分块上传
+    pub fn abort_multi(&mut self) -> Result<(), ContentError> {
         if self.upload_id.is_empty() {
             return Err(ContentError::NoFoundUploadId);
         }
-        let mut url = self.client.get_bucket_url();
-        url.set_object_path(&self.path);
         let query = format!("uploadId={}", self.upload_id);
-        url.set_query(Some(&query));
 
-        let resource = self.part_canonicalized(&query);
+        let (url, resource) = self.part_canonicalized(&query);
         let _resp = self
             .client
             .builder(Method::DELETE, url, resource)?
-            .send_adjust_error()
-            .await?;
+            .send_adjust_error()?;
 
         //println!("resp: {:?}", resp);
         self.upload_id = String::default();
@@ -338,14 +313,6 @@ impl Content {
 //     }
 // }
 
-impl InnerCanonicalizedResource<'_> {
-    fn from_uploads(content: &Content) -> Self {
-        let bucket = content.client.get_bucket_name();
-
-        Self::new(format!("/{}/{}?uploads", bucket, content.path.as_ref()))
-    }
-}
-
 impl RefineObject<BuildInItemError> for Content {
     #[inline]
     fn set_key(&mut self, key: &str) -> Result<(), BuildInItemError> {
@@ -357,13 +324,13 @@ impl RefineObject<BuildInItemError> for Content {
         self.content_type_from_key(key);
         Ok(())
     }
-    /// 提取 size
-    fn set_size(&mut self, size: &str) -> Result<(), BuildInItemError> {
-        if let Ok(size) = size.parse() {
-            self.content.reserve(size);
-        }
-        Ok(())
-    }
+    // /// 提取 size
+    // fn set_size(&mut self, size: &str) -> Result<(), BuildInItemError> {
+    //     // if let Ok(size) = size.parse() {
+    //     //     self.content.reserve(size);
+    //     // }
+    //     Ok(())
+    // }
 }
 
 #[cfg(test)]
@@ -379,75 +346,59 @@ async fn main() {
 
     // let second = list.get_next_base(Content::init_object).await;
 
-    let mut objcet = Content::from_client(Arc::new(client)).path("aaa").unwrap();
-    let res = objcet.init_multi().await;
-    println!("{res:#?}");
+    // let mut objcet = Content::from_client(Arc::new(client)).path("aaa").unwrap();
+    // let res = objcet.init_multi().await;
+    // println!("{res:#?}");
 }
 
 impl Write for Content {
-    // 普通大小的文件写入
-    // 或大文件的部分写入
+    // 写入缓冲区
     fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-        if buf.len() as u64 > Self::MAX_SIZE {
-            return Err(ErrorKind::Unsupported.into());
+        if self.content_part.len() >= Self::MAX_PARTS_COUNT as usize {
+            return Err(ContentError::OverflowMaxPartsCount.into());
         }
-        if let MultiStatus::None = self.multi_status {
-            self.signal_write(buf)
+        let con = if buf.len() < self.part_size {
+            &buf[..]
         } else {
-            let con = if buf.len() < self.part_size {
-                &buf[..]
-            } else {
-                &buf[..self.part_size]
-            };
-            block_on(self.upload_part(self.part_index, con))?;
+            &buf[..self.part_size]
+        };
+        self.content_part.push(con.to_vec());
 
-            Ok(con.len())
-        }
+        Ok(con.len())
     }
 
-    /// 大文件分片写入(完整写入)
-    fn write_all(&mut self, mut buf: &[u8]) -> IoResult<()> {
-        if buf.len() as u64 > Self::MAX_SIZE {
-            return Err(ErrorKind::Unsupported.into());
-        }
-        // 如果是小文件，则一次写入
-        if buf.len() <= self.part_size {
-            self.multi_status = MultiStatus::None;
-            return self.write(buf).map(|_| ());
-        }
-
-        // 如果是大文件，则调用 write 批量写入
-        block_on(self.init_multi())?;
-        self.multi_status = MultiStatus::Pending;
-        self.part_index = 1;
-
-        // TODO 可改成并行
-        while !buf.is_empty() {
-            match self.write(buf) {
-                Ok(0) => {
-                    return Err(std::io::Error::new(ErrorKind::WriteZero, ""));
-                }
-                Ok(n) => {
-                    buf = &buf[n..];
-                    self.part_index = self.part_index + 1;
-                }
-                Err(ref e) if e.kind() == ErrorKind::Interrupted => {}
-                Err(e) => {
-                    block_on(self.abort_multi())?;
-                    self.multi_status = MultiStatus::Aborted;
-                    return Err(e);
-                }
-            }
-        }
-
-        block_on(self.complete_multi())?;
-        self.multi_status = MultiStatus::Completed;
-
-        Ok(())
-    }
-
-    // TODO
+    // 按分片数量选择上传 OSS 的方式
     fn flush(&mut self) -> IoResult<()> {
+        let len = self.content_part.len();
+
+        //println!("len: {}", len);
+
+        if len == 0 {
+            return Ok(());
+        }
+        if len == 1 {
+            return self
+                .client
+                .put_content_base(
+                    self.content_part.pop().unwrap(),
+                    self.content_type,
+                    self.path.clone(),
+                )
+                .map(|_| ())
+                .map_err(Into::into);
+        }
+
+        self.init_multi()?;
+
+        let mut i = 1;
+        self.content_part.reverse();
+        while let Some(item) = self.content_part.pop() {
+            self.upload_part(i, item)?;
+            i = i + 1;
+        }
+
+        self.complete_multi()?;
+
         Ok(())
     }
 }
@@ -455,21 +406,34 @@ impl Write for Content {
 impl From<Client> for Content {
     fn from(value: Client) -> Self {
         Content {
-            client: Arc::new(value),
+            client: Rc::new(value),
             ..Default::default()
         }
     }
 }
 
+/// object Content 的错误信息
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ContentError {
+    /// not found upload id
     NoFoundUploadId,
+
+    /// builder request failed
     Builder(BuilderError),
+
+    /// not found etag
     NoFoundEtag,
+
+    /// overflow max parts count
     OverflowMaxPartsCount,
+
+    /// etag list is empty
     EtagListEmpty,
+
+    /// part size must be between 100k and 5G
     OverflowPartSize,
+    //OverflowMaxSize,
 }
 
 impl Display for ContentError {
@@ -510,14 +474,15 @@ impl From<reqwest::Error> for ContentError {
 }
 impl From<ContentError> for std::io::Error {
     fn from(value: ContentError) -> Self {
+        use std::io::ErrorKind::*;
         use ContentError::*;
         match value {
             Builder(e) => e.into(),
-            NoFoundUploadId => Self::new(ErrorKind::NotFound, value),
-            NoFoundEtag => Self::new(ErrorKind::NotFound, value),
-            OverflowMaxPartsCount => Self::new(ErrorKind::InvalidInput, value),
-            EtagListEmpty => Self::new(ErrorKind::NotFound, value),
-            OverflowPartSize => Self::new(ErrorKind::Unsupported, value),
+            NoFoundUploadId => Self::new(NotFound, value),
+            NoFoundEtag => Self::new(NotFound, value),
+            OverflowMaxPartsCount => Self::new(InvalidInput, value),
+            EtagListEmpty => Self::new(NotFound, value),
+            OverflowPartSize => Self::new(Unsupported, value),
         }
     }
 }
@@ -538,7 +503,6 @@ mod tests {
         content.parse_upload_id(xml).unwrap();
 
         assert_eq!(content.upload_id, "AC3251A13464411D8691F271CE33A300");
-        assert_eq!(content.multi_status, MultiStatus::Pending);
 
         content.parse_upload_id("abc").unwrap_err();
     }

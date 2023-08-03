@@ -94,6 +94,7 @@ use std::{
     vec::IntoIter,
 };
 
+#[cfg(feature = "blocking")]
 pub mod content;
 
 #[cfg(test)]

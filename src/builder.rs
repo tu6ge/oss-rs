@@ -263,24 +263,25 @@ impl From<BuilderError> for io::Error {
     fn from(BuilderError { kind }: BuilderError) -> Self {
         let kind = match kind {
             BuilderErrorKind::Reqwest(req) => reqwest_to_io(*req),
-            BuilderErrorKind::OssService(e) => return Self::from(*e),
-            BuilderErrorKind::Auth(_) => ErrorKind::PermissionDenied,
-            BuilderErrorKind::Config(_) => ErrorKind::InvalidInput,
+            BuilderErrorKind::OssService(e) => Self::from(*e),
+            BuilderErrorKind::Auth(auth) => Self::new(ErrorKind::PermissionDenied, auth),
+            BuilderErrorKind::Config(conf) => Self::new(ErrorKind::InvalidInput, conf),
             #[cfg(test)]
             BuilderErrorKind::Bar => unreachable!("only used in tests"),
         };
-        kind.into()
+        kind
     }
 }
 
-pub(crate) fn reqwest_to_io(req: reqwest::Error) -> ErrorKind {
-    if req.is_timeout() {
+pub(crate) fn reqwest_to_io(req: reqwest::Error) -> io::Error {
+    let kind = if req.is_timeout() {
         ErrorKind::TimedOut
     } else if req.is_connect() {
         ErrorKind::ConnectionAborted
     } else {
         ErrorKind::Other
-    }
+    };
+    io::Error::new(kind, req)
 }
 
 pub(crate) async fn check_http_status(response: Response) -> Result<Response, BuilderError> {
