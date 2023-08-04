@@ -22,7 +22,9 @@ use crate::{
     ClientRc as Client, ObjectPath,
 };
 
-use super::{BuildInItemError, BuildInItemErrorKind, ObjectsBlocking};
+use super::{BuildInItemError, ObjectsBlocking};
+
+pub mod arc;
 
 /// # object 内容
 /// [OSS 分片上传文档](https://help.aliyun.com/zh/oss/user-guide/multipart-upload-12)
@@ -71,25 +73,10 @@ impl Write for Content {
             return Ok(());
         }
         if len == 1 {
-            let con = self.content_part.pop().unwrap();
-            return self.upload(con);
+            return self.upload();
         }
 
-        self.init_multi()?;
-
-        let mut i = 1;
-        let mut size: u64 = 0;
-        self.content_part.reverse();
-        while let Some(item) = self.content_part.pop() {
-            size += item.len() as u64;
-            self.upload_part(i, item)?;
-            i += 1;
-        }
-
-        self.complete_multi()?;
-        self.content_size = size;
-
-        Ok(())
+        self.upload_multi()
     }
 }
 
@@ -111,7 +98,8 @@ impl Read for Content {
         Ok(len)
     }
 }
-impl Seek for Content {
+
+impl Seek for Inner {
     fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
         let n = match pos {
             SeekFrom::Start(p) => p,
@@ -120,6 +108,12 @@ impl Seek for Content {
         };
         self.current_pos = n;
         Ok(n)
+    }
+}
+
+impl Seek for Content {
+    fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
+        self.inner.seek(pos)
     }
 }
 
@@ -162,6 +156,15 @@ impl Content {
             ..Default::default()
         }
     }
+    /// 设置 ObjectPath
+    pub fn path<P>(mut self, path: P) -> Result<Self, InvalidObjectPath>
+    where
+        P: TryInto<ObjectPath>,
+        P::Error: Into<InvalidObjectPath>,
+    {
+        self.path = path.try_into().map_err(Into::into)?;
+        Ok(self)
+    }
 
     fn part_canonicalized<'q>(&self, query: &'q str) -> (Url, CanonicalizedResource) {
         let mut url = self.client.get_bucket_url();
@@ -175,15 +178,34 @@ impl Content {
         )
     }
 
-    fn upload(&self, content: Vec<u8>) -> IoResult<()> {
+    fn upload(&mut self) -> IoResult<()> {
+        let content = self.content_part.pop().unwrap();
         self.client
             .put_content_base(content, self.content_type, self.path.clone())
             .map(|_| ())
             .map_err(Into::into)
     }
 
+    fn upload_multi(&mut self) -> IoResult<()> {
+        self.init_multi()?;
+
+        let mut i = 1;
+        let mut size: u64 = 0;
+        self.content_part.reverse();
+        while let Some(item) = self.content_part.pop() {
+            size += item.len() as u64;
+            self.upload_part(i, item)?;
+            i += 1;
+        }
+
+        self.complete_multi()?;
+        self.content_size = size;
+
+        Ok(())
+    }
+
     /// 初始化批量上传
-    pub fn init_multi(&mut self) -> Result<(), ContentError> {
+    fn init_multi(&mut self) -> Result<(), ContentError> {
         const UPLOADS: &str = "uploads";
 
         let (url, resource) = self.part_canonicalized(UPLOADS);
@@ -197,7 +219,7 @@ impl Content {
     }
 
     /// 上传分块
-    pub fn upload_part(&mut self, index: u16, buf: Vec<u8>) -> Result<(), ContentError> {
+    fn upload_part(&mut self, index: u16, buf: Vec<u8>) -> Result<(), ContentError> {
         const ETAG: &str = "ETag";
 
         if self.upload_id.is_empty() {
@@ -240,7 +262,7 @@ impl Content {
     }
 
     /// 完成分块上传
-    pub fn complete_multi(&mut self) -> Result<(), ContentError> {
+    fn complete_multi(&mut self) -> Result<(), ContentError> {
         if self.upload_id.is_empty() {
             return Err(ContentError::NoFoundUploadId);
         }
@@ -297,18 +319,15 @@ impl Content {
 // impl Drop for Content {
 //     fn drop(&mut self) {
 //         if self.upload_id.is_empty() == false {
-//             block_on(self.abort_multi());
+//             self.abort_multi();
 //         }
 //     }
 // }
 
-impl RefineObject<BuildInItemError> for Inner {
+impl<T: DerefMut<Target = Inner>> RefineObject<BuildInItemError> for T {
     #[inline]
     fn set_key(&mut self, key: &str) -> Result<(), BuildInItemError> {
-        self.path = key.parse().map_err(|e| BuildInItemError {
-            source: key.to_string(),
-            kind: BuildInItemErrorKind::BasePath(e),
-        })?;
+        self.path = key.parse().map_err(|e| BuildInItemError::new(e, key))?;
 
         self.content_type_from_key(key);
         Ok(())
@@ -424,24 +443,6 @@ impl Inner {
     }
 }
 
-#[cfg(test)]
-#[tokio::test]
-async fn main() {
-    dotenv::dotenv().ok();
-    let client = Client::from_env().unwrap();
-
-    // let mut list = client
-    //     .get_custom_object(&Query::default(), Content::init_object)
-    //     .await
-    //     .unwrap();
-
-    // let second = list.get_next_base(Content::init_object).await;
-
-    // let mut objcet = Content::from_client(Arc::new(client)).path("aaa").unwrap();
-    // let res = objcet.init_multi().await;
-    // println!("{res:#?}");
-}
-
 impl From<Client> for Content {
     fn from(value: Client) -> Self {
         Content {
@@ -549,5 +550,12 @@ mod tests {
         assert_eq!(content.upload_id, "AC3251A13464411D8691F271CE33A300");
 
         content.parse_upload_id("abc").unwrap_err();
+    }
+
+    #[test]
+    fn assert_impl() {
+        fn impl_fn<T: RefineObject<E>, E: std::error::Error + 'static>(_: T) {}
+
+        impl_fn(Content::default());
     }
 }

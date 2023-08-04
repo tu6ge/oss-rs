@@ -51,6 +51,9 @@ required-features = ["blocking"]
 name = "put_file"
 required-features = ["blocking", "put_file"]
 
+[[example]]
+name = "io_write"
+
 [[sts]]
 name = "sts"
 required-features = ["sts"]

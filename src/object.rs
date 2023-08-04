@@ -853,6 +853,13 @@ impl BuildInItemError {
             kind: BuildInItemErrorKind::InvalidStorageClass,
         }
     }
+
+    pub(crate) fn new<K: Into<BuildInItemErrorKind>>(kind: K, source: &str) -> Self {
+        Self {
+            source: source.to_owned(),
+            kind: kind.into(),
+        }
+    }
 }
 
 impl Display for BuildInItemError {
@@ -883,7 +890,7 @@ impl Error for BuildInItemError {
 /// Xml 转化为内置 Object 时的错误集合
 #[derive(Debug)]
 #[non_exhaustive]
-enum BuildInItemErrorKind {
+pub(crate) enum BuildInItemErrorKind {
     /// 转换数字类型的错误
     Size(ParseIntError),
 
@@ -897,6 +904,12 @@ enum BuildInItemErrorKind {
     // Xml(quick_xml::Error),
     /// 非法的 StorageClass
     InvalidStorageClass,
+}
+
+impl From<InvalidObjectPath> for BuildInItemErrorKind {
+    fn from(value: InvalidObjectPath) -> Self {
+        Self::BasePath(value)
+    }
 }
 
 impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
