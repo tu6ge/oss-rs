@@ -30,17 +30,7 @@ pub struct Content {
 impl Write for Content {
     // 写入缓冲区
     fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-        if self.content_part.len() >= Inner::MAX_PARTS_COUNT as usize {
-            return Err(ContentError::OverflowMaxPartsCount.into());
-        }
-        let con = if buf.len() < self.part_size {
-            &buf[..]
-        } else {
-            &buf[..self.part_size]
-        };
-        self.content_part.push(con.to_vec());
-
-        Ok(con.len())
+        self.inner.write(buf)
     }
 
     // 按分片数量选择上传 OSS 的方式

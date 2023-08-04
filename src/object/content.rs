@@ -50,17 +50,7 @@ pub struct Inner {
 impl Write for Content {
     // 写入缓冲区
     fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-        if self.content_part.len() >= Inner::MAX_PARTS_COUNT as usize {
-            return Err(ContentError::OverflowMaxPartsCount.into());
-        }
-        let con = if buf.len() < self.part_size {
-            &buf[..]
-        } else {
-            &buf[..self.part_size]
-        };
-        self.content_part.push(con.to_vec());
-
-        Ok(con.len())
+        self.inner.write(buf)
     }
 
     // 按分片数量选择上传 OSS 的方式
@@ -99,6 +89,12 @@ impl Read for Content {
     }
 }
 
+impl Seek for Content {
+    fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
+        self.inner.seek(pos)
+    }
+}
+
 impl Seek for Inner {
     fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
         let n = match pos {
@@ -108,12 +104,6 @@ impl Seek for Inner {
         };
         self.current_pos = n;
         Ok(n)
-    }
-}
-
-impl Seek for Content {
-    fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
-        self.inner.seek(pos)
     }
 }
 
@@ -360,13 +350,31 @@ impl Inner {
     const DEFAULT_CONTENT_TYPE: &str = DEFAULT_CONTENT_TYPE;
 
     /// 最大存储容量 48.8 TB, 49664 = 1024 * 48.5
+    #[cfg(not(test))]
     const MAX_SIZE: u64 = 1024 * 1024 * 1024 * 49_664;
     /// 最大 part 数量
+    #[cfg(not(test))]
     const MAX_PARTS_COUNT: u16 = 10000;
     /// 单个 part 的最小尺寸 100K
+    #[cfg(not(test))]
     const PART_SIZE_MIN: usize = 102400;
     /// 单个 part 的最大尺寸 5G
+    #[cfg(not(test))]
     const PART_SIZE_MAX: usize = 1024 * 1024 * 1024 * 5;
+
+    /// 最大存储容量 48.8 TB, 49664 = 1024 * 48.5
+    #[cfg(test)]
+    const MAX_SIZE: u64 = 200;
+    /// 最大 part 数量
+    #[cfg(test)]
+    const MAX_PARTS_COUNT: u16 = 10;
+    /// 单个 part 的最小尺寸 100K
+    #[cfg(test)]
+    const PART_SIZE_MIN: usize = 10;
+    /// 单个 part 的最大尺寸 5G
+    #[cfg(test)]
+    const PART_SIZE_MAX: usize = 20;
+
     /// 设置 ObjectPath
     pub fn path<P>(mut self, path: P) -> Result<Self, InvalidObjectPath>
     where
@@ -402,6 +410,32 @@ impl Inner {
             },
             None => DEFAULT_CONTENT_TYPE,
         }
+    }
+
+    // 写入缓冲区
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        let part_total = self.content_part.len();
+        if part_total >= Inner::MAX_PARTS_COUNT as usize {
+            return Err(ContentError::OverflowMaxPartsCount.into());
+        }
+
+        let part_size = self.part_size;
+        if let Some(part) = self.content_part.last_mut() {
+            let part_len = part.len();
+            if part_len < part_size {
+                let mid = part_size - part_len;
+                let left = &buf[..mid.min(buf.len())];
+
+                part.append(&mut left.to_vec());
+
+                return Ok(left.len());
+            }
+        }
+
+        let con = &buf[..buf.len().min(self.part_size)];
+        self.content_part.push(con.to_vec());
+
+        Ok(con.len())
     }
 
     /// 设置分块的尺寸
@@ -440,6 +474,11 @@ impl Inner {
             "<CompleteMultipartUpload>{}</CompleteMultipartUpload>",
             list
         ))
+    }
+
+    /// 清空缓冲区
+    pub fn part_clear(&mut self) {
+        self.content_part.clear();
     }
 }
 
@@ -557,5 +596,37 @@ mod tests {
         fn impl_fn<T: RefineObject<E>, E: std::error::Error + 'static>(_: T) {}
 
         impl_fn(Content::default());
+    }
+
+    #[test]
+    fn test_write() {
+        let mut content = Content::default();
+        content.part_size = 5;
+        content.write_all(b"abcdefg").unwrap();
+
+        assert!(content.content_part.len() == 2);
+        assert_eq!(content.content_part[0], b"abcde");
+        assert_eq!(content.content_part[1], b"fg");
+
+        content.part_clear();
+
+        content.write(b"mn").unwrap();
+        assert!(content.content_part.len() == 1);
+        assert_eq!(content.content_part[0], b"mn");
+
+        content.part_clear();
+
+        let len = content.write(b"efghijklmn").unwrap();
+        assert!(content.content_part.len() == 1);
+        assert_eq!(content.content_part[0], b"efghi");
+        assert_eq!(len, 5);
+
+        content.part_clear();
+
+        content.write(b"o").unwrap();
+        content.write(b"p").unwrap();
+        content.write(b"q").unwrap();
+        assert!(content.content_part.len() == 1);
+        assert_eq!(content.content_part[0], b"opq");
     }
 }
