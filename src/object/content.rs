@@ -433,7 +433,11 @@ impl Inner {
         }
 
         let con = &buf[..buf.len().min(self.part_size)];
-        self.content_part.push(con.to_vec());
+        self.content_part.push({
+            let mut vec = Vec::with_capacity(self.part_size);
+            vec.extend(con);
+            vec
+        });
 
         Ok(con.len())
     }
@@ -596,6 +600,10 @@ mod tests {
         fn impl_fn<T: RefineObject<E>, E: std::error::Error + 'static>(_: T) {}
 
         impl_fn(Content::default());
+
+        fn impl_deref<T: Deref<Target = Inner>>(_: T) {}
+
+        impl_deref(Content::default());
     }
 
     #[test]

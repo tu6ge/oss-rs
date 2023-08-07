@@ -75,7 +75,6 @@
 //! [`File`]: crate::file::File
 
 use async_trait::async_trait;
-use chrono::Duration;
 use http::{
     header::{HeaderName, CONTENT_LENGTH, CONTENT_TYPE},
     HeaderValue, Method,

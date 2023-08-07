@@ -291,6 +291,9 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Deref;
+
+    use super::super::Inner;
     use super::Content;
     use crate::decode::RefineObject;
 
@@ -299,5 +302,9 @@ mod tests {
         fn impl_fn<T: RefineObject<E>, E: std::error::Error + 'static>(_: T) {}
 
         impl_fn(Content::default());
+
+        fn impl_deref<T: Deref<Target = Inner>>(_: T) {}
+
+        impl_deref(Content::default());
     }
 }
