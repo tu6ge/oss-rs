@@ -1,6 +1,6 @@
 use std::{io::Write, sync::Arc};
 
-use aliyun_oss_client::{object::content::arc::Content, Client};
+use aliyun_oss_client::{object::content::Content, Client};
 use dotenv::dotenv;
 
 #[tokio::main]

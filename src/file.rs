@@ -663,7 +663,7 @@ mod error_impl {
             let kind = match value {
                 #[cfg(feature = "put_file")]
                 FileErrorKind::FileRead(e) => return e,
-                FileErrorKind::InvalidContentLength(e) => {
+                FileErrorKind::InvalidContentLength(_) => {
                     Self::new(ErrorKind::InvalidData, "invalid content length")
                 }
                 FileErrorKind::InvalidContentType(_) => {

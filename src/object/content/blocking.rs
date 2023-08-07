@@ -1,29 +1,30 @@
+//! 读写 object 内容
+
 use std::{
     io::{Read, Result as IoResult, Seek, SeekFrom, Write},
     ops::{Deref, DerefMut},
-    sync::Arc,
+    rc::Rc,
 };
 
-use futures::executor::block_on;
 use http::{header::CONTENT_LENGTH, HeaderValue, Method};
 use url::Url;
 
 use crate::{
-    file::{AlignBuilder, Files},
-    object::Objects,
+    file::{blocking::AlignBuilder, BlockingFiles},
     types::{
         object::{InvalidObjectPath, SetObjectPath},
         CanonicalizedResource,
     },
-    Client, ObjectPath,
+    ClientRc as Client, ObjectPath,
 };
 
-use super::{ContentError, Inner};
+use super::{ContentError, Inner, ObjectsBlocking};
 
 /// # object 内容
 /// [OSS 分片上传文档](https://help.aliyun.com/zh/oss/user-guide/multipart-upload-12)
+//#[derive(Debug)]
 pub struct Content {
-    client: Arc<Client>,
+    client: Rc<Client>,
     inner: Inner,
 }
 
@@ -43,10 +44,10 @@ impl Write for Content {
             return Ok(());
         }
         if len == 1 {
-            return block_on(self.upload());
+            return self.upload();
         }
 
-        block_on(self.upload_multi())
+        self.upload_multi()
     }
 }
 
@@ -58,10 +59,9 @@ impl Read for Content {
         }
 
         let end = self.current_pos + len as u64;
-        let vec = block_on(
-            self.client
-                .get_object(self.path.clone(), self.current_pos..end - 1),
-        )?;
+        let vec = self
+            .client
+            .get_object(self.path.clone(), self.current_pos..end - 1)?;
 
         let len = std::cmp::min(vec.len(), buf.len());
         buf[..len].copy_from_slice(&vec[..len]);
@@ -79,7 +79,7 @@ impl Seek for Content {
 impl Default for Content {
     fn default() -> Self {
         Self {
-            client: Arc::default(),
+            client: Rc::default(),
             inner: Inner::default(),
         }
     }
@@ -99,17 +99,18 @@ impl DerefMut for Content {
 }
 
 /// 带内容的 object 列表
-pub type List = Objects<Content>;
+pub type List = ObjectsBlocking<Content>;
 
 impl Content {
-    fn init_object(list: &mut List) -> Option<Content> {
+    /// 初始化方法
+    pub fn init_object(list: &mut List) -> Option<Content> {
         Some(Content {
             client: list.client(),
             ..Default::default()
         })
     }
     /// 从 client 创建
-    pub fn from_client(client: Arc<Client>) -> Content {
+    pub fn from_client(client: Rc<Client>) -> Content {
         Content {
             client,
             ..Default::default()
@@ -136,49 +137,49 @@ impl Content {
             CanonicalizedResource::new(format!("/{}/{}?{}", bucket, self.path.as_ref(), query)),
         )
     }
-    async fn upload(&mut self) -> IoResult<()> {
+
+    fn upload(&mut self) -> IoResult<()> {
         let content = self.content_part.pop().unwrap();
         self.client
             .put_content_base(content, self.content_type, self.path.clone())
-            .await
             .map(|_| ())
             .map_err(Into::into)
     }
 
-    async fn upload_multi(&mut self) -> IoResult<()> {
-        self.init_multi().await?;
+    fn upload_multi(&mut self) -> IoResult<()> {
+        self.init_multi()?;
 
         let mut i = 1;
         let mut size: u64 = 0;
         self.content_part.reverse();
         while let Some(item) = self.content_part.pop() {
             size += item.len() as u64;
-            self.upload_part(i, item).await?;
+            self.upload_part(i, item)?;
             i += 1;
         }
 
-        self.complete_multi().await?;
+        self.complete_multi()?;
         self.content_size = size;
+
         Ok(())
     }
 
     /// 初始化批量上传
-    async fn init_multi(&mut self) -> Result<(), ContentError> {
+    fn init_multi(&mut self) -> Result<(), ContentError> {
         const UPLOADS: &str = "uploads";
 
         let (url, resource) = self.part_canonicalized(UPLOADS);
         let xml = self
             .client
             .builder(Method::POST, url, resource)?
-            .send_adjust_error()
-            .await?
-            .text()
-            .await?;
+            .send_adjust_error()?
+            .text()?;
 
         self.parse_upload_id(&xml)
     }
+
     /// 上传分块
-    async fn upload_part(&mut self, index: u16, buf: Vec<u8>) -> Result<(), ContentError> {
+    fn upload_part(&mut self, index: u16, buf: Vec<u8>) -> Result<(), ContentError> {
         const ETAG: &str = "ETag";
 
         if self.upload_id.is_empty() {
@@ -206,8 +207,7 @@ impl Content {
             .client
             .builder_with_header(Method::PUT, url, resource, headers)?
             .body(buf)
-            .send_adjust_error()
-            .await?;
+            .send_adjust_error()?;
 
         let etag = resp.headers().get(ETAG).ok_or(ContentError::NoFoundEtag)?;
 
@@ -220,8 +220,9 @@ impl Content {
 
         Ok(())
     }
+
     /// 完成分块上传
-    async fn complete_multi(&mut self) -> Result<(), ContentError> {
+    fn complete_multi(&mut self) -> Result<(), ContentError> {
         if self.upload_id.is_empty() {
             return Err(ContentError::NoFoundUploadId);
         }
@@ -239,19 +240,24 @@ impl Content {
         )];
 
         let _resp = self
-            .client
-            .builder_with_header(Method::POST, url, resource, headers)?
-            .body(xml)
-            .send_adjust_error()
-            .await?;
+          .client
+          .builder_with_header(Method::POST, url, resource, headers)?
+          .body(xml)
+          .send_adjust_error()
+          ?
+          // .text()
+          // .await?
+          ;
 
+        //println!("resp: {}", resp);
         self.etag_list.clear();
         self.upload_id = String::default();
 
         Ok(())
     }
+
     /// 取消分块上传
-    pub async fn abort_multi(&mut self) -> Result<(), ContentError> {
+    pub fn abort_multi(&mut self) -> Result<(), ContentError> {
         if self.upload_id.is_empty() {
             return Err(ContentError::NoFoundUploadId);
         }
@@ -261,8 +267,7 @@ impl Content {
         let _resp = self
             .client
             .builder(Method::DELETE, url, resource)?
-            .send_adjust_error()
-            .await?;
+            .send_adjust_error()?;
 
         //println!("resp: {:?}", resp);
         self.upload_id = String::default();
@@ -271,31 +276,28 @@ impl Content {
     }
 }
 
-#[cfg(test)]
-#[tokio::test]
-async fn main() {
-    dotenv::dotenv().ok();
-    let client = Client::from_env().unwrap();
+// impl Drop for Content {
+//     fn drop(&mut self) {
+//         if self.upload_id.is_empty() == false {
+//             self.abort_multi();
+//         }
+//     }
+// }
 
-    let mut list = client
-        .get_custom_object(&crate::Query::default(), Content::init_object)
-        .await
-        .unwrap();
-
-    // let second = list.get_next_base(Content::init_object).await;
-
-    // let mut objcet = Content::from_client(Arc::new(client)).path("aaa").unwrap();
-    // let res = objcet.init_multi().await;
-    // println!("{res:#?}");
+impl From<Client> for Content {
+    fn from(value: Client) -> Self {
+        Content {
+            client: Rc::new(value),
+            ..Default::default()
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Deref;
-
-    use super::super::Inner;
-    use super::Content;
     use crate::decode::RefineObject;
+
+    use super::*;
 
     #[test]
     fn assert_impl() {
