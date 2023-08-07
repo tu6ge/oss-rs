@@ -1,4 +1,44 @@
-//! 读写 object 内容
+//! # 读写 object 内容 （实现标准 IO）
+//!
+//! ## 写入数据
+//! ```rust,no_run
+//! # use aliyun_oss_client::{Client, object::Content};
+//! # use std::sync::Arc;
+//! use std::io::Write;
+//! fn main() -> std::io::Result<()> {
+//!     dotenv::dotenv().ok();
+//!     let client = Client::from_env().unwrap();
+//!
+//!     let mut object = Content::from_client(Arc::new(client)).path("path1.txt").unwrap();
+//!     object.content_type_with_path();
+//!     object.write(b"abc")?;
+//!     object.flush();
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## 读取数据
+//! ```rust,no_run
+//! # use aliyun_oss_client::{Client, Query, object::content::List};
+//! use std::io::Read;
+//! #[tokio::main]
+//! async fn main() -> std::io::Result<()> {
+//!     dotenv::dotenv().ok();
+//!     let client = Client::from_env().unwrap();
+//!
+//!     let list: List = client
+//!         .get_custom_object(&Query::default())
+//!         .await
+//!         .unwrap();
+//!     let mut vec = list.to_vec();
+//!     let mut object = &mut vec[0];
+//!     let mut buffer = [0; 10];
+//!     object.read(&mut buffer)?;
+//!
+//!     Ok(())
+//! }
+//! ```
 
 use std::{
     error::Error,
@@ -20,12 +60,12 @@ use crate::{
         object::{InvalidObjectPath, SetObjectPath},
         CanonicalizedResource,
     },
-    Client, ObjectPath, Query,
+    Client, ObjectPath,
 };
 
-use super::{BuildInItemError, ExtractListError, Objects, ObjectsBlocking};
+use super::{BuildInItemError, InitObject, Objects, ObjectsBlocking};
 
-//pub mod arc;
+#[cfg(feature = "blocking")]
 pub mod blocking;
 
 /// # object 内容
@@ -122,24 +162,16 @@ impl DerefMut for Content {
 /// 带内容的 object 列表
 pub type List = Objects<Content>;
 
-pub async fn new_list(client: Arc<Client>, query: &Query) -> Result<List, ExtractListError> {
-    client.get_custom_object(query, Content::init_object).await
-}
-pub async fn next(list: &mut List) -> Option<Result<List, ExtractListError>> {
-    list.get_next_base(Content::init_object).await
-}
-
-impl Content {
-    /// 初始化方法
-    fn init_object(list: &mut List) -> Option<Content> {
+impl InitObject<Content> for List {
+    fn init_object(&mut self) -> Option<Content> {
         Some(Content {
-            client: list.client(),
+            client: self.client(),
             ..Default::default()
         })
     }
+}
 
-    /// 获取 Content 列表
-
+impl Content {
     /// 从 client 创建
     pub fn from_client(client: Arc<Client>) -> Content {
         Content {
@@ -430,6 +462,16 @@ impl Inner {
         }
     }
 
+    /// 设置 content_type
+    pub fn content_type(&mut self, content_type: &'static str) {
+        self.content_type = content_type;
+    }
+    /// 根据 path 推导 content_type
+    pub fn content_type_with_path(&mut self) {
+        let path = self.path.clone();
+        self.content_type_from_key(path.as_ref());
+    }
+
     // 写入缓冲区
     fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
         let part_total = self.content_part.len();
@@ -591,24 +633,6 @@ impl From<ContentError> for std::io::Error {
             OverflowMaxSize => Self::new(Unsupported, value),
         }
     }
-}
-
-#[cfg(test)]
-#[tokio::test]
-async fn main() {
-    dotenv::dotenv().ok();
-    let client = Client::from_env().unwrap();
-
-    let mut list = client
-        .get_custom_object(&crate::Query::default(), Content::init_object)
-        .await
-        .unwrap();
-
-    // let second = list.get_next_base(Content::init_object).await;
-
-    // let mut objcet = Content::from_client(Arc::new(client)).path("aaa").unwrap();
-    // let res = objcet.init_multi().await;
-    // println!("{res:#?}");
 }
 
 #[cfg(test)]

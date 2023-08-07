@@ -11,6 +11,7 @@ use url::Url;
 
 use crate::{
     file::{blocking::AlignBuilder, BlockingFiles},
+    object::InitObject,
     types::{
         object::{InvalidObjectPath, SetObjectPath},
         CanonicalizedResource,
@@ -101,14 +102,16 @@ impl DerefMut for Content {
 /// 带内容的 object 列表
 pub type List = ObjectsBlocking<Content>;
 
-impl Content {
-    /// 初始化方法
-    pub fn init_object(list: &mut List) -> Option<Content> {
+impl InitObject<Content> for List {
+    fn init_object(&mut self) -> Option<Content> {
         Some(Content {
-            client: list.client(),
+            client: self.client(),
             ..Default::default()
         })
     }
+}
+
+impl Content {
     /// 从 client 创建
     pub fn from_client(client: Rc<Client>) -> Content {
         Content {
