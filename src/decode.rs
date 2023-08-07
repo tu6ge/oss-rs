@@ -601,11 +601,11 @@ impl InnerListError {
         }
     }
 
-    fn custom<E: StdError + 'static>(err: E) -> Self {
-        Self {
-            kind: ListErrorKind::Custom(Box::new(err)),
-        }
-    }
+    // fn custom<E: StdError + 'static>(err: E) -> Self {
+    //     Self {
+    //         kind: ListErrorKind::Custom(Box::new(err)),
+    //     }
+    // }
 
     fn init_error() -> Self {
         Self {

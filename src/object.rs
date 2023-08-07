@@ -7,7 +7,7 @@
 //! ```rust,no_run
 //! use aliyun_oss_client::{
 //!     decode::RefineObject,
-//!     object::Objects,
+//!     object::{Objects, InitObject},
 //!     types::object::{InvalidObjectDir, ObjectDir, ObjectPath},
 //!     BucketName, Client,
 //! };
@@ -32,6 +32,13 @@
 //!
 //! type MyList = Objects<MyObject>;
 //!
+//! // 可以根据传入的列表信息，为元素添加更多能力
+//! impl InitObject<MyObject> for MyList {
+//!     fn init_object(&mut self) -> Option<MyObject> {
+//!         Some(MyObject::File(ObjectPath::default()))
+//!     }
+//! }
+//!
 //! #[tokio::main]
 //! async fn main() {
 //!     dotenv().ok();
@@ -40,15 +47,9 @@
 //!
 //!     let mut list = MyList::default();
 //!
-//!     // 利用闭包对 MyFile 做一下初始化设置
-//!     // 可以根据传入的列表信息，为元素添加更多能力
-//!     fn init_object(_list: &mut MyList) -> Option<MyObject> {
-//!         Some(MyObject::File(ObjectPath::default()))
-//!     }
-//!
-//!     let _ = client.base_object_list([], &mut list, init_object).await;
+//!     let _ = client.base_object_list([], &mut list).await;
 //!     // 第二页数据
-//!     let second = list.get_next_base(init_object).await;
+//!     let second = list.get_next_base().await;
 //!
 //!     println!("list: {:?}", list.to_vec());
 //! }
@@ -316,6 +317,29 @@ impl<Item> ObjectList<ArcPointer, Item> {
     }
 }
 
+/// # 初始化 object 项目的接口
+///
+/// 根据 object 列表初始化一个 object 数据
+pub trait InitObject<Target> {
+    /// 具体的过程
+    fn init_object(&mut self) -> Option<Target>;
+}
+
+impl InitObject<Object<ArcPointer>> for ObjectList<ArcPointer, Object<ArcPointer>> {
+    fn init_object(&mut self) -> Option<Object<ArcPointer>> {
+        Some(Object::from_bucket(Arc::new(self.bucket.clone())))
+    }
+}
+
+#[cfg(feature = "blocking")]
+impl InitObject<Object<RcPointer>> for ObjectList<RcPointer, Object<RcPointer>> {
+    fn init_object(&mut self) -> Option<Object<RcPointer>> {
+        Some(Object::<RcPointer>::from_bucket(Rc::new(
+            list.bucket.clone(),
+        )))
+    }
+}
+
 impl ObjectList<ArcPointer> {
     /// 异步获取下一页的数据
     /// TODO 改为 unstable
@@ -342,7 +366,7 @@ impl ObjectList<ArcPointer> {
                     ..Default::default()
                 };
 
-                list.decode(&response.text().await?, init_object_with_list)?;
+                list.decode(&response.text().await?, Self::init_object)?;
 
                 list.set_search_query(query);
                 Ok(list)
@@ -389,16 +413,15 @@ impl ObjectList<ArcPointer> {
     }
 }
 
-impl<Item> ObjectList<ArcPointer, Item> {
+impl<Item> ObjectList<ArcPointer, Item>
+where
+    Self: InitObject<Item>,
+{
     /// # 自定义 Item 时，获取下一页数据
     /// 当没有下一页查询条件时 返回 `None`
     /// 否则尝试获取下一页数据，成功返回 `Some(Ok(_))`, 失败返回 `Some(Err(_))`
-    pub async fn get_next_base<F, E>(
-        &mut self,
-        init_object: F,
-    ) -> Option<Result<Self, ExtractListError>>
+    pub async fn get_next_base<E>(&mut self) -> Option<Result<Self, ExtractListError>>
     where
-        F: Fn(&mut Objects<Item>) -> Option<Item>,
         Item: RefineObject<E>,
         E: Error + 'static,
     {
@@ -407,10 +430,7 @@ impl<Item> ObjectList<ArcPointer, Item> {
             Some(query) => {
                 let mut list = self.clone_base();
                 list.search_query = query.clone();
-                let res = self
-                    .client()
-                    .base_object_list(query, &mut list, init_object)
-                    .await;
+                let res = self.client().base_object_list(query, &mut list).await;
                 Some(res.map(|_| list))
             }
         }
@@ -635,17 +655,6 @@ impl<T: PointerFamily> Object<T> {
     pub fn path_string(&self) -> String {
         self.base.path().to_string()
     }
-}
-
-fn init_object_with_list(list: &mut ObjectList) -> Option<Object> {
-    Some(Object::from_bucket(Arc::new(list.bucket.clone())))
-}
-
-#[cfg(feature = "blocking")]
-fn init_object_with_list_rc(list: &mut ObjectList<RcPointer>) -> Option<Object<RcPointer>> {
-    Some(Object::<RcPointer>::from_bucket(Rc::new(
-        list.bucket.clone(),
-    )))
 }
 
 impl Object<ArcPointer> {
@@ -1046,7 +1055,10 @@ impl Client {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
-        list.decode(&content.text().await?, init_object_with_list)?;
+        list.decode(
+            &content.text().await?,
+            ObjectList::<ArcPointer>::init_object,
+        )?;
 
         list.set_client(Arc::new(self.clone()));
         list.set_search_query(query);
@@ -1060,7 +1072,7 @@ impl Client {
     /// ```rust
     /// use aliyun_oss_client::{
     ///     decode::{ListError, RefineObject, RefineObjectList},
-    ///     object::ExtractListError,
+    ///     object::{ExtractListError, InitObject},
     ///     Client,
     /// };
     /// use dotenv::dotenv;
@@ -1109,17 +1121,22 @@ impl Client {
     ///     let client = Client::from_env().unwrap();
     ///
     ///     // 除了设置Default 外，还可以做更多设置
-    ///     let mut bucket = MyBucket::default();
+    ///     let mut bucket = MyBucket {
+    ///         name: "abc".to_string(),
+    ///         files: Vec::with_capacity(20),
+    ///     };
     ///
     ///     // 利用闭包对 MyFile 做一下初始化设置
-    ///     fn init_file(_list: &mut MyBucket) -> Option<MyFile> {
-    ///         Some(MyFile {
-    ///             key: String::default(),
-    ///             other: "abc".to_string(),
-    ///         })
+    ///     impl InitObject<MyFile> for MyBucket {
+    ///         fn init_object(&mut self) -> Option<MyFile> {
+    ///             Some(MyFile {
+    ///               key: String::default(),
+    ///               other: "abc".to_string(),
+    ///             })
+    ///         }
     ///     }
     ///
-    ///     client.base_object_list([], &mut bucket, init_file).await?;
+    ///     client.base_object_list([], &mut bucket).await?;
     ///
     ///     println!("bucket: {:?}", bucket);
     ///
@@ -1131,36 +1148,31 @@ impl Client {
         Q: IntoIterator<Item = (QueryKey, QueryValue)>,
         List,
         Item,
-        F,
         E: ListError,
         ItemErr: Error + 'static,
     >(
         &self,
         query: Q,
         list: &mut List,
-        init_object: F,
     ) -> Result<(), ExtractListError>
     where
-        List: RefineObjectList<Item, E, ItemErr>,
+        List: RefineObjectList<Item, E, ItemErr> + InitObject<Item>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&mut List) -> Option<Item>,
     {
         let query = Query::from_iter(query);
 
-        self.base_object_list2(&query, list, init_object).await
+        self.base_object_list2(&query, list).await
     }
 
     /// # 可将 object 列表导出到外部类型（关注性能）
-    pub async fn base_object_list2<List, Item, F, E: ListError, ItemErr: Error + 'static>(
+    pub async fn base_object_list2<List, Item, E: ListError, ItemErr: Error + 'static>(
         &self,
         query: &Query,
         list: &mut List,
-        init_object: F,
     ) -> Result<(), ExtractListError>
     where
-        List: RefineObjectList<Item, E, ItemErr>,
+        List: RefineObjectList<Item, E, ItemErr> + InitObject<Item>,
         Item: RefineObject<ItemErr>,
-        F: Fn(&mut List) -> Option<Item>,
     {
         let bucket = self.get_bucket_base();
         let (bucket_url, resource) = bucket.get_url_resource(query);
@@ -1168,7 +1180,7 @@ impl Client {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
 
-        list.decode(&content.text().await?, init_object)?;
+        list.decode(&content.text().await?, List::init_object)?;
 
         Ok(())
     }
@@ -1177,20 +1189,18 @@ impl Client {
     /// 其包含在 [`ObjectList`] 对象中
     ///
     /// [`ObjectList`]: crate::object::ObjectList
-    pub async fn get_custom_object<Item, F, ItemErr>(
+    pub async fn get_custom_object<Item, ItemErr>(
         &self,
         query: &Query,
-        init_object: F,
     ) -> Result<Objects<Item>, ExtractListError>
     where
         Item: RefineObject<ItemErr>,
+        Objects<Item>: InitObject<Item>,
         ItemErr: Error + 'static,
-        F: Fn(&mut Objects<Item>) -> Option<Item>,
     {
         let mut list = Objects::<Item>::default();
 
-        self.base_object_list2(query, &mut list, init_object)
-            .await?;
+        self.base_object_list2(query, &mut list).await?;
 
         Ok(list)
     }

@@ -1,6 +1,6 @@
 use aliyun_oss_client::{
     decode::{RefineObject, RefineObjectList},
-    object::ExtractListError,
+    object::{ExtractListError, InitObject},
     Client, DecodeListError,
 };
 use dotenv::dotenv;
@@ -47,17 +47,22 @@ async fn get_with_client() -> Result<(), ExtractListError> {
     let client = Client::from_env().unwrap();
 
     // 除了设置Default 外，还可以做更多设置
-    let mut bucket = MyBucket::default();
+    let mut bucket = MyBucket {
+        name: "abc".to_string(),
+        files: Vec::with_capacity(20),
+    };
 
     // 利用闭包对 MyFile 做一下初始化设置
-    fn init_file(_list: &mut MyBucket) -> Option<MyFile> {
-        Some(MyFile {
-            key: String::default(),
-            other: "abc".to_string(),
-        })
+    impl InitObject<MyFile> for MyBucket {
+        fn init_object(&mut self) -> Option<MyFile> {
+            Some(MyFile {
+                key: String::default(),
+                other: "abc".to_string(),
+            })
+        }
     }
 
-    client.base_object_list([], &mut bucket, init_file).await?;
+    client.base_object_list([], &mut bucket).await?;
 
     println!("bucket: {:?}", bucket);
 

@@ -1,6 +1,6 @@
 use aliyun_oss_client::{
     decode::RefineObject,
-    object::Objects,
+    object::{InitObject, Objects},
     types::object::{InvalidObjectDir, ObjectDir, ObjectPathInner},
     Client,
 };
@@ -24,6 +24,12 @@ impl RefineObject<InvalidObjectDir> for MyObject<'_> {
 
 type MyList<'a> = Objects<MyObject<'a>>;
 
+impl<'a> InitObject<MyObject<'a>> for MyList<'a> {
+    fn init_object(&mut self) -> Option<MyObject<'a>> {
+        Some(MyObject::File(ObjectPathInner::default()))
+    }
+}
+
 #[tokio::main]
 async fn main() {
     dotenv().ok();
@@ -32,13 +38,9 @@ async fn main() {
 
     let mut list = MyList::default();
 
-    fn init_object<'a, 'b>(_list: &'a mut MyList<'b>) -> Option<MyObject<'b>> {
-        Some(MyObject::File(ObjectPathInner::default()))
-    }
+    let _ = client.base_object_list([], &mut list).await;
 
-    let _ = client.base_object_list([], &mut list, init_object).await;
-
-    let _second = list.get_next_base(init_object).await;
+    let _second = list.get_next_base().await;
 
     println!("list: {:?}", list.to_vec());
 }

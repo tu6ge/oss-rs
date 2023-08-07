@@ -22,7 +22,6 @@ use crate::{BucketName, EndPoint};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use http::Method;
 use oss_derive::oss_gen_rc;
-use std::convert::Infallible;
 use std::error::Error;
 use std::fmt::{self, Display};
 use std::num::ParseIntError;
@@ -370,6 +369,8 @@ impl Bucket {
 
     /// # 查询 Object 列表
     pub async fn get_object_list2(&self, query: Query) -> Result<ObjectList, ExtractListError> {
+        use crate::object::InitObject;
+
         let bucket_arc = Arc::new(self.base.clone());
 
         let mut list = Objects::<Object>::from_bucket(self, query.get_max_keys());
@@ -377,10 +378,7 @@ impl Bucket {
         let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error().await?;
-        fn init_object_with_list(list: &mut ObjectList) -> Option<Object> {
-            Some(Object::from_bucket(Arc::new(list.bucket.clone())))
-        }
-        list.decode(&content.text().await?, init_object_with_list)?;
+        list.decode(&content.text().await?, ObjectList::init_object)?;
 
         list.set_search_query(query);
 
@@ -397,6 +395,8 @@ impl Bucket<RcPointer> {
         &self,
         query: Q,
     ) -> Result<ObjectList<RcPointer>, ExtractListError> {
+        use crate::object::InitObject;
+
         let query = Query::from_iter(query);
 
         let bucket_arc = Rc::new(self.base.clone());
@@ -408,13 +408,7 @@ impl Bucket<RcPointer> {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        fn init_object_with_list(list: &mut ObjectList<RcPointer>) -> Option<Object<RcPointer>> {
-            Some(Object::<RcPointer>::from_bucket(Rc::new(
-                list.bucket.clone(),
-            )))
-        }
-
-        list.decode(&content.text()?, init_object_with_list)?;
+        list.decode(&content.text()?, ObjectList::<RcPointer>::init_object)?;
         list.set_search_query(query);
 
         Ok(list)
