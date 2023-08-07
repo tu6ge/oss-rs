@@ -449,7 +449,7 @@ impl ObjectList<RcPointer> {
             .builder(Method::GET, bucket_url, resource)?
             .send_adjust_error()?;
 
-        list.decode(&response.text()?, init_object_with_list_rc)
+        list.decode(&response.text()?, ObjectList::<RcPointer>::init_object)
             .map_err(ExtractListError::from)?;
 
         Ok(list)
@@ -1312,7 +1312,7 @@ impl ClientRc {
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
 
-        list.decode(&content.text()?, init_object_with_list_rc)?;
+        list.decode(&content.text()?, ObjectList::<RcPointer>::init_object)?;
 
         list.set_client(Rc::new(self));
         list.set_search_query(query);
