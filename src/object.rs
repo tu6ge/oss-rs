@@ -335,7 +335,7 @@ impl InitObject<Object<ArcPointer>> for ObjectList<ArcPointer, Object<ArcPointer
 impl InitObject<Object<RcPointer>> for ObjectList<RcPointer, Object<RcPointer>> {
     fn init_object(&mut self) -> Option<Object<RcPointer>> {
         Some(Object::<RcPointer>::from_bucket(Rc::new(
-            list.bucket.clone(),
+            self.bucket.clone(),
         )))
     }
 }
