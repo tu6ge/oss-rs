@@ -127,7 +127,7 @@ impl Read for Content {
                 .get_object(self.path.clone(), self.current_pos..end - 1),
         )?;
 
-        let len = std::cmp::min(vec.len(), buf.len());
+        let len = vec.len().min(buf.len());
         buf[..len].copy_from_slice(&vec[..len]);
 
         Ok(len)
@@ -340,9 +340,15 @@ impl Content {
 
 impl Seek for Inner {
     fn seek(&mut self, pos: SeekFrom) -> IoResult<u64> {
+        use std::io::{Error, ErrorKind};
         let n = match pos {
             SeekFrom::Start(p) => p,
-            SeekFrom::End(p) => (self.content_size as i64 - p) as u64,
+            SeekFrom::End(p) => {
+                if self.content_size == 0 {
+                    return Err(Error::new(ErrorKind::InvalidData, "content size is 0"));
+                }
+                (self.content_size as i64 - p) as u64
+            }
             SeekFrom::Current(n) => (self.current_pos as i64 + n) as u64,
         };
         self.current_pos = n;
