@@ -608,39 +608,12 @@ impl ContentError {
     }
 }
 
-impl Display for ContentErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            Self::NoFoundUploadId => "not found upload id".fmt(f),
-            Self::Builder(_) => "builder request failed".fmt(f),
-            Self::NoFoundEtag => "not found etag".fmt(f),
-            Self::OverflowMaxPartsCount => "overflow max parts count".fmt(f),
-            Self::EtagListEmpty => "etag list is empty".fmt(f),
-            Self::OverflowPartSize => "part size must be between 100k and 5G".fmt(f),
-            Self::OverflowMaxSize => "max size must be lt 48.8TB".fmt(f),
-        }
-    }
-}
-
 impl Display for ContentError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.kind.fmt(f)
     }
 }
 
-impl Error for ContentErrorKind {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Builder(e) => Some(e),
-            Self::NoFoundUploadId
-            | Self::NoFoundEtag
-            | Self::OverflowMaxPartsCount
-            | Self::EtagListEmpty
-            | Self::OverflowPartSize
-            | Self::OverflowMaxSize => None,
-        }
-    }
-}
 impl Error for ContentError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.kind.source()
@@ -673,6 +646,34 @@ impl From<ContentError> for std::io::Error {
             EtagListEmpty => Self::new(NotFound, kind),
             OverflowPartSize => Self::new(Unsupported, kind),
             OverflowMaxSize => Self::new(Unsupported, kind),
+        }
+    }
+}
+
+impl Display for ContentErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Self::NoFoundUploadId => "not found upload id".fmt(f),
+            Self::Builder(_) => "builder request failed".fmt(f),
+            Self::NoFoundEtag => "not found etag".fmt(f),
+            Self::OverflowMaxPartsCount => "overflow max parts count".fmt(f),
+            Self::EtagListEmpty => "etag list is empty".fmt(f),
+            Self::OverflowPartSize => "part size must be between 100k and 5G".fmt(f),
+            Self::OverflowMaxSize => "max size must be lt 48.8TB".fmt(f),
+        }
+    }
+}
+
+impl Error for ContentErrorKind {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Builder(e) => Some(e),
+            Self::NoFoundUploadId
+            | Self::NoFoundEtag
+            | Self::OverflowMaxPartsCount
+            | Self::EtagListEmpty
+            | Self::OverflowPartSize
+            | Self::OverflowMaxSize => None,
         }
     }
 }
