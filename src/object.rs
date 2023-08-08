@@ -1067,6 +1067,11 @@ impl Client {
     }
 
     /// # 可将 object 列表导出到外部类型（关注便捷性）
+    ///
+    /// 从 Client 中的默认 bucket 中获取，如需获取其他 bucket 的，可调用 `set_bucket` 更改后调用
+    ///
+    /// 也可以通过调用 `set_endpoint` 更改可用区
+    ///
     /// 可以参考下面示例，或者项目中的 `examples/custom.rs`
     /// ## 示例
     /// ```rust
@@ -1165,6 +1170,10 @@ impl Client {
     }
 
     /// # 可将 object 列表导出到外部类型（关注性能）
+    ///
+    /// 从 Client 中的默认 bucket 中获取，如需获取其他 bucket 的，可调用 `set_bucket` 更改后调用
+    ///
+    /// 也可以通过调用 `set_endpoint` 更改可用区
     pub async fn base_object_list2<List, Item, E: ListError, ItemErr: Error + 'static>(
         &self,
         query: &Query,

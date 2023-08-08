@@ -513,28 +513,29 @@ impl ClientArc {
 
     /// 从 OSS 上获取默认的 bucket 信息
     pub async fn get_bucket_info(self) -> Result<Bucket, ExtractItemError> {
-        let name = self.get_bucket_name().clone();
-
         let arc_client = Arc::new(self);
 
         let mut bucket = Bucket::<ArcPointer>::from_client(arc_client.clone());
 
-        arc_client.base_bucket_info(name, &mut bucket).await?;
+        arc_client.base_bucket_info(&mut bucket).await?;
 
         Ok(bucket)
     }
 
-    /// 从 OSS 上获取某一个 bucket 的信息，并存入自定义的类型中
-    pub async fn base_bucket_info<Bucket, Name: Into<BucketName>, E>(
+    /// # 从 OSS 上获取 bucket 的信息，并存入自定义的类型中
+    /// 默认获取 Client 中的默认 bucket 信息，如需获取其他 bucket，可调用 `set_bucket` 更改后调用
+    ///
+    /// 也可以调用 `set_endpoint` 更改可用区
+    pub async fn base_bucket_info<Bucket, E>(
         &self,
-        name: Name,
         bucket: &mut Bucket,
     ) -> Result<(), ExtractItemError>
     where
         Bucket: RefineBucket<E>,
         E: Error + 'static,
     {
-        let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
+        let base = self.get_bucket_base();
+        let mut bucket_url = base.to_url();
         let query = Some(BUCKET_INFO);
         bucket_url.set_query(query);
 
@@ -621,27 +622,23 @@ impl ClientRc {
     pub fn get_bucket_list(self) -> Result<ListBuckets<RcPointer>, ExtractListError> {
         let client_arc = Rc::new(self);
 
-        let init_bucket = || Bucket::<RcPointer>::from_client(client_arc.clone());
-
         let mut bucket_list = ListBuckets::<RcPointer>::from_client(client_arc.clone());
-        client_arc.base_bucket_list(&mut bucket_list, init_bucket)?;
+        client_arc.base_bucket_list(&mut bucket_list)?;
 
         Ok(bucket_list)
     }
 
     /// 获取 bucket 列表，可存储为自定义的类型
     #[inline]
-    pub fn base_bucket_list<List, Item, F, E, ItemErr>(
+    pub fn base_bucket_list<List, Item, E, ItemErr>(
         &self,
         list: &mut List,
-        init_bucket: F,
     ) -> Result<(), ExtractListError>
     where
-        List: RefineBucketList<Item, E, ItemErr>,
+        List: RefineBucketList<Item, E, ItemErr> + InitObject<Item>,
         Item: RefineBucket<ItemErr>,
         E: ListError,
         ItemErr: Error + 'static,
-        F: FnMut() -> Item,
     {
         let response = self
             .builder(
@@ -651,7 +648,7 @@ impl ClientRc {
             )?
             .send_adjust_error()?;
 
-        list.decode(&response.text()?, init_bucket)?;
+        list.decode(&response.text()?, List::init_object)?;
 
         Ok(())
     }

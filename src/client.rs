@@ -202,6 +202,16 @@ impl<M> Client<M> {
         self.endpoint.to_url()
     }
 
+    /// 更改默认 bucket
+    pub fn set_bucket(&mut self, bucket: BucketName) {
+        self.bucket = bucket;
+    }
+
+    /// 更改默认 endpoint
+    pub fn set_endpoint(&mut self, endpoint: EndPoint) {
+        self.endpoint = endpoint;
+    }
+
     /// 设置 timeout
     pub fn timeout(&mut self, timeout: Duration) {
         self.timeout = Some(timeout);
