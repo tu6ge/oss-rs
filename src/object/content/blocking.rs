@@ -19,7 +19,7 @@ use crate::{
     ClientRc as Client, ObjectPath,
 };
 
-use super::{ContentError, Inner, super::ObjectsBlocking};
+use super::{super::ObjectsBlocking, ContentError, Inner};
 
 /// # object 内容
 /// [OSS 分片上传文档](https://help.aliyun.com/zh/oss/user-guide/multipart-upload-12)
