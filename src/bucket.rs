@@ -470,9 +470,9 @@ impl InitObject<Bucket> for ListBuckets {
 
 #[cfg(feature = "blocking")]
 impl InitObject<Bucket<RcPointer>> for ListBuckets<RcPointer> {
-  fn init_object(&mut self) -> Option<Bucket<RcPointer>> {
-      Bucket::<RcPointer>::from_list(self)
-  }
+    fn init_object(&mut self) -> Option<Bucket<RcPointer>> {
+        Bucket::<RcPointer>::from_list(self)
+    }
 }
 
 impl ClientArc {
