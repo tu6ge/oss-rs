@@ -381,17 +381,10 @@ pub struct InnerQueryKey<'a> {
     kind: QueryKeyEnum<'a>,
 }
 
-// TODO
-#[allow(non_upper_case_globals)]
 impl InnerQueryKey<'_> {
     /// 对Object名字进行分组的字符。所有Object名字包含指定的前缀，第一次出现delimiter字符之间的Object作为一组元素（即CommonPrefixes）
     /// 示例值 `/`
     pub const DELIMITER: Self = Self {
-        kind: QueryKeyEnum::Delimiter,
-    };
-    /// TODO
-    #[deprecated(since = "0.13.0", note = "replace with QueryKey::DELIMITER")]
-    pub const Delimiter: Self = Self {
         kind: QueryKeyEnum::Delimiter,
     };
 
@@ -401,31 +394,16 @@ impl InnerQueryKey<'_> {
     pub const START_AFTER: Self = Self {
         kind: QueryKeyEnum::StartAfter,
     };
-    /// TODO
-    #[deprecated(since = "0.13.0", note = "replace with QueryKey::START_AFTER")]
-    pub const StartAfter: Self = Self {
-        kind: QueryKeyEnum::StartAfter,
-    };
 
     /// 指定List操作需要从此token开始。您可从ListObjectsV2（GetBucketV2）结果中的NextContinuationToken获取此token。
     /// 用于分页，返回下一页的数据
     pub const CONTINUATION_TOKEN: Self = Self {
         kind: QueryKeyEnum::ContinuationToken,
     };
-    /// TODO
-    #[deprecated(since = "0.13.0", note = "replace with QueryKey::CONTINUATION_TOKEN")]
-    pub const ContinuationToken: Self = Self {
-        kind: QueryKeyEnum::ContinuationToken,
-    };
 
     /// 指定返回Object的最大数。
     /// 取值：大于0小于等于1000
     pub const MAX_KEYS: Self = Self {
-        kind: QueryKeyEnum::MaxKeys,
-    };
-    /// TODO
-    #[deprecated(since = "0.13.0", note = "replace with QueryKey::MAX_KEYS")]
-    pub const MaxKeys: Self = Self {
         kind: QueryKeyEnum::MaxKeys,
     };
 
@@ -444,29 +422,14 @@ impl InnerQueryKey<'_> {
     pub const PREFIX: Self = Self {
         kind: QueryKeyEnum::Prefix,
     };
-    /// TODO
-    #[deprecated(since = "0.13.0", note = "replace with QueryKey::PREFIX")]
-    pub const Prefix: Self = Self {
-        kind: QueryKeyEnum::Prefix,
-    };
 
     /// 对返回的内容进行编码并指定编码的类型。
     pub const ENCODING_TYPE: Self = Self {
         kind: QueryKeyEnum::EncodingType,
     };
-    /// TODO
-    #[deprecated(since = "0.13.0", note = "replace with EndPoint::ENCODING_TYPE")]
-    pub const EncodingType: Self = Self {
-        kind: QueryKeyEnum::EncodingType,
-    };
 
     /// 指定是否在返回结果中包含owner信息。
     pub const FETCH_OWNER: Self = Self {
-        kind: QueryKeyEnum::FetchOwner,
-    };
-    /// TODO
-    #[deprecated(since = "0.13.0", note = "replace with EndPoint::FETCH_OWNER")]
-    pub const FetchOwner: Self = Self {
         kind: QueryKeyEnum::FetchOwner,
     };
 }
