@@ -1,6 +1,6 @@
 use std::{io::Write, sync::Arc};
 
-use aliyun_oss_client::{auth::query::QueryAuth, config::Config, object::content::arc::Content};
+use aliyun_oss_client::{auth::query::QueryAuth, config::Config, object::content::Content};
 use chrono::Utc;
 use dotenv::dotenv;
 use reqwest::Client;

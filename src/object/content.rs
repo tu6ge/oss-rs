@@ -66,7 +66,7 @@ use crate::{
     Client, ObjectPath,
 };
 
-use super::{BuildInItemError, InitObject, Objects, ObjectsBlocking};
+use super::{BuildInItemError, InitObject, Objects};
 
 #[cfg(feature = "blocking")]
 pub mod blocking;
@@ -364,6 +364,8 @@ mod private {
     pub trait Sealed {}
 
     impl Sealed for Content {}
+
+    #[cfg(feature = "blocking")]
     impl Sealed for super::blocking::Content {}
 }
 
