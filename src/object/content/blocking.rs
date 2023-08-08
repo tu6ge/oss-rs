@@ -19,7 +19,7 @@ use crate::{
     ClientRc as Client, ObjectPath,
 };
 
-use super::{super::ObjectsBlocking, ContentError, Inner};
+use super::{super::ObjectsBlocking, ContentError, ContentErrorKind, Inner};
 
 /// # object 内容
 /// [OSS 分片上传文档](https://help.aliyun.com/zh/oss/user-guide/multipart-upload-12)
@@ -56,7 +56,7 @@ impl Read for Content {
     fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
         let len = buf.len();
         if len as u64 > Inner::MAX_SIZE {
-            return Err(ContentError::OverflowMaxSize.into());
+            return Err(ContentError::new(ContentErrorKind::OverflowMaxSize).into());
         }
 
         let end = self.current_pos + len as u64;
@@ -186,14 +186,14 @@ impl Content {
         const ETAG: &str = "ETag";
 
         if self.upload_id.is_empty() {
-            return Err(ContentError::NoFoundUploadId);
+            return Err(ContentError::new(ContentErrorKind::NoFoundUploadId));
         }
 
         if self.etag_list.len() >= Inner::MAX_PARTS_COUNT as usize {
-            return Err(ContentError::OverflowMaxPartsCount);
+            return Err(ContentError::new(ContentErrorKind::OverflowMaxPartsCount));
         }
         if buf.len() > Inner::PART_SIZE_MAX {
-            return Err(ContentError::OverflowPartSize);
+            return Err(ContentError::new(ContentErrorKind::OverflowPartSize));
         }
 
         let query = format!("partNumber={}&uploadId={}", index, self.upload_id);
@@ -212,7 +212,10 @@ impl Content {
             .body(buf)
             .send_adjust_error()?;
 
-        let etag = resp.headers().get(ETAG).ok_or(ContentError::NoFoundEtag)?;
+        let etag = resp
+            .headers()
+            .get(ETAG)
+            .ok_or(ContentError::new(ContentErrorKind::NoFoundEtag))?;
 
         //println!("etag: {:?}", etag);
 
@@ -227,7 +230,7 @@ impl Content {
     /// 完成分块上传
     fn complete_multi(&mut self) -> Result<(), ContentError> {
         if self.upload_id.is_empty() {
-            return Err(ContentError::NoFoundUploadId);
+            return Err(ContentError::new(ContentErrorKind::NoFoundUploadId));
         }
 
         let xml = self.etag_list_xml()?;
@@ -243,14 +246,10 @@ impl Content {
         )];
 
         let _resp = self
-          .client
-          .builder_with_header(Method::POST, url, resource, headers)?
-          .body(xml)
-          .send_adjust_error()
-          ?
-          // .text()
-          // .await?
-          ;
+            .client
+            .builder_with_header(Method::POST, url, resource, headers)?
+            .body(xml)
+            .send_adjust_error()?;
 
         //println!("resp: {}", resp);
         self.etag_list.clear();
@@ -262,7 +261,7 @@ impl Content {
     /// 取消分块上传
     pub fn abort_multi(&mut self) -> Result<(), ContentError> {
         if self.upload_id.is_empty() {
-            return Err(ContentError::NoFoundUploadId);
+            return Err(ContentError::new(ContentErrorKind::NoFoundUploadId));
         }
         let query = format!("uploadId={}", self.upload_id);
 

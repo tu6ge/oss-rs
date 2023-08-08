@@ -118,7 +118,7 @@ impl Read for Content {
     fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
         let len = buf.len();
         if len as u64 > Inner::MAX_SIZE {
-            return Err(ContentError::OverflowMaxSize.into());
+            return Err(ContentError::new(ContentErrorKind::OverflowMaxSize).into());
         }
 
         let end = self.current_pos + len as u64;
@@ -249,14 +249,14 @@ impl Content {
         const ETAG: &str = "ETag";
 
         if self.upload_id.is_empty() {
-            return Err(ContentError::NoFoundUploadId);
+            return Err(ContentError::new(ContentErrorKind::NoFoundUploadId));
         }
 
         if self.etag_list.len() >= Inner::MAX_PARTS_COUNT as usize {
-            return Err(ContentError::OverflowMaxPartsCount);
+            return Err(ContentError::new(ContentErrorKind::OverflowMaxPartsCount));
         }
         if buf.len() > Inner::PART_SIZE_MAX {
-            return Err(ContentError::OverflowPartSize);
+            return Err(ContentError::new(ContentErrorKind::OverflowPartSize));
         }
 
         let query = format!("partNumber={}&uploadId={}", index, self.upload_id);
@@ -276,7 +276,10 @@ impl Content {
             .send_adjust_error()
             .await?;
 
-        let etag = resp.headers().get(ETAG).ok_or(ContentError::NoFoundEtag)?;
+        let etag = resp
+            .headers()
+            .get(ETAG)
+            .ok_or(ContentError::new(ContentErrorKind::NoFoundEtag))?;
 
         //println!("etag: {:?}", etag);
 
@@ -290,7 +293,7 @@ impl Content {
     /// 完成分块上传
     async fn complete_multi(&mut self) -> Result<(), ContentError> {
         if self.upload_id.is_empty() {
-            return Err(ContentError::NoFoundUploadId);
+            return Err(ContentError::new(ContentErrorKind::NoFoundUploadId));
         }
 
         let xml = self.etag_list_xml()?;
@@ -320,7 +323,7 @@ impl Content {
     /// 取消分块上传
     pub async fn abort_multi(&mut self) -> Result<(), ContentError> {
         if self.upload_id.is_empty() {
-            return Err(ContentError::NoFoundUploadId);
+            return Err(ContentError::new(ContentErrorKind::NoFoundUploadId));
         }
         let query = format!("uploadId={}", self.upload_id);
 
@@ -487,7 +490,7 @@ impl Inner {
     fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
         let part_total = self.content_part.len();
         if part_total >= Inner::MAX_PARTS_COUNT as usize {
-            return Err(ContentError::OverflowMaxPartsCount.into());
+            return Err(ContentError::new(ContentErrorKind::OverflowMaxPartsCount).into());
         }
 
         let part_size = self.part_size;
@@ -516,7 +519,7 @@ impl Inner {
     /// 设置分块的尺寸
     pub fn part_size(&mut self, size: usize) -> Result<(), ContentError> {
         if size > Self::PART_SIZE_MAX || size < Self::PART_SIZE_MIN {
-            return Err(ContentError::OverflowPartSize);
+            return Err(ContentError::new(ContentErrorKind::OverflowPartSize));
         }
         self.part_size = size;
 
@@ -530,11 +533,11 @@ impl Inner {
             return Ok(());
         }
 
-        Err(ContentError::NoFoundUploadId)
+        Err(ContentError::new(ContentErrorKind::NoFoundUploadId))
     }
     fn etag_list_xml(&self) -> Result<String, ContentError> {
         if self.etag_list.is_empty() {
-            return Err(ContentError::EtagListEmpty);
+            return Err(ContentError::new(ContentErrorKind::EtagListEmpty));
         }
         let mut list = String::new();
         for (index, etag) in self.etag_list.iter() {
@@ -569,7 +572,14 @@ impl From<Client> for Content {
 /// object Content 的错误信息
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum ContentError {
+pub struct ContentError {
+    kind: ContentErrorKind,
+}
+
+/// object Content 的错误信息
+#[derive(Debug)]
+#[non_exhaustive]
+enum ContentErrorKind {
     /// not found upload id
     NoFoundUploadId,
 
@@ -592,7 +602,13 @@ pub enum ContentError {
     OverflowMaxSize,
 }
 
-impl Display for ContentError {
+impl ContentError {
+    fn new(kind: ContentErrorKind) -> Self {
+        Self { kind }
+    }
+}
+
+impl Display for ContentErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
             Self::NoFoundUploadId => "not found upload id".fmt(f),
@@ -606,7 +622,13 @@ impl Display for ContentError {
     }
 }
 
-impl Error for ContentError {
+impl Display for ContentError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.kind.fmt(f)
+    }
+}
+
+impl Error for ContentErrorKind {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Builder(e) => Some(e),
@@ -619,29 +641,38 @@ impl Error for ContentError {
         }
     }
 }
+impl Error for ContentError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        self.kind.source()
+    }
+}
 
 impl From<BuilderError> for ContentError {
     fn from(value: BuilderError) -> Self {
-        Self::Builder(value)
+        Self {
+            kind: ContentErrorKind::Builder(value),
+        }
     }
 }
 impl From<reqwest::Error> for ContentError {
     fn from(value: reqwest::Error) -> Self {
-        Self::Builder(BuilderError::from_reqwest(value))
+        Self {
+            kind: ContentErrorKind::Builder(BuilderError::from_reqwest(value)),
+        }
     }
 }
 impl From<ContentError> for std::io::Error {
-    fn from(value: ContentError) -> Self {
+    fn from(ContentError { kind }: ContentError) -> Self {
         use std::io::ErrorKind::*;
-        use ContentError::*;
-        match value {
+        use ContentErrorKind::*;
+        match kind {
             Builder(e) => e.into(),
-            NoFoundUploadId => Self::new(NotFound, value),
-            NoFoundEtag => Self::new(NotFound, value),
-            OverflowMaxPartsCount => Self::new(InvalidInput, value),
-            EtagListEmpty => Self::new(NotFound, value),
-            OverflowPartSize => Self::new(Unsupported, value),
-            OverflowMaxSize => Self::new(Unsupported, value),
+            NoFoundUploadId => Self::new(NotFound, kind),
+            NoFoundEtag => Self::new(NotFound, kind),
+            OverflowMaxPartsCount => Self::new(InvalidInput, kind),
+            EtagListEmpty => Self::new(NotFound, kind),
+            OverflowPartSize => Self::new(Unsupported, kind),
+            OverflowMaxSize => Self::new(Unsupported, kind),
         }
     }
 }
