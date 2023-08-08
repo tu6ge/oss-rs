@@ -41,7 +41,7 @@
 //!
 //! use aliyun_oss_client::DecodeListError;
 //!
-//! // 自定义的 Error 需要实现这两个 Trait，用于内部解析方法在调用时，统一处理异常
+//! // 自定义的 Error 需要实现这个 Trait，用于内部解析方法在调用时，统一处理异常
 //! #[derive(Debug, Error, DecodeListError)]
 //! #[error("my error")]
 //! struct MyError {}
@@ -71,10 +71,13 @@
 //!     let mut bucket = MyBucket::default();
 //!
 //!     // 利用闭包对 MyFile 做一下初始化设置
-//!     let init_file = || MyFile {
-//!         key: String::default(),
-//!         other: "abc".to_string(),
-//!     };
+//!     // 可以根据传入的列表信息，为元素添加更多能力
+//!     fn init_file(_list: &mut MyBucket) -> Option<MyFile> {
+//!         Some(MyFile {
+//!             key: String::default(),
+//!             other: "abc".to_string(),
+//!         })
+//!     }
 //!
 //!     bucket.decode(xml, init_file)?;
 //!
@@ -278,9 +281,9 @@ where
 
     /// # 由 xml 转 struct 的底层实现
     /// - `init_object` 用于初始化 object 结构体的方法
-    fn decode<F>(&mut self, xml: &str, mut init_object: F) -> Result<(), InnerListError>
+    fn decode<F>(&mut self, xml: &str, init_object: F) -> Result<(), InnerListError>
     where
-        F: FnMut() -> T,
+        F: for<'a> Fn(&'a mut Self) -> Option<T>,
     {
         //println!("from_xml: {:#}", xml);
         let mut result = Vec::new();
@@ -311,7 +314,8 @@ where
                         }
                         CONTENTS => {
                             // <Contents></Contents> 标签内部的数据对应单个 object 信息
-                            let mut object = init_object();
+                            let mut object =
+                                init_object(self).ok_or(InnerListError::init_error(true))?;
                             object.decode(&reader.read_text(e.to_end().name())?)?;
                             result.push(object);
                         }
@@ -453,9 +457,9 @@ where
     }
 
     /// 解析 OSS 接口返回的 xml 数据
-    fn decode<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), InnerListError>
+    fn decode<F>(&mut self, xml: &str, init_bucket: F) -> Result<(), InnerListError>
     where
-        F: FnMut() -> T,
+        F: for<'a> Fn(&'a mut Self) -> Option<T>,
     {
         let mut result = Vec::new();
         let mut reader = Reader::from_str(xml);
@@ -476,7 +480,8 @@ where
                     DISPLAY_NAME => self.set_display_name(&reader.read_text(e.to_end().name())?)?,
                     BUCKET => {
                         // <Bucket></Bucket> 标签内部的数据对应单个 bucket 信息
-                        let mut bucket = init_bucket();
+                        let mut bucket =
+                            init_bucket(self).ok_or(InnerListError::init_error(false))?;
                         bucket.decode(&reader.read_text(e.to_end().name())?)?;
                         result.push(bucket);
                     }
@@ -583,6 +588,13 @@ impl Display for InnerListError {
             Item(item) => write!(fmt, "{}", item.0),
             Xml(xml) => write!(fmt, "{xml}"),
             Custom(out) => write!(fmt, "{out}"),
+            InitItemFailed(is_object) => {
+                if *is_object {
+                    write!(fmt, "init_object failed")
+                } else {
+                    write!(fmt, "init_bucket failed")
+                }
+            }
         }
     }
 }
@@ -593,6 +605,18 @@ impl InnerListError {
     pub(crate) fn from_xml() -> Self {
         Self {
             kind: ListErrorKind::Xml(Box::new(quick_xml::Error::TextNotFound)),
+        }
+    }
+
+    // fn custom<E: StdError + 'static>(err: E) -> Self {
+    //     Self {
+    //         kind: ListErrorKind::Custom(Box::new(err)),
+    //     }
+    // }
+
+    fn init_error(is_object: bool) -> Self {
+        Self {
+            kind: ListErrorKind::InitItemFailed(is_object),
         }
     }
 
@@ -619,6 +643,7 @@ impl InnerListError {
             Item(item) => item.get_source(),
             Xml(xml) => Some(xml),
             Custom(out) => Some(out.as_ref()),
+            InitItemFailed(_) => None,
         }
     }
 }
@@ -651,4 +676,6 @@ enum ListErrorKind {
 
     #[non_exhaustive]
     Custom(Box<dyn StdError + 'static>),
+
+    InitItemFailed(bool),
 }

@@ -9,12 +9,7 @@
 //! let key = "key".into();
 //! let secret = "secret".into();
 //! let bucket = "bucket".parse().unwrap();
-//! let auth = QueryAuth::new(
-//!     &key,
-//!     &secret,
-//!     &EndPoint::CN_QINGDAO,
-//!     &bucket
-//! );
+//! let auth = QueryAuth::new(&key, &secret, &EndPoint::CN_QINGDAO, &bucket);
 //! let time = Utc::now().timestamp() + 3600;
 //! let url = auth.to_url(&"pretty.png".parse().unwrap(), time);
 //! ```

@@ -95,7 +95,7 @@ fn object_list_get_object_list() {
     )
     .middleware(Rc::new(MyMiddleware {}));
 
-    let mut object_list = ObjectList::<RcPointer>::new(
+    let object_list = ObjectList::<RcPointer>::new(
         "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap(),
         Some("foo2/".parse().unwrap()),
         100,

@@ -161,7 +161,7 @@ mod object_list_xml {
 
         let mut list = ListB {};
 
-        let res = list.decode(xml, || ObjectA {});
+        let res = list.decode(xml, |_| -> Option<ObjectA> { Some(ObjectA {}) });
 
         assert!(res.is_ok());
     }
@@ -409,7 +409,9 @@ mod object_list_xml {
 
         let mut list = ListB {};
 
-        let init_object = || ObjectA {};
+        fn init_object(_list: &mut ListB) -> Option<ObjectA> {
+            Some(ObjectA {})
+        }
 
         let res = list.decode(xml, init_object);
 
@@ -616,7 +618,7 @@ mod bucket_list_xml {
         </ListAllMyBucketsResult>"#;
 
         let mut list = ListA {};
-        let res = list.decode(xml, || BucketA {});
+        let res = list.decode(xml, |_| Some(BucketA {}));
 
         assert!(res.is_ok());
     }
@@ -759,7 +761,7 @@ mod some_tests {
 
         let mut list = ListA {};
 
-        let res = list.decode(xml, || ObjectA {});
+        let res = list.decode(xml, |_| -> Option<ObjectA> { Some(ObjectA {}) });
 
         assert!(res.is_ok());
     }
