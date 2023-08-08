@@ -1,4 +1,4 @@
-//! # 读写 object 内容 （实现标准 IO）
+//! # 读写 object 内容 （实现 std Write/Read）
 //!
 //! ## 写入数据
 //! ```rust,no_run
@@ -20,7 +20,8 @@
 //!
 //! ## 读取数据
 //! ```rust,no_run
-//! # use aliyun_oss_client::{Client, Query, object::content::List};
+//! # use aliyun_oss_client::{Client, Query};
+//! use aliyun_oss_client::object::content::List;
 //! use std::io::Read;
 //! #[tokio::main]
 //! async fn main() -> std::io::Result<()> {
@@ -35,6 +36,8 @@
 //!     let mut object = &mut vec[0];
 //!     let mut buffer = [0; 10];
 //!     object.read(&mut buffer)?;
+//!
+//!     println!("{:?}", buffer);
 //!
 //!     Ok(())
 //! }
