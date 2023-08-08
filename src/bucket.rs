@@ -12,7 +12,7 @@ use crate::decode::{InnerItemError, ListError, RefineBucket, RefineBucketList, R
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
-use crate::object::{ExtractListError, Object, ObjectList, Objects, StorageClass};
+use crate::object::{ExtractListError, InitObject, Object, ObjectList, Objects, StorageClass};
 use crate::types::{
     CanonicalizedResource, InvalidBucketName, InvalidEndPoint, Query, QueryKey, QueryValue,
     BUCKET_INFO,
@@ -347,6 +347,13 @@ impl Bucket<ArcPointer> {
             ..Default::default()
         }
     }
+
+    fn from_list(list: &mut ListBuckets<ArcPointer>) -> Option<Self> {
+        Some(Self {
+            client: list.client.clone(),
+            ..Default::default()
+        })
+    }
 }
 
 impl Bucket {
@@ -369,8 +376,6 @@ impl Bucket {
 
     /// # 查询 Object 列表
     pub async fn get_object_list2(&self, query: Query) -> Result<ObjectList, ExtractListError> {
-        use crate::object::InitObject;
-
         let bucket_arc = Arc::new(self.base.clone());
 
         let mut list = Objects::<Object>::from_bucket(self, query.get_max_keys());
@@ -395,8 +400,6 @@ impl Bucket<RcPointer> {
         &self,
         query: Q,
     ) -> Result<ObjectList<RcPointer>, ExtractListError> {
-        use crate::object::InitObject;
-
         let query = Query::from_iter(query);
 
         let bucket_arc = Rc::new(self.base.clone());
@@ -459,33 +462,40 @@ impl<T: PointerFamily, Item: RefineBucket<E>, E: Error + 'static>
     }
 }
 
+impl InitObject<Bucket> for ListBuckets {
+    fn init_object(&mut self) -> Option<Bucket> {
+        Bucket::<ArcPointer>::from_list(self)
+    }
+}
+
+#[cfg(feature = "blocking")]
+impl InitObject<Bucket<RcPointer>> for ListBuckets<RcPointer> {
+  fn init_object(&mut self) -> Option<Bucket<RcPointer>> {
+      Bucket::<RcPointer>::from_list(self)
+  }
+}
+
 impl ClientArc {
     /// 从 OSS 获取 bucket 列表
     pub async fn get_bucket_list(self) -> Result<ListBuckets, ExtractListError> {
         let client_arc = Arc::new(self);
 
-        let init_bucket = || Bucket::<ArcPointer>::from_client(client_arc.clone());
-
         let mut bucket_list = ListBuckets::<ArcPointer>::from_client(client_arc.clone());
-        client_arc
-            .base_bucket_list(&mut bucket_list, init_bucket)
-            .await?;
+        client_arc.base_bucket_list(&mut bucket_list).await?;
 
         Ok(bucket_list)
     }
 
     /// 从 OSS 获取 bucket 列表，并存入自定义类型中
-    pub async fn base_bucket_list<List, Item, F, E, ItemErr>(
+    pub async fn base_bucket_list<List, Item, E, ItemErr>(
         &self,
         list: &mut List,
-        init_bucket: F,
     ) -> Result<(), ExtractListError>
     where
-        List: RefineBucketList<Item, E, ItemErr>,
+        List: RefineBucketList<Item, E, ItemErr> + InitObject<Item>,
         Item: RefineBucket<ItemErr>,
         E: ListError,
         ItemErr: Error + 'static,
-        F: FnMut() -> Item,
     {
         let response = self
             .builder(
@@ -496,7 +506,7 @@ impl ClientArc {
             .send_adjust_error()
             .await?;
 
-        list.decode(&response.text().await?, init_bucket)?;
+        list.decode(&response.text().await?, List::init_object)?;
 
         Ok(())
     }

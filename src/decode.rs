@@ -315,7 +315,7 @@ where
                         CONTENTS => {
                             // <Contents></Contents> 标签内部的数据对应单个 object 信息
                             let mut object =
-                                init_object(self).ok_or(InnerListError::init_error())?;
+                                init_object(self).ok_or(InnerListError::init_error(true))?;
                             object.decode(&reader.read_text(e.to_end().name())?)?;
                             result.push(object);
                         }
@@ -457,9 +457,9 @@ where
     }
 
     /// 解析 OSS 接口返回的 xml 数据
-    fn decode<F>(&mut self, xml: &str, mut init_bucket: F) -> Result<(), InnerListError>
+    fn decode<F>(&mut self, xml: &str, init_bucket: F) -> Result<(), InnerListError>
     where
-        F: FnMut() -> T,
+        F: for<'a> Fn(&'a mut Self) -> Option<T>,
     {
         let mut result = Vec::new();
         let mut reader = Reader::from_str(xml);
@@ -480,7 +480,8 @@ where
                     DISPLAY_NAME => self.set_display_name(&reader.read_text(e.to_end().name())?)?,
                     BUCKET => {
                         // <Bucket></Bucket> 标签内部的数据对应单个 bucket 信息
-                        let mut bucket = init_bucket();
+                        let mut bucket =
+                            init_bucket(self).ok_or(InnerListError::init_error(false))?;
                         bucket.decode(&reader.read_text(e.to_end().name())?)?;
                         result.push(bucket);
                     }
@@ -587,7 +588,13 @@ impl Display for InnerListError {
             Item(item) => write!(fmt, "{}", item.0),
             Xml(xml) => write!(fmt, "{xml}"),
             Custom(out) => write!(fmt, "{out}"),
-            InitItemFailed => write!(fmt, "init_object failed"),
+            InitItemFailed(is_object) => {
+                if *is_object {
+                    write!(fmt, "init_object failed")
+                } else {
+                    write!(fmt, "init_bucket failed")
+                }
+            }
         }
     }
 }
@@ -607,9 +614,9 @@ impl InnerListError {
     //     }
     // }
 
-    fn init_error() -> Self {
+    fn init_error(is_object: bool) -> Self {
         Self {
-            kind: ListErrorKind::InitItemFailed,
+            kind: ListErrorKind::InitItemFailed(is_object),
         }
     }
 
@@ -636,7 +643,7 @@ impl InnerListError {
             Item(item) => item.get_source(),
             Xml(xml) => Some(xml),
             Custom(out) => Some(out.as_ref()),
-            InitItemFailed => None,
+            InitItemFailed(_) => None,
         }
     }
 }
@@ -670,5 +677,5 @@ enum ListErrorKind {
     #[non_exhaustive]
     Custom(Box<dyn StdError + 'static>),
 
-    InitItemFailed,
+    InitItemFailed(bool),
 }
