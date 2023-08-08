@@ -859,8 +859,8 @@ pub struct ContentRange<Num> {
     end: Option<Num>,
 }
 
-unsafe impl<Num> Send for ContentRange<Num> {}
-unsafe impl<Num> Sync for ContentRange<Num> {}
+unsafe impl<Num: Send> Send for ContentRange<Num> {}
+unsafe impl<Num: Sync> Sync for ContentRange<Num> {}
 
 impl<Num> From<Range<Num>> for ContentRange<Num> {
     fn from(r: Range<Num>) -> Self {
