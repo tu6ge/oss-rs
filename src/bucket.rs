@@ -539,7 +539,7 @@ impl ClientArc {
         let query = Some(BUCKET_INFO);
         bucket_url.set_query(query);
 
-        let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
+        let canonicalized = CanonicalizedResource::from_bucket(base, query);
 
         let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error().await?;
@@ -655,33 +655,28 @@ impl ClientRc {
 
     /// 获取当前的 bucket 的信息
     pub fn get_bucket_info(self) -> Result<Bucket<RcPointer>, ExtractItemError> {
-        let name = self.get_bucket_name().clone();
-
         let arc_client = Rc::new(self);
 
         let mut bucket = Bucket::<RcPointer>::from_client(arc_client.clone());
 
-        arc_client.base_bucket_info(name, &mut bucket)?;
+        arc_client.base_bucket_info(&mut bucket)?;
 
         Ok(bucket)
     }
 
     /// 获取某一个 bucket 的信息，并存储到自定义的类型
     #[inline]
-    pub fn base_bucket_info<Bucket, Name: Into<BucketName>, E>(
-        &self,
-        name: Name,
-        bucket: &mut Bucket,
-    ) -> Result<(), ExtractItemError>
+    pub fn base_bucket_info<Bucket, E>(&self, bucket: &mut Bucket) -> Result<(), ExtractItemError>
     where
         Bucket: RefineBucket<E>,
         E: Error + 'static,
     {
-        let mut bucket_url = BucketBase::new(name.into(), self.get_endpoint().to_owned()).to_url();
+        let base = self.get_bucket_base();
+        let mut bucket_url = base.to_url();
         let query = Some(BUCKET_INFO);
         bucket_url.set_query(query);
 
-        let canonicalized = CanonicalizedResource::from_bucket(&self.get_bucket_base(), query);
+        let canonicalized = CanonicalizedResource::from_bucket(base, query);
 
         let response = self.builder(Method::GET, bucket_url, canonicalized)?;
         let content = response.send_adjust_error()?;

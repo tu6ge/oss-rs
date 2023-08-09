@@ -1320,17 +1320,17 @@ impl ClientRc {
         self,
         query: Q,
     ) -> Result<ObjectList<RcPointer>, ExtractListError> {
-        let name = self.get_bucket_name();
-        let bucket = BucketBase::new(name.clone(), self.get_endpoint().to_owned());
-
-        let mut list = ObjectList::<RcPointer>::default();
-        list.set_bucket(bucket.clone());
-
-        let bucket_arc = Rc::new(bucket);
-
         let query = Query::from_iter(query);
 
-        let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
+        let bucket = BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned());
+
+        let (bucket_url, resource) = bucket.get_url_resource(&query);
+
+        let mut list = ObjectList::<RcPointer> {
+            object_list: Vec::with_capacity(query.get_max_keys()),
+            bucket,
+            ..Default::default()
+        };
 
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
@@ -1363,7 +1363,7 @@ impl ClientRc {
         Item: RefineObject<ItemErr>,
         F: Fn(&mut List) -> Option<Item>,
     {
-        let bucket = BucketBase::new(self.bucket.clone(), self.get_endpoint().to_owned());
+        let bucket = BucketBase::new(self.bucket.clone(), self.endpoint.to_owned());
 
         let query = Query::from_iter(query);
         let (bucket_url, resource) = bucket.get_url_resource(&query);
