@@ -341,12 +341,18 @@ mod error {
     }
 
     #[test]
-    fn into_io_error() {
+    #[cfg(feature = "put_file")]
+    fn into_io_error_file() {
         use std::io::{Error, ErrorKind};
         let file = FileError {
             kind: FileErrorKind::FileRead(Error::new(ErrorKind::Other, "other")),
         };
         assert_eq!(Error::from(file).to_string(), "other");
+    }
+
+    #[test]
+    fn into_io_error() {
+        use std::io::Error;
 
         let value = HeaderValue::from_bytes(b"\n").unwrap_err();
         let file = FileError {
