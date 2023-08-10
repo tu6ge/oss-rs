@@ -367,16 +367,16 @@ impl AsRef<str> for EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
     ///
-    /// assert_eq!(EndPoint::CnHangzhou.as_ref(), "cn-hangzhou");
-    /// assert_eq!(EndPoint::CnShanghai.as_ref(), "cn-shanghai");
-    /// assert_eq!(EndPoint::CnQingdao.as_ref(), "cn-qingdao");
-    /// assert_eq!(EndPoint::CnBeijing.as_ref(), "cn-beijing");
-    /// assert_eq!(EndPoint::CnZhangjiakou.as_ref(), "cn-zhangjiakou");
-    /// assert_eq!(EndPoint::CnHongkong.as_ref(), "cn-hongkong");
-    /// assert_eq!(EndPoint::CnShenzhen.as_ref(), "cn-shenzhen");
-    /// assert_eq!(EndPoint::UsWest1.as_ref(), "us-west-1");
-    /// assert_eq!(EndPoint::UsEast1.as_ref(), "us-east-1");
-    /// assert_eq!(EndPoint::ApSouthEast1.as_ref(), "ap-southeast-1");
+    /// assert_eq!(EndPoint::HANGZHOU.as_ref(), "cn-hangzhou");
+    /// assert_eq!(EndPoint::SHANGHAI.as_ref(), "cn-shanghai");
+    /// assert_eq!(EndPoint::QINGDAO.as_ref(), "cn-qingdao");
+    /// assert_eq!(EndPoint::BEIJING.as_ref(), "cn-beijing");
+    /// assert_eq!(EndPoint::ZHANGJIAKOU.as_ref(), "cn-zhangjiakou");
+    /// assert_eq!(EndPoint::HONGKONG.as_ref(), "cn-hongkong");
+    /// assert_eq!(EndPoint::SHENZHEN.as_ref(), "cn-shenzhen");
+    /// assert_eq!(EndPoint::US_WEST_1.as_ref(), "us-west-1");
+    /// assert_eq!(EndPoint::US_EAST_1.as_ref(), "us-east-1");
+    /// assert_eq!(EndPoint::AP_SOUTH_EAST_1.as_ref(), "ap-southeast-1");
     /// ```
     fn as_ref(&self) -> &str {
         use EndPointKind::*;
@@ -399,7 +399,7 @@ impl AsRef<str> for EndPoint {
 impl Display for EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
-    /// assert_eq!(format!("{}", EndPoint::CnHangzhou), "cn-hangzhou");
+    /// assert_eq!(format!("{}", EndPoint::HANGZHOU), "cn-hangzhou");
     /// ```
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_ref())
@@ -414,7 +414,7 @@ impl TryFrom<String> for EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
     /// let e: EndPoint = String::from("qingdao").try_into().unwrap();
-    /// assert_eq!(e, EndPoint::CnQingdao);
+    /// assert_eq!(e, EndPoint::QINGDAO);
     /// ```
     fn try_from(url: String) -> Result<Self, Self::Error> {
         Self::new(&url)
@@ -429,7 +429,7 @@ impl<'a> TryFrom<&'a str> for EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
     /// let e: EndPoint = "qingdao".try_into().unwrap();
-    /// assert_eq!(e, EndPoint::CnQingdao);
+    /// assert_eq!(e, EndPoint::QINGDAO);
     /// ```
     fn try_from(url: &'a str) -> Result<Self, Self::Error> {
         Self::new(url)
@@ -496,7 +496,7 @@ impl<'a> EndPoint {
     /// # use std::borrow::Cow;
     /// assert!(matches!(
     ///     EndPoint::new("shanghai"),
-    ///     Ok(EndPoint::CnShanghai)
+    ///     Ok(EndPoint::SHANGHAI)
     /// ));
     ///
     /// assert!(EndPoint::new("abc-").is_err());

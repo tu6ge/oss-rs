@@ -261,7 +261,7 @@ impl FromStr for BucketBase {
     /// # use std::borrow::Cow;
     /// let bucket: BucketBase = "abc.oss-cn-shanghai.aliyuncs.com".parse().unwrap();
     /// assert_eq!(bucket.name(), "abc");
-    /// assert_eq!(bucket.endpoint(), EndPoint::CnShanghai);
+    /// assert_eq!(bucket.endpoint(), EndPoint::SHANGHAI);
     ///
     /// assert!("abc*#!".parse::<BucketBase>().is_err());
     /// assert!("abc".parse::<BucketBase>().is_err());
@@ -511,7 +511,7 @@ impl BucketBase {
     /// # use aliyun_oss_client::EndPoint;
     /// let mut bucket = BucketBase::default();
     /// assert!(bucket.try_set_endpoint("hangzhou").is_ok());
-    /// assert_eq!(bucket.endpoint(), EndPoint::CnHangzhou);
+    /// assert_eq!(bucket.endpoint(), EndPoint::HANGZHOU);
     /// ```
     pub fn try_set_endpoint<E: TryInto<EndPoint>>(&mut self, endpoint: E) -> Result<(), E::Error> {
         self.endpoint = endpoint.try_into()?;
