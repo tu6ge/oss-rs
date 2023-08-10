@@ -424,4 +424,44 @@ Wed, 02 Aug 2023 03:35:56 GMT
             OssService::default()
         );
     }
+
+    #[test]
+    fn sign_string() {
+        assert_eq!(OssService::sign_string("aaa"), "");
+    }
+
+    #[test]
+    fn from_oss_service() {
+        use std::io::{Error, ErrorKind};
+        let url: Url = "https://oss.aliyuncs.com".parse().unwrap();
+        let oss = OssService {
+            code: "aaa".to_string(),
+            message: "aaa".to_string(),
+            status: StatusCode::BAD_REQUEST,
+            request_id: "bbb".to_string(),
+            url: url.clone(),
+        };
+        let io_err = Error::from(oss);
+        assert_eq!(io_err.kind(), ErrorKind::PermissionDenied);
+
+        let oss = OssService {
+            code: "aaa".to_string(),
+            message: "aaa".to_string(),
+            status: StatusCode::BAD_GATEWAY,
+            request_id: "bbb".to_string(),
+            url: url.clone(),
+        };
+        let io_err = Error::from(oss);
+        assert_eq!(io_err.kind(), ErrorKind::ConnectionReset);
+
+        let oss = OssService {
+            code: "aaa".to_string(),
+            message: "aaa".to_string(),
+            status: StatusCode::NOT_MODIFIED,
+            request_id: "bbb".to_string(),
+            url: url.clone(),
+        };
+        let io_err = Error::from(oss);
+        assert_eq!(io_err.kind(), ErrorKind::ConnectionAborted);
+    }
 }

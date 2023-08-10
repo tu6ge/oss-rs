@@ -217,7 +217,7 @@ mod error {
 
     use crate::{
         builder::{BuilderError, BuilderErrorKind},
-        file::{error_impl::FileErrorKind, FileError},
+        file::{error_impl::FileErrorKind, File, FileError},
         tests::reqwest_error,
     };
 
@@ -338,6 +338,31 @@ mod error {
             format!("{err:?}"),
             "FileError { kind: NotFoundCanonicalizedResource }"
         );
+    }
+
+    #[test]
+    fn into_io_error() {
+        use std::io::{Error, ErrorKind};
+        let file = FileError {
+            kind: FileErrorKind::FileRead(Error::new(ErrorKind::Other, "other")),
+        };
+        assert_eq!(Error::from(file).to_string(), "other");
+
+        let value = HeaderValue::from_bytes(b"\n").unwrap_err();
+        let file = FileError {
+            kind: FileErrorKind::InvalidContentLength(value),
+        };
+        let io = Error::from(file);
+        assert_eq!(io.to_string(), "invalid content length");
+
+        let value = HeaderValue::from_bytes(b"\n").unwrap_err();
+        let file = FileError {
+            kind: FileErrorKind::InvalidContentType(value),
+        };
+        let io = Error::from(file);
+        assert_eq!(io.to_string(), "invalid content type");
+
+        // TODO 未完成
     }
 }
 

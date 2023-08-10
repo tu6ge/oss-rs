@@ -2,6 +2,7 @@
 mod test_core {
     use std::error::Error;
     use std::path::Path;
+
     use std::sync::Arc;
 
     use reqwest::Url;
@@ -9,7 +10,7 @@ mod test_core {
     use crate::builder::ArcPointer;
     use crate::config::BucketBase;
     use crate::types::object::base::invalid::InvalidObjectBaseKind;
-    use crate::types::object::{FromOss, InvalidObjectDir};
+    use crate::types::object::{FromOss, InvalidObjectDir, ObjectPathInner};
     use crate::types::object::{InvalidObjectBase, InvalidObjectPath, ObjectBase};
     use crate::{BucketName, EndPoint, ObjectDir, ObjectPath};
 
@@ -86,9 +87,19 @@ mod test_core {
 
     #[test]
     fn test_path2object_path() {
+        use std::str::FromStr;
+
         let path = Path::new("path2/file_name");
         let obj_path = ObjectPath::try_from(path).unwrap();
         assert_eq!(obj_path, "path2/file_name");
+
+        let str = Box::new(String::from_str("abc").unwrap());
+        let path = ObjectPath::try_from(str).unwrap();
+        assert_eq!(path, "abc");
+
+        let buff = "abc".as_bytes();
+        let path = ObjectPathInner::try_from(buff).unwrap();
+        assert_eq!(path, "abc");
     }
 
     #[test]
