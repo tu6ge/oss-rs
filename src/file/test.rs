@@ -217,7 +217,7 @@ mod error {
 
     use crate::{
         builder::{BuilderError, BuilderErrorKind},
-        file::{error_impl::FileErrorKind, File, FileError},
+        file::{error_impl::FileErrorKind, FileError},
         tests::reqwest_error,
     };
 

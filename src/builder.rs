@@ -261,15 +261,14 @@ impl From<InvalidConfig> for BuilderError {
 
 impl From<BuilderError> for io::Error {
     fn from(BuilderError { kind }: BuilderError) -> Self {
-        let kind = match kind {
+        match kind {
             BuilderErrorKind::Reqwest(req) => reqwest_to_io(*req),
             BuilderErrorKind::OssService(e) => Self::from(*e),
             BuilderErrorKind::Auth(auth) => Self::new(ErrorKind::PermissionDenied, auth),
             BuilderErrorKind::Config(conf) => Self::new(ErrorKind::InvalidInput, conf),
             #[cfg(test)]
             BuilderErrorKind::Bar => unreachable!("only used in tests"),
-        };
-        kind
+        }
     }
 }
 

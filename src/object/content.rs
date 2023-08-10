@@ -84,6 +84,7 @@ mod test_suite_block;
 
 /// # object 内容
 /// [OSS 分片上传文档](https://help.aliyun.com/zh/oss/user-guide/multipart-upload-12)
+#[derive(Default)]
 pub struct Content {
     client: Arc<Client>,
     inner: Inner,
@@ -152,15 +153,6 @@ impl Seek for Content {
     }
 }
 
-impl Default for Content {
-    fn default() -> Self {
-        Self {
-            client: Arc::default(),
-            inner: Inner::default(),
-        }
-    }
-}
-
 impl Deref for Content {
     type Target = Inner;
     fn deref(&self) -> &Self::Target {
@@ -205,7 +197,7 @@ impl Content {
         Ok(self)
     }
 
-    fn part_canonicalized<'q>(&self, query: &'q str) -> (Url, CanonicalizedResource) {
+    fn part_canonicalized(&self, query: &str) -> (Url, CanonicalizedResource) {
         let mut url = self.client.get_bucket_url();
         url.set_object_path(&self.path);
         url.set_query(Some(query));
@@ -217,7 +209,7 @@ impl Content {
         )
     }
     async fn upload(&mut self) -> IoResult<()> {
-        let content = self.content_part.pop().unwrap();
+        let content = self.content_part.pop().expect("content_part len is not 1");
         self.client
             .put_content_base(content, self.content_type, self.path.clone())
             .await
@@ -279,7 +271,8 @@ impl Content {
         let content_length = buf.len().to_string();
         let headers = vec![(
             CONTENT_LENGTH,
-            HeaderValue::from_str(&content_length).unwrap(),
+            HeaderValue::from_str(&content_length)
+                .expect("content length must be a valid header value"),
         )];
 
         let resp = self
@@ -318,7 +311,8 @@ impl Content {
         let content_length = xml.len().to_string();
         let headers = vec![(
             CONTENT_LENGTH,
-            HeaderValue::from_str(&content_length).unwrap(),
+            HeaderValue::from_str(&content_length)
+                .expect("content length must be a valid header value"),
         )];
 
         let _resp = self
@@ -364,9 +358,15 @@ impl Seek for Inner {
                 if self.content_size == 0 {
                     return Err(Error::new(ErrorKind::InvalidData, "content size is 0"));
                 }
-                (self.content_size as i64 - p) as u64
+                // self.content_size - p
+                i64::try_from(self.content_size)
+                    .and_then(|v| u64::try_from(v - p))
+                    .map_err(|e| Error::new(ErrorKind::InvalidData, e))?
             }
-            SeekFrom::Current(n) => (self.current_pos as i64 + n) as u64,
+            // self.current_pos + n
+            SeekFrom::Current(n) => i64::try_from(self.current_pos)
+                .and_then(|v| u64::try_from(v + n))
+                .map_err(|e| Error::new(ErrorKind::InvalidData, e))?,
         };
         self.current_pos = n;
         Ok(n)
@@ -424,7 +424,7 @@ impl Default for Inner {
 }
 
 fn get_content_type(filename: &str) -> &'static str {
-    match filename.rsplit(".").next() {
+    match filename.rsplit('.').next() {
         Some(str) => match str.to_lowercase().as_str() {
             "jpg" => "image/jpeg",
             "pdf" => "application/pdf",
@@ -532,7 +532,7 @@ impl Inner {
 
     /// 设置分块的尺寸
     pub fn part_size(&mut self, size: usize) -> Result<(), ContentError> {
-        if size > Self::PART_SIZE_MAX || size < Self::PART_SIZE_MIN {
+        if !(Self::PART_SIZE_MIN..=Self::PART_SIZE_MAX).contains(&size) {
             return Err(ContentError::new(ContentErrorKind::OverflowPartSize));
         }
         self.part_size = size;
@@ -558,7 +558,7 @@ impl Inner {
             list.push_str(&format!(
                 "<Part><PartNumber>{}</PartNumber><ETag>{}</ETag></Part>",
                 index,
-                etag.to_str().unwrap()
+                etag.to_str().expect("etag covert str failed")
             ));
         }
 

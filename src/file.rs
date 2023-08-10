@@ -369,7 +369,7 @@ pub mod std_path_impl {
 }
 
 /// 默认 content-type
-pub const DEFAULT_CONTENT_TYPE: &'static str = "application/octet-stream";
+pub const DEFAULT_CONTENT_TYPE: &str = "application/octet-stream";
 
 /// # 文件集合的相关操作
 /// 在对文件执行相关操作的时候，需要指定文件路径
@@ -660,24 +660,23 @@ mod error_impl {
 
     impl From<FileErrorKind> for std::io::Error {
         fn from(value: FileErrorKind) -> Self {
-            let kind = match value {
+            match value {
                 #[cfg(feature = "put_file")]
-                FileErrorKind::FileRead(e) => return e,
+                FileErrorKind::FileRead(e) => e,
                 FileErrorKind::InvalidContentLength(_) => {
                     Self::new(ErrorKind::InvalidData, "invalid content length")
                 }
                 FileErrorKind::InvalidContentType(_) => {
                     Self::new(ErrorKind::InvalidData, "invalid content type")
                 }
-                FileErrorKind::Build(e) => return e.into(),
+                FileErrorKind::Build(e) => e.into(),
                 FileErrorKind::Reqwest(e) => reqwest_to_io(e),
                 FileErrorKind::EtagNotFound => Self::new(ErrorKind::Interrupted, "etag not found"),
                 FileErrorKind::InvalidEtag(_) => Self::new(ErrorKind::Interrupted, "invalid etag"),
                 FileErrorKind::NotFoundCanonicalizedResource => {
                     Self::new(ErrorKind::InvalidData, "not found canonicalized resource")
                 }
-            };
-            kind
+            }
         }
     }
 }
