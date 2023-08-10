@@ -160,7 +160,8 @@ impl TryFrom<&String> for ObjectPathInner<'_> {
     /// ```
     /// # use aliyun_oss_client::types::object::ObjectPath;
     /// let str = String::from("abc");
-    /// let path: ObjectPath = &str.try_into().unwrap();
+    /// let str_p = &str;
+    /// let path: ObjectPath = str_p.try_into().unwrap();
     /// assert!(path == "abc");
     /// ```
     fn try_from(val: &String) -> Result<Self, Self::Error> {
