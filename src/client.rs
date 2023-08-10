@@ -29,25 +29,13 @@ use std::time::Duration;
 
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct Client<M = ClientWithMiddleware> {
     auth_builder: AuthBuilder,
     client_middleware: M,
     pub(crate) endpoint: EndPoint,
     pub(crate) bucket: BucketName,
     timeout: Option<Duration>,
-}
-
-impl<M: Default> Clone for Client<M> {
-    fn clone(&self) -> Self {
-        Self {
-            auth_builder: self.auth_builder.clone(),
-            client_middleware: M::default(),
-            endpoint: self.endpoint.clone(),
-            bucket: self.bucket.clone(),
-            timeout: self.timeout,
-        }
-    }
 }
 
 impl<M> AsMut<Option<Duration>> for Client<M> {

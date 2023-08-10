@@ -3,6 +3,7 @@ use reqwest::blocking::{Body, Request, Response};
 
 use crate::{blocking::builder::Middleware, builder::BuilderError};
 
+#[derive(Debug)]
 pub(super) struct InitMulti {}
 
 impl Middleware for InitMulti {
@@ -32,6 +33,7 @@ impl Middleware for InitMulti {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct UploadPart {}
 
 impl Middleware for UploadPart {
@@ -62,6 +64,7 @@ impl Middleware for UploadPart {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct CompleteMulti {}
 
 impl Middleware for CompleteMulti {
@@ -86,6 +89,7 @@ impl Middleware for CompleteMulti {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct AbortMulti {}
 
 impl Middleware for AbortMulti {
@@ -106,6 +110,7 @@ impl Middleware for AbortMulti {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct UploadMulti {}
 
 static mut UPLOAD_MULTI_ORDER: i8 = 1;

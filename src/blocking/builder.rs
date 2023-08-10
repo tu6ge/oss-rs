@@ -9,13 +9,13 @@ use reqwest::{
 };
 use std::{rc::Rc, time::Duration};
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct ClientWithMiddleware {
     inner: blocking::Client,
     middleware: Option<Rc<dyn Middleware>>,
 }
 
-pub trait Middleware: 'static {
+pub trait Middleware: 'static + std::fmt::Debug {
     fn handle(&self, request: Request) -> Result<Response, BuilderError>;
 }
 

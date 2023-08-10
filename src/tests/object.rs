@@ -42,6 +42,7 @@ fn object_list_get_object_list() {
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     impl Middleware for MyMiddleware {
@@ -125,6 +126,7 @@ fn object_list_get_object_list() {
 
 #[tokio::test]
 async fn test_get_object_list() {
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     #[async_trait]
@@ -200,6 +202,7 @@ async fn test_get_object_list() {
 
 #[tokio::test]
 async fn test_error_object_list() {
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     #[async_trait]
@@ -268,6 +271,7 @@ async fn test_error_object_list() {
 
 #[tokio::test]
 async fn test_item_error_object_list() {
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     #[async_trait]
@@ -342,6 +346,7 @@ fn test_get_blocking_object_list() {
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     impl Middleware for MyMiddleware {
@@ -414,6 +419,7 @@ fn test_get_blocking_object_list() {
 
 #[tokio::test]
 async fn test_put_content_base() {
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     #[async_trait]
@@ -473,6 +479,7 @@ fn test_blocking_put_content_base() {
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     impl Middleware for MyMiddleware {
@@ -531,6 +538,7 @@ mod get_object {
 
     #[tokio::test]
     async fn test_all_range() {
+        #[derive(Debug)]
         struct MyMiddleware {}
 
         #[async_trait]
@@ -583,6 +591,7 @@ mod get_object {
 
     #[tokio::test]
     async fn test_start_range() {
+        #[derive(Debug)]
         struct MyMiddleware {}
 
         #[async_trait]
@@ -635,6 +644,7 @@ mod get_object {
 
     #[tokio::test]
     async fn test_end_range() {
+        #[derive(Debug)]
         struct MyMiddleware {}
 
         #[async_trait]
@@ -687,6 +697,7 @@ mod get_object {
 
     #[tokio::test]
     async fn test_start_end_range() {
+        #[derive(Debug)]
         struct MyMiddleware {}
 
         #[async_trait]
@@ -752,6 +763,7 @@ mod blocking_get_object {
 
     #[test]
     fn test_all_range() {
+        #[derive(Debug)]
         struct MyMiddleware {}
 
         impl Middleware for MyMiddleware {
@@ -801,6 +813,7 @@ mod blocking_get_object {
 
     #[test]
     fn test_start_range() {
+        #[derive(Debug)]
         struct MyMiddleware {}
 
         impl Middleware for MyMiddleware {
@@ -850,6 +863,7 @@ mod blocking_get_object {
 
     #[test]
     fn test_end_range() {
+        #[derive(Debug)]
         struct MyMiddleware {}
 
         impl Middleware for MyMiddleware {
@@ -899,6 +913,7 @@ mod blocking_get_object {
 
     #[test]
     fn test_start_end_range() {
+        #[derive(Debug)]
         struct MyMiddleware {}
 
         impl Middleware for MyMiddleware {
@@ -949,6 +964,7 @@ mod blocking_get_object {
 
 #[tokio::test]
 async fn test_delete_object() {
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     #[async_trait]
@@ -1003,6 +1019,7 @@ fn test_blocking_delete_object() {
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     #[async_trait]

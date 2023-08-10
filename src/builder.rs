@@ -63,14 +63,14 @@ impl PointerFamily for RcPointer {
     type Bucket = Rc<BucketBase>;
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct ClientWithMiddleware {
     inner: Client,
     middleware: Option<Arc<dyn Middleware>>,
 }
 
 #[async_trait]
-pub trait Middleware: 'static + Send + Sync {
+pub trait Middleware: 'static + Send + Sync + std::fmt::Debug {
     async fn handle(&self, request: Request) -> Result<Response, BuilderError>;
 }
 

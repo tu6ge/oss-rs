@@ -4,6 +4,7 @@ use reqwest::{Body, Request, Response};
 
 use crate::builder::{BuilderError, Middleware};
 
+#[derive(Debug)]
 pub(super) struct InitMulti {}
 
 #[async_trait]
@@ -34,6 +35,7 @@ impl Middleware for InitMulti {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct UploadPart {}
 
 #[async_trait]
@@ -65,6 +67,7 @@ impl Middleware for UploadPart {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct CompleteMulti {}
 
 #[async_trait]
@@ -90,6 +93,7 @@ impl Middleware for CompleteMulti {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct AbortMulti {}
 
 #[async_trait]
@@ -111,6 +115,7 @@ impl Middleware for AbortMulti {
     }
 }
 
+#[derive(Debug)]
 pub(super) struct UploadMulti {}
 
 static mut UPLOAD_MULTI_ORDER: i8 = 1;
