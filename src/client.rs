@@ -29,7 +29,7 @@ use std::time::Duration;
 
 /// # 构造请求的客户端结构体
 #[non_exhaustive]
-#[derive(Default)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct Client<M = ClientWithMiddleware> {
     auth_builder: AuthBuilder,
     client_middleware: M,
@@ -193,9 +193,9 @@ impl<M> Client<M> {
         &self.auth_builder.get_secret()
     }
 
-    pub(crate) fn get_endpoint(&self) -> &EndPoint {
-        &self.endpoint
-    }
+    // pub(crate) fn get_endpoint(&self) -> &EndPoint {
+    //     &self.endpoint
+    // }
 
     /// 获取默认的可用区的 url
     pub fn get_endpoint_url(&self) -> Url {

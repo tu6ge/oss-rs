@@ -9,8 +9,12 @@ use std::{
 use http::{header::CONTENT_LENGTH, HeaderValue, Method};
 use url::Url;
 
+#[cfg(test)]
+use super::mock::blocking::Files;
+#[cfg(not(test))]
+use crate::file::BlockingFiles;
 use crate::{
-    file::{blocking::AlignBuilder, BlockingFiles},
+    file::blocking::AlignBuilder,
     object::InitObject,
     types::{
         object::{InvalidObjectPath, SetObjectPath},
@@ -126,6 +130,7 @@ impl Content {
         P::Error: Into<InvalidObjectPath>,
     {
         self.path = path.try_into().map_err(Into::into)?;
+        self.content_type_with_path();
         Ok(self)
     }
 
@@ -272,6 +277,7 @@ impl Content {
             .send_adjust_error()?;
 
         //println!("resp: {:?}", resp);
+        self.etag_list.clear();
         self.upload_id = String::default();
 
         Ok(())
@@ -299,6 +305,9 @@ impl From<Client> for Content {
 mod tests {
     use crate::decode::RefineObject;
 
+    use super::super::test_suite_block::{
+        AbortMulti, CompleteMulti, InitMulti, UploadMulti, UploadPart,
+    };
     use super::*;
 
     #[test]
@@ -310,5 +319,175 @@ mod tests {
         fn impl_deref<T: Deref<Target = Inner>>(_: T) {}
 
         impl_deref(Content::default());
+    }
+
+    #[test]
+    fn read() {
+        let client = Client::test_init();
+        let mut con = Content::from_client(Rc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+
+        let mut buf = [0u8; 201];
+        let err = con.read(&mut buf).unwrap_err();
+        assert_eq!(err.to_string(), "max size must be lt 48.8TB");
+
+        let mut buf = [0u8; 10];
+        let len = con.read(&mut buf).unwrap();
+        assert_eq!(buf, [1u8, 2, 3, 4, 5, 0, 0, 0, 0, 0]);
+        assert_eq!(len, 5);
+
+        let mut buf = [0u8; 3];
+        let len = con.read(&mut buf).unwrap();
+        assert_eq!(buf, [1u8, 2, 3]);
+        assert_eq!(len, 3);
+
+        con.current_pos = 10;
+        let mut buf = [0u8; 3];
+        let len = con.read(&mut buf).unwrap();
+        assert_eq!(buf, [1u8, 2, 3]);
+        assert_eq!(len, 3);
+    }
+
+    #[test]
+    fn init_object() {
+        let mut list = List::default();
+        let client = Client::test_init();
+        list.set_client(Rc::new(client.clone()));
+
+        let con = list.init_object().unwrap();
+
+        assert_eq!(con.client.bucket, client.bucket);
+        assert_eq!(con.inner, Inner::default());
+    }
+
+    #[test]
+    fn from_client() {
+        let client = Client::test_init();
+
+        let con = Content::from_client(Rc::new(client.clone()));
+
+        assert_eq!(con.client.bucket, client.bucket);
+        assert_eq!(con.inner, Inner::default());
+    }
+
+    #[test]
+    fn path() {
+        let con = Content::default().path("aaa.txt").unwrap();
+        assert_eq!(con.path, "aaa.txt");
+    }
+
+    #[test]
+    fn part_canonicalized() {
+        let client = Client::test_init();
+        let con = Content::from_client(Rc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+
+        let (url, can) = con.part_canonicalized("first=1&second=2");
+        assert_eq!(
+            url.as_str(),
+            "https://bar.oss-cn-qingdao.aliyuncs.com/aaa.txt?first=1&second=2"
+        );
+        assert_eq!(can.to_string(), "/bar/aaa.txt?first=1&second=2");
+    }
+
+    #[test]
+    fn upload() {
+        let client = Client::test_init();
+        let mut con = Content::from_client(Rc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+        con.content_part.push(b"bbb".to_vec());
+        con.upload().unwrap();
+    }
+
+    #[test]
+    fn init_multi() {
+        let client = Client::test_init().middleware(Rc::new(InitMulti {}));
+        let mut con = Content::from_client(Rc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+
+        con.init_multi().unwrap();
+
+        assert_eq!(con.upload_id, "foo_upload_id");
+    }
+
+    #[test]
+    fn upload_part() {
+        let client = Client::test_init().middleware(Rc::new(UploadPart {}));
+        let mut con = Content::from_client(Rc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+
+        let err = con.upload_part(1, b"bbb".to_vec()).unwrap_err();
+        assert_eq!(err.to_string(), "not found upload id");
+
+        con.upload_id = "foo_upload_id".to_string();
+        for _i in 0..10 {
+            con.etag_list.push((1, "a".parse().unwrap()));
+        }
+        let err = con.upload_part(1, b"bbb".to_vec()).unwrap_err();
+        assert_eq!(err.to_string(), "overflow max parts count");
+        con.etag_list.clear();
+
+        let err = con
+            .upload_part(1, b"012345678901234567890".to_vec())
+            .unwrap_err();
+        assert_eq!(err.to_string(), "part size must be between 100k and 5G");
+
+        con.upload_part(2, b"bbb".to_vec()).unwrap();
+        let (index, value) = con.etag_list.pop().unwrap();
+        assert_eq!(index, 2);
+        assert_eq!(value.to_str().unwrap(), "foo_etag");
+    }
+
+    #[test]
+    fn complete_multi() {
+        let client = Client::test_init().middleware(Rc::new(CompleteMulti {}));
+        let mut con = Content::from_client(Rc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+        let err = con.complete_multi().unwrap_err();
+        assert_eq!(err.to_string(), "not found upload id");
+
+        con.upload_id = "foo_upload_id".to_string();
+        con.etag_list.push((1, "aaa".parse().unwrap()));
+        con.etag_list.push((2, "bbb".parse().unwrap()));
+        con.complete_multi().unwrap();
+        assert!(con.etag_list.is_empty());
+        assert!(con.upload_id.is_empty());
+    }
+
+    #[test]
+    fn upload_multi() {
+        let client = Client::test_init().middleware(Rc::new(UploadMulti {}));
+        let mut con = Content::from_client(Rc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+
+        con.content_part.push(b"aaa".to_vec());
+        con.content_part.push(b"bbb".to_vec());
+
+        con.upload_multi().unwrap();
+
+        assert_eq!(con.content_size, 6);
+    }
+
+    #[test]
+    fn abort_multi() {
+        let client = Client::test_init().middleware(Rc::new(AbortMulti {}));
+        let mut con = Content::from_client(Rc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+        let err = con.complete_multi().unwrap_err();
+        assert_eq!(err.to_string(), "not found upload id");
+
+        con.upload_id = "foo_upload_id".to_string();
+        con.etag_list.push((1, "aaa".parse().unwrap()));
+        con.abort_multi().unwrap();
+        assert!(con.etag_list.is_empty());
+        assert!(con.upload_id.is_empty());
     }
 }

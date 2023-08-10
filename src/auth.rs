@@ -49,7 +49,7 @@ pub use query::QueryAuth;
 mod test;
 
 /// 计算 OSS 签名的数据
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct InnerAuth<'a> {
     access_key_id: InnerKeyId<'a>,
     access_key_secret: InnerKeySecret<'a>,
@@ -475,7 +475,7 @@ impl TryInto<HeaderValue> for Sign<'_> {
 }
 
 /// Auth 结构体的构建器
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct AuthBuilder {
     auth: Auth,
 }

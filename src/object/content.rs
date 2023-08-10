@@ -10,7 +10,6 @@
 //!     let client = Client::from_env().unwrap();
 //!
 //!     let mut object = Content::from_client(Arc::new(client)).path("path1.txt").unwrap();
-//!     object.content_type_with_path();
 //!     object.write(b"abc")?;
 //!     object.flush();
 //!
@@ -58,7 +57,7 @@ use url::Url;
 use crate::{
     builder::BuilderError,
     decode::RefineObject,
-    file::{AlignBuilder, Files, DEFAULT_CONTENT_TYPE},
+    file::{AlignBuilder, DEFAULT_CONTENT_TYPE},
     types::{
         object::{InvalidObjectPath, SetObjectPath},
         CanonicalizedResource,
@@ -71,6 +70,18 @@ use super::{BuildInItemError, InitObject, Objects};
 #[cfg(feature = "blocking")]
 pub mod blocking;
 
+#[cfg(not(test))]
+use crate::file::Files;
+#[cfg(test)]
+use mock::Files;
+
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod test_suite;
+#[cfg(all(test, feature = "blocking"))]
+mod test_suite_block;
+
 /// # object 内容
 /// [OSS 分片上传文档](https://help.aliyun.com/zh/oss/user-guide/multipart-upload-12)
 pub struct Content {
@@ -79,6 +90,7 @@ pub struct Content {
 }
 
 /// # 内部
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Inner {
     path: ObjectPath,
     content_size: u64,
@@ -189,6 +201,7 @@ impl Content {
         P::Error: Into<InvalidObjectPath>,
     {
         self.path = path.try_into().map_err(Into::into)?;
+        self.content_type_with_path();
         Ok(self)
     }
 
@@ -335,6 +348,7 @@ impl Content {
             .await?;
 
         //println!("resp: {:?}", resp);
+        self.etag_list.clear();
         self.upload_id = String::default();
 
         Ok(())
@@ -382,8 +396,7 @@ impl<T: DerefMut<Target = Inner> + private::Sealed> RefineObject<BuildInItemErro
     #[inline]
     fn set_key(&mut self, key: &str) -> Result<(), BuildInItemError> {
         self.path = key.parse().map_err(|e| BuildInItemError::new(e, key))?;
-
-        self.content_type_from_key(key);
+        self.content_type_with_path();
         Ok(())
     }
     /// 提取 size
@@ -407,6 +420,34 @@ impl Default for Inner {
             etag_list: Vec::default(),
             part_size: 200 * 1024 * 1024, // 200M
         }
+    }
+}
+
+fn get_content_type(filename: &str) -> &'static str {
+    match filename.rsplit(".").next() {
+        Some(str) => match str.to_lowercase().as_str() {
+            "jpg" => "image/jpeg",
+            "pdf" => "application/pdf",
+            "png" => "image/png",
+            "gif" => "image/gif",
+            "bmp" => "image/bmp",
+            "zip" => "application/zip",
+            "tar" => "application/x-tar",
+            "gz" => "application/gzip",
+            "txt" => "text/plain",
+            "mp3" => "audio/mpeg",
+            "wav" => "audio/wave",
+            "mp4" => "video/mp4",
+            "mov" => "video/quicktime",
+            "avi" => "video/x-msvideo",
+            "wmv" => "video/x-ms-wmv",
+            "html" => "text/html",
+            "js" => "application/javascript",
+            "css" => "text/css",
+            "php" => "application/x-httpd-php",
+            _ => DEFAULT_CONTENT_TYPE,
+        },
+        None => DEFAULT_CONTENT_TYPE,
     }
 }
 
@@ -446,44 +487,17 @@ impl Inner {
         P::Error: Into<InvalidObjectPath>,
     {
         self.path = path.try_into().map_err(Into::into)?;
+        self.content_type_with_path();
         Ok(self)
     }
-    fn content_type_from_key(&mut self, key: &str) {
-        self.content_type = match key.rsplit(".").next() {
-            Some(str) => match str.to_lowercase().as_str() {
-                "jpg" => "image/jpeg",
-                "pdf" => "application/pdf",
-                "png" => "image/png",
-                "gif" => "image/gif",
-                "bmp" => "image/bmp",
-                "zip" => "application/zip",
-                "tar" => "application/x-tar",
-                "gz" => "application/gzip",
-                "txt" => "text/plain",
-                "mp3" => "audio/mpeg",
-                "wav" => "audio/wave",
-                "mp4" => "video/mp4",
-                "mov" => "video/quicktime",
-                "avi" => "video/x-msvideo",
-                "wmv" => "video/x-ms-wmv",
-                "html" => "text/html",
-                "js" => "application/javascript",
-                "css" => "text/css",
-                "php" => "application/x-httpd-php",
-                _ => DEFAULT_CONTENT_TYPE,
-            },
-            None => DEFAULT_CONTENT_TYPE,
-        }
+
+    fn content_type_with_path(&mut self) {
+        self.content_type = get_content_type(self.path.as_ref());
     }
 
     /// 设置 content_type
     pub fn content_type(&mut self, content_type: &'static str) {
         self.content_type = content_type;
-    }
-    /// 根据 path 推导 content_type
-    pub fn content_type_with_path(&mut self) {
-        let path = self.path.clone();
-        self.content_type_from_key(path.as_ref());
     }
 
     // 写入缓冲区
@@ -680,14 +694,292 @@ impl Error for ContentErrorKind {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::{
+        io::{Read, Seek, Write},
+        ops::Deref,
+        sync::Arc,
+    };
+
+    use super::{
+        get_content_type,
+        test_suite::{AbortMulti, CompleteMulti, InitMulti, UploadMulti, UploadPart},
+        Content, Inner, List,
+    };
+
+    use crate::{decode::RefineObject, object::InitObject, Client, ObjectPath};
+
+    #[test]
+    fn default() {
+        let inner = Inner::default();
+
+        assert_eq!(inner.path, ObjectPath::default());
+        assert_eq!(inner.content_size, 0);
+        assert_eq!(inner.current_pos, 0);
+        assert_eq!(inner.content_part.len(), 0);
+        assert_eq!(inner.content_type, "application/octet-stream");
+        assert_eq!(inner.upload_id, "");
+        assert_eq!(inner.etag_list.len(), 0);
+        assert_eq!(inner.part_size, 200 * 1024 * 1024);
+    }
+
+    #[test]
+    fn read() {
+        let client = Client::test_init();
+        let mut con = Content::from_client(Arc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+
+        let mut buf = [0u8; 201];
+        let err = con.read(&mut buf).unwrap_err();
+        assert_eq!(err.to_string(), "max size must be lt 48.8TB");
+
+        let mut buf = [0u8; 10];
+        let len = con.read(&mut buf).unwrap();
+        assert_eq!(buf, [1u8, 2, 3, 4, 5, 0, 0, 0, 0, 0]);
+        assert_eq!(len, 5);
+
+        let mut buf = [0u8; 3];
+        let len = con.read(&mut buf).unwrap();
+        assert_eq!(buf, [1u8, 2, 3]);
+        assert_eq!(len, 3);
+
+        con.current_pos = 10;
+        let mut buf = [0u8; 3];
+        let len = con.read(&mut buf).unwrap();
+        assert_eq!(buf, [1u8, 2, 3]);
+        assert_eq!(len, 3);
+    }
+
+    #[test]
+    fn init_object() {
+        let mut list = List::default();
+        let client = Client::test_init();
+        list.set_client(Arc::new(client.clone()));
+
+        let con = list.init_object().unwrap();
+
+        assert_eq!(con.client.bucket, client.bucket);
+        assert_eq!(con.inner, Inner::default());
+    }
+
+    #[test]
+    fn from_client() {
+        let client = Client::test_init();
+
+        let con = Content::from_client(Arc::new(client.clone()));
+
+        assert_eq!(con.client.bucket, client.bucket);
+        assert_eq!(con.inner, Inner::default());
+    }
+
+    #[test]
+    fn path() {
+        let con = Content::default().path("aaa.txt").unwrap();
+        assert_eq!(con.path, "aaa.txt");
+    }
+
+    #[test]
+    fn part_canonicalized() {
+        let client = Client::test_init();
+        let con = Content::from_client(Arc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+
+        let (url, can) = con.part_canonicalized("first=1&second=2");
+        assert_eq!(
+            url.as_str(),
+            "https://bar.oss-cn-qingdao.aliyuncs.com/aaa.txt?first=1&second=2"
+        );
+        assert_eq!(can.to_string(), "/bar/aaa.txt?first=1&second=2");
+    }
+
+    #[tokio::test]
+    async fn upload() {
+        let client = Client::test_init();
+        let mut con = Content::from_client(Arc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+        con.content_part.push(b"bbb".to_vec());
+        con.upload().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn init_multi() {
+        let client = Client::test_init().middleware(Arc::new(InitMulti {}));
+        let mut con = Content::from_client(Arc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+
+        con.init_multi().await.unwrap();
+
+        assert_eq!(con.upload_id, "foo_upload_id");
+    }
+
+    #[tokio::test]
+    async fn upload_part() {
+        let client = Client::test_init().middleware(Arc::new(UploadPart {}));
+        let mut con = Content::from_client(Arc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+
+        let err = con.upload_part(1, b"bbb".to_vec()).await.unwrap_err();
+        assert_eq!(err.to_string(), "not found upload id");
+
+        con.upload_id = "foo_upload_id".to_string();
+        for _i in 0..10 {
+            con.etag_list.push((1, "a".parse().unwrap()));
+        }
+        let err = con.upload_part(1, b"bbb".to_vec()).await.unwrap_err();
+        assert_eq!(err.to_string(), "overflow max parts count");
+        con.etag_list.clear();
+
+        let err = con
+            .upload_part(1, b"012345678901234567890".to_vec())
+            .await
+            .unwrap_err();
+        assert_eq!(err.to_string(), "part size must be between 100k and 5G");
+
+        con.upload_part(2, b"bbb".to_vec()).await.unwrap();
+        let (index, value) = con.etag_list.pop().unwrap();
+        assert_eq!(index, 2);
+        assert_eq!(value.to_str().unwrap(), "foo_etag");
+    }
+
+    #[tokio::test]
+    async fn complete_multi() {
+        let client = Client::test_init().middleware(Arc::new(CompleteMulti {}));
+        let mut con = Content::from_client(Arc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+        let err = con.complete_multi().await.unwrap_err();
+        assert_eq!(err.to_string(), "not found upload id");
+
+        con.upload_id = "foo_upload_id".to_string();
+        con.etag_list.push((1, "aaa".parse().unwrap()));
+        con.etag_list.push((2, "bbb".parse().unwrap()));
+        con.complete_multi().await.unwrap();
+        assert!(con.etag_list.is_empty());
+        assert!(con.upload_id.is_empty());
+    }
+
+    #[tokio::test]
+    async fn upload_multi() {
+        let client = Client::test_init().middleware(Arc::new(UploadMulti {}));
+        let mut con = Content::from_client(Arc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+
+        con.content_part.push(b"aaa".to_vec());
+        con.content_part.push(b"bbb".to_vec());
+
+        con.upload_multi().await.unwrap();
+
+        assert_eq!(con.content_size, 6);
+    }
+
+    #[tokio::test]
+    async fn abort_multi() {
+        let client = Client::test_init().middleware(Arc::new(AbortMulti {}));
+        let mut con = Content::from_client(Arc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+        let err = con.complete_multi().await.unwrap_err();
+        assert_eq!(err.to_string(), "not found upload id");
+
+        con.upload_id = "foo_upload_id".to_string();
+        con.etag_list.push((1, "aaa".parse().unwrap()));
+        con.abort_multi().await.unwrap();
+        assert!(con.etag_list.is_empty());
+        assert!(con.upload_id.is_empty());
+    }
+
+    #[test]
+    fn seek() {
+        let mut inner = Inner::default();
+        let pos = inner.seek(std::io::SeekFrom::Start(5)).unwrap();
+        assert_eq!(pos, 5);
+        assert_eq!(inner.current_pos, 5);
+
+        let err = inner.seek(std::io::SeekFrom::End(10)).unwrap_err();
+        assert_eq!(err.to_string(), "content size is 0");
+
+        inner.content_size = 11;
+        let pos = inner.seek(std::io::SeekFrom::End(5)).unwrap();
+        assert_eq!(pos, 6);
+        inner.current_pos = 6;
+
+        let pos = inner.seek(std::io::SeekFrom::Current(-1)).unwrap();
+        assert_eq!(pos, 5);
+        inner.current_pos = 5;
+    }
+
+    #[test]
+    fn test_get_content_type() {
+        assert_eq!(get_content_type("aaa.jpg"), "image/jpeg");
+        assert_eq!(get_content_type("aaa.pdf"), "application/pdf");
+        assert_eq!(get_content_type("aaa.png"), "image/png");
+        assert_eq!(get_content_type("aaa.gif"), "image/gif");
+        assert_eq!(get_content_type("aaa.bmp"), "image/bmp");
+        assert_eq!(get_content_type("aaa.zip"), "application/zip");
+        assert_eq!(get_content_type("aaa.tar"), "application/x-tar");
+        assert_eq!(get_content_type("aaa.gz"), "application/gzip");
+        assert_eq!(get_content_type("aaa.txt"), "text/plain");
+        assert_eq!(get_content_type("aaa.mp3"), "audio/mpeg");
+        assert_eq!(get_content_type("aaa.wav"), "audio/wave");
+        assert_eq!(get_content_type("aaa.mp4"), "video/mp4");
+        assert_eq!(get_content_type("aaa.mov"), "video/quicktime");
+        assert_eq!(get_content_type("aaa.avi"), "video/x-msvideo");
+        assert_eq!(get_content_type("aaa.wmv"), "video/x-ms-wmv");
+        assert_eq!(get_content_type("aaa.html"), "text/html");
+        assert_eq!(get_content_type("aaa.js"), "application/javascript");
+        assert_eq!(get_content_type("aaa.css"), "text/css");
+        assert_eq!(get_content_type("aaa.php"), "application/x-httpd-php");
+        assert_eq!(get_content_type("aaa.doc"), "application/octet-stream");
+        assert_eq!(get_content_type("file"), "application/octet-stream");
+    }
+
+    #[test]
+    fn test_path() {
+        let mut inner = Inner::default();
+        inner = inner.path("bbb.txt").unwrap();
+        assert_eq!(inner.path.as_ref(), "bbb.txt");
+        assert_eq!(inner.content_type, "text/plain");
+    }
+
+    #[test]
+    fn content_type_with_path() {
+        let mut inner = Inner::default();
+        inner.path = "ccc.html".parse().unwrap();
+        inner.content_type_with_path();
+        assert_eq!(inner.content_type, "text/html");
+    }
+
+    #[test]
+    fn test_content_type() {
+        let mut inner = Inner::default();
+        inner.content_type("bar");
+        assert_eq!(inner.content_type, "bar");
+    }
+
+    #[test]
+    fn part_size() {
+        let mut inner = Inner::default();
+        let err = inner.part_size(5).unwrap_err();
+        assert_eq!(err.to_string(), "part size must be between 100k and 5G");
+
+        let err = inner.part_size(21).unwrap_err();
+        assert_eq!(err.to_string(), "part size must be between 100k and 5G");
+
+        inner.part_size(11).unwrap();
+        assert_eq!(inner.part_size, 11);
+    }
 
     #[test]
     fn test_parse_upload_id() {
-        let mut content = Content::default();
+        let mut content = Inner::default();
 
         let xml = r#"<InitiateMultipartUploadResult>
-        <Bucket>honglei123</Bucket>
+        <Bucket>bucket_name</Bucket>
         <Key>aaa</Key>
         <UploadId>AC3251A13464411D8691F271CE33A300</UploadId>
       </InitiateMultipartUploadResult>"#;
@@ -696,6 +988,31 @@ mod tests {
         assert_eq!(content.upload_id, "AC3251A13464411D8691F271CE33A300");
 
         content.parse_upload_id("abc").unwrap_err();
+    }
+
+    #[test]
+    fn etag_list_xml() {
+        let mut inner = Inner::default();
+
+        let err = inner.etag_list_xml().unwrap_err();
+        assert_eq!(err.to_string(), "etag list is empty");
+
+        inner.etag_list.push((1, "aaa".parse().unwrap()));
+        inner.etag_list.push((2, "bbb".parse().unwrap()));
+
+        let xml = inner.etag_list_xml().unwrap();
+        assert_eq!(xml, "<CompleteMultipartUpload><Part><PartNumber>1</PartNumber><ETag>aaa</ETag></Part><Part><PartNumber>2</PartNumber><ETag>bbb</ETag></Part></CompleteMultipartUpload>");
+    }
+
+    #[test]
+    fn part_clear() {
+        let mut inner = Inner::default();
+        assert_eq!(inner.content_part.len(), 0);
+
+        inner.content_part.push(vec![1u8, 2, 3]);
+        inner.content_part.push(vec![1u8, 2, 3]);
+        inner.part_clear();
+        assert_eq!(inner.content_part.len(), 0);
     }
 
     #[test]
