@@ -264,9 +264,8 @@ impl Content {
             return Err(ContentError::new(ContentErrorKind::OverflowPartSize));
         }
 
-        let query = format!("partNumber={}&uploadId={}", index, self.upload_id);
-
-        let (url, resource) = self.part_canonicalized(&query);
+        let (url, resource) =
+            self.part_canonicalized(&format!("partNumber={}&uploadId={}", index, self.upload_id));
 
         let content_length = buf.len().to_string();
         let headers = vec![(
@@ -304,9 +303,7 @@ impl Content {
 
         let xml = self.etag_list_xml()?;
 
-        let query = format!("uploadId={}", self.upload_id);
-
-        let (url, resource) = self.part_canonicalized(&query);
+        let (url, resource) = self.part_canonicalized(&format!("uploadId={}", self.upload_id));
 
         let content_length = xml.len().to_string();
         let headers = vec![(
@@ -532,22 +529,20 @@ impl Inner {
 
     /// 设置分块的尺寸
     pub fn part_size(&mut self, size: usize) -> Result<(), ContentError> {
-        if !(Self::PART_SIZE_MIN..=Self::PART_SIZE_MAX).contains(&size) {
-            return Err(ContentError::new(ContentErrorKind::OverflowPartSize));
+        if (Self::PART_SIZE_MIN..=Self::PART_SIZE_MAX).contains(&size) {
+            self.part_size = size;
+            Ok(())
+        } else {
+            Err(ContentError::new(ContentErrorKind::OverflowPartSize))
         }
-        self.part_size = size;
-
-        Ok(())
     }
     fn parse_upload_id(&mut self, xml: &str) -> Result<(), ContentError> {
         if let (Some(start), Some(end)) = (xml.find("<UploadId>"), xml.find("</UploadId>")) {
-            let upload_id = &xml[start + 10..end];
-            self.upload_id = upload_id.to_owned();
-            //println!("upload_id {}", upload_id);
-            return Ok(());
+            self.upload_id = (&xml[start + 10..end]).to_owned();
+            Ok(())
+        } else {
+            Err(ContentError::new(ContentErrorKind::NoFoundUploadId))
         }
-
-        Err(ContentError::new(ContentErrorKind::NoFoundUploadId))
     }
     fn etag_list_xml(&self) -> Result<String, ContentError> {
         if self.etag_list.is_empty() {
