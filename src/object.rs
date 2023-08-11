@@ -320,9 +320,16 @@ impl<Item> ObjectList<ArcPointer, Item> {
 
 /// # 初始化 object 项目的接口
 ///
-/// 根据 object 列表初始化一个 object 数据
+/// 根据 object 列表类型初始化一个 object 数据
+///
+/// 当对 OSS xml 数据进行解析时，每解析一个 object 时，
+/// 会先调用此 trait 中的 init_object 初始化 object 类型，再解析 xml 数据
+///
+/// Target 为 object 的具体类型
 pub trait InitObject<Target> {
-    /// 具体的过程
+    /// 初始化 object 的类型
+    ///
+    /// 当返回 None 时，解析 OSS xml 数据时，会抛出 "init_object failed" 错误
     fn init_object(&mut self) -> Option<Target>;
 }
 
