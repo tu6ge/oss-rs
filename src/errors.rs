@@ -217,13 +217,23 @@ impl<'a> OssService {
                 Some(message1),
                 Some(request_id0),
                 Some(request_id1),
-            ) => Self {
-                code: source[code0 + 6..code1].to_owned(),
-                status: *status,
-                message: source[message0 + 9..message1].to_owned(),
-                request_id: source[request_id0 + 11..request_id1].to_owned(),
-                url: url.to_owned(),
-            },
+            ) => {
+                let code = &source[code0 + 6..code1].to_owned();
+                let mut message = source[message0 + 9..message1].to_owned();
+                if code == "SignatureDoesNotMatch" {
+                    message.push_str(&format!(
+                        "expect sign string is \"{}\"",
+                        Self::sign_string(source)
+                    ));
+                }
+                Self {
+                    code: code.to_owned(),
+                    status: *status,
+                    message,
+                    request_id: source[request_id0 + 11..request_id1].to_owned(),
+                    url: url.to_owned(),
+                }
+            }
             _ => Self::default(),
         }
     }
@@ -245,13 +255,23 @@ impl<'a> OssService {
                 Some(message1),
                 Some(request_id0),
                 Some(request_id1),
-            ) => Self {
-                code: source[code0 + 6..code1].to_owned(),
-                status: *status,
-                message: source[message0 + 9..message1].to_owned(),
-                request_id: source[request_id0 + 11..request_id1].to_owned(),
-                url,
-            },
+            ) => {
+                let code = &source[code0 + 6..code1].to_owned();
+                let mut message = source[message0 + 9..message1].to_owned();
+                if code == "SignatureDoesNotMatch" {
+                    message.push_str(&format!(
+                        "expect sign string is \"{}\"",
+                        Self::sign_string(&source)
+                    ));
+                }
+                Self {
+                    code: code.to_owned(),
+                    status: *status,
+                    message,
+                    request_id: source[request_id0 + 11..request_id1].to_owned(),
+                    url,
+                }
+            }
             _ => Self::default(),
         }
     }
@@ -259,6 +279,28 @@ impl<'a> OssService {
     /// 返回报错接口的 url
     pub fn url(&self) -> &Url {
         &self.url
+    }
+
+    fn sign_string(s: &str) -> &str {
+        if let (Some(start), Some(end)) = (s.find("<StringToSign>"), s.find("</StringToSign>")) {
+            &s[start + 14..end]
+        } else {
+            &s[0..0]
+        }
+    }
+}
+
+impl From<OssService> for std::io::Error {
+    fn from(err: OssService) -> Self {
+        use std::io::ErrorKind;
+        let kind = if err.status.is_client_error() {
+            ErrorKind::PermissionDenied
+        } else if err.status.is_server_error() {
+            ErrorKind::ConnectionReset
+        } else {
+            ErrorKind::ConnectionAborted
+        };
+        Self::new(kind, err)
     }
 }
 
@@ -326,7 +368,7 @@ mod tests {
         <Code>RequestTimeTooSkewed</Code>
         <Message>bar</Message>
         <RequestId>63145DB90BFD85303279D56B</RequestId>
-        <HostId>honglei123.oss-cn-shanghai.aliyuncs.com</HostId>
+        <HostId>xxx.oss-cn-shanghai.aliyuncs.com</HostId>
         <MaxAllowedSkewMilliseconds>900000</MaxAllowedSkewMilliseconds>
         <RequestTime>2022-09-04T07:11:33.000Z</RequestTime>
         <ServerTime>2022-09-04T08:11:37.000Z</ServerTime>
@@ -337,6 +379,36 @@ mod tests {
         assert_eq!(service.code, format!("RequestTimeTooSkewed"));
         assert_eq!(service.message, format!("bar"));
         assert_eq!(service.request_id, format!("63145DB90BFD85303279D56B"))
+    }
+
+    #[test]
+    fn test_sign_match() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+        <Error>
+          <Code>SignatureDoesNotMatch</Code>
+          <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
+          <RequestId>64C9CF1C8B62C239371D3E6B</RequestId>
+          <HostId>xxx.oss-cn-shanghai.aliyuncs.com</HostId>
+          <OSSAccessKeyId>9js44GwYF9P2ZFs4</OSSAccessKeyId>
+          <SignatureProvided>ZZ3e/hrGjFpOxRkDg+ugKVGMyoc=</SignatureProvided>
+          <StringToSign>PUT
+
+
+Wed, 02 Aug 2023 03:35:56 GMT
+/xxx/aaabbb.txt?partNumber=1</StringToSign>
+          <StringToSignBytes>50 55 54 0A 0A 0A 57 65 64 2C 20 30 32 20 41 75 67 20 32 30 32 33 20 30 33 3A 33 35 3A 35 36 20 47 4D 54 0A 2F 68 6F 6E 67 6C 65 69 31 32 33 2F 61 61 61 62 62 62 2E 74 78 74 3F 70 61 72 74 4E 75 6D 62 65 72 3D 31 </StringToSignBytes>
+          <EC>0002-00000040</EC>
+        </Error>"#;
+        let url = "https://oss.aliyuncs.com".parse().unwrap();
+        let service = OssService::new(xml, &StatusCode::default(), &url);
+        assert_eq!(service.code, format!("SignatureDoesNotMatch"));
+        assert_eq!(service.message, format!("The request signature we calculated does not match the signature you provided. Check your key and signing method.expect sign string is \"PUT\n\n\nWed, 02 Aug 2023 03:35:56 GMT\n/xxx/aaabbb.txt?partNumber=1\""));
+        assert_eq!(service.request_id, format!("64C9CF1C8B62C239371D3E6B"));
+
+        let service = OssService::new2(xml.to_owned(), &StatusCode::default(), url);
+        assert_eq!(service.code, format!("SignatureDoesNotMatch"));
+        assert_eq!(service.message, format!("The request signature we calculated does not match the signature you provided. Check your key and signing method.expect sign string is \"PUT\n\n\nWed, 02 Aug 2023 03:35:56 GMT\n/xxx/aaabbb.txt?partNumber=1\""));
+        assert_eq!(service.request_id, format!("64C9CF1C8B62C239371D3E6B"))
     }
 
     #[test]
@@ -351,5 +423,45 @@ mod tests {
             OssService::new2("abc".to_string(), &StatusCode::OK, url),
             OssService::default()
         );
+    }
+
+    #[test]
+    fn sign_string() {
+        assert_eq!(OssService::sign_string("aaa"), "");
+    }
+
+    #[test]
+    fn from_oss_service() {
+        use std::io::{Error, ErrorKind};
+        let url: Url = "https://oss.aliyuncs.com".parse().unwrap();
+        let oss = OssService {
+            code: "aaa".to_string(),
+            message: "aaa".to_string(),
+            status: StatusCode::BAD_REQUEST,
+            request_id: "bbb".to_string(),
+            url: url.clone(),
+        };
+        let io_err = Error::from(oss);
+        assert_eq!(io_err.kind(), ErrorKind::PermissionDenied);
+
+        let oss = OssService {
+            code: "aaa".to_string(),
+            message: "aaa".to_string(),
+            status: StatusCode::BAD_GATEWAY,
+            request_id: "bbb".to_string(),
+            url: url.clone(),
+        };
+        let io_err = Error::from(oss);
+        assert_eq!(io_err.kind(), ErrorKind::ConnectionReset);
+
+        let oss = OssService {
+            code: "aaa".to_string(),
+            message: "aaa".to_string(),
+            status: StatusCode::NOT_MODIFIED,
+            request_id: "bbb".to_string(),
+            url: url.clone(),
+        };
+        let io_err = Error::from(oss);
+        assert_eq!(io_err.kind(), ErrorKind::ConnectionAborted);
     }
 }

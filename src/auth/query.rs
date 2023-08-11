@@ -96,7 +96,7 @@ impl<'a> QueryAuth<'a> {
         CanonicalizedResource::from_object_str(self.bucket.as_ref(), path.as_ref())
     }
     fn get_url(&self, path: &ObjectPath) -> Url {
-        let mut url = url_from_bucket(&self.endpoint, &self.bucket);
+        let mut url = url_from_bucket(self.endpoint, self.bucket);
         url.set_object_path(path);
         url
     }
@@ -121,6 +121,7 @@ impl<'a> QueryAuth<'a> {
         string
     }
     fn signature(&self, path: &ObjectPath, expires: i64) -> String {
+        #![allow(clippy::unwrap_used)]
         self.access_secret_key
             .encryption_string(self.sign_string(path, expires))
             .unwrap()

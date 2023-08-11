@@ -94,7 +94,8 @@ use std::{
     vec::IntoIter,
 };
 
-// pub mod content;
+pub mod content;
+pub use content::Content;
 
 #[cfg(test)]
 mod test;
@@ -319,9 +320,16 @@ impl<Item> ObjectList<ArcPointer, Item> {
 
 /// # 初始化 object 项目的接口
 ///
-/// 根据 object 列表初始化一个 object 数据
+/// 根据 object 列表类型初始化一个 object 数据
+///
+/// 当对 OSS xml 数据进行解析时，每解析一个 object 时，
+/// 会先调用此 trait 中的 init_object 初始化 object 类型，再解析 xml 数据
+///
+/// Target 为 object 的具体类型
 pub trait InitObject<Target> {
-    /// 具体的过程
+    /// 初始化 object 的类型
+    ///
+    /// 当返回 None 时，解析 OSS xml 数据时，会抛出 "init_object failed" 错误
     fn init_object(&mut self) -> Option<Target>;
 }
 
@@ -852,6 +860,13 @@ impl BuildInItemError {
             kind: BuildInItemErrorKind::InvalidStorageClass,
         }
     }
+
+    pub(crate) fn new<K: Into<BuildInItemErrorKind>>(kind: K, source: &str) -> Self {
+        Self {
+            source: source.to_owned(),
+            kind: kind.into(),
+        }
+    }
 }
 
 impl Display for BuildInItemError {
@@ -882,7 +897,7 @@ impl Error for BuildInItemError {
 /// Xml 转化为内置 Object 时的错误集合
 #[derive(Debug)]
 #[non_exhaustive]
-enum BuildInItemErrorKind {
+pub(crate) enum BuildInItemErrorKind {
     /// 转换数字类型的错误
     Size(ParseIntError),
 
@@ -896,6 +911,12 @@ enum BuildInItemErrorKind {
     // Xml(quick_xml::Error),
     /// 非法的 StorageClass
     InvalidStorageClass,
+}
+
+impl From<InvalidObjectPath> for BuildInItemErrorKind {
+    fn from(value: InvalidObjectPath) -> Self {
+        Self::BasePath(value)
+    }
 }
 
 impl<P: PointerFamily, Item: RefineObject<E>, E: Error + 'static>
@@ -1306,17 +1327,17 @@ impl ClientRc {
         self,
         query: Q,
     ) -> Result<ObjectList<RcPointer>, ExtractListError> {
-        let name = self.get_bucket_name();
-        let bucket = BucketBase::new(name.clone(), self.get_endpoint().to_owned());
-
-        let mut list = ObjectList::<RcPointer>::default();
-        list.set_bucket(bucket.clone());
-
-        let bucket_arc = Rc::new(bucket);
-
         let query = Query::from_iter(query);
 
-        let (bucket_url, resource) = bucket_arc.get_url_resource(&query);
+        let bucket = BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned());
+
+        let (bucket_url, resource) = bucket.get_url_resource(&query);
+
+        let mut list = ObjectList::<RcPointer> {
+            object_list: Vec::with_capacity(query.get_max_keys()),
+            bucket,
+            ..Default::default()
+        };
 
         let response = self.builder(Method::GET, bucket_url, resource)?;
         let content = response.send_adjust_error()?;
@@ -1349,7 +1370,7 @@ impl ClientRc {
         Item: RefineObject<ItemErr>,
         F: Fn(&mut List) -> Option<Item>,
     {
-        let bucket = BucketBase::new(self.bucket.clone(), self.get_endpoint().to_owned());
+        let bucket = BucketBase::new(self.bucket.clone(), self.endpoint.to_owned());
 
         let query = Query::from_iter(query);
         let (bucket_url, resource) = bucket.get_url_resource(&query);
@@ -1502,13 +1523,13 @@ pub enum ObjectAcl {
 }
 
 /// 存储类型
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 pub struct StorageClass {
     kind: StorageClassKind,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[non_exhaustive]
 enum StorageClassKind {
     /// Standard 默认

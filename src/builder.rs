@@ -6,9 +6,12 @@ use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Body, IntoUrl,
 };
-use std::error::Error;
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
+use std::{
+    error::Error,
+    io::{self, ErrorKind},
+};
 use std::{fmt::Display, sync::Arc, time::Duration};
 
 use crate::auth::AuthError;
@@ -60,14 +63,14 @@ impl PointerFamily for RcPointer {
     type Bucket = Rc<BucketBase>;
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct ClientWithMiddleware {
     inner: Client,
     middleware: Option<Arc<dyn Middleware>>,
 }
 
 #[async_trait]
-pub trait Middleware: 'static + Send + Sync {
+pub trait Middleware: 'static + Send + Sync + std::fmt::Debug {
     async fn handle(&self, request: Request) -> Result<Response, BuilderError>;
 }
 
@@ -175,6 +178,12 @@ impl BuilderError {
             kind: BuilderErrorKind::Bar,
         }
     }
+
+    pub(crate) fn from_reqwest(reqwest: reqwest::Error) -> Self {
+        Self {
+            kind: BuilderErrorKind::Reqwest(Box::new(reqwest)),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -248,6 +257,30 @@ impl From<InvalidConfig> for BuilderError {
             kind: BuilderErrorKind::Config(Box::new(value)),
         }
     }
+}
+
+impl From<BuilderError> for io::Error {
+    fn from(BuilderError { kind }: BuilderError) -> Self {
+        match kind {
+            BuilderErrorKind::Reqwest(req) => reqwest_to_io(*req),
+            BuilderErrorKind::OssService(e) => Self::from(*e),
+            BuilderErrorKind::Auth(auth) => Self::new(ErrorKind::PermissionDenied, auth),
+            BuilderErrorKind::Config(conf) => Self::new(ErrorKind::InvalidInput, conf),
+            #[cfg(test)]
+            BuilderErrorKind::Bar => unreachable!("only used in tests"),
+        }
+    }
+}
+
+pub(crate) fn reqwest_to_io(req: reqwest::Error) -> io::Error {
+    let kind = if req.is_timeout() {
+        ErrorKind::TimedOut
+    } else if req.is_connect() {
+        ErrorKind::ConnectionAborted
+    } else {
+        ErrorKind::Other
+    };
+    io::Error::new(kind, req)
 }
 
 pub(crate) async fn check_http_status(response: Response) -> Result<Response, BuilderError> {

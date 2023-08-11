@@ -21,7 +21,7 @@
 //! impl MyObject {
 //!     const KEY_ID: KeyId = KeyId::from_static("xxxxxxxxxxxxxxxx");
 //!     const KEY_SECRET: KeySecret = KeySecret::from_static("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-//!     const END_POINT: EndPoint = EndPoint::CnShanghai;
+//!     const END_POINT: EndPoint = EndPoint::SHANGHAI;
 //!     const BUCKET: BucketName = unsafe { BucketName::from_static2("xxxxxx") };
 //!
 //!     fn new(path: &Path) -> Result<MyObject, io::Error> {
@@ -356,6 +356,8 @@ pub mod std_path_impl {
     /// 文件路径可以是实现 [`GetStd`] 特征的类型
     ///
     /// [`GetStd`]: crate::file::GetStd
+    ///
+    /// TODO remove Send + Sync
     impl<Item: RefineObject<BuildInItemError> + Send + Sync, U: GetStd> GetStdWithPath<U>
         for ObjectList<ArcPointer, Item>
     {
@@ -365,6 +367,9 @@ pub mod std_path_impl {
         }
     }
 }
+
+/// 默认 content-type
+pub const DEFAULT_CONTENT_TYPE: &str = "application/octet-stream";
 
 /// # 文件集合的相关操作
 /// 在对文件执行相关操作的时候，需要指定文件路径
@@ -383,7 +388,7 @@ where
 {
     /// # 默认的文件类型
     /// 在上传文件时，如果找不到合适的 mime 类型，可以使用
-    const DEFAULT_CONTENT_TYPE: &'static str = "application/octet-stream";
+    const DEFAULT_CONTENT_TYPE: &'static str = DEFAULT_CONTENT_TYPE;
 
     /// # 上传文件到 OSS
     ///
@@ -468,6 +473,8 @@ where
                 kind: FileErrorKind::InvalidEtag(e),
             })?;
 
+        // TODO change to result[1..33].to_string()
+        // 不能使用该方案，返回的etag长度不固定
         Ok(result.to_string())
     }
 
@@ -495,6 +502,7 @@ where
 
         self.builder_with_header(Method::PUT, url, canonicalized, headers)?
             .body(content)
+            //.timeout(std::time::Duration::new(3, 0))
             .send_adjust_error()
             .await
             .map_err(FileError::from)
@@ -575,11 +583,11 @@ impl FileError {
 
 /// 文件模块的 Error 实现方法
 mod error_impl {
-    use std::{error::Error, fmt::Display};
+    use std::{error::Error, fmt::Display, io::ErrorKind};
 
     use http::header::InvalidHeaderValue;
 
-    use crate::builder::BuilderError;
+    use crate::builder::{reqwest_to_io, BuilderError};
 
     use super::FileError;
 
@@ -640,6 +648,34 @@ mod error_impl {
         fn from(value: reqwest::Error) -> Self {
             Self {
                 kind: FileErrorKind::Reqwest(value),
+            }
+        }
+    }
+
+    impl From<FileError> for std::io::Error {
+        fn from(FileError { kind }: FileError) -> Self {
+            kind.into()
+        }
+    }
+
+    impl From<FileErrorKind> for std::io::Error {
+        fn from(value: FileErrorKind) -> Self {
+            match value {
+                #[cfg(feature = "put_file")]
+                FileErrorKind::FileRead(e) => e,
+                FileErrorKind::InvalidContentLength(_) => {
+                    Self::new(ErrorKind::InvalidData, "invalid content length")
+                }
+                FileErrorKind::InvalidContentType(_) => {
+                    Self::new(ErrorKind::InvalidData, "invalid content type")
+                }
+                FileErrorKind::Build(e) => e.into(),
+                FileErrorKind::Reqwest(e) => reqwest_to_io(e),
+                FileErrorKind::EtagNotFound => Self::new(ErrorKind::Interrupted, "etag not found"),
+                FileErrorKind::InvalidEtag(_) => Self::new(ErrorKind::Interrupted, "invalid etag"),
+                FileErrorKind::NotFoundCanonicalizedResource => {
+                    Self::new(ErrorKind::InvalidData, "not found canonicalized resource")
+                }
             }
         }
     }
@@ -736,7 +772,7 @@ pub mod blocking {
     pub trait Files<Path>: AlignBuilder + GetStdWithPath<Path> {
         /// # 默认的文件类型
         /// 在上传文件时，如果找不到合适的 mime 类型，可以使用
-        const DEFAULT_CONTENT_TYPE: &'static str = "application/octet-stream";
+        const DEFAULT_CONTENT_TYPE: &'static str = super::DEFAULT_CONTENT_TYPE;
 
         /// # 上传文件到 OSS
         ///

@@ -339,6 +339,37 @@ mod error {
             "FileError { kind: NotFoundCanonicalizedResource }"
         );
     }
+
+    #[test]
+    #[cfg(feature = "put_file")]
+    fn into_io_error_file() {
+        use std::io::{Error, ErrorKind};
+        let file = FileError {
+            kind: FileErrorKind::FileRead(Error::new(ErrorKind::Other, "other")),
+        };
+        assert_eq!(Error::from(file).to_string(), "other");
+    }
+
+    #[test]
+    fn into_io_error() {
+        use std::io::Error;
+
+        let value = HeaderValue::from_bytes(b"\n").unwrap_err();
+        let file = FileError {
+            kind: FileErrorKind::InvalidContentLength(value),
+        };
+        let io = Error::from(file);
+        assert_eq!(io.to_string(), "invalid content length");
+
+        let value = HeaderValue::from_bytes(b"\n").unwrap_err();
+        let file = FileError {
+            kind: FileErrorKind::InvalidContentType(value),
+        };
+        let io = Error::from(file);
+        assert_eq!(io.to_string(), "invalid content type");
+
+        // TODO 未完成
+    }
 }
 
 #[tokio::test]

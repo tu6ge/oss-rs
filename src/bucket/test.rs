@@ -51,6 +51,7 @@ fn test_bucket_from_client() {
 
 #[tokio::test]
 async fn test_get_bucket_list() {
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     #[async_trait]
@@ -102,6 +103,7 @@ fn test_get_blocking_bucket_list() {
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     impl Middleware for MyMiddleware {
@@ -149,6 +151,7 @@ async fn test_get_bucket_info() {
     // use crate::bucket::Bucket;
     // use crate::types::{BucketName};
     // use crate::config::{BucketBase};
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     #[async_trait]
@@ -234,6 +237,7 @@ fn test_get_blocking_bucket_info() {
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     impl Middleware for MyMiddleware {
@@ -312,6 +316,7 @@ fn test_get_blocking_bucket_info() {
 
 #[tokio::test]
 async fn test_get_object_list() {
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     #[async_trait]
@@ -389,6 +394,7 @@ async fn test_get_object_list() {
 
 #[tokio::test]
 async fn test_error_get_object_list() {
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     #[async_trait]
@@ -469,6 +475,7 @@ fn test_get_blocking_object_list() {
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 
+    #[derive(Debug)]
     struct MyMiddleware {}
 
     impl Middleware for MyMiddleware {

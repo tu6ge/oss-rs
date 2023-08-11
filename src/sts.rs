@@ -11,7 +11,7 @@
 //! let client = Client::new_with_sts(
 //!     "STS.xxxxxxxx".into(),                         // KeyId
 //!     "EVd6dXew6xxxxxxxxxxxxxxxxxxxxxxxxxxx".into(), // KeySecret
-//!     EndPoint::CnShanghai,
+//!     EndPoint::SHANGHAI,
 //!     BucketName::new("yyyyyy").unwrap(),
 //!     "CAIS4gF1q6Ft5Bxxxxxxxxxxx".to_string(), // STS Token, type should be string, &str or more
 //! )

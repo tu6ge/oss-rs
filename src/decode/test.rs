@@ -157,7 +157,7 @@ mod object_list_xml {
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        // let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
+        // let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::QINGDAO);
 
         let mut list = ListB {};
 
@@ -246,7 +246,7 @@ mod object_list_xml {
         let mut list = ListB {};
 
         b.iter(|| {
-            let base = BucketBase::new("abc".parse().unwrap(), EndPoint::CnQingdao);
+            let base = BucketBase::new("abc".parse().unwrap(), EndPoint::QINGDAO);
             list.decode(xml, Arc::new(base));
         })
     }
@@ -345,7 +345,7 @@ mod object_list_xml {
 
         let mut list = init_object_list(None, vec![]);
         b.iter(|| {
-            let base = BucketBase::new("abc".parse().unwrap(), EndPoint::CnQingdao);
+            let base = BucketBase::new("abc".parse().unwrap(), EndPoint::QINGDAO);
             list.decode(xml, Arc::new(base));
         })
     }
@@ -405,7 +405,7 @@ mod object_list_xml {
           <KeyCount>3</KeyCount>
         </ListBucketResult>"#;
 
-        //let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::CnQingdao);
+        //let base = BucketBase::new("abc".try_into().unwrap(), EndPoint::QINGDAO);
 
         let mut list = ListB {};
 
