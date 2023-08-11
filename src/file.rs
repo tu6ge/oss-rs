@@ -239,8 +239,7 @@ pub mod std_path_impl {
     #[oss_gen_rc]
     impl GetStdWithPath<String> for ClientArc {
         fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
-            let object_path = path.try_into().ok()?;
-            Some(get_url_resource(self, self, &object_path))
+            <Self as GetStdWithPath<&str>>::get_std_with_path(&self, &path)
         }
     }
 
@@ -265,7 +264,14 @@ pub mod std_path_impl {
     #[oss_gen_rc]
     impl GetStdWithPath<ObjectPath> for ClientArc {
         fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            Some(get_url_resource(self, self, &path))
+            <Self as GetStdWithPath<&ObjectPath>>::get_std_with_path(&self, &path)
+        }
+    }
+
+    #[oss_gen_rc]
+    impl GetStdWithPath<&ObjectPath> for ClientArc {
+        fn get_std_with_path(&self, path: &ObjectPath) -> Option<(Url, CanonicalizedResource)> {
+            Some(get_url_resource(self, self, path))
         }
     }
 
@@ -286,8 +292,7 @@ pub mod std_path_impl {
     /// 文件路径可以是 `String` 类型
     impl<B: AsRef<BucketBase>> GetStdWithPath<String> for B {
         fn get_std_with_path(&self, path: String) -> Option<(Url, CanonicalizedResource)> {
-            let path = path.try_into().ok()?;
-            Some(self.as_ref().get_url_resource_with_path(&path))
+            <Self as GetStdWithPath<&str>>::get_std_with_path(&self, &path)
         }
     }
 
@@ -309,7 +314,7 @@ pub mod std_path_impl {
     impl<B: AsRef<BucketBase>> GetStdWithPath<ObjectPath> for B {
         #[inline]
         fn get_std_with_path(&self, path: ObjectPath) -> Option<(Url, CanonicalizedResource)> {
-            Some(self.as_ref().get_url_resource_with_path(&path))
+            <Self as GetStdWithPath<&ObjectPath>>::get_std_with_path(&self, &path)
         }
     }
 
