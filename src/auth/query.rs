@@ -126,7 +126,7 @@ impl<'a> QueryAuth<'a> {
         string
     }
     fn signature(&self, path: &ObjectPath, expires: i64) -> String {
-      #![allow(clippy::unwrap_used)]
+        #![allow(clippy::unwrap_used)]
         self.access_secret_key
             .encryption_string(self.sign_string(path, expires))
             .unwrap()
