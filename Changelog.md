@@ -1,3 +1,56 @@
+##  (2023-08-14)
+
+### [0.12.7](https://github.com/tu6ge/oss-rs/compare/0.12.6...0.12.7) (2023-08-11)
+
+### [0.12.6](https://github.com/tu6ge/oss-rs/compare/0.12.5...0.12.6) (2023-08-11)
+
+
+### Features
+
+* **file:** more trait impl ([8d7f64a](https://github.com/tu6ge/oss-rs/commit/8d7f64a2d608b1b8b06ac4d0019b7cd18c6f9077))
+* **types:** add convert ([5459d58](https://github.com/tu6ge/oss-rs/commit/5459d58e29247cd42866b8ccd5f4a8f920072df1))
+
+
+### Bug Fixes
+
+* **types:** impl Send Sync ([292a44d](https://github.com/tu6ge/oss-rs/commit/292a44d909515c2a5538ab73e06d4509ab26da96))
+
+### [0.12.5](https://github.com/tu6ge/oss-rs/compare/0.12.4...0.12.5) (2023-07-19)
+
+### [0.12.4](https://github.com/tu6ge/oss-rs/compare/0.12.3...0.12.4) (2023-07-18)
+
+
+### Features
+
+* **client:** Reduce constraints on generic param ([400d928](https://github.com/tu6ge/oss-rs/commit/400d928fd7d39068baca19f7275e5ba18211c314))
+* **object:** add help fn in objects ([4d1ac3f](https://github.com/tu6ge/oss-rs/commit/4d1ac3f738598685fe350b01d01e99931baca5ea))
+
+
+### Bug Fixes
+
+* **types:** changed BucketName default fn ([2ea507c](https://github.com/tu6ge/oss-rs/commit/2ea507c7ca7ba57486e24ebb2217ac50d415139e))
+
+### [0.12.3](https://github.com/tu6ge/oss-rs/compare/0.12.2...0.12.3) (2023-06-26)
+
+
+### Features
+
+* **deps:** upgrade quick-xml.infer ([1d9924c](https://github.com/tu6ge/oss-rs/commit/1d9924caf39471ee8a3bf030d90beb2388b541fb))
+
+### [0.12.2](https://github.com/tu6ge/oss-rs/compare/0.12.1...0.12.2) (2023-06-26)
+
+
+### Bug Fixes
+
+* **types:** debug KeySecret hidden content ([4956412](https://github.com/tu6ge/oss-rs/commit/4956412a8a99d285342f6d8b426ee8d5d8b4ccf0))
+
+### [0.12.1](https://github.com/tu6ge/oss-rs/compare/0.12.0...0.12.1) (2023-06-08)
+
+
+### Features
+
+* **auth:** 在 Url 中包含签名 ([#21](https://github.com/tu6ge/oss-rs/issues/21)) ([a15e644](https://github.com/tu6ge/oss-rs/commit/a15e64486769004f42bedbb2729e6cf5e530e14a)), closes [#20](https://github.com/tu6ge/oss-rs/issues/20)
+
 ##  (2023-06-01)
 
 ## [0.12.0](https://github.com/tu6ge/oss-rs/compare/0.11.2...0.12.0) (2023-06-01)
