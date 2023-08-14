@@ -539,12 +539,20 @@ impl AuthBuilder {
     }
 }
 
-/// 将 OSS 签名信息附加到 Request 中
-pub trait RequestWithOSS {
+/// # 将 OSS 签名信息附加到 Request 中
+///
+/// 已密封，lib 外部无法实现
+pub trait RequestWithOSS: private::Sealed {
     /// 输入 key，secret，以及 Request 中的 method，header,url，query
     /// 等信息，计算 OSS 签名
     /// 并把签名后的 header 信息，传递给 self
     fn with_oss(&mut self, key: InnerKeyId, secret: InnerKeySecret) -> AuthResult<()>;
+}
+
+mod private {
+    pub trait Sealed {}
+
+    impl Sealed for reqwest::Request {}
 }
 
 use reqwest::{Request, Url};
