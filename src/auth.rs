@@ -191,56 +191,10 @@ impl AuthToOssHeader for InnerAuth<'_> {
     }
 }
 
-/// 从 auth 中提取各个字段，用于计算签名的原始字符串
-trait AuthSignString {
-    fn get_sign_info(
-        &self,
-    ) -> (
-        &InnerKeyId,
-        &InnerKeySecret,
-        &Method,
-        InnerContentMd5,
-        ContentType,
-        &InnerDate,
-        &InnerCanonicalizedResource,
-    );
-}
-
-impl AuthSignString for InnerAuth<'_> {
-    #[inline]
-    fn get_sign_info(
-        &self,
-    ) -> (
-        &InnerKeyId,
-        &InnerKeySecret,
-        &Method,
-        InnerContentMd5,
-        ContentType,
-        &InnerDate,
-        &InnerCanonicalizedResource,
-    ) {
-        (
-            &self.access_key_id,
-            &self.access_key_secret,
-            &self.method,
-            self.content_md5.clone().unwrap_or_default(),
-            self.headers
-                .get(CONTENT_TYPE)
-                .map_or(ContentType::default(), |ct| {
-                    ct.to_owned().try_into().unwrap_or_else(|_| {
-                        unreachable!("HeaderValue always is a rightful ContentType")
-                    })
-                }),
-            &self.date,
-            &self.canonicalized_resource,
-        )
-    }
-}
-
 impl InnerAuth<'_> {
     /// 返回携带了签名信息的 headers
-    pub fn get_headers(&self) -> AuthResult<HeaderMap> {
-        let mut map = HeaderMap::from_auth(self)?;
+    pub fn get_headers(self) -> AuthResult<HeaderMap> {
+        let mut map = HeaderMap::from_auth(&self)?;
 
         let oss_header = self.to_oss_header();
         let sign_string = SignString::from_auth(self, oss_header);
@@ -249,8 +203,8 @@ impl InnerAuth<'_> {
         Ok(map)
     }
     /// 将 Auth 信息计算后附加到 HeaderMap 上
-    fn append_headers(&self, headers: &mut HeaderMap) -> AuthResult<()> {
-        headers.append_auth(self)?;
+    fn append_headers(self, headers: &mut HeaderMap) -> AuthResult<()> {
+        headers.append_auth(&self)?;
         let oss_header = self.to_oss_header();
         let sign_string = SignString::from_auth(self, oss_header);
         headers.append_sign(sign_string.to_sign().map_err(AuthError::from)?)?;
@@ -390,14 +344,29 @@ impl<'a, 'b> SignString<'_> {
 }
 
 impl<'a> SignString<'a> {
-    fn from_auth(auth: &'a impl AuthSignString, header: OssHeader) -> SignString {
-        let (key, secret, verb, content_md5, content_type, date, canonicalized_resource) =
-            auth.get_sign_info();
-        let method = verb.to_string();
+    fn from_auth(auth: InnerAuth<'a>, header: OssHeader) -> Self {
+        let InnerAuth {
+            access_key_id,
+            access_key_secret,
+            method,
+            content_md5,
+            headers,
+            date,
+            canonicalized_resource,
+            ..
+        } = auth;
+        let content_type = headers
+            .get(CONTENT_TYPE)
+            .map_or(ContentType::default(), |ct| {
+                ct.to_owned().try_into().unwrap_or_else(|_| {
+                    unreachable!("HeaderValue always is a rightful ContentType")
+                })
+            });
+        let method = method.to_string();
 
         let data = method
             + LINE_BREAK
-            + content_md5.as_ref()
+            + content_md5.unwrap_or_default().as_ref()
             + LINE_BREAK
             + content_type.as_ref()
             + LINE_BREAK
@@ -406,33 +375,18 @@ impl<'a> SignString<'a> {
             + &header.to_string()
             + canonicalized_resource.as_ref();
 
-        SignString {
+        Self {
             data,
-            key: key.clone(),
-            secret: secret.clone(),
+            key: access_key_id,
+            secret: access_key_secret,
         }
     }
 
-    #[cfg(test)]
-    pub fn data(&self) -> String {
-        self.data.clone()
-    }
-
-    #[cfg(test)]
-    fn key_string(&self) -> String {
-        self.key.as_ref().to_string()
-    }
-
-    #[cfg(test)]
-    fn secret_string(&self) -> String {
-        self.secret.as_str().to_string()
-    }
-
     // 转化成签名
-    fn to_sign(&self) -> Result<Sign, hmac::digest::crypto_common::InvalidLength> {
+    fn to_sign(self) -> Result<Sign<'a>, hmac::digest::crypto_common::InvalidLength> {
         Ok(Sign {
             data: self.secret.encryption(self.data.as_bytes())?,
-            key: self.key.clone(),
+            key: self.key,
         })
     }
 }
@@ -580,7 +534,7 @@ impl AuthBuilder {
 
 impl AuthBuilder {
     /// 返回携带了签名信息的 headers
-    pub fn get_headers(&self) -> AuthResult<HeaderMap> {
+    pub fn get_headers(self) -> AuthResult<HeaderMap> {
         self.auth.get_headers()
     }
 }

@@ -9,8 +9,8 @@ use mockall::mock;
 use crate::types::{Date, KeyId};
 
 use super::{
-    AppendAuthHeader, AuthBuilder, AuthError, AuthErrorKind, AuthHeader, AuthSignString,
-    MockAuthToHeaderMap, OssHeader, Sign, SignString,
+    AppendAuthHeader, AuthBuilder, AuthError, AuthErrorKind, AuthHeader, MockAuthToHeaderMap,
+    OssHeader, Sign, SignString,
 };
 
 mod to_oss_header {
@@ -47,11 +47,11 @@ mod auth_sign_string {
     use chrono::{TimeZone, Utc};
     use http::Method;
 
-    use crate::auth::AuthBuilder;
-    use crate::auth::AuthSignString;
+    use crate::auth::{AuthBuilder, InnerAuth};
 
     #[test]
     fn auth_to_sign_string() {
+        use http::header::CONTENT_TYPE;
         let date = Utc.with_ymd_and_hms(2022, 1, 1, 18, 1, 1).unwrap();
 
         let mut builder = AuthBuilder::default();
@@ -65,18 +65,26 @@ mod auth_sign_string {
 
         let auth = builder.build();
 
-        let (key, secret, verb, content_md5, content_type, date, canonicalized_resource) =
-            auth.get_sign_info();
+        let InnerAuth {
+            access_key_id,
+            access_key_secret,
+            method,
+            content_md5,
+            headers,
+            date,
+            canonicalized_resource,
+            ..
+        } = auth;
 
-        assert_eq!(key.as_ref(), "foo1");
+        assert_eq!(access_key_id.as_ref(), "foo1");
 
-        assert_eq!(secret.as_str(), "foo2");
+        assert_eq!(access_key_secret.as_str(), "foo2");
 
-        assert_eq!(verb.to_string(), "POST".to_owned());
+        assert_eq!(method.to_string(), "POST".to_owned());
 
-        assert_eq!(content_md5.as_ref(), "foo4");
+        assert_eq!(content_md5.unwrap().as_ref(), "foo4");
 
-        assert_eq!(content_type.as_ref(), "foo6");
+        assert_eq!(headers.get(CONTENT_TYPE).unwrap().as_bytes(), b"foo6");
 
         assert_eq!(date.as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
 
@@ -85,6 +93,7 @@ mod auth_sign_string {
 
     #[test]
     fn auth_to_sign_string_none() {
+        use http::header::CONTENT_TYPE;
         let date = Utc.with_ymd_and_hms(2022, 1, 1, 18, 1, 1).unwrap();
 
         let mut builder = AuthBuilder::default();
@@ -98,18 +107,26 @@ mod auth_sign_string {
 
         let auth = builder.build();
 
-        let (key, secret, verb, content_md5, content_type, date, canonicalized_resource) =
-            auth.get_sign_info();
+        let InnerAuth {
+            access_key_id,
+            access_key_secret,
+            method,
+            content_md5,
+            headers,
+            date,
+            canonicalized_resource,
+            ..
+        } = auth;
 
-        assert_eq!(key.as_ref(), "foo1");
+        assert_eq!(access_key_id.as_ref(), "foo1");
 
-        assert_eq!(secret.as_str(), "foo2");
+        assert_eq!(access_key_secret.as_str(), "foo2");
 
-        assert_eq!(verb.to_string(), "POST".to_owned());
+        assert_eq!(method.to_string(), "POST".to_owned());
 
-        assert_eq!(content_md5.as_ref(), "");
+        assert!(content_md5.is_none());
 
-        assert_eq!(content_type.as_ref(), "foo6");
+        assert_eq!(headers.get(CONTENT_TYPE).unwrap().as_bytes(), b"foo6");
 
         assert_eq!(date.as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
 
@@ -123,7 +140,7 @@ mod auth_builder {
     use chrono::{TimeZone, Utc};
     use http::{header::HOST, HeaderMap, Method};
 
-    use crate::auth::{AuthBuilder, AuthSignString};
+    use crate::auth::AuthBuilder;
 
     #[test]
     fn test_key() {
@@ -131,9 +148,7 @@ mod auth_builder {
         builder.key("foo1");
         let auth = builder.build();
 
-        let (key, ..) = auth.get_sign_info();
-
-        assert_eq!(key.as_ref(), "foo1");
+        assert_eq!(auth.access_key_id.as_ref(), "foo1");
     }
 
     #[test]
@@ -142,9 +157,7 @@ mod auth_builder {
         builder.secret("foo2");
         let auth = builder.build();
 
-        let (_, secret, ..) = auth.get_sign_info();
-
-        assert_eq!(secret.as_str(), "foo2");
+        assert_eq!(auth.access_key_secret.as_str(), "foo2");
     }
 
     #[test]
@@ -153,9 +166,7 @@ mod auth_builder {
         builder.method(&Method::POST);
         let auth = builder.build();
 
-        let (_, _, verb, ..) = auth.get_sign_info();
-
-        assert_eq!(verb, &Method::POST);
+        assert_eq!(auth.method, &Method::POST);
     }
 
     #[test]
@@ -164,9 +175,7 @@ mod auth_builder {
         builder.content_md5("abc3");
         let auth = builder.build();
 
-        let (_, _, _, content_md5, ..) = auth.get_sign_info();
-
-        assert_eq!(content_md5.as_ref(), "abc3");
+        assert_eq!(auth.content_md5.unwrap().as_ref(), "abc3");
     }
 
     #[test]
@@ -176,9 +185,7 @@ mod auth_builder {
         builder.date(date);
         let auth = builder.build();
 
-        let (.., date, _) = auth.get_sign_info();
-
-        assert_eq!(date.as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
+        assert_eq!(auth.date.as_ref(), "Sat, 01 Jan 2022 18:01:01 GMT");
     }
 
     #[test]
@@ -187,9 +194,7 @@ mod auth_builder {
         builder.canonicalized_resource("foo323");
         let auth = builder.build();
 
-        let (.., canonicalized_resource) = auth.get_sign_info();
-
-        assert_eq!(canonicalized_resource.as_ref(), "foo323");
+        assert_eq!(auth.canonicalized_resource.as_ref(), "foo323");
     }
 
     #[test]
@@ -425,68 +430,10 @@ fn header_into_string() {
 }
 
 mod sign_string_struct {
-
-    use http::Method;
-
     use crate::{
-        auth::{AuthSignString, OssHeader, SignString},
-        types::{CanonicalizedResource, ContentMd5, ContentType, Date, KeyId, KeySecret},
+        auth::SignString,
+        types::{KeyId, KeySecret},
     };
-
-    #[test]
-    fn test_from_auth() {
-        struct Bar {
-            key: KeyId,
-            secret: KeySecret,
-            verb: Method,
-            date: Date,
-            content_md5: ContentMd5,
-            content_type: ContentType,
-            canonicalized_resource: CanonicalizedResource,
-        }
-
-        impl AuthSignString for Bar {
-            fn get_sign_info(
-                &self,
-            ) -> (
-                &KeyId,
-                &KeySecret,
-                &Method,
-                ContentMd5,
-                ContentType,
-                &Date,
-                &CanonicalizedResource,
-            ) {
-                (
-                    &self.key,
-                    &self.secret,
-                    &self.verb,
-                    self.content_md5.clone(),
-                    self.content_type.clone(),
-                    &self.date,
-                    &self.canonicalized_resource,
-                )
-            }
-        }
-
-        let bar = Bar {
-            key: KeyId::new("foo1"),
-            secret: KeySecret::new("foo2"),
-            verb: Method::GET,
-            content_md5: ContentMd5::new("foo3"),
-            content_type: ContentType::new("foo4"),
-            date: unsafe { Date::from_static("foo5") },
-            canonicalized_resource: CanonicalizedResource::new("foo6"),
-        };
-
-        let header = OssHeader::new(Some("foo7".to_string()));
-
-        let val = SignString::from_auth(&bar, header);
-
-        assert_eq!(val.data(), "GET\nfoo3\nfoo4\nfoo5\nfoo7\nfoo6");
-        assert_eq!(val.key_string(), "foo1".to_string());
-        assert_eq!(val.secret_string(), "foo2".to_string());
-    }
 
     #[test]
     fn test_to_sign() {
@@ -602,16 +549,6 @@ fn oss_header_to_string() {
     let header = OssHeader::new(None);
 
     assert_eq!(header.to_string(), "".to_string());
-}
-
-#[test]
-fn get_sign_info() {
-    let mut builder = AuthBuilder::default();
-    builder.key("abc");
-    let auth = builder.build();
-    let (key, ..) = auth.get_sign_info();
-
-    assert_eq!(*key, KeyId::new("abc"))
 }
 
 #[test]

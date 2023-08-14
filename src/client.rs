@@ -296,8 +296,6 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
         resource: CanonicalizedResource,
         headers: H,
     ) -> Result<RequestBuilder, BuilderError> {
-        // dbg!(url.clone());
-        // dbg!(resource.clone());
         let mut auth_builder = self.auth_builder.clone();
         auth_builder.method(&method);
         auth_builder.date(now());
