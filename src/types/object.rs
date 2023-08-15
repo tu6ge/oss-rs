@@ -23,7 +23,7 @@ pub use base::{InvalidObjectBase, ObjectBase};
 
 /// OSS Object 存储对象的路径
 /// 不带前缀 `/`
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ObjectPathInner<'a>(Cow<'a, str>);
 
 /// OSS Object 存储对象的路径
@@ -285,7 +285,7 @@ impl SetObjectPath for Url {
 
 /// OSS Object 对象路径的前缀目录
 /// 不带前缀 `/`, 且必须以 `/` 结尾
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ObjectDir<'a>(Cow<'a, str>);
 
 impl AsRef<str> for ObjectDir<'_> {

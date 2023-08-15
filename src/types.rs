@@ -188,7 +188,7 @@ impl<'a> InnerKeySecret<'a> {
 
 /// # OSS 的可用区
 /// [aliyun docs](https://help.aliyun.com/document_detail/31837.htm)
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Ord, PartialOrd)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub struct EndPoint {
     pub(crate) kind: EndPointKind,
@@ -273,7 +273,7 @@ impl EndPoint {
 }
 
 /// # OSS 的可用区种类 enum
-#[derive(Clone, Debug, PartialEq, Eq, Default, Hash, Ord, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Hash)]
 #[non_exhaustive]
 pub(crate) enum EndPointKind {
     /// 杭州可用区
@@ -635,7 +635,7 @@ impl PartialEq<Url> for EndPoint {
 //===================================================================================================
 
 /// 存储 bucket 名字的类型
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct BucketName(Cow<'static, str>);
 
 impl AsRef<str> for BucketName {
@@ -999,7 +999,7 @@ impl<'a> InnerDate<'a> {
 //===================================================================================================
 
 /// 计算方式，参考 [aliyun 文档](https://help.aliyun.com/document_detail/31951.htm)
-#[derive(Clone, Debug, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct InnerCanonicalizedResource<'a>(Cow<'a, str>);
 /// 静态作用域的 InnerCanonicalizedResource
 pub type CanonicalizedResource = InnerCanonicalizedResource<'static>;

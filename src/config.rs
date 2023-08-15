@@ -221,7 +221,7 @@ pub(crate) enum InvalidConfigKind {
 
 /// # Bucket 元信息
 /// 包含所属 bucket 名以及所属的 endpoint
-#[derive(Debug, Clone, Default, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct BucketBase {
     endpoint: EndPoint,
     name: BucketName,
