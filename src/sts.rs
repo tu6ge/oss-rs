@@ -48,7 +48,7 @@ where
 
 const SECURITY_TOKEN: &str = "x-oss-security-token";
 
-impl<M: Default + Clone> STS for Client<M> {
+impl<M: Default> STS for Client<M> {
     fn new_with_sts<ST>(
         access_key_id: KeyId,
         access_key_secret: KeySecret,
