@@ -147,6 +147,7 @@ impl Content {
     }
 
     fn upload(&mut self) -> IoResult<()> {
+        assert!(self.content_part.len() == 1);
         let content = self.content_part.pop().unwrap();
         self.client
             .put_content_base(content, self.content_type, self.path.clone())

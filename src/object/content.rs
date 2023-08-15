@@ -209,6 +209,7 @@ impl Content {
         )
     }
     async fn upload(&mut self) -> IoResult<()> {
+        assert!(self.content_part.len() == 1);
         let content = self.content_part.pop().expect("content_part len is not 1");
         self.client
             .put_content_base(content, self.content_type, self.path.clone())
@@ -796,6 +797,18 @@ mod tests {
             .unwrap();
         con.content_part.push(b"bbb".to_vec());
         con.upload().await.unwrap();
+    }
+
+    #[tokio::test]
+    #[should_panic]
+    async fn upload_panic() {
+        let client = Client::test_init();
+        let mut con = Content::from_client(Arc::new(client))
+            .path("aaa.txt")
+            .unwrap();
+        con.content_part.push(b"bbb".to_vec());
+        con.content_part.push(b"ccc".to_vec());
+        let _ = con.upload().await;
     }
 
     #[tokio::test]
