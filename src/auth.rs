@@ -198,7 +198,7 @@ impl InnerAuth<'_> {
 
         let oss_header = self.to_oss_header();
         let sign_string = SignString::from_auth(self, oss_header);
-        map.append_sign(sign_string.to_sign().map_err(AuthError::from)?)?;
+        map.append_sign(sign_string.into_sign().map_err(AuthError::from)?)?;
 
         Ok(map)
     }
@@ -207,7 +207,7 @@ impl InnerAuth<'_> {
         headers.append_auth(&self)?;
         let oss_header = self.to_oss_header();
         let sign_string = SignString::from_auth(self, oss_header);
-        headers.append_sign(sign_string.to_sign().map_err(AuthError::from)?)?;
+        headers.append_sign(sign_string.into_sign().map_err(AuthError::from)?)?;
 
         Ok(())
     }
@@ -383,7 +383,7 @@ impl<'a> SignString<'a> {
     }
 
     // 转化成签名
-    fn to_sign(self) -> Result<Sign<'a>, hmac::digest::crypto_common::InvalidLength> {
+    fn into_sign(self) -> Result<Sign<'a>, hmac::digest::crypto_common::InvalidLength> {
         Ok(Sign {
             data: self.secret.encryption(self.data.as_bytes())?,
             key: self.key,

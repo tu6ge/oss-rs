@@ -436,12 +436,12 @@ mod sign_string_struct {
     };
 
     #[test]
-    fn test_to_sign() {
+    fn test_into_sign() {
         let key = KeyId::from("foo1");
         let secret = KeySecret::from("foo2");
         let sign_string = SignString::new("bar", key, secret);
 
-        let res = sign_string.to_sign();
+        let res = sign_string.into_sign();
         assert!(res.is_ok());
         let sign = res.unwrap();
         assert_eq!(sign.data(), "gTzwiN1fRQV90YcecTvo1pH+kI8=");
