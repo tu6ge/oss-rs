@@ -341,29 +341,16 @@ impl OssHeader {
     fn is_none(&self) -> bool {
         self.0.is_none()
     }
-
-    #[inline]
-    fn len(&self) -> usize {
-        self.0.as_ref().map_or(0_usize, |str| str.len())
-    }
 }
 
 impl Display for OssHeader {
     /// 转化成 SignString 需要的格式
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut content = String::with_capacity({
-            let len = self.len();
-            if len > 0 {
-                len + 2
-            } else {
-                0
-            }
-        });
         if let Some(str) = &self.0 {
-            content.push_str(str);
-            content.push_str(LINE_BREAK);
+            write!(f, "{}", str)?;
+            write!(f, "{}", LINE_BREAK)?;
         }
-        write!(f, "{}", content)
+        Ok(())
     }
 }
 
