@@ -536,7 +536,7 @@ fn test_get_blocking_object_list() {
         Rc::new(client),
     );
 
-    let res = bucket.get_object_list(vec![("max-keys".into(), "5".into())]);
+    let res = bucket.get_object_list([("max-keys", 5)]);
 
     assert!(res.is_ok());
     let list = res.unwrap();
