@@ -468,7 +468,7 @@ fn test_get_blocking_object_list() {
     use crate::client::ClientRc;
     use crate::tests::object::assert_object_list;
     use crate::types::object::CommonPrefixes;
-    use crate::{EndPoint, Query, QueryKey};
+    use crate::{EndPoint, QueryKey};
     use reqwest::blocking::{Request, Response};
     use std::rc::Rc;
 

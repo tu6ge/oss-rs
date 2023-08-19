@@ -105,7 +105,7 @@ fn object_list_get_object_list() {
         Vec::new(),
         None,
         Rc::new(client),
-        vec![("max-keys".into(), 5u8.into())],
+        [("max-keys", 5u8)],
     );
 
     let res = object_list.get_object_list();
