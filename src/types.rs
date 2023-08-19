@@ -18,6 +18,7 @@ pub mod object;
 #[cfg(test)]
 mod test;
 
+#[cfg(feature = "core")]
 use self::core::IntoQuery;
 use crate::consts::{TRUE1, TRUE2, TRUE3, TRUE4};
 
