@@ -693,6 +693,19 @@ impl From<u16> for InnerQueryValue<'_> {
     }
 }
 
+impl From<i32> for InnerQueryValue<'_> {
+    /// 数字转 Query 值
+    ///
+    /// ```
+    /// use aliyun_oss_client::Query;
+    /// # use aliyun_oss_client::types::core::IntoQuery;
+    /// let query = [("max_keys", 100_i32)].into_query();
+    /// ```
+    fn from(num: i32) -> Self {
+        Self(Cow::Owned(num.to_string()))
+    }
+}
+
 impl PartialEq<u16> for InnerQueryValue<'_> {
     #[inline]
     fn eq(&self, other: &u16) -> bool {

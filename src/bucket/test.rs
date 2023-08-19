@@ -8,7 +8,7 @@ use crate::object::StorageClass;
 use crate::tests::object::assert_object_list;
 use crate::types::core::IntoQuery;
 use crate::types::object::CommonPrefixes;
-use crate::{BucketName, EndPoint, Query, QueryKey};
+use crate::{BucketName, EndPoint, QueryKey};
 
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
