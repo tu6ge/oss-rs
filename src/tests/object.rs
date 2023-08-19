@@ -4,6 +4,7 @@ use crate::builder::RcPointer;
 use crate::builder::{BuilderError, ClientWithMiddleware, PointerFamily};
 use crate::file::Files;
 use crate::object::ObjectList;
+use crate::types::core::IntoQuery;
 use crate::types::object::{CommonPrefixes, ObjectPath};
 use crate::{builder::Middleware, client::Client};
 use crate::{BucketName, EndPoint, Query, QueryKey};
@@ -120,7 +121,7 @@ fn object_list_get_object_list() {
         23,
         String::default(),
         CommonPrefixes::from_iter([]),
-        Query::from_iter([(QueryKey::MAX_KEYS, 5u16)]),
+        [(QueryKey::MAX_KEYS, 5u16)].into_query(),
     );
 }
 
@@ -181,9 +182,7 @@ async fn test_get_object_list() {
     )
     .middleware(Arc::new(MyMiddleware {}));
 
-    let res = client
-        .get_object_list(vec![("max-keys".parse().unwrap(), "5".parse().unwrap())])
-        .await;
+    let res = client.get_object_list([("max-keys", "5")]).await;
 
     assert!(res.is_ok());
     let list = res.unwrap();
@@ -196,7 +195,7 @@ async fn test_get_object_list() {
         23,
         String::default(),
         CommonPrefixes::from_iter([]),
-        Query::from_iter([(QueryKey::MAX_KEYS, 5u16)]),
+        [(QueryKey::MAX_KEYS, 5u16)].into_query(),
     );
 }
 
@@ -257,9 +256,7 @@ async fn test_error_object_list() {
     )
     .middleware(Arc::new(MyMiddleware {}));
 
-    let res = client
-        .get_object_list(vec![("max-keys".parse().unwrap(), "5".parse().unwrap())])
-        .await;
+    let res = client.get_object_list([("max-keys", "5")]).await;
     let err = res.unwrap_err();
 
     assert_eq!(format!("{err}"), "decode xml failed");
@@ -326,9 +323,7 @@ async fn test_item_error_object_list() {
     )
     .middleware(Arc::new(MyMiddleware {}));
 
-    let res = client
-        .get_object_list(vec![("max-keys".parse().unwrap(), "5".parse().unwrap())])
-        .await;
+    let res = client.get_object_list([("max-keys", "5")]).await;
     let err = res.unwrap_err();
 
     assert_eq!(format!("{err}"), "decode xml failed");
@@ -413,7 +408,7 @@ fn test_get_blocking_object_list() {
         23,
         String::default(),
         CommonPrefixes::from_iter([]),
-        Query::from_iter([(QueryKey::MAX_KEYS, 5u16)]),
+        [(QueryKey::MAX_KEYS, 5u16)].into_query(),
     );
 }
 

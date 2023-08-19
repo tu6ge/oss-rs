@@ -10,9 +10,10 @@ use super::{
 use crate::{
     auth::query::QueryAuth,
     builder::{ArcPointer, PointerFamily},
+    types::core::IntoQuery,
     EndPoint, KeyId, KeySecret,
 };
-use crate::{config::BucketBase, BucketName, QueryKey, QueryValue};
+use crate::{config::BucketBase, BucketName};
 
 #[cfg(feature = "blocking")]
 use crate::builder::RcPointer;
@@ -171,10 +172,7 @@ impl ObjectBase<ArcPointer> {
 
     /// 根据提供的查询参数信息，获取当前 object 对应的接口请求参数（ url 和 CanonicalizedResource）
     #[inline]
-    pub fn get_url_resource<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
-        &self,
-        query: Q,
-    ) -> (Url, CanonicalizedResource) {
+    pub fn get_url_resource<Q: IntoQuery>(&self, query: Q) -> (Url, CanonicalizedResource) {
         let mut url = self.bucket.to_url();
         url.set_object_path(&self.path);
 

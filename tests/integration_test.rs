@@ -62,10 +62,7 @@ mod test_async {
 
         let bucket_list = client.get_bucket_list().await.unwrap();
 
-        let query = [
-            ("max-keys".parse().unwrap(), "5".parse().unwrap()),
-            ("prefix".parse().unwrap(), "babel".parse().unwrap()),
-        ];
+        let query = [("max-keys", "5"), ("prefix", "babel")];
 
         let buckets = bucket_list.to_vec();
         let the_bucket = &buckets[0];
@@ -79,7 +76,7 @@ mod test_async {
 
         let client = Client::from_env().unwrap();
 
-        let object_list = client.get_object_list([]).await;
+        let object_list = client.get_object_list(()).await;
 
         assert_matches!(object_list, Ok(_));
     }

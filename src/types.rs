@@ -18,6 +18,7 @@ pub mod object;
 #[cfg(test)]
 mod test;
 
+use self::core::IntoQuery;
 use crate::consts::{TRUE1, TRUE2, TRUE3, TRUE4};
 
 #[cfg(feature = "core")]
@@ -1119,15 +1120,11 @@ impl<'a> InnerCanonicalizedResource<'a> {
 
     /// 根据 OSS 存储对象（Object）查询签名参数
     #[cfg(feature = "core")]
-    pub(crate) fn from_object<
-        Q: IntoIterator<Item = (QueryKey, QueryValue)>,
-        B: AsRef<str>,
-        P: AsRef<str>,
-    >(
+    pub(crate) fn from_object<Q: IntoQuery, B: AsRef<str>, P: AsRef<str>>(
         (bucket, path): (B, P),
         query: Q,
     ) -> Self {
-        let query = Query::from_iter(query);
+        let query = query.into_query();
         if query.is_empty() {
             Self::new(format!("/{}/{}", bucket.as_ref(), path.as_ref()))
         } else {

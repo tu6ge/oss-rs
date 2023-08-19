@@ -563,7 +563,7 @@ impl BucketBase {
         let mut url = self.to_url();
         url.set_object_path(path);
 
-        let resource = CanonicalizedResource::from_object((self.name(), path.as_ref()), []);
+        let resource = CanonicalizedResource::from_object((self.name(), path.as_ref()), ());
 
         (url, resource)
     }

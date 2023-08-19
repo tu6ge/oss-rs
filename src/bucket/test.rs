@@ -6,6 +6,7 @@ use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware};
 use crate::decode::{RefineBucket, RefineBucketList};
 use crate::object::StorageClass;
 use crate::tests::object::assert_object_list;
+use crate::types::core::IntoQuery;
 use crate::types::object::CommonPrefixes;
 use crate::{BucketName, EndPoint, Query, QueryKey};
 
@@ -373,9 +374,7 @@ async fn test_get_object_list() {
 
     let bucket = bucket(client);
 
-    let res = bucket
-        .get_object_list(vec![("max-keys".into(), "5".into())])
-        .await;
+    let res = bucket.get_object_list([("max-keys", "5")]).await;
 
     assert!(res.is_ok());
     let list = res.unwrap();
@@ -388,7 +387,7 @@ async fn test_get_object_list() {
         23,
         String::default(),
         CommonPrefixes::from_iter([]),
-        Query::from_iter([(QueryKey::MAX_KEYS, 5u16)]),
+        (QueryKey::MAX_KEYS, 5u16).into_query(),
     );
 }
 
@@ -439,9 +438,7 @@ async fn test_error_get_object_list() {
 
     let bucket = bucket(client);
 
-    let res = bucket
-        .get_object_list(vec![("max-keys".into(), "5".into())])
-        .await;
+    let res = bucket.get_object_list([("max-keys", "5")]).await;
 
     let err = res.unwrap_err();
     assert_eq!(format!("{err}"), "decode xml failed");
@@ -552,7 +549,7 @@ fn test_get_blocking_object_list() {
         23,
         String::default(),
         CommonPrefixes::from_iter([]),
-        Query::from_iter([(QueryKey::MAX_KEYS, 5u16)]),
+        [(QueryKey::MAX_KEYS, 5u16)].into_query(),
     );
 }
 

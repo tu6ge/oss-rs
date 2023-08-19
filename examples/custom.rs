@@ -62,7 +62,7 @@ async fn get_with_client() -> Result<(), ExtractListError> {
         }
     }
 
-    client.base_object_list([], &mut bucket).await?;
+    client.base_object_list((), &mut bucket).await?;
 
     println!("bucket: {:?}", bucket);
 

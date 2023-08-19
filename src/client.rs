@@ -420,7 +420,7 @@ mod tests {
         let (url, resource) = client
             .get_object_base("9AB932LY.jpeg")
             .unwrap()
-            .get_url_resource([]);
+            .get_url_resource(());
         let builder = client.builder_with_header(Method::HEAD, url, resource, []);
         let builder = builder.unwrap();
 

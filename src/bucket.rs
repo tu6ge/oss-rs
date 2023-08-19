@@ -13,10 +13,8 @@ use crate::decode::{InnerItemError, ListError, RefineBucket, RefineBucketList, R
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
 use crate::object::{ExtractListError, InitObject, Object, ObjectList, Objects, StorageClass};
-use crate::types::{
-    CanonicalizedResource, InvalidBucketName, InvalidEndPoint, Query, QueryKey, QueryValue,
-    BUCKET_INFO,
-};
+use crate::types::core::IntoQuery;
+use crate::types::{CanonicalizedResource, InvalidBucketName, InvalidEndPoint, Query, BUCKET_INFO};
 use crate::{BucketName, EndPoint};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -360,18 +358,18 @@ impl Bucket {
     /// # 查询 Object 列表
     ///
     /// 参数 query 有多种写法：
-    /// - `[]` 查所有
-    /// - `[("max-keys".into(), "5".into())]` 数组（不可变长度），最大可支持 size 为 8 的数组
-    /// - `[("max-keys".into(), "5".into()), ("prefix".into(), "babel".into())]` 数组（不可变长度）
-    /// - `vec![("max-keys".into(), "5".into())]` Vec(可变长度)
-    /// - `vec![("max-keys".into(), 5u8.into())]` 数字类型
-    /// - `vec![("max-keys".into(), 1000u16.into())]` u16 数字类型
+    /// - `()` 或 `[()]` 查所有
+    /// - `[("max-keys", 5)]` 数组
+    /// - `[("max-keys", "5"), ("prefix", "babel")]` 数组
+    /// - `vec![("max-keys", "5")]` Vec
+    /// - `vec![("max-keys", 5u8)]` 数字类型
+    /// - `vec![("max-keys", 1000u16)]` u16 数字类型
     #[inline(always)]
-    pub async fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+    pub async fn get_object_list<Q: IntoQuery>(
         &self,
         query: Q,
     ) -> Result<ObjectList, ExtractListError> {
-        self.get_object_list2(Query::from_iter(query)).await
+        self.get_object_list2(query.into_query()).await
     }
 
     /// # 查询 Object 列表
@@ -396,11 +394,11 @@ impl Bucket<RcPointer> {
     /// 查询默认 bucket 的文件列表
     ///
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`](#method.get_object_list) 文档
-    pub fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+    pub fn get_object_list<Q: IntoQuery>(
         &self,
         query: Q,
     ) -> Result<ObjectList<RcPointer>, ExtractListError> {
-        let query = Query::from_iter(query);
+        let query = query.into_query();
 
         let bucket_arc = Rc::new(self.base.clone());
 

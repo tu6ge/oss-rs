@@ -295,7 +295,7 @@ mod object_list_xml {
             list,
             token,
             Arc::new(client),
-            [],
+            (),
         );
 
         object_list

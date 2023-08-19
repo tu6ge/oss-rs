@@ -38,7 +38,7 @@ mod tests {
             list,
             token,
             Arc::new(client),
-            vec![("key1".into(), "value1".into())],
+            ("key1", "value1"),
         );
 
         object_list

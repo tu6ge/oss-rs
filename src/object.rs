@@ -68,13 +68,14 @@ use crate::decode::{InnerListError, ListError, RefineObject, RefineObjectList};
 #[cfg(feature = "blocking")]
 use crate::file::blocking::AlignBuilder as BlockingAlignBuilder;
 use crate::file::AlignBuilder;
+use crate::types::core::IntoQuery;
 use crate::types::object::ObjectPathInner;
 use crate::types::{
     core::SetOssQuery,
     object::{
         CommonPrefixes, InvalidObjectDir, InvalidObjectPath, ObjectBase, ObjectDir, ObjectPath,
     },
-    CanonicalizedResource, Query, QueryKey, QueryValue, CONTINUATION_TOKEN,
+    CanonicalizedResource, Query, CONTINUATION_TOKEN,
 };
 use crate::{BucketName, Client, EndPoint, KeyId, KeySecret};
 use async_stream::try_stream;
@@ -197,7 +198,7 @@ impl<T: PointerFamily, Item> AsRef<EndPoint> for ObjectList<T, Item> {
 impl<T: PointerFamily, Item> ObjectList<T, Item> {
     /// 文件列表的初始化方法
     #[allow(clippy::too_many_arguments)]
-    pub fn new<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+    pub fn new<Q: IntoQuery>(
         bucket: BucketBase,
         prefix: Option<ObjectDir<'static>>,
         max_keys: u32,
@@ -216,7 +217,7 @@ impl<T: PointerFamily, Item> ObjectList<T, Item> {
             next_continuation_token: next_continuation_token.unwrap_or_default(),
             common_prefixes: CommonPrefixes::default(),
             client,
-            search_query: Query::from_iter(search_query),
+            search_query: search_query.into_query(),
             //init_fn: Box::default(),
         }
     }
@@ -1054,11 +1055,11 @@ impl Client {
     ///
     /// [`get_object_list`]: crate::bucket::Bucket::get_object_list
     #[inline(always)]
-    pub async fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+    pub async fn get_object_list<Q: IntoQuery>(
         &self,
         query: Q,
     ) -> Result<ObjectList, ExtractListError> {
-        self.get_object_list2(Query::from_iter(query)).await
+        self.get_object_list2(query.into_query()).await
     }
 
     /// 查询默认 bucket 的文件列表
@@ -1171,7 +1172,7 @@ impl Client {
     /// ```
     #[inline]
     pub async fn base_object_list<
-        Q: IntoIterator<Item = (QueryKey, QueryValue)>,
+        Q: IntoQuery,
         List,
         Item,
         E: ListError,
@@ -1185,7 +1186,7 @@ impl Client {
         List: RefineObjectList<Item, E, ItemErr> + InitObject<Item>,
         Item: RefineObject<ItemErr>,
     {
-        let query = Query::from_iter(query);
+        let query = query.into_query();
 
         self.base_object_list2(&query, list).await
     }
@@ -1323,11 +1324,11 @@ impl ClientRc {
     /// 查询默认 bucket 的文件列表
     ///
     /// 查询条件参数有多种方式，具体参考 [`get_object_list`](../bucket/struct.Bucket.html#method.get_object_list) 文档
-    pub fn get_object_list<Q: IntoIterator<Item = (QueryKey, QueryValue)>>(
+    pub fn get_object_list<Q: IntoQuery>(
         self,
         query: Q,
     ) -> Result<ObjectList<RcPointer>, ExtractListError> {
-        let query = Query::from_iter(query);
+        let query = query.into_query();
 
         let bucket = BucketBase::new(self.bucket.to_owned(), self.endpoint.to_owned());
 
@@ -1352,14 +1353,7 @@ impl ClientRc {
 
     /// 可将 object 列表导出到外部 struct
     #[inline]
-    pub fn base_object_list<
-        Q: IntoIterator<Item = (QueryKey, QueryValue)>,
-        List,
-        Item,
-        F,
-        E: ListError,
-        ItemErr: Error + 'static,
-    >(
+    pub fn base_object_list<Q: IntoQuery, List, Item, F, E: ListError, ItemErr: Error + 'static>(
         &self,
         query: Q,
         list: &mut List,
@@ -1372,7 +1366,7 @@ impl ClientRc {
     {
         let bucket = BucketBase::new(self.bucket.clone(), self.endpoint.to_owned());
 
-        let query = Query::from_iter(query);
+        let query = query.into_query();
         let (bucket_url, resource) = bucket.get_url_resource(&query);
 
         let response = self.builder(Method::GET, bucket_url, resource)?;

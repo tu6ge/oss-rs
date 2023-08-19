@@ -38,7 +38,7 @@ async fn main() {
 
     let mut list = MyList::default();
 
-    let _ = client.base_object_list([], &mut list).await;
+    let _ = client.base_object_list([()], &mut list).await;
 
     let _second = list.get_next_base().await;
 

@@ -344,11 +344,10 @@ mod tests_canonicalized_resource {
     fn test_from_object() {
         use super::CanonicalizedResource;
 
-        let resource = CanonicalizedResource::from_object(("foo", "bar"), []);
+        let resource = CanonicalizedResource::from_object(("foo", "bar"), ());
         assert!(resource == "/foo/bar");
 
-        let resource =
-            CanonicalizedResource::from_object(("foo", "bar"), [("foo2".into(), "bar2".into())]);
+        let resource = CanonicalizedResource::from_object(("foo", "bar"), [("foo2", "bar2")]);
         assert!(resource == "/foo/bar?foo2=bar2");
     }
 

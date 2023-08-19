@@ -188,13 +188,13 @@ pub trait GetStd {
 
 impl GetStd for ObjectBase<ArcPointer> {
     fn get_std(&self) -> Option<(Url, CanonicalizedResource)> {
-        Some(self.get_url_resource([]))
+        Some(self.get_url_resource(()))
     }
 }
 
 impl GetStd for Object<ArcPointer> {
     fn get_std(&self) -> Option<(Url, CanonicalizedResource)> {
-        Some(self.base.get_url_resource([]))
+        Some(self.base.get_url_resource(()))
     }
 }
 
@@ -331,7 +331,7 @@ pub mod std_path_impl {
             &self,
             base: ObjectBase<ArcPointer>,
         ) -> Option<(Url, CanonicalizedResource)> {
-            Some(base.get_url_resource([]))
+            Some(base.get_url_resource(()))
         }
     }
 
@@ -347,7 +347,7 @@ pub mod std_path_impl {
             &self,
             base: &ObjectBase<ArcPointer>,
         ) -> Option<(Url, CanonicalizedResource)> {
-            Some(base.get_url_resource([]))
+            Some(base.get_url_resource(()))
         }
     }
 
