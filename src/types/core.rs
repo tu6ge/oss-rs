@@ -563,14 +563,14 @@ impl<'a: 'b, 'b> From<&'a str> for InnerQueryKey<'b> {
 }
 
 impl FromStr for QueryKey {
-    type Err = InvalidQueryKey;
+    type Err = Infallible;
     /// 示例
     /// ```
     /// # use aliyun_oss_client::types::QueryKey;
     /// let value: QueryKey = "abc".into();
     /// assert!(value == QueryKey::from_static("abc"));
     /// ```
-    fn from_str(s: &str) -> Result<Self, InvalidQueryKey> {
+    fn from_str(s: &str) -> Result<Self, Infallible> {
         Ok(Self::from_static(s))
     }
 }
@@ -788,7 +788,7 @@ impl From<bool> for QueryValue {
 }
 
 impl FromStr for InnerQueryValue<'_> {
-    type Err = InvalidQueryValue;
+    type Err = Infallible;
     /// 示例
     /// ```
     /// # use aliyun_oss_client::types::QueryValue;
@@ -838,6 +838,7 @@ impl<'a> InnerQueryValue<'a> {
     }
 }
 
+use std::convert::Infallible;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::num::ParseIntError;
