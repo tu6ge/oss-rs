@@ -110,7 +110,7 @@ let client = aliyun_oss_client::Client::new(
     # set_var("ALIYUN_ENDPOINT", "qingdao");
     # set_var("ALIYUN_BUCKET", "foo4");
     # let client = aliyun_oss_client::Client::from_env().unwrap();
-    let response = client.get_object_list([]).await;
+    let response = client.get_object_list(()).await;
     println!("objects list: {:?}", response);
 # }
 ```

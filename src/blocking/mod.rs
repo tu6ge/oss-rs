@@ -78,7 +78,7 @@ println!("bucket info: {:?}", response);
 # set_var("ALIYUN_ENDPOINT", "qingdao");
 # set_var("ALIYUN_BUCKET", "foo4");
 # let client = aliyun_oss_client::ClientRc::from_env().unwrap();
-let response = client.get_object_list([]);
+let response = client.get_object_list(());
 println!("objects list: {:?}", response);
 ```
 

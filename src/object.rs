@@ -47,7 +47,7 @@
 //!
 //!     let mut list = MyList::default();
 //!
-//!     let _ = client.base_object_list([], &mut list).await;
+//!     let _ = client.base_object_list((), &mut list).await;
 //!     // 第二页数据
 //!     let second = list.get_next_base().await;
 //!
@@ -403,7 +403,7 @@ impl ObjectList<ArcPointer> {
     /// # dotenv().ok();
     /// use futures::{pin_mut, StreamExt};
     /// # let client = Client::from_env().unwrap();
-    /// # let query = [("max-keys".into(), 100u8.into())];
+    /// # let query = [("max-keys", 100u8)];
     /// # let object_list = client.get_object_list(query).await.unwrap();
     /// let stream = object_list.into_stream();
     /// pin_mut!(stream);
@@ -1163,7 +1163,7 @@ impl Client {
     ///         }
     ///     }
     ///
-    ///     client.base_object_list([], &mut bucket).await?;
+    ///     client.base_object_list((), &mut bucket).await?;
     ///
     ///     println!("bucket: {:?}", bucket);
     ///
