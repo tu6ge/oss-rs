@@ -18,7 +18,7 @@ const DEFAULT_MAX_KEYS: usize = 100;
 /// ```
 /// use aliyun_oss_client::types::Query;
 ///
-/// let query: Query = [("abc", "def")].into_iter().collect();
+/// let query: Query = Query::new2([("abc", "def")]);
 /// assert_eq!(query.len(), 1);
 ///
 /// let value = query.get("abc");
@@ -53,10 +53,17 @@ impl Query {
     ///
     /// The hash map is initially created with a capacity of 0, so it will not allocate until it
     /// is first inserted into.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             inner: HashMap::new(),
         }
+    }
+
+    /// Creates a new `Query` with trait
+    #[must_use]
+    pub fn new2<Q: IntoQuery>(into: Q) -> Self {
+        into.into_query()
     }
 
     /// Creates an empty `Query` with at least the specified capacity.
