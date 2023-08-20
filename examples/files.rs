@@ -1,10 +1,10 @@
 use std::fs;
 
-use aliyun_oss_client::builder::{BuilderError, RequestBuilder};
+use aliyun_oss_client::builder::{BuilderError, RequestBuilder, TryIntoHeaders};
 use aliyun_oss_client::config::BucketBase;
 use aliyun_oss_client::file::{AlignBuilder, FileError, Files, GetStdWithPath};
 use aliyun_oss_client::types::{object::ObjectPath, CanonicalizedResource};
-use aliyun_oss_client::{BucketName, Client, EndPoint, HeaderName, HeaderValue, Method};
+use aliyun_oss_client::{BucketName, Client, EndPoint, Method};
 use reqwest::Url;
 
 struct MyClient;
@@ -21,7 +21,7 @@ impl From<FileError> for MyError {
 struct MyPath(String);
 
 impl AlignBuilder for MyClient {
-    fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+    fn builder_with_header<H: TryIntoHeaders>(
         &self,
         method: Method,
         url: Url,

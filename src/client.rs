@@ -5,7 +5,9 @@ use crate::auth::AuthBuilder;
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
 #[cfg(test)]
 use crate::builder::Middleware;
-use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware, RequestBuilder};
+use crate::builder::{
+    ArcPointer, BuilderError, ClientWithMiddleware, RequestBuilder, TryIntoHeaders,
+};
 use crate::config::{get_bucket, get_endpoint, get_env, BucketBase, Config, InvalidConfig};
 use crate::consts::{TRUE1, TRUE2, TRUE3, TRUE4};
 use crate::file::AlignBuilder;
@@ -15,10 +17,7 @@ use crate::types::{
 };
 
 use chrono::{DateTime, Utc};
-use http::{
-    header::{HeaderMap, HeaderName},
-    HeaderValue, Method,
-};
+use http::Method;
 use reqwest::Url;
 use std::env;
 #[cfg(all(feature = "blocking", test))]
@@ -289,7 +288,7 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
     /// [`RequestBuilder`]: crate::builder::RequestBuilder
     /// [`OssService`]: crate::errors::OssService
     /// [`CanonicalizedResource`]: crate::types::CanonicalizedResource
-    fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+    fn builder_with_header<H: TryIntoHeaders>(
         &self,
         method: Method,
         url: Url,
@@ -300,7 +299,11 @@ impl AlignBuilder for Client<ClientWithMiddleware> {
         auth_builder.method(&method);
         auth_builder.date(now());
         auth_builder.canonicalized_resource(resource);
-        auth_builder.extend_headers(HeaderMap::from_iter(headers));
+        auth_builder.extend_headers(
+            headers
+                .try_into_headers()
+                .map_err(|_| BuilderError::header())?,
+        );
 
         let mut builder = self
             .client_middleware
@@ -349,7 +352,7 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
     ///
     /// 返回后，可以再加请求参数，然后可选的进行发起请求
     #[inline]
-    fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+    fn builder_with_header<H: TryIntoHeaders>(
         &self,
         method: Method,
         url: Url,
@@ -361,7 +364,11 @@ impl crate::file::blocking::AlignBuilder for Client<BlockingClientWithMiddleware
         auth_builder.method(&method);
         auth_builder.date(now());
         auth_builder.canonicalized_resource(resource);
-        auth_builder.extend_headers(HeaderMap::from_iter(headers));
+        auth_builder.extend_headers(
+            headers
+                .try_into_headers()
+                .map_err(|_| BuilderError::header())?,
+        );
 
         let mut builder = self
             .client_middleware
@@ -421,7 +428,7 @@ mod tests {
             .get_object_base("9AB932LY.jpeg")
             .unwrap()
             .get_url_resource(());
-        let builder = client.builder_with_header(Method::HEAD, url, resource, []);
+        let builder = client.builder_with_header(Method::HEAD, url, resource, ());
         let builder = builder.unwrap();
 
         let request = builder.build().unwrap();
@@ -440,7 +447,7 @@ mod tests {
             .get_object_base("9AB932LY.jpeg")
             .unwrap()
             .get_url_resource(());
-        let builder = client.builder_with_header(Method::HEAD, url, resource, []);
+        let builder = client.builder_with_header(Method::HEAD, url, resource, ());
         let builder = builder.unwrap();
 
         let request = builder.build().unwrap();

@@ -51,11 +51,11 @@ use std::{
 };
 
 use futures::executor::block_on;
-use http::{header::CONTENT_LENGTH, HeaderValue, Method};
+use http::{HeaderValue, Method};
 use url::Url;
 
 use crate::{
-    builder::BuilderError,
+    builder::{BuilderError, HeaderVal},
     decode::RefineObject,
     file::{AlignBuilder, DEFAULT_CONTENT_TYPE},
     types::{
@@ -268,16 +268,9 @@ impl Content {
         let (url, resource) =
             self.part_canonicalized(&format!("partNumber={}&uploadId={}", index, self.upload_id));
 
-        let content_length = buf.len().to_string();
-        let headers = vec![(
-            CONTENT_LENGTH,
-            HeaderValue::from_str(&content_length)
-                .expect("content length must be a valid header value"),
-        )];
-
         let resp = self
             .client
-            .builder_with_header(Method::PUT, url, resource, headers)?
+            .builder_with_header(Method::PUT, url, resource, HeaderVal::len(buf.len()))?
             .body(buf)
             .send_adjust_error()
             .await?;
@@ -306,16 +299,9 @@ impl Content {
 
         let (url, resource) = self.part_canonicalized(&format!("uploadId={}", self.upload_id));
 
-        let content_length = xml.len().to_string();
-        let headers = vec![(
-            CONTENT_LENGTH,
-            HeaderValue::from_str(&content_length)
-                .expect("content length must be a valid header value"),
-        )];
-
         let _resp = self
             .client
-            .builder_with_header(Method::POST, url, resource, headers)?
+            .builder_with_header(Method::POST, url, resource, HeaderVal::len(xml.len()))?
             .body(xml)
             .send_adjust_error()
             .await?;

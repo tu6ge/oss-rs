@@ -75,15 +75,12 @@
 //! [`File`]: crate::file::File
 
 use async_trait::async_trait;
-use http::{
-    header::{HeaderName, CONTENT_LENGTH, CONTENT_TYPE},
-    HeaderValue, Method,
-};
+use http::{HeaderValue, Method};
 use reqwest::{Response, Url};
 
 use crate::{
     bucket::Bucket,
-    builder::{ArcPointer, BuilderError, RequestBuilder},
+    builder::{ArcPointer, BuilderError, HeaderKey, HeaderVal, RequestBuilder, TryIntoHeaders},
     object::{Object, ObjectList},
     types::object::{ObjectBase, ObjectPath},
     types::{CanonicalizedResource, ContentRange},
@@ -95,7 +92,6 @@ use infer::Infer;
 mod test;
 
 const ETAG: &str = "ETag";
-const RANGE: &str = "Range";
 
 /// # 文件的相关操作
 ///
@@ -114,15 +110,11 @@ where
             kind: FileErrorKind::NotFoundCanonicalizedResource,
         })?;
 
-        let content_length = content.len().to_string();
-        let headers = vec![
-            (CONTENT_LENGTH, header_from_content_length(&content_length)?),
-            (
-                CONTENT_TYPE,
-                content_type.parse().map_err(|e| FileError {
-                    kind: FileErrorKind::InvalidContentType(e),
-                })?,
-            ),
+        let headers = [
+            HeaderVal::len(content.len()),
+            HeaderVal::content_type(content_type).map_err(|e| FileError {
+                kind: FileErrorKind::InvalidContentType(e),
+            })?,
         ];
 
         self.oss_client()
@@ -146,13 +138,7 @@ where
             kind: FileErrorKind::NotFoundCanonicalizedResource,
         })?;
 
-        let list: Vec<(_, HeaderValue)> = vec![(
-            {
-                #[allow(clippy::unwrap_used)]
-                RANGE.parse().unwrap()
-            },
-            range.into().into(),
-        )];
+        let list = (HeaderKey::Range, HeaderVal::Range(range.into().into()));
 
         let content = self
             .oss_client()
@@ -489,15 +475,11 @@ where
             kind: FileErrorKind::NotFoundCanonicalizedResource,
         })?;
 
-        let content_length = content.len().to_string();
-        let headers = vec![
-            (CONTENT_LENGTH, header_from_content_length(&content_length)?),
-            (
-                CONTENT_TYPE,
-                content_type.parse().map_err(|e| FileError {
-                    kind: FileErrorKind::InvalidContentType(e),
-                })?,
-            ),
+        let headers = [
+            HeaderVal::len(content.len()),
+            HeaderVal::content_type(content_type).map_err(|e| FileError {
+                kind: FileErrorKind::InvalidContentType(e),
+            })?,
         ];
 
         self.builder_with_header(Method::PUT, url, canonicalized, headers)?
@@ -518,16 +500,8 @@ where
             kind: FileErrorKind::NotFoundCanonicalizedResource,
         })?;
 
-        let list: Vec<(_, HeaderValue)> = vec![(
-            {
-                #[allow(clippy::unwrap_used)]
-                RANGE.parse().unwrap()
-            },
-            range.into().into(),
-        )];
-
         let content = self
-            .builder_with_header(Method::GET, url, canonicalized, list)?
+            .builder_with_header(Method::GET, url, canonicalized, HeaderVal::range(range))?
             .send_adjust_error()
             .await?
             .text()
@@ -548,12 +522,6 @@ where
 
         Ok(())
     }
-}
-
-fn header_from_content_length(content: &str) -> Result<HeaderValue, FileError> {
-    HeaderValue::from_str(content).map_err(|e| FileError {
-        kind: FileErrorKind::InvalidContentLength(e),
-    })
 }
 
 /// # 为更多的类型实现 上传，下载，删除等功能
@@ -597,7 +565,6 @@ mod error_impl {
             match &self.kind {
                 #[cfg(feature = "put_file")]
                 FileRead(_) => write!(f, "file read failed"),
-                InvalidContentLength(_) => write!(f, "invalid content length"),
                 InvalidContentType(_) => write!(f, "invalid content type"),
                 Build(to) => write!(f, "{to}"),
                 Reqwest(_) => write!(f, "reqwest error"),
@@ -614,7 +581,7 @@ mod error_impl {
             match &self.kind {
                 #[cfg(feature = "put_file")]
                 FileRead(e) => Some(e),
-                InvalidContentLength(e) | InvalidContentType(e) => Some(e),
+                InvalidContentType(e) => Some(e),
                 Build(e) => e.source(),
                 Reqwest(e) => Some(e),
                 InvalidEtag(e) => Some(e),
@@ -627,7 +594,6 @@ mod error_impl {
     pub(super) enum FileErrorKind {
         #[cfg(feature = "put_file")]
         FileRead(std::io::Error),
-        InvalidContentLength(InvalidHeaderValue),
         InvalidContentType(InvalidHeaderValue),
         Build(BuilderError),
         Reqwest(reqwest::Error),
@@ -663,9 +629,6 @@ mod error_impl {
             match value {
                 #[cfg(feature = "put_file")]
                 FileErrorKind::FileRead(e) => e,
-                FileErrorKind::InvalidContentLength(_) => {
-                    Self::new(ErrorKind::InvalidData, "invalid content length")
-                }
                 FileErrorKind::InvalidContentType(_) => {
                     Self::new(ErrorKind::InvalidData, "invalid content type")
                 }
@@ -698,11 +661,11 @@ pub trait AlignBuilder: Send + Sync {
         url: Url,
         resource: CanonicalizedResource,
     ) -> Result<RequestBuilder, BuilderError> {
-        self.builder_with_header(method, url, resource, [])
+        self.builder_with_header(method, url, resource, ())
     }
 
     /// 根据具体的 API 接口参数，返回请求的构建器
-    fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+    fn builder_with_header<H: TryIntoHeaders>(
         &self,
         method: Method,
         url: Url,
@@ -713,7 +676,7 @@ pub trait AlignBuilder: Send + Sync {
 
 impl AlignBuilder for Bucket {
     #[inline]
-    fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+    fn builder_with_header<H: TryIntoHeaders>(
         &self,
         method: Method,
         url: Url,
@@ -727,7 +690,7 @@ impl AlignBuilder for Bucket {
 
 impl<Item: Send + Sync> AlignBuilder for ObjectList<ArcPointer, Item> {
     #[inline]
-    fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+    fn builder_with_header<H: TryIntoHeaders>(
         &self,
         method: Method,
         url: Url,
@@ -748,19 +711,15 @@ use self::error_impl::FileErrorKind;
 #[cfg(feature = "blocking")]
 pub mod blocking {
 
-    use super::{
-        error_impl::FileErrorKind, header_from_content_length, FileError, GetStdWithPath, ETAG,
-        RANGE,
-    };
+    use super::{error_impl::FileErrorKind, FileError, GetStdWithPath, ETAG};
     use crate::{
         blocking::builder::RequestBuilder,
         bucket::Bucket,
-        builder::{BuilderError, RcPointer},
+        builder::{BuilderError, HeaderVal, RcPointer, TryIntoHeaders},
         object::ObjectList,
         types::{CanonicalizedResource, ContentRange},
     };
     use http::{
-        header::{HeaderName, CONTENT_LENGTH, CONTENT_TYPE},
         HeaderValue, Method,
     };
     #[cfg(feature = "put_file")]
@@ -862,15 +821,11 @@ pub mod blocking {
                 kind: FileErrorKind::NotFoundCanonicalizedResource,
             })?;
 
-            let content_length = content.len().to_string();
-            let headers = vec![
-                (CONTENT_LENGTH, header_from_content_length(&content_length)?),
-                (
-                    CONTENT_TYPE,
-                    content_type.parse().map_err(|e| FileError {
-                        kind: FileErrorKind::InvalidContentType(e),
-                    })?,
-                ),
+            let headers = [
+                HeaderVal::len(content.len()),
+                HeaderVal::content_type(content_type).map_err(|e| FileError {
+                    kind: FileErrorKind::InvalidContentType(e),
+                })?,
             ];
 
             let response = self
@@ -890,13 +845,7 @@ pub mod blocking {
                 kind: FileErrorKind::NotFoundCanonicalizedResource,
             })?;
 
-            let headers: Vec<(_, HeaderValue)> = vec![(
-                {
-                    #[allow(clippy::unwrap_used)]
-                    RANGE.parse().unwrap()
-                },
-                range.into().into(),
-            )];
+            let headers = HeaderVal::range(range);
 
             Ok(self
                 .builder_with_header(Method::GET, url, canonicalized, headers)?
@@ -930,11 +879,11 @@ pub mod blocking {
             url: Url,
             resource: CanonicalizedResource,
         ) -> Result<RequestBuilder, BuilderError> {
-            self.builder_with_header(method, url, resource, [])
+            self.builder_with_header(method, url, resource, ())
         }
 
         /// 根据具体的 API 接口参数，返回请求的构建器
-        fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+        fn builder_with_header<H: TryIntoHeaders>(
             &self,
             method: Method,
             url: Url,
@@ -947,7 +896,7 @@ pub mod blocking {
     ///
     /// 用于他们方便的实现 [`File`](./trait.File.html) trait
     impl AlignBuilder for Bucket<RcPointer> {
-        fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+        fn builder_with_header<H: TryIntoHeaders>(
             &self,
             method: Method,
             url: Url,
@@ -960,7 +909,7 @@ pub mod blocking {
     }
 
     impl AlignBuilder for ObjectList<RcPointer> {
-        fn builder_with_header<H: IntoIterator<Item = (HeaderName, HeaderValue)>>(
+        fn builder_with_header<H: TryIntoHeaders>(
             &self,
             method: Method,
             url: Url,

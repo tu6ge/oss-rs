@@ -1,7 +1,5 @@
 use crate::file::{error_impl::FileErrorKind, Files};
 
-use super::header_from_content_length;
-
 mod tests_get_std {
     use reqwest::Url;
     use std::sync::Arc;
@@ -242,21 +240,6 @@ mod error {
     fn test_header_value() {
         let header_err = HeaderValue::from_bytes(b"\n").unwrap_err();
         let err = FileError {
-            kind: FileErrorKind::InvalidContentLength(header_err),
-        };
-
-        assert_eq!(format!("{err}"), "invalid content length");
-        assert_eq!(
-            format!("{}", err.source().unwrap()),
-            "failed to parse header value"
-        );
-        assert_eq!(
-            format!("{:?}", err),
-            "FileError { kind: InvalidContentLength(InvalidHeaderValue) }"
-        );
-
-        let header_err = HeaderValue::from_bytes(b"\n").unwrap_err();
-        let err = FileError {
             kind: FileErrorKind::InvalidContentType(header_err),
         };
 
@@ -356,13 +339,6 @@ mod error {
 
         let value = HeaderValue::from_bytes(b"\n").unwrap_err();
         let file = FileError {
-            kind: FileErrorKind::InvalidContentLength(value),
-        };
-        let io = Error::from(file);
-        assert_eq!(io.to_string(), "invalid content length");
-
-        let value = HeaderValue::from_bytes(b"\n").unwrap_err();
-        let file = FileError {
             kind: FileErrorKind::InvalidContentType(value),
         };
         let io = Error::from(file);
@@ -391,12 +367,6 @@ async fn test_put_content_base_error() {
         .await
         .unwrap_err();
     assert!(matches!(err.kind, FileErrorKind::InvalidContentType(_)));
-}
-
-#[test]
-fn test_header_from_content_length() {
-    let err = header_from_content_length("\n").unwrap_err();
-    assert!(matches!(err.kind, FileErrorKind::InvalidContentLength(_)));
 }
 
 #[tokio::test]

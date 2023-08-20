@@ -284,6 +284,7 @@ mod tests_query_from_iter {
         search([(QueryKey::MAX_KEYS, 1_u8)]);
         search([(QueryKey::MAX_KEYS, 1_u16)]);
         search([(QueryKey::MAX_KEYS, "foo")]);
+        search(Query::default());
 
         search(vec![("abc", "def")]);
         search(vec![("abc", 1_u8)]);

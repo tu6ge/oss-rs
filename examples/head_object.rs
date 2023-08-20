@@ -1,5 +1,8 @@
-use aliyun_oss_client::{errors::OssError, file::AlignBuilder, Client, Method};
+use aliyun_oss_client::{
+    builder::TryIntoHeaders, errors::OssError, file::AlignBuilder, Client, Method,
+};
 use dotenv::dotenv;
+use http::header::InvalidHeaderValue;
 
 #[tokio::main]
 pub async fn main() -> Result<(), OssError> {
@@ -11,16 +14,31 @@ pub async fn main() -> Result<(), OssError> {
         .get_object_base("9AB932LY.jpeg")?
         .get_url_resource([()]);
 
-    let headers = vec![(
-        "If-Unmodified-Since".parse().unwrap(),
-        "Sat, 01 Jan 2022 18:01:01 GMT".parse().unwrap(),
-    )];
-
-    let builder = client.builder_with_header(Method::HEAD, url, resource, headers)?;
+    let builder = client.builder_with_header(
+        Method::HEAD,
+        url,
+        resource,
+        IfSince {
+            date: "Sat, 01 Jan 2022 18:01:01 GMT",
+        },
+    )?;
 
     let response = builder.send().await?;
 
     println!("status: {:?}", response.status());
 
     Ok(())
+}
+
+struct IfSince {
+    date: &'static str,
+}
+
+impl TryIntoHeaders for IfSince {
+    type Error = InvalidHeaderValue;
+    fn try_into_headers(self) -> Result<http::HeaderMap, Self::Error> {
+        let mut map = http::HeaderMap::with_capacity(1);
+        map.insert("If-Unmodified-Since", self.date.parse()?);
+        Ok(map)
+    }
 }
