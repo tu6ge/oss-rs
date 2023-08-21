@@ -16,7 +16,7 @@ pub async fn main() -> Result<(), OssError> {
         Method::HEAD,
         url,
         resource,
-        IfSince {
+        IfUnmodifiedSince {
             date: "Sat, 01 Jan 2022 18:01:01 GMT",
         },
     )?;
@@ -28,11 +28,11 @@ pub async fn main() -> Result<(), OssError> {
     Ok(())
 }
 
-struct IfSince {
+struct IfUnmodifiedSince {
     date: &'static str,
 }
 
-impl TryIntoHeaders for IfSince {
+impl TryIntoHeaders for IfUnmodifiedSince {
     type Error = InvalidHeaderValue;
     fn try_into_headers(self) -> Result<http::HeaderMap, Self::Error> {
         let mut map = http::HeaderMap::with_capacity(1);

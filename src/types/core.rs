@@ -168,7 +168,25 @@ impl Index<QueryKey> for Query {
 
 /// convert query trait
 ///
-/// 在构造查询条件时，更符合人体工程学
+/// 使用符合人体工程学的方式构造查询条件
+///
+/// # Example
+/// ```rust,no_run
+/// # use aliyun_oss_client::{errors::OssError, IntoQuery, Client, QueryKey, Query};
+/// struct PageSize(u8);
+///
+/// impl IntoQuery for PageSize {
+///     fn into_query(self) -> Query {
+///         (QueryKey::MAX_KEYS, self.0).into_query()
+///     }
+/// }
+///
+/// # async fn run() -> Result<(), OssError> {
+/// # let client = Client::from_env()?;
+/// let list = client.get_object_list(PageSize(18)).await?;
+/// #    Ok(())
+/// # }
+/// ```
 pub trait IntoQuery {
     /// convert query method
     fn into_query(self) -> Query;
@@ -292,6 +310,7 @@ mod tests_query_from_iter {
 
         search((QueryKey::MAX_KEYS, 1_u8));
         search((QueryKey::MAX_KEYS, 1_u16));
+        search((QueryKey::MAX_KEYS, 1));
         search((QueryKey::MAX_KEYS, "foo"));
         search((QueryKey::MAX_KEYS, QueryValue::from_static("val")));
         search((QueryKey::MAX_KEYS, "foo".to_string()));
