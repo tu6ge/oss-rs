@@ -411,18 +411,18 @@ pub(crate) enum HeaderKey {
     /// range
     Range,
     ContentLength,
-    //ContentType,
+    ContentType,
 }
 
 impl From<HeaderKey> for HeaderName {
     fn from(value: HeaderKey) -> Self {
-        // use http::header::CONTENT_TYPE;
+        use http::header::CONTENT_TYPE;
         const RANGE: &str = "Range";
         match value {
             //HeaderKey::IfUnmodifiedSince => HeaderName::from_static("If-Unmodified-Since"),
             HeaderKey::Range => HeaderName::from_static(RANGE),
             HeaderKey::ContentLength => CONTENT_LENGTH,
-            //HeaderKey::ContentType => CONTENT_TYPE,
+            HeaderKey::ContentType => CONTENT_TYPE,
         }
     }
 }
@@ -435,7 +435,7 @@ pub(crate) enum HeaderVal {
 
 impl HeaderVal {
     pub fn content_type(str: &str) -> Result<(HeaderKey, Self), InvalidHeaderValue> {
-        Ok((HeaderKey::ContentLength, Self::ContentType(str.parse()?)))
+        Ok((HeaderKey::ContentType, Self::ContentType(str.parse()?)))
     }
 
     pub fn len(len: usize) -> (HeaderKey, Self) {

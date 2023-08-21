@@ -719,9 +719,7 @@ pub mod blocking {
         object::ObjectList,
         types::{CanonicalizedResource, ContentRange},
     };
-    use http::{
-        HeaderValue, Method,
-    };
+    use http::{HeaderValue, Method};
     #[cfg(feature = "put_file")]
     use infer::Infer;
     use reqwest::{blocking::Response, Url};
