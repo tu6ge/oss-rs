@@ -5,13 +5,12 @@ use crate::auth::AuthBuilder;
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
 #[cfg(test)]
 use crate::builder::Middleware;
-use crate::builder::{
-    ArcPointer, BuilderError, ClientWithMiddleware, RequestBuilder, TryIntoHeaders,
-};
+use crate::builder::{ArcPointer, BuilderError, ClientWithMiddleware, RequestBuilder};
 use crate::config::{get_bucket, get_endpoint, get_env, BucketBase, Config, InvalidConfig};
 use crate::consts::{TRUE1, TRUE2, TRUE3, TRUE4};
 use crate::file::AlignBuilder;
 use crate::types::{
+    header::TryIntoHeaders,
     object::{InvalidObjectPath, ObjectBase, ObjectPath},
     BucketName, CanonicalizedResource, EndPoint, KeyId, KeySecret,
 };

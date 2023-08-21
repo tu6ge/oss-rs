@@ -190,47 +190,7 @@ impl IntoQuery for Query {
     }
 }
 
-impl<K, V> IntoQuery for (K, V)
-where
-    K: Into<QueryKey>,
-    V: Into<QueryValue>,
-{
-    fn into_query(self) -> Query {
-        let mut query = Query::with_capacity(1);
-        query.insert(self.0, self.1);
-        query
-    }
-}
-
-impl<K, V, const N: usize> IntoQuery for [(K, V); N]
-where
-    K: Into<QueryKey>,
-    V: Into<QueryValue>,
-{
-    fn into_query(self) -> Query {
-        let mut query = Query::with_capacity(N);
-        for (k, v) in self.into_iter() {
-            query.insert(k, v);
-        }
-        query
-    }
-}
-
-impl<K, V> IntoQuery for Vec<(K, V)>
-where
-    K: Into<QueryKey>,
-    V: Into<QueryValue>,
-{
-    fn into_query(self) -> Query {
-        let mut query = Query::with_capacity(self.len());
-        for (k, v) in self.into_iter() {
-            query.insert(k, v);
-        }
-        query
-    }
-}
-
-impl<'a, const N: usize> IntoQuery for [(Cow<'a, str>, Cow<'a, str>); N] {
+impl<'a, 'b, const N: usize> IntoQuery for [(Cow<'a, str>, Cow<'b, str>); N] {
     fn into_query(self) -> Query {
         let mut query = Query::with_capacity(N);
         for (k, v) in self.into_iter() {
@@ -244,7 +204,7 @@ impl<'a, const N: usize> IntoQuery for [(Cow<'a, str>, Cow<'a, str>); N] {
         query
     }
 }
-impl<'a> IntoQuery for Vec<(Cow<'a, str>, Cow<'a, str>)> {
+impl<'a, 'b> IntoQuery for Vec<(Cow<'a, str>, Cow<'b, str>)> {
     fn into_query(self) -> Query {
         let mut query = Query::with_capacity(self.len());
         for (k, v) in self.into_iter() {
@@ -258,6 +218,58 @@ impl<'a> IntoQuery for Vec<(Cow<'a, str>, Cow<'a, str>)> {
         query
     }
 }
+
+macro_rules! into_query_impl {
+    ($key:ty, $val:ty) => {
+        impl IntoQuery for ($key, $val) {
+            fn into_query(self) -> Query {
+                let mut query = Query::with_capacity(1);
+                query.insert(self.0, self.1);
+                query
+            }
+        }
+
+        impl<const N: usize> IntoQuery for [($key, $val); N] {
+            fn into_query(self) -> Query {
+                let mut query = Query::with_capacity(N);
+                for (k, v) in self.into_iter() {
+                    query.insert(k, v);
+                }
+                query
+            }
+        }
+
+        impl IntoQuery for Vec<($key, $val)> {
+            fn into_query(self) -> Query {
+                let mut query = Query::with_capacity(self.len());
+                for (k, v) in self.into_iter() {
+                    query.insert(k, v);
+                }
+                query
+            }
+        }
+    };
+}
+
+into_query_impl!(QueryKey, QueryValue);
+
+into_query_impl!(&'static str, &'static str);
+into_query_impl!(&'static str, u8);
+into_query_impl!(&'static str, u16);
+into_query_impl!(&'static str, i32);
+into_query_impl!(&'static str, String);
+
+into_query_impl!(String, &'static str);
+into_query_impl!(String, u8);
+into_query_impl!(String, u16);
+into_query_impl!(String, i32);
+into_query_impl!(String, String);
+
+into_query_impl!(QueryKey, &'static str);
+into_query_impl!(QueryKey, u8);
+into_query_impl!(QueryKey, u16);
+into_query_impl!(QueryKey, i32);
+into_query_impl!(QueryKey, String);
 
 impl IntoIterator for Query {
     type Item = (QueryKey, QueryValue);
@@ -277,14 +289,27 @@ mod tests_query_from_iter {
         fn search<Q: IntoQuery>(_q: Q) {}
 
         search(());
+
+        search((QueryKey::MAX_KEYS, 1_u8));
+        search((QueryKey::MAX_KEYS, 1_u16));
+        search((QueryKey::MAX_KEYS, "foo"));
+        search((QueryKey::MAX_KEYS, QueryValue::from_static("val")));
+        search((QueryKey::MAX_KEYS, "foo".to_string()));
+        search(("max-keys", "foo"));
+        search(("max-keys".to_string(), "foo"));
+        search(("max-keys".to_string(), "foo".to_string()));
+
         search([("abc", "def")]);
         search([("abc", 1_u8)]);
         search([("abc", 1_u16)]);
         search([(Cow::Borrowed("key"), Cow::Borrowed("val"))]);
+
         search([(QueryKey::MAX_KEYS, 1_u8)]);
         search([(QueryKey::MAX_KEYS, 1_u16)]);
         search([(QueryKey::MAX_KEYS, "foo")]);
         search(Query::default());
+
+        search([(QueryKey::MAX_KEYS, QueryValue::from_static("val"))]);
 
         search(vec![("abc", "def")]);
         search(vec![("abc", 1_u8)]);
@@ -293,6 +318,7 @@ mod tests_query_from_iter {
         search(vec![(QueryKey::MAX_KEYS, 1_u8)]);
         search(vec![(QueryKey::MAX_KEYS, 1_u16)]);
         search(vec![(QueryKey::MAX_KEYS, "foo")]);
+        search(vec![(QueryKey::MAX_KEYS, QueryValue::from_static("val"))]);
 
         let q = [("abc", "def"), ("aaa", "ccc")];
         let query = q.into_query();

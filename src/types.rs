@@ -15,6 +15,10 @@ use url::Url;
 pub mod core;
 
 pub mod object;
+
+#[cfg(feature = "core")]
+pub mod header;
+
 #[cfg(test)]
 mod test;
 

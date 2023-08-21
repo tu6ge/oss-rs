@@ -1,9 +1,9 @@
 use std::fs;
 
-use aliyun_oss_client::builder::{BuilderError, RequestBuilder, TryIntoHeaders};
+use aliyun_oss_client::builder::{BuilderError, RequestBuilder};
 use aliyun_oss_client::config::BucketBase;
 use aliyun_oss_client::file::{AlignBuilder, FileError, Files, GetStdWithPath};
-use aliyun_oss_client::types::{object::ObjectPath, CanonicalizedResource};
+use aliyun_oss_client::types::{header::TryIntoHeaders, object::ObjectPath, CanonicalizedResource};
 use aliyun_oss_client::{BucketName, Client, EndPoint, Method};
 use reqwest::Url;
 

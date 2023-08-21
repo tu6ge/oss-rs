@@ -1,6 +1,4 @@
-use aliyun_oss_client::{
-    builder::TryIntoHeaders, errors::OssError, file::AlignBuilder, Client, Method,
-};
+use aliyun_oss_client::{errors::OssError, file::AlignBuilder, Client, Method, TryIntoHeaders};
 use dotenv::dotenv;
 use http::header::InvalidHeaderValue;
 

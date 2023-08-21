@@ -55,10 +55,11 @@ use http::{HeaderValue, Method};
 use url::Url;
 
 use crate::{
-    builder::{BuilderError, HeaderVal},
+    builder::BuilderError,
     decode::RefineObject,
     file::{AlignBuilder, DEFAULT_CONTENT_TYPE},
     types::{
+        header::HeaderVal,
         object::{InvalidObjectPath, SetObjectPath},
         CanonicalizedResource,
     },

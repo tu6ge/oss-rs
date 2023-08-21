@@ -1,10 +1,7 @@
 //! 封装了 reqwest::RequestBuilder 模块
 
 use async_trait::async_trait;
-use http::{
-    header::{InvalidHeaderValue, CONTENT_LENGTH},
-    Method,
-};
+use http::Method;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     Body, IntoUrl,
@@ -12,15 +9,14 @@ use reqwest::{
 #[cfg(feature = "blocking")]
 use std::rc::Rc;
 use std::{
-    convert::Infallible,
     error::Error,
     io::{self, ErrorKind},
 };
 use std::{fmt::Display, sync::Arc, time::Duration};
 
+use crate::auth::AuthError;
 #[cfg(feature = "blocking")]
 use crate::blocking::builder::ClientWithMiddleware as BlockingClientWithMiddleware;
-use crate::{auth::AuthError, types::ContentRange};
 use crate::{
     client::Client as AliClient,
     config::{BucketBase, InvalidConfig},
@@ -306,186 +302,4 @@ pub(crate) async fn check_http_status(response: Response) -> Result<Response, Bu
     let status = response.status();
     let text = response.text().await?;
     Err(OssService::new2(text, &status, url).into())
-}
-
-pub trait TryIntoHeaders {
-    type Error;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error>;
-}
-
-impl TryIntoHeaders for HeaderMap {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        Ok(self)
-    }
-}
-
-impl TryIntoHeaders for () {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        Ok(HeaderMap::new())
-    }
-}
-impl TryIntoHeaders for (HeaderName, HeaderValue) {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        let mut map = HeaderMap::with_capacity(1);
-        map.insert(self.0, self.1);
-        Ok(map)
-    }
-}
-impl<const N: usize> TryIntoHeaders for [(HeaderName, HeaderValue); N] {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        Ok(HeaderMap::from_iter(self.into_iter()))
-    }
-}
-impl TryIntoHeaders for Vec<(HeaderName, HeaderValue)> {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        Ok(HeaderMap::from_iter(self.into_iter()))
-    }
-}
-
-impl TryIntoHeaders for (HeaderKey, HeaderVal) {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        let mut map = HeaderMap::with_capacity(1);
-        map.insert(HeaderName::from(self.0), self.1.into());
-        Ok(map)
-    }
-}
-impl<const N: usize> TryIntoHeaders for [(HeaderKey, HeaderVal); N] {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        let mut map = HeaderMap::new();
-        for (k, v) in self.into_iter() {
-            map.insert(HeaderName::from(k), v.into());
-        }
-        Ok(map)
-    }
-}
-impl TryIntoHeaders for Vec<(HeaderKey, HeaderVal)> {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        let mut map = HeaderMap::new();
-        for (k, v) in self.into_iter() {
-            map.insert(HeaderName::from(k), v.into());
-        }
-        Ok(map)
-    }
-}
-
-impl TryIntoHeaders for (HeaderName, HeaderVal) {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        let mut map = HeaderMap::with_capacity(1);
-        map.insert(self.0, self.1.into());
-        Ok(map)
-    }
-}
-impl<const N: usize> TryIntoHeaders for [(HeaderName, HeaderVal); N] {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        let mut map = HeaderMap::new();
-        for (k, v) in self.into_iter() {
-            map.insert(k, v.into());
-        }
-        Ok(map)
-    }
-}
-impl TryIntoHeaders for Vec<(HeaderName, HeaderVal)> {
-    type Error = Infallible;
-    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
-        let mut map = HeaderMap::new();
-        for (k, v) in self.into_iter() {
-            map.insert(k, v.into());
-        }
-        Ok(map)
-    }
-}
-
-pub(crate) enum HeaderKey {
-    // /// If-Unmodified-Since
-    // IfUnmodifiedSince,
-    /// range
-    Range,
-    ContentLength,
-    ContentType,
-}
-
-impl From<HeaderKey> for HeaderName {
-    fn from(value: HeaderKey) -> Self {
-        use http::header::CONTENT_TYPE;
-        const RANGE: &str = "Range";
-        match value {
-            //HeaderKey::IfUnmodifiedSince => HeaderName::from_static("If-Unmodified-Since"),
-            HeaderKey::Range => HeaderName::from_static(RANGE),
-            HeaderKey::ContentLength => CONTENT_LENGTH,
-            HeaderKey::ContentType => CONTENT_TYPE,
-        }
-    }
-}
-
-pub(crate) enum HeaderVal {
-    Range(HeaderValue),
-    ContentLength(usize),
-    ContentType(HeaderValue),
-}
-
-impl HeaderVal {
-    pub fn content_type(str: &str) -> Result<(HeaderKey, Self), InvalidHeaderValue> {
-        Ok((HeaderKey::ContentType, Self::ContentType(str.parse()?)))
-    }
-
-    pub fn len(len: usize) -> (HeaderKey, Self) {
-        (HeaderKey::ContentLength, Self::ContentLength(len))
-    }
-
-    pub fn range<Num, R>(range: R) -> (HeaderKey, Self)
-    where
-        R: Into<ContentRange<Num>>,
-        ContentRange<Num>: Into<HeaderValue>,
-    {
-        (HeaderKey::Range, Self::Range(range.into().into()))
-    }
-}
-
-impl From<HeaderVal> for HeaderValue {
-    fn from(value: HeaderVal) -> Self {
-        match value {
-            HeaderVal::Range(r) => r,
-            HeaderVal::ContentLength(n) => n.into(),
-            HeaderVal::ContentType(con) => con,
-        }
-    }
-}
-
-#[test]
-fn test_into_header() {
-    use http::header::CONTENT_TYPE;
-    fn get<M: TryIntoHeaders>(_m: M) {}
-
-    get(());
-    get((CONTENT_TYPE, HeaderValue::from_static("application/json")));
-    get([(CONTENT_TYPE, HeaderValue::from_static("application/json"))]);
-    get(vec![(
-        CONTENT_TYPE,
-        HeaderValue::from_static("application/json"),
-    )]);
-    get([
-        (CONTENT_TYPE, HeaderValue::from_static("application/json")),
-        (CONTENT_LENGTH, HeaderValue::from_static("12")),
-    ]);
-    get([(
-        HeaderKey::Range,
-        HeaderVal::ContentType("application/json".parse().unwrap()),
-    )]);
-    get((HeaderKey::Range, HeaderVal::ContentLength(10)));
-    get([(HeaderKey::Range, HeaderVal::ContentLength(10))]);
-    get(vec![(HeaderKey::Range, HeaderVal::ContentLength(10))]);
-
-    get((CONTENT_TYPE, HeaderVal::ContentLength(10)));
-    get([(CONTENT_TYPE, HeaderVal::ContentLength(10))]);
-    get(vec![(CONTENT_TYPE, HeaderVal::ContentLength(10))]);
 }

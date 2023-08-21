@@ -80,9 +80,12 @@ use reqwest::{Response, Url};
 
 use crate::{
     bucket::Bucket,
-    builder::{ArcPointer, BuilderError, HeaderKey, HeaderVal, RequestBuilder, TryIntoHeaders},
+    builder::{ArcPointer, BuilderError, RequestBuilder},
     object::{Object, ObjectList},
-    types::object::{ObjectBase, ObjectPath},
+    types::{
+        header::{HeaderKey, HeaderVal, TryIntoHeaders},
+        object::{ObjectBase, ObjectPath},
+    },
     types::{CanonicalizedResource, ContentRange},
 };
 #[cfg(feature = "put_file")]
@@ -715,9 +718,12 @@ pub mod blocking {
     use crate::{
         blocking::builder::RequestBuilder,
         bucket::Bucket,
-        builder::{BuilderError, HeaderVal, RcPointer, TryIntoHeaders},
+        builder::{BuilderError, RcPointer},
         object::ObjectList,
-        types::{CanonicalizedResource, ContentRange},
+        types::{
+            header::{HeaderVal, TryIntoHeaders},
+            CanonicalizedResource, ContentRange,
+        },
     };
     use http::{HeaderValue, Method};
     #[cfg(feature = "put_file")]
