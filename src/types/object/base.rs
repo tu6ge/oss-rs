@@ -146,7 +146,7 @@ impl ObjectBase<ArcPointer> {
         let bucket = BucketBase::new(
             bucket
                 .parse()
-                .map_err(|e: InvalidBucketName| InvalidObjectBase::from_bucket_name(bucket, e))?,
+                .map_err(|e| InvalidObjectBase::from_bucket_name(bucket, e))?,
             endpoint
                 .parse()
                 .map_err(|e| InvalidObjectBase::from_endpoint(endpoint, e))?,

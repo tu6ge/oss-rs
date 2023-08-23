@@ -664,13 +664,12 @@ impl GenCanonicalizedResource for Url {
             _ => return OssHost::None,
         }
 
-        match url_pieces.next() {
-            Some(endpoint) => match EndPoint::from_host_piece(endpoint) {
-                Ok(_) => (),
-                _ => return OssHost::None,
-            },
-            _ => return OssHost::None,
-        };
+        if let None = url_pieces
+            .next()
+            .and_then(|end| EndPoint::from_host_piece(end).ok())
+        {
+            return OssHost::None;
+        }
 
         match url_pieces.next() {
             Some(bucket) => {
