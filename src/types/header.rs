@@ -143,6 +143,25 @@ impl TryIntoHeaders for Vec<(HeaderName, HeaderVal)> {
     }
 }
 
+impl<T> TryIntoHeaders for Result<T, T::Error>
+where
+    T: TryIntoHeaders,
+{
+    type Error = T::Error;
+    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
+        self.and_then(|head| head.try_into_headers())
+    }
+}
+impl<T> TryIntoHeaders for Box<T>
+where
+    T: TryIntoHeaders,
+{
+    type Error = T::Error;
+    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
+        (*self).try_into_headers()
+    }
+}
+
 pub(crate) enum HeaderKey {
     // /// If-Unmodified-Since
     // IfUnmodifiedSince,
@@ -155,10 +174,14 @@ pub(crate) enum HeaderKey {
 impl From<HeaderKey> for HeaderName {
     fn from(value: HeaderKey) -> Self {
         use http::header::CONTENT_TYPE;
-        const RANGE: &str = "Range";
+        const RANGE: &[u8] = b"Range";
         match value {
             //HeaderKey::IfUnmodifiedSince => HeaderName::from_static("If-Unmodified-Since"),
-            HeaderKey::Range => HeaderName::from_static(RANGE),
+            HeaderKey::Range =>
+            {
+                #[allow(clippy::unwrap_used)]
+                HeaderName::from_bytes(RANGE).unwrap()
+            }
             HeaderKey::ContentLength => CONTENT_LENGTH,
             HeaderKey::ContentType => CONTENT_TYPE,
         }
@@ -198,6 +221,17 @@ impl From<HeaderVal> for HeaderValue {
         }
     }
 }
+impl TryIntoHeaders for HeaderVal {
+    type Error = Infallible;
+    fn try_into_headers(self) -> Result<HeaderMap, Self::Error> {
+        let key = match &self {
+            HeaderVal::Range(_) => HeaderKey::Range,
+            HeaderVal::ContentLength(_) => HeaderKey::ContentLength,
+            HeaderVal::ContentType(_) => HeaderKey::ContentType,
+        };
+        (key, self).try_into_headers()
+    }
+}
 
 #[test]
 fn test_into_header() {
@@ -226,4 +260,26 @@ fn test_into_header() {
     get((CONTENT_TYPE, HeaderVal::ContentLength(10)));
     get([(CONTENT_TYPE, HeaderVal::ContentLength(10))]);
     get(vec![(CONTENT_TYPE, HeaderVal::ContentLength(10))]);
+    get(HeaderVal::len(10));
+    get(HeaderVal::ContentLength(10));
+
+    struct IfUnmodifiedSince {
+        date: &'static str,
+    }
+
+    impl TryIntoHeaders for IfUnmodifiedSince {
+        type Error = InvalidHeaderValue;
+        fn try_into_headers(self) -> Result<http::HeaderMap, Self::Error> {
+            let mut map = http::HeaderMap::with_capacity(1);
+            map.insert("If-Unmodified-Since", self.date.parse()?);
+            Ok(map)
+        }
+    }
+
+    fn since() -> Result<IfUnmodifiedSince, InvalidHeaderValue> {
+        Ok(IfUnmodifiedSince { date: "foo" })
+    }
+    get(since());
+
+    get(Box::new(HeaderVal::len(10)));
 }

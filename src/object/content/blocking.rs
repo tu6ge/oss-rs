@@ -6,7 +6,7 @@ use std::{
     rc::Rc,
 };
 
-use http::{header::CONTENT_LENGTH, HeaderValue, Method};
+use http::Method;
 use url::Url;
 
 #[cfg(test)]
@@ -17,6 +17,7 @@ use crate::{
     file::blocking::AlignBuilder,
     object::InitObject,
     types::{
+        header::HeaderVal,
         object::{InvalidObjectPath, SetObjectPath},
         CanonicalizedResource,
     },
@@ -206,15 +207,14 @@ impl Content {
 
         let (url, resource) = self.part_canonicalized(&query);
 
-        let content_length = buf.len().to_string();
-        let headers = vec![(
-            CONTENT_LENGTH,
-            HeaderValue::from_str(&content_length).unwrap(),
-        )];
-
         let resp = self
             .client
-            .builder_with_header(Method::PUT, url, resource, headers)?
+            .builder_with_header(
+                Method::PUT,
+                url,
+                resource,
+                HeaderVal::ContentLength(buf.len()),
+            )?
             .body(buf)
             .send_adjust_error()?;
 
@@ -245,15 +245,14 @@ impl Content {
 
         let (url, resource) = self.part_canonicalized(&query);
 
-        let content_length = xml.len().to_string();
-        let headers = vec![(
-            CONTENT_LENGTH,
-            HeaderValue::from_str(&content_length).unwrap(),
-        )];
-
         let _resp = self
             .client
-            .builder_with_header(Method::POST, url, resource, headers)?
+            .builder_with_header(
+                Method::POST,
+                url,
+                resource,
+                HeaderVal::ContentLength(xml.len()),
+            )?
             .body(xml)
             .send_adjust_error()?;
 

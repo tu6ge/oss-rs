@@ -271,7 +271,12 @@ impl Content {
 
         let resp = self
             .client
-            .builder_with_header(Method::PUT, url, resource, HeaderVal::len(buf.len()))?
+            .builder_with_header(
+                Method::PUT,
+                url,
+                resource,
+                HeaderVal::ContentLength(buf.len()),
+            )?
             .body(buf)
             .send_adjust_error()
             .await?;

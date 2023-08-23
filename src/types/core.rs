@@ -208,6 +208,26 @@ impl IntoQuery for Query {
     }
 }
 
+impl<T> IntoQuery for Option<T>
+where
+    T: IntoQuery,
+{
+    fn into_query(self) -> Query {
+        match self {
+            Some(inner) => inner.into_query(),
+            None => ().into_query(),
+        }
+    }
+}
+impl<T> IntoQuery for Box<T>
+where
+    T: IntoQuery,
+{
+    fn into_query(self) -> Query {
+        (*self).into_query()
+    }
+}
+
 impl<'a, 'b, const N: usize> IntoQuery for [(Cow<'a, str>, Cow<'b, str>); N] {
     fn into_query(self) -> Query {
         let mut query = Query::with_capacity(N);
@@ -342,6 +362,12 @@ mod tests_query_from_iter {
         let q = [("abc", "def"), ("aaa", "ccc")];
         let query = q.into_query();
         assert_eq!(query.len(), 2);
+
+        let q = Some((QueryKey::MAX_KEYS, 1));
+        search(q);
+
+        let b = Box::new((QueryKey::MAX_KEYS, 1));
+        search(b);
     }
 }
 
