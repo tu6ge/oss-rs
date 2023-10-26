@@ -159,10 +159,10 @@ where
             .builder_with_header(Method::GET, url, canonicalized, list)?
             .send_adjust_error()
             .await?
-            .text()
+            .bytes()
             .await?;
 
-        Ok(content.into_bytes())
+        Ok(content.to_vec())
     }
 
     /// # 从 OSS 中删除文件
@@ -530,10 +530,10 @@ where
             .builder_with_header(Method::GET, url, canonicalized, list)?
             .send_adjust_error()
             .await?
-            .text()
+            .bytes()
             .await?;
 
-        Ok(content.into_bytes())
+        Ok(content.to_vec())
     }
 
     /// # 删除 OSS 上的文件
@@ -901,8 +901,8 @@ pub mod blocking {
             Ok(self
                 .builder_with_header(Method::GET, url, canonicalized, headers)?
                 .send_adjust_error()?
-                .text()?
-                .into_bytes())
+                .bytes()?
+                .to_vec())
         }
 
         /// # 删除 OSS 上的文件
