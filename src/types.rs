@@ -337,10 +337,18 @@ impl AsRef<str> for EndPoint {
 impl Display for EndPoint {
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
-    /// assert_eq!(format!("{}", EndPoint::HANGZHOU), "cn-hangzhou");
+    /// let mut endpoint = EndPoint::HANGZHOU;
+    /// assert_eq!(format!("{}", endpoint), "cn-hangzhou");
+    /// endpoint.set_internal(true);
+    /// assert_eq!(format!("{}", endpoint), "cn-hangzhou-internal");
     /// ```
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_ref())
+        write!(
+            f,
+            "{}{}",
+            self.as_ref(),
+            if self.is_internal { OSS_INTERNAL } else { "" }
+        )
     }
 }
 
