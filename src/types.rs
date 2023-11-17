@@ -1212,9 +1212,14 @@ pub fn get_url_resource2<E: AsRef<EndPoint>, B: AsRef<BucketName>>(
 
 pub(crate) fn url_from_bucket(endpoint: &EndPoint, bucket: &BucketName) -> Url {
     let url = format!(
-        "https://{}.oss-{}.aliyuncs.com",
+        "https://{}.oss-{}{}.aliyuncs.com",
         bucket.as_ref(),
-        endpoint.as_ref()
+        endpoint.as_ref(),
+        if endpoint.is_internal() {
+            OSS_INTERNAL
+        } else {
+            ""
+        }
     );
     url.parse().unwrap_or_else(|_| {
         unreachable!("covert to url failed, bucket: {bucket}, endpoint: {endpoint}")
