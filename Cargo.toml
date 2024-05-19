@@ -20,7 +20,7 @@ all-features = true
 members = ["oss_derive"]
 
 [workspace.package]
-version = "0.12.9"
+version = "0.12.10"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/tu6ge/oss-rs"
