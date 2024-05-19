@@ -29,7 +29,7 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v1
         with:
-          key: ${{ runner.os }}-build-v0.3.2
+          key: ${{ runner.os }}-build-v0.3.3
       
       - name: Show cargo info
         run: cargo version --verbose
@@ -37,7 +37,7 @@ jobs:
       - name: Install publish-action
         if: steps.cache-publish-action.outputs.cache-hit != 'true'
         run: |
-          cargo install publish-action --version=0.3.2
+          cargo install publish-action --version=0.3.3
       
       - name: Run Test
         run: |
