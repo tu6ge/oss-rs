@@ -1,8 +1,8 @@
 projects:
   - name: project1
-    #dir: "."
+    dir: "./"
     tag_prefix: "v"
 
   - name: oss_derive
-    dir: "/oss_derive"
+    dir: "/oss_derive/"
     tag_prefix: "derive_"
