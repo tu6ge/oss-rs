@@ -26,18 +26,18 @@ jobs:
         run: cargo fmt --check
 
       # v0.1.15 目前版本
-      - name: Cache
-        uses: Swatinem/rust-cache@v1
-        with:
-          key: ${{ runner.os }}-build-v0.3.5
+      # - name: Cache
+      #   uses: Swatinem/rust-cache@v1
+      #   with:
+      #     key: ${{ runner.os }}-build-v0.3.5
       
       - name: Show cargo info
         run: cargo version --verbose
 
-      - name: Install publish-action
-        if: steps.cache-publish-action.outputs.cache-hit != 'true'
-        run: |
-          cargo install publish-action --version=0.3.5
+      # - name: Install publish-action
+      #   if: steps.cache-publish-action.outputs.cache-hit != 'true'
+      #   run: |
+      #     cargo install publish-action --version=0.3.5
       
       # - name: Run Test
       #   run: |
