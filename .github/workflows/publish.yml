@@ -39,34 +39,31 @@ jobs:
         run: |
           cargo install publish-action --version=0.3.5
       
-      # - name: Run Test
-      #   run: |
-      #     cargo test --lib -- tests
-      #     cargo test --lib --no-default-features -- tests
-      #     # --all-features, exclude env_test features
-      #     cargo test --lib --features="blocking,sts,put_file,core,auth,decode" -- tests
-      #     cargo test --lib --features blocking --no-default-features tests
-      #     cargo test --lib --features blocking tests
-      #     cargo test --lib --features sts --no-default-features tests
-      #     cargo test --lib --features put_file --no-default-features tests
-      #     cargo test --lib --features core --no-default-features tests
-      #     cargo test --lib --features auth --no-default-features tests
-      #     cargo test --lib --features decode --no-default-features tests
-      #     cargo test --lib --jobs 1 --features env_test tests::env::client_from_env
-      #     cargo test --lib --jobs 1 --features env_test tests::env::config_from_env
-      #     cargo test --lib --jobs 1 --features env_test tests::env::bucket_base_from_env
-      #     cargo test --lib --jobs 1 --features env_test tests::env::end_point_from_env
-      #     # --all-features, exclude bench features
-      #     cargo test --doc --all-features
-      #     cd oss_derive
-      #     cargo test
-      #     cargo test --features blocking
+      - name: Run Test
+        run: |
+          cargo test --lib -- tests
+          cargo test --lib --no-default-features -- tests
+          # --all-features, exclude env_test features
+          cargo test --lib --features="blocking,sts,put_file,core,auth,decode" -- tests
+          cargo test --lib --features blocking --no-default-features tests
+          cargo test --lib --features blocking tests
+          cargo test --lib --features sts --no-default-features tests
+          cargo test --lib --features put_file --no-default-features tests
+          cargo test --lib --features core --no-default-features tests
+          cargo test --lib --features auth --no-default-features tests
+          cargo test --lib --features decode --no-default-features tests
+          cargo test --lib --jobs 1 --features env_test tests::env::client_from_env
+          cargo test --lib --jobs 1 --features env_test tests::env::config_from_env
+          cargo test --lib --jobs 1 --features env_test tests::env::bucket_base_from_env
+          cargo test --lib --jobs 1 --features env_test tests::env::end_point_from_env
+          # --all-features, exclude bench features
+          cargo test --doc --all-features
+          cd oss_derive
+          cargo test
+          cargo test --features blocking
       
       - name: Run publish-action
-        uses: tu6ge/publish-action@master
-        with:
-          dir: 'oss_derive'
-          tag_prefix: "test_"
+        run: publish-action -c ""
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
