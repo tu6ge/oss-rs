@@ -63,7 +63,7 @@ jobs:
           cargo test --features blocking
 
       - name: Run publish-action of derive
-        run: publish-action --dir="/oss_derive/" --tag_prefix="derive_"
+        run: publish-action --dir="/oss_derive/" --tag-prefix="derive_"
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
