@@ -1,6 +1,6 @@
 [package]
 name = "aliyun-oss-client"
-version = "0.1.0"
+version = "0.13.0-alpha"
 edition = "2021"
 description = "an aliyun oss client"
 keywords = ["aliyun", "oss", "sdk"]
