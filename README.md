@@ -20,7 +20,7 @@ impl Client {
 get bucket info;
 ```rust
 struct Bucket {
-    name: BucketName,
+    name: String,
     endpoint: EndPoint,
 }
 impl Bucket{
