@@ -9,7 +9,7 @@ use crate::{
         url_from_bucket, BucketName, CanonicalizedResource, EndPoint, InvalidBucketName,
         InvalidEndPoint, KeyId, KeySecret,
     },
-    Query,
+    ObjectPath, Query,
 };
 use reqwest::Url;
 use std::{
@@ -608,6 +608,43 @@ impl PartialEq<Url> for BucketBase {
     #[inline]
     fn eq(&self, other: &Url) -> bool {
         &self.to_url() == other
+    }
+}
+
+enum OssUrl {
+    EndPoint(EndPoint),
+    Bucket(EndPoint, BucketName, Option<Query>),
+    Object(EndPoint, BucketName, ObjectPath),
+}
+
+impl OssUrl {
+    pub fn get_url_parts(&self) -> (Url, CanonicalizedResource) {
+        match self {
+            OssUrl::EndPoint(ep) => (ep.to_url(), CanonicalizedResource::default()),
+            OssUrl::Bucket(endpoint, bucket, query) => match query {
+                Some(q) => get_url_resource_with_bucket(endpoint, bucket, q),
+                None => get_url_resource_with_bucket(endpoint, bucket, &Query::default()),
+            },
+            OssUrl::Object(endpoint, bucket, path) => {
+                let endpoint = endpoint.to_url();
+                let url = endpoint.to_string();
+                let name_str = bucket.to_string();
+
+                let mut name = String::from(HTTPS);
+                name.push_str(&name_str);
+                name.push('.');
+
+                let url = url.replace(HTTPS, &name);
+
+                #[allow(clippy::unwrap_used)]
+                let mut url = Url::parse(&url).unwrap();
+                url.set_path(path.as_str());
+
+                let resource = CanonicalizedResource::from_object((bucket, path), []);
+
+                (url, resource)
+            }
+        }
     }
 }
 

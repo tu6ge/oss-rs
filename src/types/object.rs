@@ -141,6 +141,10 @@ impl<'a> ObjectPathInner<'a> {
     pub const unsafe fn from_static(secret: &'static str) -> Self {
         Self(Cow::Borrowed(secret))
     }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 impl TryFrom<String> for ObjectPathInner<'_> {
