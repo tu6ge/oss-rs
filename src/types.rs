@@ -269,7 +269,6 @@ impl CanonicalizedResource {
         bucket: &Bucket,
         continuation_token: Option<&String>,
     ) -> CanonicalizedResource {
-        // "/{}/?continuation-token={}"
         match continuation_token {
             Some(token) => Self(format!(
                 "/{}/?continuation-token={}",
@@ -341,6 +340,13 @@ pub struct ObjectQuery {
 }
 
 impl ObjectQuery {
+    pub const DELIMITER: &'static str = "delimiter";
+    pub const START_AFTER: &'static str = "start-after";
+    pub const CONTINUATION_TOKEN: &'static str = "continuation-token";
+    pub const MAX_KEYS: &'static str = "max-keys";
+    pub const PREFIX: &'static str = "prefix";
+    pub const ENCODING_TYPE: &'static str = "encoding-type";
+    pub const FETCH_OWNER: &'static str = "fetch-owner";
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
@@ -351,13 +357,14 @@ impl ObjectQuery {
     }
 
     pub(crate) fn get_next_token(&self) -> Option<&String> {
-        self.map.get("continuation-token")
+        self.map.get(Self::CONTINUATION_TOKEN)
     }
 
     pub(crate) fn set_next_token(&mut self, objects: &Objects) -> Option<String> {
-        objects
-            .next_token()
-            .and_then(|token| self.map.insert("continuation-token".into(), token.clone()))
+        objects.next_token().and_then(|token| {
+            self.map
+                .insert(Self::CONTINUATION_TOKEN.into(), token.clone())
+        })
     }
 
     pub(crate) fn to_oss_query(&self) -> String {
@@ -374,7 +381,7 @@ impl ObjectQuery {
 
     pub fn append_next_token(&mut self, token: Option<String>) {
         if let Some(token) = token {
-            self.insert("continuation-token", token);
+            self.insert(Self::CONTINUATION_TOKEN, token);
         }
     }
 }

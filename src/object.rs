@@ -2,7 +2,6 @@ use chrono::{DateTime, Utc};
 use reqwest::{header::CONTENT_LENGTH, Method};
 
 use crate::{
-    bucket::Bucket,
     client::Client,
     error::OssError,
     types::{CanonicalizedResource, ObjectQuery},
@@ -39,7 +38,7 @@ impl Objects {
     ) -> Result<Objects, OssError> {
         let mut q = query.clone();
         if let Some(token) = self.next_token {
-            q.insert("continuation-token", token);
+            q.insert(ObjectQuery::CONTINUATION_TOKEN, token);
         }
         match client.bucket() {
             Some(bucket) => bucket.get_objects(&q, client).await,
@@ -227,7 +226,7 @@ mod tests {
         let client = set_client();
         let condition = {
             let mut map = ObjectQuery::new();
-            map.insert("max-keys", "5");
+            map.insert(ObjectQuery::MAX_KEYS, "5");
             map
         };
         let first_list = client

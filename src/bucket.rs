@@ -245,7 +245,7 @@ mod tests {
         let bucket = Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI);
         let mut condition = {
             let mut map = ObjectQuery::new();
-            map.insert("max-keys", "5");
+            map.insert(ObjectQuery::MAX_KEYS, "5");
             map
         };
 
