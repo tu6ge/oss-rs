@@ -267,7 +267,7 @@ impl CanonicalizedResource {
 
     pub fn from_object_list(
         bucket: &Bucket,
-        continuation_token: Option<String>,
+        continuation_token: Option<&String>,
     ) -> CanonicalizedResource {
         // "/{}/?continuation-token={}"
         match continuation_token {
@@ -335,7 +335,7 @@ impl StorageClass {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ObjectQuery {
     map: HashMap<String, String>,
 }
@@ -348,6 +348,10 @@ impl ObjectQuery {
     }
     pub fn insert<K: Into<String>, V: Into<String>>(&mut self, key: K, value: V) -> Option<String> {
         self.map.insert(key.into(), value.into())
+    }
+
+    pub(crate) fn get_next_token(&self) -> Option<&String> {
+        self.map.get("continuation-token")
     }
 
     pub(crate) fn to_oss_query(&self) -> String {

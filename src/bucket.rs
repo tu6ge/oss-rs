@@ -92,7 +92,7 @@ impl Bucket {
         })
     }
 
-    fn parse_item<'a>(xml: &'a str, field: &str) -> Option<&'a str> {
+    pub(crate) fn parse_item<'a>(xml: &'a str, field: &str) -> Option<&'a str> {
         let start_tag = {
             let mut s = String::from("<");
             s += field;
@@ -126,7 +126,7 @@ impl Bucket {
         let mut url = self.to_url();
         url.set_query(Some(&query.to_oss_query()));
         let method = Method::GET;
-        let resource = CanonicalizedResource::from_object_list(&self, None);
+        let resource = CanonicalizedResource::from_object_list(&self, query.get_next_token());
 
         let header_map = client.authorization(method, resource)?;
 
@@ -140,14 +140,14 @@ impl Bucket {
 
         //println!("{content}");
 
-        let list = Self::parse_xml_objects(&content, self)?;
+        let list = Self::parse_xml_objects(&content, self.clone())?;
 
         let token = Self::parse_item(&content, "NextContinuationToken").map(|t| t.to_owned());
 
-        Ok(Objects::new(list, token))
+        Ok(Objects::new(self, list, token))
     }
 
-    fn parse_xml_objects(xml: &str, bucket: Bucket) -> Result<Vec<Object>, OssError> {
+    pub(crate) fn parse_xml_objects(xml: &str, bucket: Bucket) -> Result<Vec<Object>, OssError> {
         let mut start_positions = vec![];
         let mut end_positions = vec![];
         let mut start = 0;
@@ -252,5 +252,8 @@ mod tests {
         let list = bucket.get_objects(&condition, &initClient()).await.unwrap();
 
         println!("{list:?}");
+
+        let second_list = list.next_list(&condition, &initClient()).await.unwrap();
+        println!("second_list: {:?}", second_list);
     }
 }

@@ -1,17 +1,27 @@
 use chrono::{DateTime, Utc};
 use reqwest::{header::CONTENT_LENGTH, Method};
 
-use crate::{bucket::Bucket, client::Client, error::OssError, types::CanonicalizedResource};
+use crate::{
+    bucket::Bucket,
+    client::Client,
+    error::OssError,
+    types::{CanonicalizedResource, ObjectQuery},
+};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Objects {
+    bucket: Bucket,
     list: Vec<Object>,
     next_token: Option<String>,
 }
 
 impl Objects {
-    pub fn new(list: Vec<Object>, next_token: Option<String>) -> Objects {
-        Objects { list, next_token }
+    pub fn new(bucket: Bucket, list: Vec<Object>, next_token: Option<String>) -> Objects {
+        Objects {
+            bucket,
+            list,
+            next_token,
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -20,6 +30,18 @@ impl Objects {
 
     pub fn is_empty(&self) -> bool {
         self.list.is_empty()
+    }
+
+    pub async fn next_list(
+        self,
+        query: &ObjectQuery,
+        client: &Client,
+    ) -> Result<Objects, OssError> {
+        let mut q = query.clone();
+        if let Some(token) = self.next_token {
+            q.insert("continuation-token", token);
+        }
+        self.bucket.get_objects(&q, client).await
     }
 }
 
