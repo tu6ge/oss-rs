@@ -360,13 +360,6 @@ impl ObjectQuery {
         self.map.get(Self::CONTINUATION_TOKEN)
     }
 
-    pub(crate) fn set_next_token(&mut self, objects: &Objects) -> Option<String> {
-        objects.next_token().and_then(|token| {
-            self.map
-                .insert(Self::CONTINUATION_TOKEN.into(), token.clone())
-        })
-    }
-
     pub(crate) fn to_oss_query(&self) -> String {
         const LIST_TYPE2: &str = "list-type=2";
         let mut query_str = String::from(LIST_TYPE2);
