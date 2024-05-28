@@ -13,11 +13,16 @@ use crate::{
 pub struct Client {
     key: Key,
     secret: Secret,
+    bucket: Option<Bucket>,
 }
 
 impl Client {
     pub fn new(key: Key, secret: Secret) -> Client {
-        Self { key, secret }
+        Self {
+            key,
+            secret,
+            bucket: None,
+        }
     }
 
     pub(crate) fn key(&self) -> &Key {
@@ -25,6 +30,14 @@ impl Client {
     }
     pub(crate) fn secret(&self) -> &Secret {
         &self.secret
+    }
+
+    pub fn set_bucket(&mut self, bucket: Bucket) -> Option<Bucket> {
+        self.bucket.replace(bucket)
+    }
+
+    pub fn bucket(&self) -> Option<&Bucket> {
+        self.bucket.as_ref()
     }
 
     pub(crate) fn authorization(

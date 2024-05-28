@@ -31,6 +31,8 @@ pub enum OssError {
     ParseIntError(#[from] ParseIntError),
 
     Upload(String),
+
+    NoFoundBucket,
 }
 
 impl Display for OssError {

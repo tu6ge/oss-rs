@@ -119,7 +119,7 @@ impl Bucket {
     }
 
     pub async fn get_objects(
-        self,
+        &self,
         query: &ObjectQuery,
         client: &Client,
     ) -> Result<Objects, OssError> {
@@ -140,14 +140,14 @@ impl Bucket {
 
         //println!("{content}");
 
-        let list = Self::parse_xml_objects(&content, self.clone())?;
+        let list = Self::parse_xml_objects(&content)?;
 
         let token = Self::parse_item(&content, "NextContinuationToken").map(|t| t.to_owned());
 
-        Ok(Objects::new(self, list, token))
+        Ok(Objects::new(list, token))
     }
 
-    pub(crate) fn parse_xml_objects(xml: &str, bucket: Bucket) -> Result<Vec<Object>, OssError> {
+    pub(crate) fn parse_xml_objects(xml: &str) -> Result<Vec<Object>, OssError> {
         let mut start_positions = vec![];
         let mut end_positions = vec![];
         let mut start = 0;
@@ -167,7 +167,7 @@ impl Bucket {
         let mut list = vec![];
         for i in 0..start_positions.len() {
             let path = &xml[start_positions[i] + 5..end_positions[i]];
-            list.push(Object::new(bucket.clone(), path.to_owned()))
+            list.push(Object::new(path.to_owned()))
         }
 
         Ok(list)
@@ -243,7 +243,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_objects() {
         let bucket = Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI);
-        let condition = {
+        let mut condition = {
             let mut map = ObjectQuery::new();
             map.insert("max-keys", "5");
             map
@@ -252,8 +252,10 @@ mod tests {
         let list = bucket.get_objects(&condition, &initClient()).await.unwrap();
 
         println!("{list:?}");
-
-        let second_list = list.next_list(&condition, &initClient()).await.unwrap();
-        println!("second_list: {:?}", second_list);
+        condition.set_next_token(&list);
+        let second_list2 = bucket.get_objects(&condition, &initClient()).await.unwrap();
+        println!("second_list: {:?}", second_list2);
+        // let second_list = list.next_list(&condition, &initClient()).await.unwrap();
+        // println!("second_list: {:?}", second_list);
     }
 }

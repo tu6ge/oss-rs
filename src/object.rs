@@ -10,18 +10,18 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Objects {
-    bucket: Bucket,
+    //bucket: Bucket,
     list: Vec<Object>,
     next_token: Option<String>,
 }
 
 impl Objects {
-    pub fn new(bucket: Bucket, list: Vec<Object>, next_token: Option<String>) -> Objects {
-        Objects {
-            bucket,
-            list,
-            next_token,
-        }
+    pub fn new(list: Vec<Object>, next_token: Option<String>) -> Objects {
+        Objects { list, next_token }
+    }
+
+    pub fn next_token(&self) -> Option<&String> {
+        self.next_token.as_ref()
     }
 
     pub fn len(&self) -> usize {
@@ -41,30 +41,33 @@ impl Objects {
         if let Some(token) = self.next_token {
             q.insert("continuation-token", token);
         }
-        self.bucket.get_objects(&q, client).await
+        match client.bucket() {
+            Some(bucket) => bucket.get_objects(&q, client).await,
+            None => Err(OssError::NoFoundBucket),
+        }
     }
 }
 
 #[derive(Debug)]
 pub struct Object {
-    bucket: Bucket,
     path: String,
 }
 
 impl Object {
-    pub fn new(bucket: Bucket, path: String) -> Object {
-        Object { bucket, path }
+    pub fn new(path: String) -> Object {
+        Object { path }
     }
     pub async fn get_info(&self, client: &Client) -> Result<ObjectInfo, OssError> {
-        let mut url = self.bucket.to_url();
+        let bucket = match client.bucket() {
+            Some(bucket) => bucket,
+            None => return Err(OssError::NoFoundBucket),
+        };
+        let mut url = bucket.to_url();
         url.set_path(&self.path);
         url.set_query(Some("objectMeta"));
         let method = Method::GET;
-        let resource = CanonicalizedResource::new(format!(
-            "/{}/{}?objectMeta",
-            self.bucket.as_str(),
-            self.path
-        ));
+        let resource =
+            CanonicalizedResource::new(format!("/{}/{}?objectMeta", bucket.as_str(), self.path));
 
         let header_map = client.authorization(method, resource)?;
 
@@ -99,11 +102,14 @@ impl Object {
     }
 
     pub async fn upload(&self, content: Vec<u8>, client: &Client) -> Result<(), OssError> {
-        let mut url = self.bucket.to_url();
+        let bucket = match client.bucket() {
+            Some(bucket) => bucket,
+            None => return Err(OssError::NoFoundBucket),
+        };
+        let mut url = bucket.to_url();
         url.set_path(&self.path);
         let method = Method::PUT;
-        let resource =
-            CanonicalizedResource::new(format!("/{}/{}", self.bucket.as_str(), self.path));
+        let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
 
         let header_map = client.authorization(method, resource)?;
 
@@ -122,11 +128,14 @@ impl Object {
         }
     }
     pub async fn download(&self, client: &Client) -> Result<Vec<u8>, OssError> {
-        let mut url = self.bucket.to_url();
+        let bucket = match client.bucket() {
+            Some(bucket) => bucket,
+            None => return Err(OssError::NoFoundBucket),
+        };
+        let mut url = bucket.to_url();
         url.set_path(&self.path);
         let method = Method::GET;
-        let resource =
-            CanonicalizedResource::new(format!("/{}/{}", self.bucket.as_str(), self.path));
+        let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
 
         let header_map = client.authorization(method, resource)?;
 
@@ -173,41 +182,63 @@ impl ObjectInfo {
 #[cfg(test)]
 mod tests {
     use super::Object;
-    use crate::{bucket::Bucket, client::initClient, types::EndPoint};
+    use crate::{
+        bucket::Bucket,
+        client::{initClient, Client},
+        types::{EndPoint, ObjectQuery},
+    };
+
+    fn set_client() -> Client {
+        let mut client = initClient();
+        client.set_bucket(Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI));
+
+        client
+    }
 
     #[tokio::test]
     async fn test_object_info() {
-        let object = Object::new(
-            Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI),
-            "app-config.json".into(),
-        );
+        let object = Object::new("app-config.json".into());
 
-        let info = object.get_info(&initClient()).await.unwrap();
+        let info = object.get_info(&set_client()).await.unwrap();
 
         println!("{info:?}");
     }
 
     #[tokio::test]
     async fn test_upload() {
-        let object = Object::new(
-            Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI),
-            "abc.txt".into(),
-        );
+        let object = Object::new("abc.txt".into());
 
-        let info = object.upload("aaa".into(), &initClient()).await.unwrap();
+        let info = object.upload("aaa".into(), &set_client()).await.unwrap();
 
         println!("{info:?}");
     }
 
     #[tokio::test]
     async fn test_down() {
-        let object = Object::new(
-            Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI),
-            "abc.txt".into(),
-        );
+        let object = Object::new("abc.txt".into());
 
-        let info = object.download(&initClient()).await.unwrap();
+        let info = object.download(&set_client()).await.unwrap();
 
         println!("{info:?}");
+    }
+
+    #[tokio::test]
+    async fn test_next_list() {
+        let client = set_client();
+        let condition = {
+            let mut map = ObjectQuery::new();
+            map.insert("max-keys", "5");
+            map
+        };
+        let first_list = client
+            .bucket()
+            .unwrap()
+            .get_objects(&condition, &client)
+            .await
+            .unwrap();
+
+        let second_list = first_list.next_list(&condition, &client).await.unwrap();
+
+        println!("{:?}", second_list);
     }
 }

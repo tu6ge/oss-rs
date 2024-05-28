@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use url::Url;
 
-use crate::bucket::Bucket;
+use crate::{bucket::Bucket, object::Objects};
 
 pub struct Key(String);
 
@@ -352,6 +352,12 @@ impl ObjectQuery {
 
     pub(crate) fn get_next_token(&self) -> Option<&String> {
         self.map.get("continuation-token")
+    }
+
+    pub(crate) fn set_next_token(&mut self, objects: &Objects) -> Option<String> {
+        objects
+            .next_token()
+            .and_then(|token| self.map.insert("continuation-token".into(), token.clone()))
     }
 
     pub(crate) fn to_oss_query(&self) -> String {
