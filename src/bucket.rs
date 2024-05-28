@@ -252,7 +252,7 @@ mod tests {
         let list = bucket.get_objects(&condition, &initClient()).await.unwrap();
 
         println!("{list:?}");
-        condition.set_next_token(&list);
+        condition.insert_next_token(list.next_token().unwrap().to_owned());
         let second_list2 = bucket.get_objects(&condition, &initClient()).await.unwrap();
         println!("second_list: {:?}", second_list2);
         // let second_list = list.next_list(&condition, &initClient()).await.unwrap();

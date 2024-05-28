@@ -372,9 +372,7 @@ impl ObjectQuery {
         query_str
     }
 
-    pub fn append_next_token(&mut self, token: Option<String>) {
-        if let Some(token) = token {
-            self.insert(Self::CONTINUATION_TOKEN, token);
-        }
+    pub fn insert_next_token(&mut self, token: String) -> Option<String> {
+        self.map.insert(Self::CONTINUATION_TOKEN.into(), token)
     }
 }

@@ -80,7 +80,7 @@ impl Client {
 
         Ok(header_map)
     }
-    pub async fn get_buckets(&self, endpoint: EndPoint) -> Result<Vec<Bucket>, OssError> {
+    pub async fn get_buckets(&self, endpoint: &EndPoint) -> Result<Vec<Bucket>, OssError> {
         let url = endpoint.to_url();
         let method = Method::GET;
         let resource = CanonicalizedResource::default();
@@ -98,11 +98,12 @@ impl Client {
         Self::parse_xml(content, endpoint)
     }
 
-    fn parse_xml(xml: String, endpoint: EndPoint) -> Result<Vec<Bucket>, OssError> {
+    fn parse_xml(xml: String, endpoint: &EndPoint) -> Result<Vec<Bucket>, OssError> {
         let mut start_positions = vec![];
         let mut end_positions = vec![];
         let mut start = 0;
         let mut pattern = "<Name>";
+        let pattern_len = pattern.len();
 
         while let Some(pos) = xml[start..].find(pattern) {
             start_positions.push(start + pos);
@@ -115,9 +116,11 @@ impl Client {
             start += pos + pattern.len();
         }
 
+        debug_assert!(start_positions.len() == end_positions.len());
+
         let mut bucket = vec![];
         for i in 0..start_positions.len() {
-            let name = &xml[start_positions[i] + 6..end_positions[i]];
+            let name = &xml[start_positions[i] + pattern_len..end_positions[i]];
             bucket.push(Bucket::new(name.to_owned(), endpoint.clone()))
         }
 
@@ -142,7 +145,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_buckets() {
         let list = initClient()
-            .get_buckets(EndPoint::CN_QINGDAO)
+            .get_buckets(&EndPoint::CN_QINGDAO)
             .await
             .unwrap();
 
