@@ -4,9 +4,12 @@ use url::Url;
 
 use crate::bucket::Bucket;
 
-pub struct Key(pub(crate) String);
+pub struct Key(String);
 
 impl Key {
+    pub fn new(key: String) -> Key {
+        Key(key)
+    }
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }
@@ -15,6 +18,9 @@ impl Key {
 pub struct Secret(pub(crate) String);
 
 impl Secret {
+    pub fn new(secret: String) -> Secret {
+        Secret(secret)
+    }
     /// # 加密数据
     /// 这种加密方式可保证秘钥明文只会存在于 `Secret` 类型内，不会被读取或复制
     pub fn encryption(
@@ -51,7 +57,6 @@ pub struct EndPoint {
 
 const OSS_INTERNAL: &str = "-internal";
 const OSS_DOMAIN_MAIN: &str = ".aliyuncs.com";
-const OSS_HYPHEN: &str = "oss-";
 
 const HANGZHOU: &str = "cn-hangzhou";
 const SHANGHAI: &str = "cn-shanghai";
@@ -64,13 +69,13 @@ const US_WEST1: &str = "us-west-1";
 const US_EAST1: &str = "us-east-1";
 const AP_SOUTH_EAST1: &str = "ap-southeast-1";
 
-const HANGZHOU_L: &str = "hangzhou";
-const SHANGHAI_L: &str = "shanghai";
-const QINGDAO_L: &str = "qingdao";
-const BEIJING_L: &str = "beijing";
-const ZHANGJIAKOU_L: &str = "zhangjiakou";
-const HONGKONG_L: &str = "hongkong";
-const SHENZHEN_L: &str = "shenzhen";
+// const HANGZHOU_L: &str = "hangzhou";
+// const SHANGHAI_L: &str = "shanghai";
+// const QINGDAO_L: &str = "qingdao";
+// const BEIJING_L: &str = "beijing";
+// const ZHANGJIAKOU_L: &str = "zhangjiakou";
+// const HONGKONG_L: &str = "hongkong";
+// const SHENZHEN_L: &str = "shenzhen";
 
 impl EndPoint {
     /// 杭州

@@ -1,15 +1,7 @@
 use chrono::{DateTime, Utc};
-use reqwest::{
-    header::{HeaderMap, CONTENT_LENGTH, CONTENT_TYPE},
-    Method,
-};
+use reqwest::{header::CONTENT_LENGTH, Method};
 
-use crate::{
-    bucket::Bucket,
-    client::{now, Client},
-    error::OssError,
-    types::CanonicalizedResource,
-};
+use crate::{bucket::Bucket, client::Client, error::OssError, types::CanonicalizedResource};
 
 #[derive(Debug, Default)]
 pub struct Objects {
@@ -42,49 +34,17 @@ impl Object {
         Object { bucket, path }
     }
     pub async fn get_info(&self, client: &Client) -> Result<ObjectInfo, OssError> {
-        const LINE_BREAK: &str = "\n";
-
         let mut url = self.bucket.to_url();
         url.set_path(&self.path);
         url.set_query(Some("objectMeta"));
-        let method = Method::HEAD;
-        let date = now();
+        let method = Method::GET;
         let resource = CanonicalizedResource::new(format!(
             "/{}/{}?objectMeta",
             self.bucket.as_str(),
             self.path
         ));
-        let content_type = "text/xml";
 
-        let sign = {
-            let method = Method::GET;
-            let mut string = method.as_str().to_owned();
-            string += LINE_BREAK;
-            string += LINE_BREAK;
-            string += content_type;
-            string += LINE_BREAK;
-            string += date.as_str();
-            string += LINE_BREAK;
-            string += resource.as_str();
-
-            let encry = client.secret().encryption(string.as_bytes()).unwrap();
-
-            format!("OSS {}:{}", client.key().as_str(), encry)
-        };
-
-        let header_map = {
-            let mut headers = HeaderMap::new();
-            headers.insert("AccessKeyId", client.key().as_str().try_into()?);
-            headers.insert("VERB", method.as_str().try_into()?);
-            headers.insert("Date", date.try_into()?);
-            headers.insert("Authorization", sign.try_into()?);
-            headers.insert(CONTENT_TYPE, content_type.try_into()?);
-            headers.insert(
-                "CanonicalizedResource",
-                resource.as_str().try_into().unwrap(),
-            );
-            headers
-        };
+        let header_map = client.authorization(method, resource)?;
 
         let response = reqwest::Client::new()
             .get(url)
@@ -117,44 +77,13 @@ impl Object {
     }
 
     pub async fn upload(&self, content: Vec<u8>, client: &Client) -> Result<(), OssError> {
-        const LINE_BREAK: &str = "\n";
-
         let mut url = self.bucket.to_url();
         url.set_path(&self.path);
         let method = Method::PUT;
-        let date = now();
         let resource =
             CanonicalizedResource::new(format!("/{}/{}", self.bucket.as_str(), self.path));
-        let content_type = "text/xml";
 
-        let sign = {
-            let mut string = method.as_str().to_owned();
-            string += LINE_BREAK;
-            string += LINE_BREAK;
-            string += content_type;
-            string += LINE_BREAK;
-            string += date.as_str();
-            string += LINE_BREAK;
-            string += resource.as_str();
-
-            let encry = client.secret().encryption(string.as_bytes()).unwrap();
-
-            format!("OSS {}:{}", client.key().as_str(), encry)
-        };
-
-        let header_map = {
-            let mut headers = HeaderMap::new();
-            headers.insert("AccessKeyId", client.key().as_str().try_into()?);
-            headers.insert("VERB", method.as_str().try_into()?);
-            headers.insert("Date", date.try_into()?);
-            headers.insert("Authorization", sign.try_into()?);
-            headers.insert(CONTENT_TYPE, content_type.try_into()?);
-            headers.insert(
-                "CanonicalizedResource",
-                resource.as_str().try_into().unwrap(),
-            );
-            headers
-        };
+        let header_map = client.authorization(method, resource)?;
 
         let response = reqwest::Client::new()
             .put(url)
@@ -171,44 +100,13 @@ impl Object {
         }
     }
     pub async fn download(&self, client: &Client) -> Result<Vec<u8>, OssError> {
-        const LINE_BREAK: &str = "\n";
-
         let mut url = self.bucket.to_url();
         url.set_path(&self.path);
         let method = Method::GET;
-        let date = now();
         let resource =
             CanonicalizedResource::new(format!("/{}/{}", self.bucket.as_str(), self.path));
-        let content_type = "text/xml";
 
-        let sign = {
-            let mut string = method.as_str().to_owned();
-            string += LINE_BREAK;
-            string += LINE_BREAK;
-            string += content_type;
-            string += LINE_BREAK;
-            string += date.as_str();
-            string += LINE_BREAK;
-            string += resource.as_str();
-
-            let encry = client.secret().encryption(string.as_bytes()).unwrap();
-
-            format!("OSS {}:{}", client.key().as_str(), encry)
-        };
-
-        let header_map = {
-            let mut headers = HeaderMap::new();
-            headers.insert("AccessKeyId", client.key().as_str().try_into()?);
-            headers.insert("VERB", method.as_str().try_into()?);
-            headers.insert("Date", date.try_into()?);
-            headers.insert("Authorization", sign.try_into()?);
-            headers.insert(CONTENT_TYPE, content_type.try_into()?);
-            headers.insert(
-                "CanonicalizedResource",
-                resource.as_str().try_into().unwrap(),
-            );
-            headers
-        };
+        let header_map = client.authorization(method, resource)?;
 
         let response = reqwest::Client::new()
             .get(url)

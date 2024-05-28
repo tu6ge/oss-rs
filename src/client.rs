@@ -16,19 +16,25 @@ pub struct Client {
 }
 
 impl Client {
+    pub fn new(key: Key, secret: Secret) -> Client {
+        Self { key, secret }
+    }
+
     pub(crate) fn key(&self) -> &Key {
         &self.key
     }
     pub(crate) fn secret(&self) -> &Secret {
         &self.secret
     }
-    pub async fn get_buckets(&self, endpoint: EndPoint) -> Result<Vec<Bucket>, OssError> {
+
+    pub(crate) fn authorization(
+        &self,
+        method: Method,
+        resource: CanonicalizedResource,
+    ) -> Result<HeaderMap, OssError> {
         const LINE_BREAK: &str = "\n";
 
-        let url = endpoint.to_url();
-        let method = Method::GET;
         let date = now();
-        let resource = CanonicalizedResource::default();
         let content_type = "text/xml";
 
         let sign = {
@@ -45,10 +51,9 @@ impl Client {
 
             format!("OSS {}:{}", self.key.as_str(), encry)
         };
-
         let header_map = {
             let mut headers = HeaderMap::new();
-            headers.insert("AccessKeyId", self.key.0.as_str().try_into()?);
+            headers.insert("AccessKeyId", self.key.as_str().try_into()?);
             headers.insert("VERB", method.as_str().try_into()?);
             headers.insert("Date", date.try_into()?);
             headers.insert("Authorization", sign.try_into()?);
@@ -59,6 +64,15 @@ impl Client {
             );
             headers
         };
+
+        Ok(header_map)
+    }
+    pub async fn get_buckets(&self, endpoint: EndPoint) -> Result<Vec<Bucket>, OssError> {
+        let url = endpoint.to_url();
+        let method = Method::GET;
+        let resource = CanonicalizedResource::default();
+
+        let header_map = self.authorization(method, resource)?;
 
         let content = reqwest::Client::new()
             .get(url)
@@ -98,7 +112,7 @@ impl Client {
     }
 }
 
-pub(crate) fn now() -> String {
+fn now() -> String {
     Utc::now().format("%a, %d %b %Y %T GMT").to_string()
 }
 
@@ -133,8 +147,5 @@ pub fn initClient() -> Client {
     let key = env::var("ALIYUN_KEY_ID").unwrap();
     let secret = env::var("ALIYUN_KEY_SECRET").unwrap();
 
-    Client {
-        key: Key(key),
-        secret: Secret(secret),
-    }
+    Client::new(Key::new(key), Secret::new(secret))
 }
