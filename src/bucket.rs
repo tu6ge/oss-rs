@@ -89,7 +89,7 @@ impl Bucket {
     ///   </BucketPolicy>
     /// </Bucket>
     /// ```
-    /// 该方法返回的类型可以是如下结构体：
+    /// 该方法返回的类型是自定义的，根据不同的业务需要，导出不同的字段，例如导出的类型可以是如下结构体：
     ///
     /// ```rust
     /// use serde::Deserialize;
@@ -220,7 +220,7 @@ impl Bucket {
     ///   <StorageClass>Standard</StorageClass>
     /// </Contents>
     /// ```
-    /// 该方法返回的类型可以是如下结构体：
+    /// 该方法返回的类型是自定义的，根据不同的业务需要，导出不同的字段，例如导出的类型可以是如下结构体：
     /// ```rust
     /// use serde::Deserialize;
     /// #[derive(Debug, Deserialize)]

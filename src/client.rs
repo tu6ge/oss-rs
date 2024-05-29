@@ -123,7 +123,7 @@ impl Client {
     ///     Region: String,
     ///     StorageClass: String,
     /// }
-    /// // 或者
+    /// // 或者根据不同的业务需要，导出不同的字段
     /// #[derive(Debug, Deserialize)]
     /// struct MyBucket2 {
     ///     Location: String,
