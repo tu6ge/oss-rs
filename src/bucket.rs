@@ -19,7 +19,7 @@ pub struct Bucket {
     endpoint: EndPoint,
 }
 
-type NextContinuationToken = String;
+type NextContinuationToken = Option<String>;
 
 impl Bucket {
     pub fn new<N: Into<String>>(name: N, endpoint: EndPoint) -> Bucket {
@@ -255,7 +255,7 @@ impl Bucket {
             #[serde(rename = "Contents")]
             contents: Vec<T>,
             #[serde(rename = "NextContinuationToken")]
-            next_token: String,
+            next_token: Option<String>,
         }
         let res: ListBucketResult<Obj> = from_str(&content)?;
 
@@ -423,12 +423,12 @@ mod tests {
             Key: String,
         }
 
-        let (list, token): (Vec<MyObject>, String) = bucket
+        let (list, _): (Vec<MyObject>, _) = bucket
             .export_objects(&condition, &init_client())
             .await
             .unwrap();
 
-        println!("{list:?}, token:{token}");
+        println!("{list:?}");
     }
 
     #[tokio::test]
