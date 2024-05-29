@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use url::Url;
 
-use crate::{bucket::Bucket, object::Objects};
+use crate::bucket::Bucket;
 
 pub struct Key(String);
 
 impl Key {
-    pub fn new(key: String) -> Key {
-        Key(key)
+    pub fn new<K: Into<String>>(key: K) -> Key {
+        Key(key.into())
     }
     pub fn as_str(&self) -> &str {
         self.0.as_str()
@@ -18,8 +18,8 @@ impl Key {
 pub struct Secret(pub(crate) String);
 
 impl Secret {
-    pub fn new(secret: String) -> Secret {
-        Secret(secret)
+    pub fn new<S: Into<String>>(secret: S) -> Secret {
+        Secret(secret.into())
     }
     /// # 加密数据
     /// 这种加密方式可保证秘钥明文只会存在于 `Secret` 类型内，不会被读取或复制
@@ -254,6 +254,7 @@ pub(crate) enum EndPointKind {
     /// 新加坡
     ApSouthEast1,
     /// 其他可用区 fuzhou，ap-southeast-6 等
+    #[allow(dead_code)]
     Other(String),
 }
 

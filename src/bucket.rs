@@ -236,7 +236,7 @@ impl Bucket {
         let mut url = self.to_url();
         url.set_query(Some(&query.to_oss_query()));
         let method = Method::GET;
-        let resource = CanonicalizedResource::from_object_list(&self, query.get_next_token());
+        let resource = CanonicalizedResource::from_object_list(self, query.get_next_token());
 
         let header_map = client.authorization(method, resource)?;
 
@@ -270,7 +270,7 @@ impl Bucket {
         let mut url = self.to_url();
         url.set_query(Some(&query.to_oss_query()));
         let method = Method::GET;
-        let resource = CanonicalizedResource::from_object_list(&self, query.get_next_token());
+        let resource = CanonicalizedResource::from_object_list(self, query.get_next_token());
 
         let header_map = client.authorization(method, resource)?;
 
@@ -338,6 +338,16 @@ impl BucketInfo {
             data_redundancy_type,
         }
     }
+
+    pub fn creation_date(&self) -> &DateTime<Utc> {
+        &self.creation_date
+    }
+    pub fn storage_class(&self) -> &StorageClass {
+        &self.storage_class
+    }
+    pub fn data_redundancy_type(&self) -> &DataRedundancyType {
+        &self.data_redundancy_type
+    }
 }
 
 #[derive(Default, Debug)]
@@ -372,7 +382,7 @@ mod tests {
     use serde::Deserialize;
 
     use crate::{
-        client::initClient,
+        client::init_client,
         types::{EndPoint, ObjectQuery},
     };
 
@@ -381,7 +391,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_info() {
         let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
-        let info = bucket.get_info(&initClient()).await.unwrap();
+        let info = bucket.get_info(&init_client()).await.unwrap();
 
         //assert_eq!(list.len(), 2);
     }
@@ -394,7 +404,7 @@ mod tests {
         struct DemoData {
             Name: String,
         }
-        let res: DemoData = bucket.export_info(&initClient()).await.unwrap();
+        let res: DemoData = bucket.export_info(&init_client()).await.unwrap();
 
         println!("{:?}", res);
     }
@@ -414,7 +424,7 @@ mod tests {
         }
 
         let (list, token): (Vec<MyObject>, String) = bucket
-            .export_objects(&condition, &initClient())
+            .export_objects(&condition, &init_client())
             .await
             .unwrap();
 
@@ -430,13 +440,19 @@ mod tests {
             map
         };
 
-        let list = bucket.get_objects(&condition, &initClient()).await.unwrap();
+        let list = bucket
+            .get_objects(&condition, &init_client())
+            .await
+            .unwrap();
 
         println!("{list:?}");
         condition.insert_next_token(list.next_token().unwrap().to_owned());
-        let second_list2 = bucket.get_objects(&condition, &initClient()).await.unwrap();
+        let second_list2 = bucket
+            .get_objects(&condition, &init_client())
+            .await
+            .unwrap();
         println!("second_list: {:?}", second_list2);
-        // let second_list = list.next_list(&condition, &initClient()).await.unwrap();
+        // let second_list = list.next_list(&condition, &init_client()).await.unwrap();
         // println!("second_list: {:?}", second_list);
     }
 }

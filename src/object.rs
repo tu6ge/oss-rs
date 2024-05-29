@@ -183,13 +183,13 @@ mod tests {
     use super::Object;
     use crate::{
         bucket::Bucket,
-        client::{initClient, Client},
+        client::{init_client, Client},
         types::{EndPoint, ObjectQuery},
     };
 
     fn set_client() -> Client {
-        let mut client = initClient();
-        client.set_bucket(Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI));
+        let mut client = init_client();
+        client.set_bucket(Bucket::new("honglei123", EndPoint::CN_SHANGHAI));
 
         client
     }

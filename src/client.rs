@@ -28,18 +28,11 @@ impl Client {
         }
     }
 
-    pub(crate) fn key(&self) -> &Key {
-        &self.key
-    }
-    pub(crate) fn secret(&self) -> &Secret {
-        &self.secret
-    }
-
     /// 设置默认的 bucket(bucket 也会包含 endpoint 信息)
     /// 当设置的时候，会返回上次设置的值，默认值为 None
     /// ```
     /// # use aliyun_oss_client::{Client, Key, Secret, EndPoint, Bucket};
-    /// # let mut client = Client::new(Key::new("foo".into()), Secret::new("bar".into()));
+    /// # let mut client = Client::new(Key::new("foo"), Secret::new("bar"));
     /// # let bucket = Bucket::new("bucket1", EndPoint::CN_QINGDAO);
     /// # let bucket2 = Bucket::new("bucket2", EndPoint::CN_QINGDAO);
     /// assert!(client.bucket().is_none());
@@ -236,14 +229,11 @@ fn now() -> String {
 
 #[cfg(test)]
 mod tests {
-
-    use serde_xml_rs::from_str;
-
-    use crate::{client::initClient, types::EndPoint};
+    use crate::{client::init_client, types::EndPoint};
 
     #[tokio::test]
     async fn test_get_buckets() {
-        let list = initClient()
+        let list = init_client()
             .get_buckets(&EndPoint::CN_QINGDAO)
             .await
             .unwrap();
@@ -267,7 +257,7 @@ mod tests {
             StorageClass: String,
         }
 
-        let list: Vec<MyBucket> = initClient()
+        let list: Vec<MyBucket> = init_client()
             .export_buckets(&EndPoint::CN_QINGDAO)
             .await
             .unwrap();
@@ -277,7 +267,7 @@ mod tests {
 }
 
 #[cfg(test)]
-pub fn initClient() -> Client {
+pub fn init_client() -> Client {
     use std::env;
 
     use dotenv::dotenv;
