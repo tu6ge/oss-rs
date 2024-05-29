@@ -47,7 +47,7 @@ impl Objects {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Object {
     path: String,
 }
