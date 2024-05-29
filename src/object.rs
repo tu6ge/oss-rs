@@ -53,9 +53,76 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn new(path: String) -> Object {
-        Object { path }
+    pub fn new<P: Into<String>>(path: P) -> Object {
+        Object { path: path.into() }
     }
+
+    /// 确认文件是否在目录里面
+    ///
+    /// ```rust
+    /// # use aliyun_oss_client::Object;
+    /// let obj1 = Object::new("foo.txt");
+    /// assert!(!obj1.in_dir());
+    ///
+    /// let obj2 = Object::new("path/foo.txt")
+    /// assert!(obj2.in_dir());
+    /// ```
+    pub fn in_dir(&self) -> bool {
+        self.path.find('/').is_some()
+    }
+
+    /// 获取文件袋各级目录
+    /// ```rust
+    /// # use aliyun_oss_client::Object;
+    /// let obj1 = Object::new("foo.txt");
+    /// let dirs = obj1.get_dirs();
+    /// assert!(dirs.len()==0);
+    /// let obj2 = Object::new("path1/path2/foo.txt");
+    /// let dirs2 = obj2.get_dirs();
+    /// assert_eq!(dirs2[0], "path1".to_string());
+    /// assert_eq!(dirs2[1], "path2".to_string());
+    /// assert!(dirs2.len() ==2);
+    /// ```
+    pub fn get_dirs(&self) -> Vec<String> {
+        let mut dirs: Vec<&str> = self.path.split('/').collect();
+        dirs.pop();
+
+        dirs.iter().map(|&d| d.to_owned()).collect()
+    }
+
+    /// 根据目录层级，获取绝对路径
+    /// ```rust
+    /// # use aliyun_oss_client::Object;
+    /// let obj1 = Object::new("foo.txt");
+    /// let path1 = obj1.absolute_dir_nth(10);
+    /// assert!(path1.is_none());
+    /// let obj2 = Object::new("path3/path22/bar.txt");
+    /// let path21 = obj2.absolute_dir_nth(1);
+    /// assert_eq!(path21, Some("path3".to_string()));
+    /// let path22 = obj2.absolute_dir_nth(2);
+    /// assert_eq!(path22, Some("path3/path22".to_string()));
+    /// let path23 = obj2.absolute_dir_nth(3);
+    /// assert_eq!(path23, Some("path3/path22".to_string()));
+    /// ```
+    pub fn absolute_dir_nth(&self, num: usize) -> Option<String> {
+        let dirs = self.get_dirs();
+        if dirs.len() == 0 {
+            return None;
+        }
+        let n = if num > dirs.len() { dirs.len() } else { num };
+        let mut dir = String::new();
+        for i in 0..n {
+            if i == 0 {
+                dir.push_str(&dirs[i]);
+            } else {
+                dir.push('/');
+                dir.push_str(&dirs[i]);
+            }
+        }
+
+        Some(dir)
+    }
+
     pub async fn get_info(&self, client: &Client) -> Result<ObjectInfo, OssError> {
         let bucket = match client.bucket() {
             Some(bucket) => bucket,
@@ -196,7 +263,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_object_info() {
-        let object = Object::new("app-config.json".into());
+        let object = Object::new("app-config.json");
 
         let info = object.get_info(&set_client()).await.unwrap();
 
@@ -205,7 +272,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_upload() {
-        let object = Object::new("abc.txt".into());
+        let object = Object::new("abc.txt");
 
         let info = object.upload("aaa".into(), &set_client()).await.unwrap();
 
@@ -214,7 +281,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_down() {
-        let object = Object::new("abc.txt".into());
+        let object = Object::new("abc.txt");
 
         let info = object.download(&set_client()).await.unwrap();
 
