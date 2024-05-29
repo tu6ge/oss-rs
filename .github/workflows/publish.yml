@@ -1,0 +1,43 @@
+name: Test and Publish
+
+on:
+  push:
+    branches: 
+      - "master"
+      - "branch*"
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    name: 'publish'
+
+    environment: cargo
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check fmt
+        run: cargo fmt --check
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          key: ${{ runner.os }}-build-v0.3.5
+      
+      - name: Show cargo info
+        run: cargo version --verbose
+
+      - name: Install publish-action
+        if: steps.cache-publish-action.outputs.cache-hit != 'true'
+        run: |
+          cargo install publish-action --version=0.3.5
+
+      - name: Run Test
+        run: |
+          cargo test --doc
