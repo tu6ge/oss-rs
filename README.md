@@ -16,9 +16,17 @@ struct Client {
 }
 
 impl Client {
-   async fn get_buckets(&self, endpoint: EndPoint) -> Vec<Bucket> {
+    async fn get_buckets(&self, endpoint: EndPoint) -> Vec<Bucket> {
         todo!()
-   }
+    }
+
+    // 导出到自定义的类型
+    pub async fn export_buckets<B: DeserializeOwned>(
+        &self,
+        endpoint: &EndPoint,
+    ) -> Result<Vec<B>, OssError> {
+        //...
+    }
 }
 ```
 
@@ -32,8 +40,23 @@ impl Bucket{
     async fn get_info(&self, client: &Client) -> BucketInfo {
         todo!()
     }
+
+    // 导出到自定义的类型
+    pub async fn export_info<B: DeserializeOwned>(&self, client: &Client) -> Result<B, OssError> {
+        //...
+    }
+
     async fn get_object(&self, client: &Client) -> Vec<Object> {
         todo!()
+    }
+
+    // 导出到自定义的类型
+    pub async fn export_objects<Obj: DeserializeOwned>(
+        &self,
+        query: &ObjectQuery,
+        client: &Client,
+    ) -> Result<(Vec<Obj>, NextContinuationToken), OssError> {
+        //...
     }
 }
 ```
