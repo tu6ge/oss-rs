@@ -152,11 +152,23 @@ impl EndPoint {
         is_internal: false,
     };
 
+    /// # 调整 API 指向是否为内网
+    ///
+    /// 当在 Aliyun ECS 上执行时，设为 true 会更高效，默认是 false
+    pub fn set_internal(&mut self, is_internal: bool) {
+        self.is_internal = is_internal;
+    }
+
+    /// 返回当前的 endpoint 是否为内网
+    pub fn is_internal(&self) -> bool {
+        self.is_internal
+    }
+
     /// 转化成 Url
     /// ```
     /// # use aliyun_oss_client::types::EndPoint;
     /// use reqwest::Url;
-    /// let mut endpoint = EndPoint::new("shanghai").unwrap();
+    /// let mut endpoint = EndPoint::CN_SHANGHAI;;
     /// assert_eq!(
     ///     endpoint.to_url(),
     ///     Url::parse("https://oss-cn-shanghai.aliyuncs.com").unwrap()

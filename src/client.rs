@@ -12,6 +12,7 @@ use crate::{
     types::{CanonicalizedResource, EndPoint, Key, Secret},
 };
 
+/// 存放 key, secret 以及默认 bucket 信息，几乎每个 api 都会用到它的引用
 pub struct Client {
     key: Key,
     secret: Secret,
@@ -34,10 +35,27 @@ impl Client {
         &self.secret
     }
 
+    /// 设置默认的 bucket(bucket 也会包含 endpoint 信息)
+    /// 当设置的时候，会返回上次设置的值，默认值为 None
+    /// ```
+    /// # use aliyun_oss_client::{Client, Key, Secret, EndPoint, Bucket};
+    /// # let mut client = Client::new(Key::new("foo".into()), Secret::new("bar".into()));
+    /// # let bucket = Bucket::new("bucket1", EndPoint::CN_QINGDAO);
+    /// # let bucket2 = Bucket::new("bucket2", EndPoint::CN_QINGDAO);
+    /// assert!(client.bucket().is_none());
+    /// let res = client.set_bucket(bucket.clone());
+    /// assert!(res.is_none());
+    /// assert_eq!(client.bucket(), Some(&bucket));
+    ///
+    /// let res2 = client.set_bucket(bucket2.clone());
+    /// assert_eq!(res2, Some(bucket));
+    /// assert_eq!(client.bucket(), Some(&bucket2));
+    /// ```
     pub fn set_bucket(&mut self, bucket: Bucket) -> Option<Bucket> {
         self.bucket.replace(bucket)
     }
 
+    /// 返回当前设置的 bucket 信息
     pub fn bucket(&self) -> Option<&Bucket> {
         self.bucket.as_ref()
     }
@@ -83,6 +101,42 @@ impl Client {
         Ok(header_map)
     }
 
+    /// 调用 api 导出 bucket 列表信息到自定义类型
+    ///
+    /// aliyun api 返回的 xml 是如下格式：
+    /// ```xml
+    /// <Bucket>
+    ///  <Comment></Comment>
+    ///  <CreationDate>2020-09-13T03:14:54.000Z</CreationDate>
+    ///  <ExtranetEndpoint>oss-cn-shanghai.aliyuncs.com</ExtranetEndpoint>
+    ///  <IntranetEndpoint>oss-cn-shanghai-internal.aliyuncs.com</IntranetEndpoint>
+    ///  <Location>oss-cn-shanghai</Location>
+    ///  <Name>aliyun-wb-kpbf3</Name>
+    ///  <Region>cn-shanghai</Region>
+    ///  <StorageClass>Standard</StorageClass>
+    /// </Bucket>
+    /// ```
+    /// 该方法返回的类型可以是如下结构体：
+    /// ```rust
+    /// use serde::Deserialize;
+    /// #[derive(Debug, Deserialize)]
+    /// struct MyBucket {
+    ///     Comment: String,
+    ///     CreationDate: String,
+    ///     ExtranetEndpoint: String,
+    ///     IntranetEndpoint: String,
+    ///     Location: String,
+    ///     Name: String,
+    ///     Region: String,
+    ///     StorageClass: String,
+    /// }
+    /// // 或者
+    /// #[derive(Debug, Deserialize)]
+    /// struct MyBucket2 {
+    ///     Location: String,
+    ///     Name: String,
+    /// }
+    /// ```
     pub async fn export_buckets<B: DeserializeOwned>(
         &self,
         endpoint: &EndPoint,
@@ -100,6 +154,8 @@ impl Client {
             .await?
             .text()
             .await?;
+
+        //println!("{}", content);
 
         #[derive(Debug, Deserialize)]
         struct ListAllMyBucketsResult<T> {
@@ -200,7 +256,7 @@ mod tests {
         use serde::Deserialize;
 
         #[derive(Debug, Deserialize)]
-        struct Bucket {
+        struct MyBucket {
             Comment: String,
             CreationDate: String,
             ExtranetEndpoint: String,
@@ -211,7 +267,7 @@ mod tests {
             StorageClass: String,
         }
 
-        let list: Vec<Bucket> = initClient()
+        let list: Vec<MyBucket> = initClient()
             .export_buckets(&EndPoint::CN_QINGDAO)
             .await
             .unwrap();

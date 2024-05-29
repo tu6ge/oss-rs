@@ -13,7 +13,7 @@ use crate::{
     types::{CanonicalizedResource, EndPoint, ObjectQuery, StorageClass},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Bucket {
     name: String,
     endpoint: EndPoint,
@@ -22,14 +22,25 @@ pub struct Bucket {
 type NextContinuationToken = String;
 
 impl Bucket {
-    pub fn new(name: String, endpoint: EndPoint) -> Bucket {
-        Bucket { name, endpoint }
+    pub fn new<N: Into<String>>(name: N, endpoint: EndPoint) -> Bucket {
+        Bucket {
+            name: name.into(),
+            endpoint,
+        }
     }
 
     pub(crate) fn as_str(&self) -> &str {
         &self.name
     }
 
+    /// # 返回 bucket 对应的链接地址
+    /// 可以是内网地址，默认为外网地址
+    /// ```
+    /// # use aliyun_oss_client::{Bucket, EndPoint};
+    /// # use url::Url;
+    /// let bucket = Bucket::new("foo", EndPoint::CN_QINGDAO);
+    /// assert_eq!(bucket.to_url(), Url::parse("https://foo.oss-cn-qingdao.aliyuncs.com").unwrap());
+    /// ```
     pub fn to_url(&self) -> Url {
         const HTTPS: &str = "https://";
         let url = self.endpoint.to_url().to_string();
@@ -43,6 +54,50 @@ impl Bucket {
 
         Url::parse(&url).unwrap()
     }
+
+    /// 调用 api 导出 bucket 详情信息到自定义类型
+    ///
+    /// aliyun api 返回的 xml 是如下格式：
+    /// ```xml
+    /// <Bucket>
+    ///   <AccessMonitor>Disabled</AccessMonitor>
+    ///   <BlockPublicAccess>false</BlockPublicAccess>
+    ///   <Comment></Comment>
+    ///   <CreationDate>2016-11-05T13:10:10.000Z</CreationDate>
+    ///   <CrossRegionReplication>Disabled</CrossRegionReplication>
+    ///   <DataRedundancyType>LRS</DataRedundancyType>
+    ///   <ExtranetEndpoint>oss-cn-shanghai.aliyuncs.com</ExtranetEndpoint>
+    ///   <IntranetEndpoint>oss-cn-shanghai-internal.aliyuncs.com</IntranetEndpoint>
+    ///   <Location>oss-cn-shanghai</Location>
+    ///   <Name>honglei123</Name>
+    ///   <ResourceGroupId>rg-acfmoiyerp5judy</ResourceGroupId>
+    ///   <StorageClass>Standard</StorageClass>
+    ///   <TransferAcceleration>Disabled</TransferAcceleration>
+    ///   <Owner>
+    ///     <DisplayName>34773519</DisplayName>
+    ///     <ID>34773519</ID>
+    ///   </Owner>
+    ///   <AccessControlList>
+    ///     <Grant>public-read</Grant>
+    ///   </AccessControlList>
+    ///   <ServerSideEncryptionRule>
+    ///     <SSEAlgorithm>None</SSEAlgorithm>
+    ///   </ServerSideEncryptionRule>
+    ///   <BucketPolicy>
+    ///     <LogBucket>honglei123</LogBucket>
+    ///     <LogPrefix>oss-accesslog/</LogPrefix>
+    ///   </BucketPolicy>
+    /// </Bucket>
+    /// ```
+    /// 该方法返回的类型可以是如下结构体：
+    ///
+    /// ```rust
+    /// use serde::Deserialize;
+    /// #[derive(Debug, Deserialize)]
+    /// struct DemoData {
+    ///     Name: String,
+    /// }
+    /// ```
 
     pub async fn export_info<B: DeserializeOwned>(&self, client: &Client) -> Result<B, OssError> {
         const BUCKET_INFO: &str = "bucketInfo";
@@ -61,6 +116,8 @@ impl Bucket {
             .await?
             .text()
             .await?;
+
+        //println!("{}", content);
 
         #[derive(Debug, Deserialize)]
         struct BucketInfo<T> {
@@ -150,6 +207,27 @@ impl Bucket {
         }
     }
 
+    /// 调用 aliyun api 返回 object 列表到自定义类型，它还会返回用于翻页的 `NextContinuationToken`
+    ///
+    /// aliyun api 返回的 xml 是如下格式：
+    /// ```xml
+    /// <Contents>
+    ///   <Key>9AB932LY.jpeg</Key>
+    ///   <LastModified>2022-06-26T09:53:21.000Z</LastModified>
+    ///   <ETag>"F75A15996D0857B16FA31A3B16624C26"</ETag>
+    ///   <Type>Normal</Type>
+    ///   <Size>18027</Size>
+    ///   <StorageClass>Standard</StorageClass>
+    /// </Contents>
+    /// ```
+    /// 该方法返回的类型可以是如下结构体：
+    /// ```rust
+    /// use serde::Deserialize;
+    /// #[derive(Debug, Deserialize)]
+    /// struct MyObject {
+    ///     Key: String,
+    /// }
+    /// ```
     pub async fn export_objects<Obj: DeserializeOwned>(
         &self,
         query: &ObjectQuery,
@@ -302,7 +380,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_info() {
-        let bucket = Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI);
+        let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
         let info = bucket.get_info(&initClient()).await.unwrap();
 
         //assert_eq!(list.len(), 2);
@@ -310,7 +388,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_export_info() {
-        let bucket = Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI);
+        let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
 
         #[derive(Debug, Deserialize)]
         struct DemoData {
@@ -323,7 +401,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_export_objects() {
-        let bucket = Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI);
+        let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
         let condition = {
             let mut map = ObjectQuery::new();
             map.insert(ObjectQuery::MAX_KEYS, "5");
@@ -345,7 +423,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_objects() {
-        let bucket = Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI);
+        let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
         let mut condition = {
             let mut map = ObjectQuery::new();
             map.insert(ObjectQuery::MAX_KEYS, "5");
