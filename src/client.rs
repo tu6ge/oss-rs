@@ -3,6 +3,8 @@ use reqwest::{
     header::{HeaderMap, CONTENT_TYPE},
     Method,
 };
+use serde::{de::DeserializeOwned, Deserialize};
+use serde_xml_rs::from_str;
 
 use crate::{
     bucket::Bucket,
@@ -80,6 +82,42 @@ impl Client {
 
         Ok(header_map)
     }
+
+    pub async fn export_buckets<B: DeserializeOwned>(
+        &self,
+        endpoint: &EndPoint,
+    ) -> Result<Vec<B>, OssError> {
+        let url = endpoint.to_url();
+        let method = Method::GET;
+        let resource = CanonicalizedResource::default();
+
+        let header_map = self.authorization(method, resource)?;
+
+        let content = reqwest::Client::new()
+            .get(url)
+            .headers(header_map)
+            .send()
+            .await?
+            .text()
+            .await?;
+
+        #[derive(Debug, Deserialize)]
+        struct ListAllMyBucketsResult<T> {
+            #[serde(rename = "Buckets")]
+            buckets: Buckets<T>,
+        }
+
+        #[derive(Debug, Deserialize)]
+        struct Buckets<T> {
+            #[serde(rename = "Bucket")]
+            bucket: Vec<T>,
+        }
+
+        let xml_res: ListAllMyBucketsResult<B> = from_str(&content)?;
+
+        Ok(xml_res.buckets.bucket)
+    }
+
     pub async fn get_buckets(&self, endpoint: &EndPoint) -> Result<Vec<Bucket>, OssError> {
         let url = endpoint.to_url();
         let method = Method::GET;
@@ -94,6 +132,8 @@ impl Client {
             .await?
             .text()
             .await?;
+
+        // println!("{content}");
 
         Self::parse_xml(content, endpoint)
     }
@@ -140,6 +180,9 @@ fn now() -> String {
 
 #[cfg(test)]
 mod tests {
+
+    use serde_xml_rs::from_str;
+
     use crate::{client::initClient, types::EndPoint};
 
     #[tokio::test]
@@ -150,6 +193,30 @@ mod tests {
             .unwrap();
 
         assert_eq!(list.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn parse_xml() {
+        use serde::Deserialize;
+
+        #[derive(Debug, Deserialize)]
+        struct Bucket {
+            Comment: String,
+            CreationDate: String,
+            ExtranetEndpoint: String,
+            IntranetEndpoint: String,
+            Location: String,
+            Name: String,
+            Region: String,
+            StorageClass: String,
+        }
+
+        let list: Vec<Bucket> = initClient()
+            .export_buckets(&EndPoint::CN_QINGDAO)
+            .await
+            .unwrap();
+
+        println!("{list:?}");
     }
 }
 

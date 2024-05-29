@@ -33,6 +33,8 @@ pub enum OssError {
     Upload(String),
 
     NoFoundBucket,
+
+    ParseXml(#[from] serde_xml_rs::Error),
 }
 
 impl Display for OssError {

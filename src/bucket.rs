@@ -2,6 +2,8 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use reqwest::Method;
+use serde::{de::DeserializeOwned, Deserialize};
+use serde_xml_rs::from_str;
 use url::Url;
 
 use crate::{
@@ -16,6 +18,8 @@ pub struct Bucket {
     name: String,
     endpoint: EndPoint,
 }
+
+type NextContinuationToken = String;
 
 impl Bucket {
     pub fn new(name: String, endpoint: EndPoint) -> Bucket {
@@ -40,6 +44,34 @@ impl Bucket {
         Url::parse(&url).unwrap()
     }
 
+    pub async fn export_info<B: DeserializeOwned>(&self, client: &Client) -> Result<B, OssError> {
+        const BUCKET_INFO: &str = "bucketInfo";
+
+        let mut url = self.to_url();
+        url.set_query(Some(BUCKET_INFO));
+        let method = Method::GET;
+        let resource = CanonicalizedResource::from_bucket_info(self);
+
+        let header_map = client.authorization(method, resource)?;
+
+        let content = reqwest::Client::new()
+            .get(url)
+            .headers(header_map)
+            .send()
+            .await?
+            .text()
+            .await?;
+
+        #[derive(Debug, Deserialize)]
+        struct BucketInfo<T> {
+            #[serde(rename = "Bucket")]
+            bucket: T,
+        }
+        let res: BucketInfo<B> = from_str(&content)?;
+
+        Ok(res.bucket)
+    }
+
     pub async fn get_info(&self, client: &Client) -> Result<BucketInfo, OssError> {
         const BUCKET_INFO: &str = "bucketInfo";
 
@@ -58,7 +90,7 @@ impl Bucket {
             .text()
             .await?;
 
-        //println!("{content}");
+        println!("{content}");
         Self::parse_info_xml(content)
     }
 
@@ -116,6 +148,40 @@ impl Bucket {
             }
             _ => None,
         }
+    }
+
+    pub async fn export_objects<Obj: DeserializeOwned>(
+        &self,
+        query: &ObjectQuery,
+        client: &Client,
+    ) -> Result<(Vec<Obj>, NextContinuationToken), OssError> {
+        let mut url = self.to_url();
+        url.set_query(Some(&query.to_oss_query()));
+        let method = Method::GET;
+        let resource = CanonicalizedResource::from_object_list(&self, query.get_next_token());
+
+        let header_map = client.authorization(method, resource)?;
+
+        let content = reqwest::Client::new()
+            .get(url)
+            .headers(header_map)
+            .send()
+            .await?
+            .text()
+            .await?;
+
+        //println!("{content}");
+
+        #[derive(Debug, Deserialize)]
+        struct ListBucketResult<T> {
+            #[serde(rename = "Contents")]
+            contents: Vec<T>,
+            #[serde(rename = "NextContinuationToken")]
+            next_token: String,
+        }
+        let res: ListBucketResult<Obj> = from_str(&content)?;
+
+        Ok((res.contents, res.next_token))
     }
 
     pub async fn get_objects(
@@ -225,6 +291,8 @@ impl FromStr for DataRedundancyType {
 
 #[cfg(test)]
 mod tests {
+    use serde::Deserialize;
+
     use crate::{
         client::initClient,
         types::{EndPoint, ObjectQuery},
@@ -238,6 +306,41 @@ mod tests {
         let info = bucket.get_info(&initClient()).await.unwrap();
 
         //assert_eq!(list.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_export_info() {
+        let bucket = Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI);
+
+        #[derive(Debug, Deserialize)]
+        struct DemoData {
+            Name: String,
+        }
+        let res: DemoData = bucket.export_info(&initClient()).await.unwrap();
+
+        println!("{:?}", res);
+    }
+
+    #[tokio::test]
+    async fn test_export_objects() {
+        let bucket = Bucket::new("honglei123".into(), EndPoint::CN_SHANGHAI);
+        let condition = {
+            let mut map = ObjectQuery::new();
+            map.insert(ObjectQuery::MAX_KEYS, "5");
+            map
+        };
+
+        #[derive(Debug, Deserialize)]
+        struct MyObject {
+            Key: String,
+        }
+
+        let (list, token): (Vec<MyObject>, String) = bucket
+            .export_objects(&condition, &initClient())
+            .await
+            .unwrap();
+
+        println!("{list:?}, token:{token}");
     }
 
     #[tokio::test]
