@@ -207,6 +207,28 @@ impl Object {
 
         Ok(response.into())
     }
+
+    pub async fn delete(&self, client: &Client) -> Result<(), OssError> {
+        let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
+        let url = self.to_url(bucket);
+        let method = Method::DELETE;
+        let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
+
+        let header_map = client.authorization(method, resource)?;
+
+        let response = reqwest::Client::new()
+            .delete(url)
+            .headers(header_map)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            let body = response.text().await?;
+            Err(OssError::Delete(body))
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -278,6 +300,12 @@ mod tests {
         let info = object.download(&set_client()).await.unwrap();
 
         println!("{:?}", std::str::from_utf8(&info).unwrap());
+    }
+    #[tokio::test]
+    async fn test_delete() {
+        let object = Object::new("abc.txt");
+
+        let info = object.delete(&set_client()).await.unwrap();
     }
 
     #[tokio::test]
