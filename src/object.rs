@@ -66,7 +66,7 @@ impl Object {
     /// let obj1 = Object::new("foo.txt");
     /// assert!(!obj1.in_dir());
     ///
-    /// let obj2 = Object::new("path/foo.txt")
+    /// let obj2 = Object::new("path/foo.txt");
     /// assert!(obj2.in_dir());
     /// ```
     pub fn in_dir(&self) -> bool {
