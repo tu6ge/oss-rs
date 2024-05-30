@@ -147,32 +147,22 @@ impl Bucket {
             .text()
             .await?;
 
-        println!("{content}");
+        //println!("{content}");
         Self::parse_info_xml(content)
     }
 
     fn parse_info_xml(xml: String) -> Result<BucketInfo, OssError> {
-        let creation_date = match Self::parse_item(&xml, "CreationDate") {
-            Some(d) => d,
-            None => return Err(OssError::NoFoundCreationDate),
-        };
-        let creation_date = creation_date.parse()?;
-        let storage_class = match Self::parse_item(&xml, "StorageClass") {
-            Some(s) => s,
-            None => return Err(OssError::NoFoundStorageClass),
-        };
-        let storage_class = match StorageClass::new(storage_class) {
-            Some(s) => s,
-            None => return Err(OssError::NoFoundStorageClass),
-        };
-        let data_redundancy_type = match Self::parse_item(&xml, "DataRedundancyType") {
-            Some(s) => s,
-            None => return Err(OssError::NoFoundDataRedundancyType),
-        };
-        let data_redundancy_type = match DataRedundancyType::from_str(data_redundancy_type) {
-            Ok(d) => d,
-            Err(_) => return Err(OssError::NoFoundDataRedundancyType),
-        };
+        let creation_date = Self::parse_item(&xml, "CreationDate")
+            .ok_or(OssError::NoFoundCreationDate)?
+            .parse()?;
+        let storage_class = StorageClass::new(
+            Self::parse_item(&xml, "StorageClass").ok_or(OssError::NoFoundStorageClass)?,
+        )
+        .ok_or(OssError::NoFoundStorageClass)?;
+        let data_redundancy_type = Self::parse_item(&xml, "DataRedundancyType")
+            .ok_or(OssError::NoFoundDataRedundancyType)?;
+        let data_redundancy_type = DataRedundancyType::from_str(data_redundancy_type)
+            .map_err(|_| OssError::NoFoundDataRedundancyType)?;
 
         Ok(BucketInfo {
             creation_date,

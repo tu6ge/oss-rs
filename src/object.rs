@@ -1,10 +1,12 @@
 use chrono::{DateTime, Utc};
 use reqwest::{header::CONTENT_LENGTH, Method};
+use url::Url;
 
 use crate::{
     client::Client,
     error::OssError,
     types::{CanonicalizedResource, ObjectQuery},
+    Bucket,
 };
 
 #[derive(Debug)]
@@ -123,13 +125,15 @@ impl Object {
         Some(dir)
     }
 
-    pub async fn get_info(&self, client: &Client) -> Result<ObjectInfo, OssError> {
-        let bucket = match client.bucket() {
-            Some(bucket) => bucket,
-            None => return Err(OssError::NoFoundBucket),
-        };
+    pub fn to_url(&self, bucket: &Bucket) -> Url {
         let mut url = bucket.to_url();
         url.set_path(&self.path);
+        url
+    }
+
+    pub async fn get_info(&self, client: &Client) -> Result<ObjectInfo, OssError> {
+        let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
+        let mut url = self.to_url(bucket);
         url.set_query(Some("objectMeta"));
         let method = Method::GET;
         let resource =
@@ -145,21 +149,17 @@ impl Object {
 
         let headers = response.headers();
 
-        let content_length = match headers.get(CONTENT_LENGTH) {
-            Some(v) => v,
-            None => return Err(OssError::NoFoundContentLength),
-        };
-        let etag = match headers.get("etag") {
-            Some(v) => v,
-            None => return Err(OssError::NoFoundEtag),
-        };
-        let last_modified = match headers.get("last-modified") {
-            Some(v) => v,
-            None => return Err(OssError::NoFoundLastModified),
-        };
-        let last_modified = last_modified.to_str()?;
+        let content_length = headers
+            .get(CONTENT_LENGTH)
+            .ok_or(OssError::NoFoundContentLength)?;
+        let etag = headers.get("etag").ok_or(OssError::NoFoundEtag)?;
 
-        let date = DateTime::parse_from_rfc2822(last_modified)?;
+        let date = DateTime::parse_from_rfc2822(
+            headers
+                .get("last-modified")
+                .ok_or(OssError::NoFoundLastModified)?
+                .to_str()?,
+        )?;
         Ok(ObjectInfo {
             last_modified: date.with_timezone(&Utc),
             etag: etag.to_str()?.to_string(),
@@ -168,12 +168,8 @@ impl Object {
     }
 
     pub async fn upload(&self, content: Vec<u8>, client: &Client) -> Result<(), OssError> {
-        let bucket = match client.bucket() {
-            Some(bucket) => bucket,
-            None => return Err(OssError::NoFoundBucket),
-        };
-        let mut url = bucket.to_url();
-        url.set_path(&self.path);
+        let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
+        let url = self.to_url(bucket);
         let method = Method::PUT;
         let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
 
@@ -194,12 +190,8 @@ impl Object {
         }
     }
     pub async fn download(&self, client: &Client) -> Result<Vec<u8>, OssError> {
-        let bucket = match client.bucket() {
-            Some(bucket) => bucket,
-            None => return Err(OssError::NoFoundBucket),
-        };
-        let mut url = bucket.to_url();
-        url.set_path(&self.path);
+        let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
+        let url = self.to_url(bucket);
         let method = Method::GET;
         let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
 
@@ -285,7 +277,7 @@ mod tests {
 
         let info = object.download(&set_client()).await.unwrap();
 
-        println!("{info:?}");
+        println!("{:?}", std::str::from_utf8(&info).unwrap());
     }
 
     #[tokio::test]
