@@ -4,6 +4,7 @@ use url::Url;
 
 use crate::{bucket::Bucket, error::OssError};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Key(String);
 
 impl Key {
@@ -15,6 +16,7 @@ impl Key {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Secret(pub(crate) String);
 
 impl Secret {

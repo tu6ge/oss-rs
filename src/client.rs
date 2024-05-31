@@ -13,6 +13,7 @@ use crate::{
 };
 
 /// 存放 key, secret 以及默认 bucket 信息，几乎每个 api 都会用到它的引用
+#[derive(Debug, Clone)]
 pub struct Client {
     key: Key,
     secret: Secret,
