@@ -33,6 +33,10 @@ impl Objects {
         self.list.is_empty()
     }
 
+    pub fn get_vec(&self) -> &Vec<Object> {
+        &self.list
+    }
+
     pub async fn next_list(
         self,
         query: &ObjectQuery,
@@ -123,6 +127,10 @@ impl Object {
         }
 
         Some(dir)
+    }
+
+    pub fn get_path(&self) -> &str {
+        &self.path
     }
 
     pub fn to_url(&self, bucket: &Bucket) -> Url {

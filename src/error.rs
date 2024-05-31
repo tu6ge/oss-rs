@@ -37,6 +37,8 @@ pub enum OssError {
     NoFoundBucket,
 
     ParseXml(#[from] serde_xml_rs::Error),
+
+    InvalidEndPoint,
 }
 
 impl Display for OssError {

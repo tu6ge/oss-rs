@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use url::Url;
 
-use crate::bucket::Bucket;
+use crate::{bucket::Bucket, error::OssError};
 
 pub struct Key(String);
 
@@ -69,13 +69,13 @@ const US_WEST1: &str = "us-west-1";
 const US_EAST1: &str = "us-east-1";
 const AP_SOUTH_EAST1: &str = "ap-southeast-1";
 
-// const HANGZHOU_L: &str = "hangzhou";
-// const SHANGHAI_L: &str = "shanghai";
-// const QINGDAO_L: &str = "qingdao";
-// const BEIJING_L: &str = "beijing";
-// const ZHANGJIAKOU_L: &str = "zhangjiakou";
-// const HONGKONG_L: &str = "hongkong";
-// const SHENZHEN_L: &str = "shenzhen";
+const HANGZHOU_L: &str = "hangzhou";
+const SHANGHAI_L: &str = "shanghai";
+const QINGDAO_L: &str = "qingdao";
+const BEIJING_L: &str = "beijing";
+const ZHANGJIAKOU_L: &str = "zhangjiakou";
+const HONGKONG_L: &str = "hongkong";
+const SHENZHEN_L: &str = "shenzhen";
 
 impl EndPoint {
     /// 杭州
@@ -152,6 +152,72 @@ impl EndPoint {
         is_internal: false,
     };
 
+    /// 初始化 endpoint enum
+    /// ```rust
+    /// # use aliyun_oss_client::types::EndPoint;
+    /// assert!(matches!(
+    ///     EndPoint::new("shanghai"),
+    ///     Ok(EndPoint::SHANGHAI)
+    /// ));
+    ///
+    /// assert!(EndPoint::new("abc-").is_err());
+    /// assert!(EndPoint::new("-abc").is_err());
+    /// assert!(EndPoint::new("abc-def234ab").is_ok());
+    /// assert!(EndPoint::new("abc-def*#$%^ab").is_err());
+    /// assert!(EndPoint::new("cn-jinan").is_ok());
+    /// assert!(EndPoint::new("cn-jinan").is_ok());
+    /// assert!(EndPoint::new("oss-cn-jinan").is_err());
+    /// ```
+    pub fn new(url: &str) -> Result<Self, OssError> {
+        const OSS_STR: &str = "oss";
+        use EndPointKind::*;
+        if url.is_empty() {
+            return Err(OssError::InvalidEndPoint);
+        }
+        // 是否是内网
+        let is_internal = url.ends_with(OSS_INTERNAL);
+        let url = if is_internal {
+            let len = url.len();
+            &url[..len - 9]
+        } else {
+            url
+        };
+
+        let kind = if url.contains(SHANGHAI_L) {
+            Ok(CnShanghai)
+        } else if url.contains(HANGZHOU_L) {
+            Ok(CnHangzhou)
+        } else if url.contains(QINGDAO_L) {
+            Ok(CnQingdao)
+        } else if url.contains(BEIJING_L) {
+            Ok(CnBeijing)
+        } else if url.contains(ZHANGJIAKOU_L) {
+            Ok(CnZhangjiakou)
+        } else if url.contains(HONGKONG_L) {
+            Ok(CnHongkong)
+        } else if url.contains(SHENZHEN_L) {
+            Ok(CnShenzhen)
+        } else if url.contains(US_WEST1) {
+            Ok(UsWest1)
+        } else if url.contains(US_EAST1) {
+            Ok(UsEast1)
+        } else if url.contains(AP_SOUTH_EAST1) {
+            Ok(ApSouthEast1)
+        } else {
+            if url.starts_with('-') || url.ends_with('-') || url.starts_with(OSS_STR) {
+                return Err(OssError::InvalidEndPoint);
+            }
+
+            if !url.chars().all(valid_oss_character) {
+                return Err(OssError::InvalidEndPoint);
+            }
+
+            Ok(Other(url.to_owned()))
+        };
+
+        kind.map(|kind| Self { kind, is_internal })
+    }
+
     /// # 调整 API 指向是否为内网
     ///
     /// 当在 Aliyun ECS 上执行时，设为 true 会更高效，默认是 false
@@ -192,6 +258,15 @@ impl EndPoint {
 
         url.push_str(OSS_DOMAIN_MAIN);
         Url::parse(&url).unwrap_or_else(|_| panic!("covert to url failed, endpoint: {}", url))
+    }
+}
+
+fn valid_oss_character(c: char) -> bool {
+    match c {
+        _ if c.is_ascii_lowercase() => true,
+        _ if c.is_numeric() => true,
+        '-' => true,
+        _ => false,
     }
 }
 
