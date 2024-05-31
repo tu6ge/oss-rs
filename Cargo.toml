@@ -1,6 +1,6 @@
 [package]
 name = "aliyun-oss-client"
-version = "0.13.0-alpha3"
+version = "0.13.0-alpha4"
 edition = "2021"
 resolver = "2"
 description = "an aliyun oss client"
