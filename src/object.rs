@@ -210,7 +210,7 @@ impl Object {
             .headers(header_map)
             .send()
             .await?
-            .text()
+            .bytes()
             .await?;
 
         Ok(response.into())
