@@ -135,7 +135,7 @@ impl Object {
 
     pub fn to_url(&self, bucket: &Bucket) -> Url {
         let mut url = bucket.to_url();
-        url.set_path(&self.path);
+        url.path_segments_mut().unwrap().push(&self.path);
         url
     }
 
