@@ -29,6 +29,14 @@ impl Bucket {
         }
     }
 
+    pub fn from_env() -> Result<Bucket, OssError> {
+        let name = std::env::var("ALIYUN_BUCKET").map_err(|_| OssError::InvalidBucket)?;
+
+        let endpoint = EndPoint::from_env()?;
+
+        Ok(Bucket { name, endpoint })
+    }
+
     pub(crate) fn as_str(&self) -> &str {
         &self.name
     }

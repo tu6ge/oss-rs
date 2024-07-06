@@ -1,3 +1,5 @@
+use std::env::VarError;
+
 use chrono::Utc;
 use reqwest::{
     header::{HeaderMap, CONTENT_TYPE},
@@ -27,6 +29,18 @@ impl Client {
             secret,
             bucket: None,
         }
+    }
+
+    pub fn from_env() -> Result<Self, VarError> {
+        let key = Key::from_env()?;
+        let secret = Secret::from_env()?;
+        let bucket = Bucket::from_env().ok();
+
+        Ok(Client {
+            key,
+            secret,
+            bucket,
+        })
     }
 
     /// 设置默认的 bucket(bucket 也会包含 endpoint 信息)

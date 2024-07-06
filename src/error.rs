@@ -39,6 +39,8 @@ pub enum OssError {
     ParseXml(#[from] serde_xml_rs::Error),
 
     InvalidEndPoint,
+
+    InvalidBucket,
 }
 
 impl Display for OssError {

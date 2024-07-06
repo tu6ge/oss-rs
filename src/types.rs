@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, env::VarError};
 
 use url::Url;
 
@@ -11,6 +11,12 @@ impl Key {
     pub fn new<K: Into<String>>(key: K) -> Key {
         Key(key.into())
     }
+
+    pub fn from_env() -> Result<Key, VarError> {
+        let key = std::env::var("ALIYUN_KEY_ID")?;
+        Ok(Key(key))
+    }
+
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }
@@ -23,6 +29,12 @@ impl Secret {
     pub fn new<S: Into<String>>(secret: S) -> Secret {
         Secret(secret.into())
     }
+
+    pub fn from_env() -> Result<Secret, VarError> {
+        let key = std::env::var("ALIYUN_KEY_SECRET")?;
+        Ok(Secret(key))
+    }
+
     /// # 加密数据
     /// 这种加密方式可保证秘钥明文只会存在于 `Secret` 类型内，不会被读取或复制
     pub fn encryption(
@@ -218,6 +230,24 @@ impl EndPoint {
         };
 
         kind.map(|kind| Self { kind, is_internal })
+    }
+
+    /// use env init Endpoint
+    pub fn from_env() -> Result<Self, OssError> {
+        let endpoint = std::env::var("ALIYUN_ENDPOINT").map_err(|_| OssError::InvalidEndPoint)?;
+        let mut endpoint = EndPoint::new(&endpoint)?;
+
+        if let Ok(is_internal) = std::env::var("ALIYUN_OSS_INTERNAL") {
+            if is_internal == "true"
+                || is_internal == "1"
+                || is_internal == "yes"
+                || is_internal == "Y"
+            {
+                endpoint.set_internal(true);
+            }
+        }
+
+        Ok(endpoint)
     }
 
     /// # 调整 API 指向是否为内网
