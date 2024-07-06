@@ -271,8 +271,8 @@ impl ObjectInfo {
 mod tests {
     use super::Object;
     use crate::{
-        bucket::Bucket,
-        client::{init_client, Client},
+        bucket::{self, Bucket},
+        client::{self, init_client, Client},
         types::{EndPoint, ObjectQuery},
     };
 
@@ -334,5 +334,13 @@ mod tests {
         let second_list = first_list.next_list(&condition, &client).await.unwrap();
 
         println!("{:?}", second_list);
+    }
+
+    #[tokio::test]
+    async fn test_to_url() {
+        let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
+        let object = Object::new("abc\\efg.txt");
+        let url = object.to_url(&bucket).to_string();
+        assert!(url.contains("\\") || url.contains("%5C"));
     }
 }
