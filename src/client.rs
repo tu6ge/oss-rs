@@ -264,7 +264,7 @@ mod tests {
         struct MyBucket {
             Comment: String,
             CreationDate: String,
-            ExtranetEndpoint: String,
+            ExtranetEndpoint: EndPoint,
             IntranetEndpoint: String,
             Location: String,
             Name: String,
