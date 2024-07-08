@@ -183,7 +183,7 @@ impl Object {
 
         let mut header_map = client.authorization(method, resource)?;
         if content.len() == 0 {
-            header_map.insert("Content-Length", 0.into());
+            header_map.insert(CONTENT_LENGTH, 0.into());
         }
 
         let response = reqwest::Client::new()
