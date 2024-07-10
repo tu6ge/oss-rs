@@ -2,7 +2,7 @@ use std::env::VarError;
 
 use chrono::Utc;
 use reqwest::{
-    header::{HeaderMap, CONTENT_TYPE},
+    header::{HeaderMap, HeaderValue, CONTENT_TYPE},
     Method,
 };
 use serde::{de::DeserializeOwned, Deserialize};
@@ -20,6 +20,7 @@ pub struct Client {
     key: Key,
     secret: Secret,
     bucket: Option<Bucket>,
+    security_token: Option<String>,
 }
 
 impl Client {
@@ -28,6 +29,7 @@ impl Client {
             key,
             secret,
             bucket: None,
+            security_token: None,
         }
     }
 
@@ -40,7 +42,17 @@ impl Client {
             key,
             secret,
             bucket,
+            security_token: None,
         })
+    }
+
+    pub fn new_with_sts(key: Key, secret: Secret, security_token: String) -> Self {
+        Self {
+            key,
+            secret,
+            bucket: None,
+            security_token: Some(security_token),
+        }
     }
 
     /// 设置默认的 bucket(bucket 也会包含 endpoint 信息)
@@ -78,6 +90,11 @@ impl Client {
         let date = now();
         let content_type = "text/xml";
 
+        let mut sts_header_str = String::new();
+        if let Some(sts_token) = &self.security_token {
+            sts_header_str = format!("x-oss-security-token:{}\n", sts_token);
+        }
+
         let sign = {
             let mut string = method.as_str().to_owned();
             string += LINE_BREAK;
@@ -86,6 +103,7 @@ impl Client {
             string += LINE_BREAK;
             string += date.as_str();
             string += LINE_BREAK;
+            string += &sts_header_str;
             string += resource.as_str();
 
             let encry = self.secret.encryption(string.as_bytes()).unwrap();
@@ -103,6 +121,14 @@ impl Client {
                 "CanonicalizedResource",
                 resource.as_str().try_into().unwrap(),
             );
+            if let Some(sts_token) = &self.security_token {
+                headers.insert("x-oss-security-token", {
+                    let mut token: HeaderValue = sts_token.try_into()?;
+                    token.set_sensitive(true);
+                    token
+                });
+            }
+
             headers
         };
 

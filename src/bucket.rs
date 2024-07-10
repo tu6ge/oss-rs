@@ -391,6 +391,7 @@ mod tests {
         let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
         let info = bucket.get_info(&init_client()).await.unwrap();
 
+        println!("{info:?}");
         //assert_eq!(list.len(), 2);
     }
 
