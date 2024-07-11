@@ -1,5 +1,8 @@
 use chrono::{DateTime, Utc};
-use reqwest::{header::CONTENT_LENGTH, Method};
+use reqwest::{
+    header::{HeaderMap, CONTENT_LENGTH},
+    Method,
+};
 use url::Url;
 
 use crate::{
@@ -219,6 +222,31 @@ impl Object {
         Ok(response.into())
     }
 
+    pub async fn copy_from(&self, client: &Client, source: String) -> Result<(), OssError> {
+        let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
+        let url = self.to_url(bucket);
+        let method = Method::PUT;
+        let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
+
+        let mut headers = HeaderMap::new();
+        headers.insert("x-oss-copy-source", source.try_into()?);
+
+        let header_map = client.authorization_header(&method, resource, headers)?;
+
+        let response = reqwest::Client::new()
+            .put(url)
+            .headers(header_map)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            let body = response.text().await?;
+            Err(OssError::Upload(body))
+        }
+    }
+
     pub async fn delete(&self, client: &Client) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
@@ -312,6 +340,14 @@ mod tests {
 
         println!("{:?}", std::str::from_utf8(&info).unwrap());
     }
+
+    #[tokio::test]
+    async fn test_copy() {
+        let object = Object::new("def.txt");
+        let source = "/honglei123/aaabbb3.txt".to_string();
+        let res = object.copy_from(&set_client(), source).await.unwrap();
+    }
+
     #[tokio::test]
     async fn test_delete() {
         let object = Object::new("abc.txt");
