@@ -80,7 +80,7 @@ impl Client {
         self.bucket.as_ref()
     }
 
-    pub(crate) fn authorization(
+    pub fn authorization(
         &self,
         method: &Method,
         resource: CanonicalizedResource,
@@ -88,7 +88,7 @@ impl Client {
         self.authorization_header(method, resource, HeaderMap::new())
     }
 
-    pub(crate) fn authorization_header(
+    pub fn authorization_header(
         &self,
         method: &Method,
         resource: CanonicalizedResource,
