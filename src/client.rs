@@ -85,15 +85,29 @@ impl Client {
         method: Method,
         resource: CanonicalizedResource,
     ) -> Result<HeaderMap, OssError> {
+        self.authorization_header(method, resource, HeaderMap::new())
+    }
+
+    pub(crate) fn authorization_header(
+        &self,
+        method: Method,
+        resource: CanonicalizedResource,
+        mut headers: HeaderMap,
+    ) -> Result<HeaderMap, OssError> {
         const LINE_BREAK: &str = "\n";
 
         let date = now();
         let content_type = "text/xml";
 
-        let mut sts_header_str = String::new();
         if let Some(sts_token) = &self.security_token {
-            sts_header_str = format!("x-oss-security-token:{}\n", sts_token);
+            headers.insert("x-oss-security-token", {
+                let mut token: HeaderValue = sts_token.try_into()?;
+                token.set_sensitive(true);
+                token
+            });
         }
+
+        let oss_header_str = to_oss_header(&headers);
 
         let sign = {
             let mut string = method.as_str().to_owned();
@@ -103,7 +117,7 @@ impl Client {
             string += LINE_BREAK;
             string += date.as_str();
             string += LINE_BREAK;
-            string += &sts_header_str;
+            string += &oss_header_str;
             string += resource.as_str();
 
             let encry = self.secret.encryption(string.as_bytes()).unwrap();
@@ -111,7 +125,6 @@ impl Client {
             format!("OSS {}:{}", self.key.as_str(), encry)
         };
         let header_map = {
-            let mut headers = HeaderMap::new();
             headers.insert("AccessKeyId", self.key.as_str().try_into()?);
             headers.insert("VERB", method.as_str().try_into()?);
             headers.insert("Date", date.try_into()?);
@@ -121,13 +134,6 @@ impl Client {
                 "CanonicalizedResource",
                 resource.as_str().try_into().unwrap(),
             );
-            if let Some(sts_token) = &self.security_token {
-                headers.insert("x-oss-security-token", {
-                    let mut token: HeaderValue = sts_token.try_into()?;
-                    token.set_sensitive(true);
-                    token
-                });
-            }
 
             headers
         };
@@ -268,6 +274,34 @@ fn now() -> String {
 //     DateTime::from_utc(naive, Utc)
 // }
 
+fn to_oss_header(headers: &HeaderMap) -> String {
+    const X_OSS_PRE: &str = "x-oss-";
+    const LINE_BREAK: &str = "\n";
+    //return Some("x-oss-copy-source:/honglei123/file1.txt");
+    let mut header: Vec<_> = headers
+        .iter()
+        .filter(|(k, _v)| k.as_str().starts_with(X_OSS_PRE))
+        .collect();
+    if header.is_empty() {
+        return String::new();
+    }
+
+    header.sort_by(|(k1, _), (k2, _)| k1.as_str().cmp(k2.as_str()));
+
+    let header_vec: Vec<_> = header
+        .iter()
+        .filter_map(|(k, v)| {
+            v.to_str()
+                .ok()
+                .map(|value| k.as_str().to_owned() + ":" + value)
+        })
+        .collect();
+
+    let mut str = header_vec.join(LINE_BREAK);
+    str += LINE_BREAK;
+    str
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{client::init_client, types::EndPoint};
@@ -318,4 +352,5 @@ pub fn init_client() -> Client {
     let secret = env::var("ALIYUN_KEY_SECRET").unwrap();
 
     Client::new(Key::new(key), Secret::new(secret))
+    //Client::new_with_sts(Key::new("STS."), Secret::new(""), "".to_string())
 }
