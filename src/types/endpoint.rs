@@ -1,9 +1,6 @@
 use crate::error::OssError;
 
-use serde::{
-    de::{value, Visitor},
-    Deserialize,
-};
+use serde::{de::Visitor, Deserialize};
 use url::Url;
 
 /// # OSS 的可用区
