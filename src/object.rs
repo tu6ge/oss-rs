@@ -147,7 +147,7 @@ impl Object {
         let resource =
             CanonicalizedResource::new(format!("/{}/{}?objectMeta", bucket.as_str(), self.path));
 
-        let header_map = client.authorization(method, resource)?;
+        let header_map = client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
             .get(url)
@@ -181,7 +181,7 @@ impl Object {
         let method = Method::PUT;
         let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
 
-        let mut header_map = client.authorization(method, resource)?;
+        let mut header_map = client.authorization(&method, resource)?;
         if content.len() == 0 {
             header_map.insert(CONTENT_LENGTH, 0.into());
         }
@@ -206,7 +206,7 @@ impl Object {
         let method = Method::GET;
         let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
 
-        let header_map = client.authorization(method, resource)?;
+        let header_map = client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
             .get(url)
@@ -225,7 +225,7 @@ impl Object {
         let method = Method::DELETE;
         let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
 
-        let header_map = client.authorization(method, resource)?;
+        let header_map = client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
             .delete(url)

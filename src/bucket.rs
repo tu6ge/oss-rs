@@ -115,7 +115,7 @@ impl Bucket {
         let method = Method::GET;
         let resource = CanonicalizedResource::from_bucket_info(self);
 
-        let header_map = client.authorization(method, resource)?;
+        let header_map = client.authorization(&method, resource)?;
 
         let content = reqwest::Client::new()
             .get(url)
@@ -145,7 +145,7 @@ impl Bucket {
         let method = Method::GET;
         let resource = CanonicalizedResource::from_bucket_info(self);
 
-        let header_map = client.authorization(method, resource)?;
+        let header_map = client.authorization(&method, resource)?;
 
         let content = reqwest::Client::new()
             .get(url)
@@ -236,7 +236,7 @@ impl Bucket {
         let method = Method::GET;
         let resource = CanonicalizedResource::from_object_list(self, query.get_next_token());
 
-        let header_map = client.authorization(method, resource)?;
+        let header_map = client.authorization(&method, resource)?;
 
         let content = reqwest::Client::new()
             .get(url)
@@ -270,7 +270,7 @@ impl Bucket {
         let method = Method::GET;
         let resource = CanonicalizedResource::from_object_list(self, query.get_next_token());
 
-        let header_map = client.authorization(method, resource)?;
+        let header_map = client.authorization(&method, resource)?;
 
         let content = reqwest::Client::new()
             .get(url)

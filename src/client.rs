@@ -82,7 +82,7 @@ impl Client {
 
     pub(crate) fn authorization(
         &self,
-        method: Method,
+        method: &Method,
         resource: CanonicalizedResource,
     ) -> Result<HeaderMap, OssError> {
         self.authorization_header(method, resource, HeaderMap::new())
@@ -90,7 +90,7 @@ impl Client {
 
     pub(crate) fn authorization_header(
         &self,
-        method: Method,
+        method: &Method,
         resource: CanonicalizedResource,
         mut headers: HeaderMap,
     ) -> Result<HeaderMap, OssError> {
@@ -185,7 +185,7 @@ impl Client {
         let method = Method::GET;
         let resource = CanonicalizedResource::default();
 
-        let header_map = self.authorization(method, resource)?;
+        let header_map = self.authorization(&method, resource)?;
 
         let content = reqwest::Client::new()
             .get(url)
@@ -219,7 +219,7 @@ impl Client {
         let method = Method::GET;
         let resource = CanonicalizedResource::default();
 
-        let header_map = self.authorization(method, resource)?;
+        let header_map = self.authorization(&method, resource)?;
 
         let content = reqwest::Client::new()
             .get(url)
