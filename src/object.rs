@@ -243,7 +243,7 @@ impl Object {
             Ok(())
         } else {
             let body = response.text().await?;
-            Err(OssError::Upload(body))
+            Err(OssError::Service(body))
         }
     }
 

@@ -34,6 +34,8 @@ pub enum OssError {
 
     Delete(String),
 
+    Service(String),
+
     NoFoundBucket,
 
     ParseXml(#[from] serde_xml_rs::Error),

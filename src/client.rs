@@ -187,13 +187,19 @@ impl Client {
 
         let header_map = self.authorization(&method, resource)?;
 
-        let content = reqwest::Client::new()
+        let response = reqwest::Client::new()
             .get(url)
             .headers(header_map)
             .send()
-            .await?
-            .text()
             .await?;
+
+        let is_success = response.status().is_success();
+
+        let content = response.text().await?;
+
+        if !is_success {
+            return Err(OssError::Service(content));
+        }
 
         //println!("{}", content);
 
@@ -221,13 +227,17 @@ impl Client {
 
         let header_map = self.authorization(&method, resource)?;
 
-        let content = reqwest::Client::new()
+        let response = reqwest::Client::new()
             .get(url)
             .headers(header_map)
             .send()
-            .await?
-            .text()
             .await?;
+
+        let is_success = response.status().is_success();
+        let content = response.text().await?;
+        if !is_success {
+            return Err(OssError::Service(content));
+        }
 
         // println!("{content}");
 

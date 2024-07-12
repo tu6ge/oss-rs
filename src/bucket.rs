@@ -117,13 +117,19 @@ impl Bucket {
 
         let header_map = client.authorization(&method, resource)?;
 
-        let content = reqwest::Client::new()
+        let response = reqwest::Client::new()
             .get(url)
             .headers(header_map)
             .send()
-            .await?
-            .text()
             .await?;
+
+        let is_success = response.status().is_success();
+
+        let content = response.text().await?;
+
+        if !is_success {
+            return Err(OssError::Service(content));
+        }
 
         //println!("{}", content);
 
@@ -147,13 +153,19 @@ impl Bucket {
 
         let header_map = client.authorization(&method, resource)?;
 
-        let content = reqwest::Client::new()
+        let response = reqwest::Client::new()
             .get(url)
             .headers(header_map)
             .send()
-            .await?
-            .text()
             .await?;
+
+        let is_success = response.status().is_success();
+
+        let content = response.text().await?;
+
+        if !is_success {
+            return Err(OssError::Service(content));
+        }
 
         //println!("{content}");
         Self::parse_info_xml(content)
@@ -238,13 +250,19 @@ impl Bucket {
 
         let header_map = client.authorization(&method, resource)?;
 
-        let content = reqwest::Client::new()
+        let response = reqwest::Client::new()
             .get(url)
             .headers(header_map)
             .send()
-            .await?
-            .text()
             .await?;
+
+        let is_success = response.status().is_success();
+
+        let content = response.text().await?;
+
+        if !is_success {
+            return Err(OssError::Service(content));
+        }
 
         //println!("{content}");
 
@@ -272,13 +290,19 @@ impl Bucket {
 
         let header_map = client.authorization(&method, resource)?;
 
-        let content = reqwest::Client::new()
+        let response = reqwest::Client::new()
             .get(url)
             .headers(header_map)
             .send()
-            .await?
-            .text()
             .await?;
+
+        let is_success = response.status().is_success();
+
+        let content = response.text().await?;
+
+        if !is_success {
+            return Err(OssError::Service(content));
+        }
 
         //println!("{content}");
 
