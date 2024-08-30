@@ -2,12 +2,30 @@
 
 **巨大更新，之前使用过的，慎重升级 0.13**
 
-目前的实现，代码将大大简化，api接口也更加起清晰，使用了有限的 rust 语言特性，所以接口更加统一，
+目前的实现，代码将大大简化，api 接口也更加起清晰，使用了有限的 rust 语言特性，所以接口更加统一，
 大大减少了外部依赖
 
 > 使用本 lib 创建的 oss 命令行工具：[tu6ge/oss-cli](https://github.com/tu6ge/oss-cli)，也算是本库的一个演示项目
 
 详细使用案例如下：
+
+```rust
+use aliyun_oss_client::{types::ObjectQuery, Client, EndPoint};
+
+async fn run() -> Result<(), aliyun_oss_client::Error> {
+    let client = Client::from_env()?;
+
+    let buckes = client.get_buckets(&EndPoint::CN_QINGDAO).await?;
+
+    let objects = buckes[0].get_objects(&ObjectQuery::new(), &client).await?;
+
+    let obj_info = objects[0].get_info(&client).await?;
+
+    Ok(())
+}
+```
+
+# RFC
 
 get Buckets
 
@@ -33,6 +51,7 @@ impl Client {
 ```
 
 get bucket info;
+
 ```rust
 struct Bucket {
     name: String,
@@ -62,6 +81,7 @@ impl Bucket{
     }
 }
 ```
+
 get object info
 
 ```rust
@@ -82,4 +102,3 @@ impl Object {
     }
 }
 ```
-
