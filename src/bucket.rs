@@ -128,7 +128,7 @@ impl Bucket {
         let content = response.text().await?;
 
         if !is_success {
-            return Err(OssError::Service(content));
+            return Err(OssError::from_service(&content));
         }
 
         //println!("{}", content);
@@ -164,7 +164,7 @@ impl Bucket {
         let content = response.text().await?;
 
         if !is_success {
-            return Err(OssError::Service(content));
+            return Err(OssError::from_service(&content));
         }
 
         //println!("{content}");
@@ -261,7 +261,7 @@ impl Bucket {
         let content = response.text().await?;
 
         if !is_success {
-            return Err(OssError::Service(content));
+            return Err(OssError::from_service(&content));
         }
 
         //println!("{content}");
@@ -301,7 +301,7 @@ impl Bucket {
         let content = response.text().await?;
 
         if !is_success {
-            return Err(OssError::Service(content));
+            return Err(OssError::from_service(&content));
         }
 
         //println!("{content}");

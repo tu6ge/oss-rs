@@ -215,7 +215,7 @@ impl Object {
             Ok(())
         } else {
             let body = response.text().await?;
-            Err(OssError::Upload(body))
+            Err(OssError::from_service(&body))
         }
     }
     pub async fn download(&self, client: &Client) -> Result<Vec<u8>, OssError> {
@@ -258,7 +258,7 @@ impl Object {
             Ok(())
         } else {
             let body = response.text().await?;
-            Err(OssError::Service(body))
+            Err(OssError::from_service(&body))
         }
     }
 
@@ -280,7 +280,7 @@ impl Object {
             Ok(())
         } else {
             let body = response.text().await?;
-            Err(OssError::Delete(body))
+            Err(OssError::from_service(&body))
         }
     }
 }

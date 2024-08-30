@@ -5,6 +5,7 @@ use std::{
 };
 
 use reqwest::header::{InvalidHeaderValue, ToStrError};
+use serde::Deserialize;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -33,11 +34,7 @@ pub enum OssError {
 
     ParseIntError(#[from] ParseIntError),
 
-    Upload(String),
-
-    Delete(String),
-
-    Service(String),
+    Service(ServiceXML),
 
     NoFoundBucket,
 
@@ -46,10 +43,43 @@ pub enum OssError {
     InvalidEndPoint,
 
     InvalidBucket,
+
+    InvalidOssError(String),
+}
+
+impl OssError {
+    pub(crate) fn from_service(xml: &str) -> Self {
+        match ServiceXML::new(xml) {
+            Ok(xml) => Self::Service(xml),
+            Err(e) => Self::InvalidOssError(e.to_string()),
+        }
+    }
 }
 
 impl Display for OssError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         "oss error".fmt(f)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename = "Error")]
+pub struct ServiceXML {
+    #[serde(rename = "Code")]
+    code: String,
+
+    #[serde(rename = "Message")]
+    message: String,
+
+    #[serde(rename = "RequestId")]
+    request_id: String,
+
+    #[serde(rename = "RecommendDoc")]
+    recommend_doc: String,
+}
+impl ServiceXML {
+    fn new(xml: &str) -> Result<Self, serde_xml_rs::Error> {
+        println!("{xml}");
+        serde_xml_rs::from_str(xml)
     }
 }
