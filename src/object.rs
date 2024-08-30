@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 use chrono::{DateTime, Utc};
 use reqwest::{
     header::{HeaderMap, CONTENT_LENGTH},
@@ -53,6 +55,19 @@ impl Objects {
             Some(bucket) => bucket.get_objects(&q, client).await,
             None => Err(OssError::NoFoundBucket),
         }
+    }
+}
+
+impl Index<usize> for Objects {
+    type Output = Object;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.list[index]
+    }
+}
+
+impl IndexMut<usize> for Objects {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.list[index]
     }
 }
 
