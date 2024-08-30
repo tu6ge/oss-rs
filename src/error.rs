@@ -1,4 +1,5 @@
 use std::{
+    env::VarError,
     fmt::{self, Display},
     num::ParseIntError,
 };
@@ -15,6 +16,8 @@ pub enum OssError {
     Chrono(#[from] chrono::ParseError),
 
     ToStrError(#[from] ToStrError),
+
+    VarError(#[from] VarError),
 
     NoFoundCreationDate,
 
