@@ -9,20 +9,77 @@
 
 详细使用案例如下：
 
+1. 基本操作
+
 ```rust
 use aliyun_oss_client::{types::ObjectQuery, Client, EndPoint};
 
 async fn run() -> Result<(), aliyun_oss_client::Error> {
     let client = Client::from_env()?;
 
+    // 获取 buckets 列表
     let buckes = client.get_buckets(&EndPoint::CN_QINGDAO).await?;
 
+    // 获取某一个 bucket 的文件列表
     let objects = buckes[0].get_objects(&ObjectQuery::new(), &client).await?;
 
+    // 获取文件的详细信息
     let obj_info = objects[0].get_info(&client).await?;
+
+    let object = Object::new("filename.txt");
+    // 上传文件
+    let info = object.upload("content".into(), &client).await?;
+    // 下载文件内容
+    let content = object.download(&client).await?;
 
     Ok(())
 }
+```
+
+2. 导出 bucket 到自定义类型
+
+```rust
+#[derive(Debug, Deserialize)]
+struct MyBucket {
+    Comment: String,
+    CreationDate: String,
+    ExtranetEndpoint: EndPoint,
+    IntranetEndpoint: String,
+    Location: String,
+    Name: String,
+    Region: String,
+    StorageClass: String,
+}
+
+let list: Vec<MyBucket> = client.export_buckets(&EndPoint::CN_QINGDAO).await?;
+```
+
+3. 导出 bucket 详细信息到自定义类型
+
+```rust
+#[derive(Debug, Deserialize)]
+struct MyBucketInfo {
+    Name: String,
+}
+let res: MyBucketInfo = buckets[0].export_info(&client).await?;
+```
+
+4. 导出 object 列表到自定义
+
+```rust
+let condition = {
+    let mut map = ObjectQuery::new();
+    map.insert(ObjectQuery::MAX_KEYS, "5");
+    map
+};
+
+#[derive(Debug, Deserialize)]
+struct MyObject {
+    Key: String,
+}
+
+let (list, next_token): (Vec<MyObject>, _) =
+    buckets[0].export_objects(&condition, &client).await?;
 ```
 
 # RFC
