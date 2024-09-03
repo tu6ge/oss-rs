@@ -18,10 +18,10 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     let client = Client::from_env()?;
 
     // 获取 buckets 列表
-    let buckes = client.get_buckets(&EndPoint::CN_QINGDAO).await?;
+    let buckets = client.get_buckets(&EndPoint::CN_QINGDAO).await?;
 
     // 获取某一个 bucket 的文件列表
-    let objects = buckes[0].get_objects(&ObjectQuery::new(), &client).await?;
+    let objects = buckets[0].get_objects(&ObjectQuery::new(), &client).await?;
 
     // 获取文件的详细信息
     let obj_info = objects[0].get_info(&client).await?;
