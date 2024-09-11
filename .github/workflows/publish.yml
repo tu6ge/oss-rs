@@ -25,18 +25,8 @@ jobs:
       - name: Check fmt
         run: cargo fmt --check
 
-      - name: Cache
-        uses: Swatinem/rust-cache@v1
-        with:
-          key: ${{ runner.os }}-build-v0.4.0
-
       - name: Show cargo info
         run: cargo version --verbose
-
-      - name: Install publish-action
-        if: steps.cache-publish-action.outputs.cache-hit != 'true'
-        run: |
-          cargo install publish-action --version=0.4.0
 
       - name: Run Test
         run: |
