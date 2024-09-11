@@ -2,7 +2,7 @@ name: Test and Publish
 
 on:
   push:
-    branches: 
+    branches:
       - "master"
       - "branch*"
   pull_request:
@@ -13,7 +13,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
 
-    name: 'publish'
+    name: "publish"
 
     environment: cargo
 
@@ -28,22 +28,26 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v1
         with:
-          key: ${{ runner.os }}-build-v0.3.5
-      
+          key: ${{ runner.os }}-build-v0.4.0
+
       - name: Show cargo info
         run: cargo version --verbose
 
       - name: Install publish-action
         if: steps.cache-publish-action.outputs.cache-hit != 'true'
         run: |
-          cargo install publish-action --version=0.3.5
+          cargo install publish-action --version=0.4.0
 
       - name: Run Test
         run: |
           cargo test --doc
 
       - name: Run publish-action of oss
-        run: publish-action --dir="/" --tag-prefix="v"
+        run: publish-action
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+        with:
+          DIR: "/"
+          TAG_PREFIX: "test-tag-"
