@@ -64,6 +64,7 @@ impl Display for OssError {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename = "Error")]
+#[allow(dead_code)]
 pub struct ServiceXML {
     #[serde(rename = "Code")]
     code: String,
@@ -79,7 +80,7 @@ pub struct ServiceXML {
 }
 impl ServiceXML {
     fn new(xml: &str) -> Result<Self, serde_xml_rs::Error> {
-        println!("{xml}");
+        //println!("{xml}");
         serde_xml_rs::from_str(xml)
     }
 }
