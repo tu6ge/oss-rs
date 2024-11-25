@@ -95,7 +95,7 @@ impl Object {
         self.path.find('/').is_some()
     }
 
-    /// 获取文件袋各级目录
+    /// 获取文件的各级目录
     /// ```rust
     /// # use aliyun_oss_client::Object;
     /// let obj1 = Object::new("foo.txt");
