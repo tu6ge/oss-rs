@@ -242,14 +242,15 @@ impl Object {
     }
 
     /// 复制文件
-    pub async fn copy_from(&self, client: &Client, source: String) -> Result<(), OssError> {
+    pub async fn copy_from(&self, client: &Client, source: &Object) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
         let method = Method::PUT;
         let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
 
         let mut headers = HeaderMap::new();
-        headers.insert("x-oss-copy-source", source.try_into()?);
+        let Object { path } = source;
+        headers.insert("x-oss-copy-source", path.try_into()?);
 
         let header_map = client.authorization_header(&method, resource, headers)?;
 
@@ -365,8 +366,10 @@ mod tests {
     #[tokio::test]
     async fn test_copy() {
         let object = Object::new("def.txt");
-        let source = "/honglei123/aaabbb3.txt".to_string();
-        let res = object.copy_from(&set_client(), source).await.unwrap();
+        let res = object
+            .copy_from(&set_client(), &Object::new("/honglei123/aaabbb3.txt"))
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
