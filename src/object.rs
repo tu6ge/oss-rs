@@ -199,7 +199,7 @@ impl Object {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
         let method = Method::PUT;
-        let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
+        let resource = CanonicalizedResource::from_object(bucket, self);
 
         let mut header_map = client.authorization(&method, resource)?;
         if content.len() == 0 {
@@ -226,7 +226,7 @@ impl Object {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
         let method = Method::GET;
-        let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
+        let resource = CanonicalizedResource::from_object(bucket, self);
 
         let header_map = client.authorization(&method, resource)?;
 
@@ -246,7 +246,7 @@ impl Object {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
         let method = Method::PUT;
-        let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
+        let resource = CanonicalizedResource::from_object(bucket, self);
 
         let mut headers = HeaderMap::new();
         let Object { path } = source;
@@ -273,7 +273,7 @@ impl Object {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
         let method = Method::DELETE;
-        let resource = CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), self.path));
+        let resource = CanonicalizedResource::from_object(bucket, self);
 
         let header_map = client.authorization(&method, resource)?;
 

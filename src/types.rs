@@ -1,6 +1,6 @@
 use std::{collections::HashMap, env::VarError};
 
-use crate::bucket::Bucket;
+use crate::{bucket::Bucket, Object};
 
 mod endpoint;
 pub use endpoint::{EndPoint, EndPointKind};
@@ -78,6 +78,10 @@ impl CanonicalizedResource {
 
     pub fn from_bucket_info(bucket: &Bucket) -> CanonicalizedResource {
         Self(format!("/{}/?bucketInfo", bucket.as_str()))
+    }
+
+    pub fn from_object(bucket: &Bucket, object: &Object) -> CanonicalizedResource {
+        CanonicalizedResource::new(format!("/{}/{}", bucket.as_str(), object.get_path()))
     }
 
     pub fn from_object_list(
