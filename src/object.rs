@@ -130,7 +130,7 @@ impl Object {
     /// ```
     pub fn absolute_dir_nth(&self, num: usize) -> Option<String> {
         let dirs = self.get_dirs();
-        if dirs.len() == 0 {
+        if dirs.is_empty() {
             return None;
         }
         let n = if num > dirs.len() { dirs.len() } else { num };
@@ -202,7 +202,7 @@ impl Object {
         let resource = CanonicalizedResource::from_object(bucket, self);
 
         let mut header_map = client.authorization(&method, resource)?;
-        if content.len() == 0 {
+        if content.is_empty() {
             header_map.insert(CONTENT_LENGTH, 0.into());
         }
 
