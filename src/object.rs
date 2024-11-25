@@ -157,6 +157,7 @@ impl Object {
         url
     }
 
+    /// 获取 object 的 meta 信息
     pub async fn get_info(&self, client: &Client) -> Result<ObjectInfo, OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let mut url = self.to_url(bucket);
@@ -193,6 +194,7 @@ impl Object {
         })
     }
 
+    /// 上传文件
     pub async fn upload(&self, content: Vec<u8>, client: &Client) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
@@ -218,6 +220,8 @@ impl Object {
             Err(OssError::from_service(&body))
         }
     }
+
+    /// 下载文件
     pub async fn download(&self, client: &Client) -> Result<Vec<u8>, OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
@@ -237,6 +241,7 @@ impl Object {
         Ok(response.into())
     }
 
+    /// 复制文件
     pub async fn copy_from(&self, client: &Client, source: String) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
@@ -262,6 +267,7 @@ impl Object {
         }
     }
 
+    /// 删除文件
     pub async fn delete(&self, client: &Client) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
