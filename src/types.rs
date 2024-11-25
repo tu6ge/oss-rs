@@ -4,6 +4,7 @@ use crate::{bucket::Bucket, Object};
 
 mod endpoint;
 pub use endpoint::{EndPoint, EndPointKind};
+use serde::{de::Visitor, Deserialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Key(String);
@@ -150,6 +151,31 @@ impl StorageClass {
             _ => return None,
         };
         Some(Self { kind })
+    }
+}
+
+struct StorageClassVisitor;
+
+impl<'de> Visitor<'de> for StorageClassVisitor {
+    type Value = StorageClass;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("Archive,IA,Standard or ColdArchive")
+    }
+
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        StorageClass::new(&v).ok_or(E::custom(format!("{} is not StorageClass", v)))
+    }
+}
+impl<'de> Deserialize<'de> for StorageClass {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_string(StorageClassVisitor)
     }
 }
 

@@ -315,7 +315,10 @@ fn to_oss_header(headers: &HeaderMap) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::{client::init_client, types::EndPoint};
+    use crate::{
+        client::init_client,
+        types::{EndPoint, StorageClass},
+    };
 
     #[tokio::test]
     async fn test_get_buckets() {
@@ -337,7 +340,7 @@ mod tests {
             Location: String,
             Name: String,
             Region: String,
-            StorageClass: String,
+            StorageClass: StorageClass,
         }
 
         let list: Vec<MyBucket> = init_client()
