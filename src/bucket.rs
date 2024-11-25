@@ -48,19 +48,16 @@ impl Bucket {
     /// # use url::Url;
     /// let bucket = Bucket::new("foo", EndPoint::CN_QINGDAO);
     /// assert_eq!(bucket.to_url(), Url::parse("https://foo.oss-cn-qingdao.aliyuncs.com").unwrap());
+    ///
+    /// let mut endpoint_internal = EndPoint::CN_QINGDAO;
+    /// endpoint_internal.set_internal(true);
+    /// let bucket_internal = Bucket::new("bar", endpoint_internal);
+    /// assert_eq!(bucket_internal.to_url(), Url::parse("https://bar.oss-cn-qingdao-internal.aliyuncs.com").unwrap());
     /// ```
     pub fn to_url(&self) -> Url {
-        const HTTPS: &str = "https://";
-        let url = self.endpoint.to_url().to_string();
-        let name_str = self.name.to_string();
+        let url = format!("https://{}.{}", self.name.as_str(), self.endpoint.host());
 
-        let mut name = String::from(HTTPS);
-        name.push_str(&name_str);
-        name.push('.');
-
-        let url = url.replace(HTTPS, &name);
-
-        Url::parse(&url).unwrap()
+        Url::parse(&url).unwrap_or_else(|_| panic!("covert to url failed, bucket: {}", url))
     }
 
     /// 调用 api 导出 bucket 详情信息到自定义类型

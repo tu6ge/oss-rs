@@ -273,17 +273,24 @@ impl EndPoint {
     /// );
     /// ```
     pub fn to_url(&self) -> Url {
-        const OSS_DOMAIN_PREFIX: &str = "https://oss-";
-        let mut url = String::from(OSS_DOMAIN_PREFIX);
-        url.push_str(self.as_ref());
+        let url = format!("https://{}", self.host());
+        Url::parse(&url).unwrap_or_else(|_| panic!("covert to url failed, endpoint: {}", url))
+    }
+
+    /// 获取 host
+    pub(crate) fn host(&self) -> String {
+        const OSS_DOMAIN_PREFIX: &str = "oss-";
+        let mut host = String::from(OSS_DOMAIN_PREFIX);
+        host.push_str(self.as_ref());
 
         // internal
         if self.is_internal {
-            url.push_str(OSS_INTERNAL);
+            host.push_str(OSS_INTERNAL);
         }
 
-        url.push_str(OSS_DOMAIN_MAIN);
-        Url::parse(&url).unwrap_or_else(|_| panic!("covert to url failed, endpoint: {}", url))
+        host.push_str(OSS_DOMAIN_MAIN);
+
+        host
     }
 }
 
