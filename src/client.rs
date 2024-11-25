@@ -128,7 +128,11 @@ impl Client {
             headers.insert("AccessKeyId", self.key.as_str().try_into()?);
             headers.insert("VERB", method.as_str().try_into()?);
             headers.insert("Date", date.try_into()?);
-            headers.insert("Authorization", sign.try_into()?);
+            headers.insert("Authorization", {
+                let mut token: HeaderValue = sign.try_into()?;
+                token.set_sensitive(true);
+                token
+            });
             headers.insert(CONTENT_TYPE, content_type.try_into()?);
             headers.insert("CanonicalizedResource", resource.as_str().try_into()?);
 
