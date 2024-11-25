@@ -169,7 +169,7 @@ impl Object {
         let header_map = client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
-            .get(url)
+            .request(method, url)
             .headers(header_map)
             .send()
             .await?;
@@ -207,7 +207,7 @@ impl Object {
         }
 
         let response = reqwest::Client::new()
-            .put(url)
+            .request(method, url)
             .headers(header_map)
             .body(content)
             .send()
@@ -231,7 +231,7 @@ impl Object {
         let header_map = client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
-            .get(url)
+            .request(method, url)
             .headers(header_map)
             .send()
             .await?
@@ -255,7 +255,7 @@ impl Object {
         let header_map = client.authorization_header(&method, resource, headers)?;
 
         let response = reqwest::Client::new()
-            .put(url)
+            .request(method, url)
             .headers(header_map)
             .send()
             .await?;
@@ -278,7 +278,7 @@ impl Object {
         let header_map = client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
-            .delete(url)
+            .request(method, url)
             .headers(header_map)
             .send()
             .await?;
