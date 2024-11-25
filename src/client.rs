@@ -130,10 +130,7 @@ impl Client {
             headers.insert("Date", date.try_into()?);
             headers.insert("Authorization", sign.try_into()?);
             headers.insert(CONTENT_TYPE, content_type.try_into()?);
-            headers.insert(
-                "CanonicalizedResource",
-                resource.as_str().try_into().unwrap(),
-            );
+            headers.insert("CanonicalizedResource", resource.as_str().try_into()?);
 
             headers
         };
