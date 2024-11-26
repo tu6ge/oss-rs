@@ -25,7 +25,7 @@ impl Key {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Secret(pub(crate) String);
+pub struct Secret(String);
 
 impl Secret {
     pub fn new<S: Into<String>>(secret: S) -> Secret {
