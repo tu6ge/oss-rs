@@ -39,6 +39,12 @@ impl Secret {
 
     /// # 加密数据
     /// 这种加密方式可保证秘钥明文只会存在于 `Secret` 类型内，不会被读取或复制
+    /// ```rust
+    /// # use aliyun_oss_client::Secret;
+    /// let secret = Secret::new("secret");
+    /// let result = secret.encryption("data".as_bytes()).unwrap();
+    /// assert_eq!(result, "mBjjMGulrCZ7XyZ5/kq9N+bNe1Q=".to_string());
+    /// ```
     pub fn encryption(
         &self,
         data: &[u8],
