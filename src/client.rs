@@ -97,7 +97,7 @@ impl Client {
         const LINE_BREAK: &str = "\n";
 
         let date = now();
-        let content_type = "text/xml";
+        let mut content_type = "text/xml".to_string();
 
         if let Some(sts_token) = &self.security_token {
             headers.insert("x-oss-security-token", {
@@ -106,6 +106,11 @@ impl Client {
                 token
             });
         }
+        if let Some(con) = headers.get(CONTENT_TYPE) {
+            if let Ok(c) = con.to_str() {
+                content_type = c.to_string()
+            }
+        }
 
         let oss_header_str = to_oss_header(&headers);
 
@@ -113,7 +118,7 @@ impl Client {
             let mut string = method.as_str().to_owned();
             string += LINE_BREAK;
             string += LINE_BREAK;
-            string += content_type;
+            string += &content_type;
             string += LINE_BREAK;
             string += date.as_str();
             string += LINE_BREAK;

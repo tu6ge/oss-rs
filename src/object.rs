@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use chrono::{DateTime, Utc};
 use reqwest::{
-    header::{HeaderMap, CONTENT_LENGTH},
+    header::{HeaderMap, CONTENT_LENGTH, CONTENT_TYPE},
     Method,
 };
 use url::Url;
@@ -195,13 +195,21 @@ impl Object {
     }
 
     /// 上传文件
-    pub async fn upload(&self, content: Vec<u8>, client: &Client) -> Result<(), OssError> {
+    pub async fn upload(
+        &self,
+        content: Vec<u8>,
+        content_type: String,
+        client: &Client,
+    ) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
         let method = Method::PUT;
         let resource = CanonicalizedResource::from_object(bucket, self);
 
-        let mut header_map = client.authorization(&method, resource)?;
+        let mut header_map = HeaderMap::new();
+        header_map.insert(CONTENT_TYPE, content_type.try_into()?);
+
+        header_map = client.authorization_header(&method, resource, header_map)?;
         if content.is_empty() {
             header_map.insert(CONTENT_LENGTH, 0.into());
         }
@@ -347,9 +355,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_upload() {
-        let object = Object::new("abc.txt");
+        let object = Object::new("abc2.txt");
 
-        let info = object.upload("aaa".into(), &set_client()).await.unwrap();
+        let info = object
+            .upload(
+                "aaab".into(),
+                "text/plain;charset=utf-8".into(),
+                &set_client(),
+            )
+            .await
+            .unwrap();
 
         println!("{info:?}");
     }
@@ -403,7 +418,9 @@ mod tests {
     async fn test_upload_empty_file() {
         let object = Object::new("empty.txt");
 
-        let info = object.upload(vec![], &set_client()).await;
+        let info = object
+            .upload(vec![], "text/plain;charset=utf-8".into(), &set_client())
+            .await;
         assert!(info.is_ok())
     }
 }

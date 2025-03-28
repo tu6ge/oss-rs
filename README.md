@@ -28,7 +28,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
 
     let object = Object::new("filename.txt");
     // 上传文件
-    let info = object.upload("content".into(), &client).await?;
+    let info = object.upload("content".into(),"text/plain;charset=utf-8".into(),, &client).await?;
     // 下载文件内容
     let content = object.download(&client).await?;
 
