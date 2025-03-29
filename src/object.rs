@@ -207,7 +207,9 @@ impl Object {
         let resource = CanonicalizedResource::from_object(bucket, self);
 
         let mut header_map = HeaderMap::new();
-        header_map.insert(CONTENT_TYPE, content_type.try_into()?);
+        if !content_type.is_empty() {
+            header_map.insert(CONTENT_TYPE, content_type.try_into()?);
+        }
 
         header_map = client.authorization_header(&method, resource, header_map)?;
         if content.is_empty() {
@@ -250,15 +252,22 @@ impl Object {
     }
 
     /// 复制文件
-    pub async fn copy_from(&self, client: &Client, source: &Object) -> Result<(), OssError> {
+    pub async fn copy_from(
+        &self,
+        client: &Client,
+        source: String,
+        content_type: String,
+    ) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
         let method = Method::PUT;
         let resource = CanonicalizedResource::from_object(bucket, self);
 
         let mut headers = HeaderMap::new();
-        let Object { path } = source;
-        headers.insert("x-oss-copy-source", path.try_into()?);
+        headers.insert("x-oss-copy-source", source.try_into()?);
+        if !content_type.is_empty() {
+            headers.insert(CONTENT_TYPE, content_type.try_into()?);
+        }
 
         let header_map = client.authorization_header(&method, resource, headers)?;
 
@@ -346,7 +355,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_object_info() {
-        let object = Object::new("app-config.json");
+        let object = Object::new("aaabbc.txt");
 
         let info = object.get_info(&set_client()).await.unwrap();
 
@@ -380,9 +389,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_copy() {
-        let object = Object::new("def.txt");
+        let object = Object::new("def2.txt");
         let res = object
-            .copy_from(&set_client(), &Object::new("/honglei123/aaabbb3.txt"))
+            .copy_from(
+                &set_client(),
+                "/honglei123/abc2.txt".into(),
+                "text/plain;charset=utf-8".into(),
+            )
             .await
             .unwrap();
     }

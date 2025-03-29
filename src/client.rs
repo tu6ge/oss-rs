@@ -97,7 +97,7 @@ impl Client {
         const LINE_BREAK: &str = "\n";
 
         let date = now();
-        let mut content_type = "text/xml".to_string();
+        let mut content_type = "".to_string();
 
         if let Some(sts_token) = &self.security_token {
             headers.insert("x-oss-security-token", {
@@ -118,7 +118,9 @@ impl Client {
             let mut string = method.as_str().to_owned();
             string += LINE_BREAK;
             string += LINE_BREAK;
-            string += &content_type;
+            if !content_type.is_empty() {
+                string += &content_type;
+            }
             string += LINE_BREAK;
             string += date.as_str();
             string += LINE_BREAK;
@@ -138,7 +140,7 @@ impl Client {
                 token.set_sensitive(true);
                 token
             });
-            headers.insert(CONTENT_TYPE, content_type.try_into()?);
+            //headers.insert(CONTENT_TYPE, content_type.try_into()?);
             headers.insert("CanonicalizedResource", resource.as_str().try_into()?);
 
             headers
