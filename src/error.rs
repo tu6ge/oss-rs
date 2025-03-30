@@ -1,6 +1,7 @@
 use std::{
     env::VarError,
     fmt::{self, Display},
+    io,
     num::ParseIntError,
 };
 
@@ -19,6 +20,8 @@ pub enum OssError {
     ToStrError(#[from] ToStrError),
 
     VarError(#[from] VarError),
+
+    IoError(#[from] io::Error),
 
     NoFoundCreationDate,
 
@@ -45,6 +48,8 @@ pub enum OssError {
     InvalidBucket,
 
     InvalidOssError(String),
+
+    CopySourceNotFound,
 }
 
 impl OssError {

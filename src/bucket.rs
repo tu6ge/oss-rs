@@ -330,7 +330,7 @@ impl Bucket {
         let mut list = vec![];
         for i in 0..start_positions.len() {
             let path = &xml[start_positions[i] + 5..end_positions[i]];
-            list.push(Object::new(path.to_owned()))
+            list.push(Object::new(path))
         }
 
         Ok(list)

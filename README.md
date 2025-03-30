@@ -26,11 +26,31 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     // 获取文件的详细信息
     let obj_info = objects[0].get_info(&client).await?;
 
-    let object = Object::new("filename.txt");
     // 上传文件
-    let info = object.upload("content".into(),"text/plain;charset=utf-8".into(),, &client).await?;
+    let res = Object::new("abc2.txt")
+            .content("aaab".into())
+            .content_type("text/plain;charset=utf-8")
+            .upload(&set_client())
+            .await?;
+
+    // 使用文件句柄上传文件
+    let mut f = File::open("example_file.txt").unwrap();
+    let info = Object::new("abc_file.txt")
+        .file(&mut f)?
+        .content_type("text/plain;charset=utf-8")
+        .upload(&set_client())
+        .await?;
+
     // 下载文件内容
     let content = object.download(&client).await?;
+
+    // 复制文件
+    let object = Object::new("new_file.txt");
+    let res = object
+        .copy_source("/bucket_name/source_file.txt")
+        .content_type("text/plain;charset=utf-8")
+        .copy(&set_client())
+        .await?;
 
     Ok(())
 }

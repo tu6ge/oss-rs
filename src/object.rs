@@ -1,4 +1,7 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    io::Read,
+    ops::{Index, IndexMut},
+};
 
 use chrono::{DateTime, Utc};
 use reqwest::{
@@ -74,11 +77,30 @@ impl IndexMut<usize> for Objects {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Object {
     path: String,
+    content: Vec<u8>,
+    content_type: String,
+    copy_source: Option<String>,
+}
+
+impl From<String> for Object {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
+impl From<&str> for Object {
+    fn from(value: &str) -> Self {
+        Self::new(value)
+    }
 }
 
 impl Object {
     pub fn new<P: Into<String>>(path: P) -> Object {
-        Object { path: path.into() }
+        Object {
+            path: path.into(),
+            content: Vec::new(),
+            content_type: String::new(),
+            copy_source: None,
+        }
     }
 
     /// 确认文件是否在目录里面
@@ -194,32 +216,44 @@ impl Object {
         })
     }
 
+    pub fn content(mut self, content: Vec<u8>) -> Self {
+        self.content = content;
+        self
+    }
+    pub fn file(mut self, file: &mut std::fs::File) -> Result<Self, OssError> {
+        let mut buf = Vec::new();
+
+        file.read_to_end(&mut buf)?;
+        self.content = buf;
+
+        Ok(self)
+    }
+    pub fn content_type<T: Into<String>>(mut self, content_type: T) -> Self {
+        self.content_type = content_type.into();
+        self
+    }
+
     /// 上传文件
-    pub async fn upload(
-        &self,
-        content: Vec<u8>,
-        content_type: String,
-        client: &Client,
-    ) -> Result<(), OssError> {
+    pub async fn upload(self, client: &Client) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
         let method = Method::PUT;
-        let resource = CanonicalizedResource::from_object(bucket, self);
+        let resource = CanonicalizedResource::from_object(bucket, &self);
 
         let mut header_map = HeaderMap::new();
-        if !content_type.is_empty() {
-            header_map.insert(CONTENT_TYPE, content_type.try_into()?);
+        if !self.content_type.is_empty() {
+            header_map.insert(CONTENT_TYPE, self.content_type.try_into()?);
         }
 
         header_map = client.authorization_header(&method, resource, header_map)?;
-        if content.is_empty() {
+        if self.content.is_empty() {
             header_map.insert(CONTENT_LENGTH, 0.into());
         }
 
         let response = reqwest::Client::new()
             .request(method, url)
             .headers(header_map)
-            .body(content)
+            .body(self.content)
             .send()
             .await?;
 
@@ -251,22 +285,35 @@ impl Object {
         Ok(response.into())
     }
 
+    pub fn copy_source<T: Into<String>>(mut self, source: T) -> Self {
+        self.copy_source = Some(source.into());
+        self
+    }
+
     /// 复制文件
-    pub async fn copy_from(
-        &self,
-        client: &Client,
-        source: String,
-        content_type: String,
-    ) -> Result<(), OssError> {
+    /// ```
+    /// # use aliyun_oss_client::{Client,Object,Error, Bucket, EndPoint,Key,Secret};
+    /// async fn run(){
+    /// let mut client = Client::new(Key::new("key"),Secret::new("secret"));
+    /// client.set_bucket(Bucket::new("bucket1", EndPoint::CN_QINGDAO));
+    ///
+    /// let res = Object::new("file.txt")
+    ///     .copy(&client).await.unwrap_err();
+    /// assert!(matches!(res, Error::CopySourceNotFound));
+    /// }
+    /// ```
+    pub async fn copy(self, client: &Client) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
         let url = self.to_url(bucket);
         let method = Method::PUT;
-        let resource = CanonicalizedResource::from_object(bucket, self);
+        let resource = CanonicalizedResource::from_object(bucket, &self);
 
         let mut headers = HeaderMap::new();
+        let source = self.copy_source.ok_or(OssError::CopySourceNotFound)?;
         headers.insert("x-oss-copy-source", source.try_into()?);
-        if !content_type.is_empty() {
-            headers.insert(CONTENT_TYPE, content_type.try_into()?);
+
+        if !self.content_type.is_empty() {
+            headers.insert(CONTENT_TYPE, self.content_type.try_into()?);
         }
 
         let header_map = client.authorization_header(&method, resource, headers)?;
@@ -339,6 +386,8 @@ impl ObjectInfo {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+
     use super::Object;
     use crate::{
         bucket::Bucket,
@@ -364,14 +413,24 @@ mod tests {
 
     #[tokio::test]
     async fn test_upload() {
-        let object = Object::new("abc2.txt");
+        let info = Object::new("abc2.txt")
+            .content("aaab".into())
+            .content_type("text/plain;charset=utf-8")
+            .upload(&set_client())
+            .await
+            .unwrap();
 
-        let info = object
-            .upload(
-                "aaab".into(),
-                "text/plain;charset=utf-8".into(),
-                &set_client(),
-            )
+        println!("{info:?}");
+    }
+
+    #[tokio::test]
+    async fn test_upload_file() {
+        let mut f = File::open("example_file.txt").unwrap();
+        let info = Object::new("abc_file.txt")
+            .file(&mut f)
+            .unwrap()
+            .content_type("text/plain;charset=utf-8")
+            .upload(&set_client())
             .await
             .unwrap();
 
@@ -390,12 +449,10 @@ mod tests {
     #[tokio::test]
     async fn test_copy() {
         let object = Object::new("def2.txt");
-        let res = object
-            .copy_from(
-                &set_client(),
-                "/honglei123/abc2.txt".into(),
-                "text/plain;charset=utf-8".into(),
-            )
+        let _ = object
+            .copy_source("/honglei123/abc2.txt")
+            .content_type("text/plain;charset=utf-8")
+            .copy(&set_client())
             .await
             .unwrap();
     }
@@ -431,9 +488,7 @@ mod tests {
     async fn test_upload_empty_file() {
         let object = Object::new("empty.txt");
 
-        let info = object
-            .upload(vec![], "text/plain;charset=utf-8".into(), &set_client())
-            .await;
+        let info = object.upload(&set_client()).await;
         assert!(info.is_ok())
     }
 }
