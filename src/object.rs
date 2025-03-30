@@ -220,7 +220,8 @@ impl Object {
         self.content = content;
         self
     }
-    pub fn file(mut self, file: &mut std::fs::File) -> Result<Self, OssError> {
+
+    pub fn file(mut self, file: &mut dyn std::io::Read) -> Result<Self, OssError> {
         let mut buf = Vec::new();
 
         file.read_to_end(&mut buf)?;
