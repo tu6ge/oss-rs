@@ -292,9 +292,9 @@ impl Object {
 
     /// 复制文件
     /// ```
-    /// # use aliyun_oss_client::{Client,Object,Error, Bucket, EndPoint,Key,Secret};
+    /// # use aliyun_oss_client::{Client,Object,Error, Bucket, EndPoint};
     /// async fn run(){
-    /// let mut client = Client::new(Key::new("key"),Secret::new("secret"));
+    /// let mut client = Client::new("key","secret");
     /// client.set_bucket(Bucket::new("bucket1", EndPoint::CN_QINGDAO));
     ///
     /// let res = Object::new("file.txt")

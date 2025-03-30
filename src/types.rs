@@ -9,6 +9,17 @@ use serde::{de::Visitor, Deserialize};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Key(String);
 
+impl From<String> for Key {
+    fn from(value: String) -> Self {
+        Key(value)
+    }
+}
+impl From<&str> for Key {
+    fn from(value: &str) -> Self {
+        Key(value.into())
+    }
+}
+
 impl Key {
     pub fn new<K: Into<String>>(key: K) -> Key {
         Key(key.into())
@@ -26,6 +37,17 @@ impl Key {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Secret(String);
+
+impl From<String> for Secret {
+    fn from(value: String) -> Self {
+        Secret(value)
+    }
+}
+impl From<&str> for Secret {
+    fn from(value: &str) -> Self {
+        Secret(value.into())
+    }
+}
 
 impl Secret {
     pub fn new<S: Into<String>>(secret: S) -> Secret {

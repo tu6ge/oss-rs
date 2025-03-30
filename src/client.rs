@@ -24,10 +24,10 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(key: Key, secret: Secret) -> Client {
+    pub fn new<K: Into<Key>, S: Into<Secret>>(key: K, secret: S) -> Client {
         Self {
-            key,
-            secret,
+            key: key.into(),
+            secret: secret.into(),
             bucket: None,
             security_token: None,
         }
