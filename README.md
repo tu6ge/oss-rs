@@ -41,6 +41,13 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .upload(&set_client())
         .await?;
 
+    // 使用文件路径上传文件
+    let info = Object::new("abc_file.txt")
+        .file_path("example_file.txt")?
+        .content_type("text/plain;charset=utf-8")
+        .upload(&set_client())
+        .await?;
+
     // 下载文件内容
     let content = object.download(&client).await?;
 

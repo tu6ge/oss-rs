@@ -229,6 +229,12 @@ impl Object {
 
         Ok(self)
     }
+
+    pub fn file_path<P: AsRef<std::path::Path>>(self, path: P) -> Result<Self, OssError> {
+        let mut f = std::fs::File::open(path)?;
+        self.file(&mut f)
+    }
+
     pub fn content_type<T: Into<String>>(mut self, content_type: T) -> Self {
         self.content_type = content_type.into();
         self
