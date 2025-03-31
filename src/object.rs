@@ -1,4 +1,5 @@
 use std::{
+    fmt::Debug,
     io::Read,
     ops::{Index, IndexMut},
 };
@@ -74,12 +75,18 @@ impl IndexMut<usize> for Objects {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct Object {
     path: String,
     content: Vec<u8>,
     content_type: String,
     copy_source: Option<String>,
+}
+
+impl Debug for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Object").field("path", &self.path).finish()
+    }
 }
 
 impl From<String> for Object {
