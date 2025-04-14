@@ -28,36 +28,46 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
 
     // 上传文件
     let res = Object::new("abc2.txt")
-            .content("aaab".into())
-            .content_type("text/plain;charset=utf-8")
-            .upload(&set_client())
-            .await?;
+        .content("aaab".into())
+        .content_type("text/plain;charset=utf-8")
+        .upload(&client)
+        .await?;
 
     // 使用文件句柄上传文件
     let mut f = File::open("example_file.txt").unwrap();
     let info = Object::new("abc_file.txt")
         .file(&mut f)?
         .content_type("text/plain;charset=utf-8")
-        .upload(&set_client())
+        .upload(&client)
         .await?;
 
     // 使用文件路径上传文件
     let info = Object::new("abc_file.txt")
         .file_path("example_file.txt")?
         .content_type("text/plain;charset=utf-8")
-        .upload(&set_client())
+        .upload(&client)
         .await?;
 
     // 下载文件内容
     let content = object.download(&client).await?;
 
     // 复制文件
-    let object = Object::new("new_file.txt");
-    let res = object
+    let res = Object::new("new_file.txt")
         .copy_source("/bucket_name/source_file.txt")
         .content_type("text/plain;charset=utf-8")
-        .copy(&set_client())
+        .copy(&client)
         .await?;
+
+    // 分片上传（大文件）
+    let result = PartsUpload::new("myvideo23.mov")
+        .file_path("./video.mov".into())
+        .upload(&client)
+        .await;
+
+    // 删除文件
+    let result = Object::new("abc.txt")
+        .delete(&client)
+        .await;
 
     Ok(())
 }
