@@ -17,6 +17,9 @@ use crate::{
     Bucket,
 };
 
+mod parts_upload;
+pub use parts_upload::PartsUpload;
+
 #[derive(Debug)]
 pub struct Objects {
     //bucket: Bucket,

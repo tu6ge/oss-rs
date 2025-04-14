@@ -50,6 +50,8 @@ pub enum OssError {
     InvalidOssError(String),
 
     CopySourceNotFound,
+
+    NoFoundUploadId,
 }
 
 impl OssError {
