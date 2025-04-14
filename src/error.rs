@@ -52,6 +52,8 @@ pub enum OssError {
     CopySourceNotFound,
 
     NoFoundUploadId,
+
+    NoFoundContinuationToken,
 }
 
 impl OssError {

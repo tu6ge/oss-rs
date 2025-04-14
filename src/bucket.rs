@@ -13,11 +13,19 @@ use crate::{
     types::{CanonicalizedResource, EndPoint, ObjectQuery, StorageClass},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Bucket {
     name: String,
     endpoint: EndPoint,
+    query: ObjectQuery,
 }
+
+impl PartialEq<Bucket> for Bucket {
+    fn eq(&self, other: &Bucket) -> bool {
+        self.name.eq(&other.name) && self.endpoint.eq(&other.endpoint)
+    }
+}
+impl Eq for Bucket {}
 
 type NextContinuationToken = Option<String>;
 
@@ -26,6 +34,7 @@ impl Bucket {
         Bucket {
             name: name.into(),
             endpoint,
+            query: ObjectQuery::new(),
         }
     }
 
@@ -34,7 +43,11 @@ impl Bucket {
 
         let endpoint = EndPoint::from_env()?;
 
-        Ok(Bucket { name, endpoint })
+        Ok(Bucket {
+            name,
+            endpoint,
+            query: ObjectQuery::new(),
+        })
     }
 
     pub(crate) fn as_str(&self) -> &str {
@@ -214,6 +227,11 @@ impl Bucket {
         }
     }
 
+    pub fn object_query(mut self, query: ObjectQuery) -> Self {
+        self.query = query;
+        self
+    }
+
     /// 调用 aliyun api 返回 object 列表到自定义类型，它还会返回用于翻页的 `NextContinuationToken`
     ///
     /// aliyun api 返回的 xml 是如下格式：
@@ -237,13 +255,12 @@ impl Bucket {
     /// ```
     pub async fn export_objects<Obj: DeserializeOwned>(
         &self,
-        query: &ObjectQuery,
         client: &Client,
     ) -> Result<(Vec<Obj>, NextContinuationToken), OssError> {
         let mut url = self.to_url();
-        url.set_query(Some(&query.to_oss_query()));
+        url.set_query(Some(&self.query.to_oss_query()));
         let method = Method::GET;
-        let resource = CanonicalizedResource::from_object_list(self, query.get_next_token());
+        let resource = CanonicalizedResource::from_object_list(self, self.query.get_next_token());
 
         let header_map = client.authorization(&method, resource)?;
 
@@ -275,15 +292,11 @@ impl Bucket {
         Ok((res.contents, res.next_token))
     }
 
-    pub async fn get_objects(
-        &self,
-        query: &ObjectQuery,
-        client: &Client,
-    ) -> Result<Objects, OssError> {
+    pub async fn get_objects(&self, client: &Client) -> Result<Objects, OssError> {
         let mut url = self.to_url();
-        url.set_query(Some(&query.to_oss_query()));
+        url.set_query(Some(&self.query.to_oss_query()));
         let method = Method::GET;
-        let resource = CanonicalizedResource::from_object_list(self, query.get_next_token());
+        let resource = CanonicalizedResource::from_object_list(self, self.query.get_next_token());
 
         let header_map = client.authorization(&method, resource)?;
 
@@ -444,7 +457,8 @@ mod tests {
         }
 
         let (list, _): (Vec<MyObject>, _) = bucket
-            .export_objects(&condition, &init_client())
+            .object_query(condition)
+            .export_objects(&init_client())
             .await
             .unwrap();
 
@@ -454,25 +468,19 @@ mod tests {
     #[tokio::test]
     async fn test_get_objects() {
         let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
-        let mut condition = {
+        let condition = {
             let mut map = ObjectQuery::new();
             map.insert(ObjectQuery::MAX_KEYS, "5");
             map
         };
 
         let list = bucket
-            .get_objects(&condition, &init_client())
+            .clone()
+            .object_query(condition)
+            .get_objects(&init_client())
             .await
             .unwrap();
 
         println!("{list:?}");
-        condition.insert_next_token(list.next_token().unwrap().to_owned());
-        let second_list2 = bucket
-            .get_objects(&condition, &init_client())
-            .await
-            .unwrap();
-        println!("second_list: {:?}", second_list2);
-        // let second_list = list.next_list(&condition, &init_client()).await.unwrap();
-        // println!("second_list: {:?}", second_list);
     }
 }

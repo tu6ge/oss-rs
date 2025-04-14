@@ -25,11 +25,16 @@ pub struct Objects {
     //bucket: Bucket,
     list: Vec<Object>,
     next_token: Option<String>,
+    query: ObjectQuery,
 }
 
 impl Objects {
     pub fn new(list: Vec<Object>, next_token: Option<String>) -> Objects {
-        Objects { list, next_token }
+        Objects {
+            list,
+            next_token,
+            query: ObjectQuery::new(),
+        }
     }
 
     pub fn next_token(&self) -> Option<&String> {
@@ -48,17 +53,20 @@ impl Objects {
         &self.list
     }
 
-    pub async fn next_list(
-        self,
-        query: &ObjectQuery,
-        client: &Client,
-    ) -> Result<Objects, OssError> {
-        let mut q = query.clone();
+    pub fn object_query(mut self, query: ObjectQuery) -> Self {
+        self.query = query;
+        self
+    }
+
+    pub async fn next_list(self, client: &Client) -> Result<Objects, OssError> {
+        let mut q = self.query.clone();
         if let Some(token) = self.next_token {
             q.insert(ObjectQuery::CONTINUATION_TOKEN, token);
+        } else {
+            return Err(OssError::NoFoundContinuationToken);
         }
         match client.bucket() {
-            Some(bucket) => bucket.get_objects(&q, client).await,
+            Some(bucket) => bucket.clone().object_query(q).get_objects(client).await,
             None => Err(OssError::NoFoundBucket),
         }
     }
@@ -488,14 +496,15 @@ mod tests {
             map.insert(ObjectQuery::MAX_KEYS, "5");
             map
         };
-        let first_list = client
-            .bucket()
-            .unwrap()
-            .get_objects(&condition, &client)
+        let bucket = client.bucket().unwrap();
+        let first_list = bucket
+            .clone()
+            .object_query(condition)
+            .get_objects(&client)
             .await
             .unwrap();
 
-        let second_list = first_list.next_list(&condition, &client).await.unwrap();
+        let second_list = first_list.next_list(&client).await.unwrap();
 
         println!("{:?}", second_list);
     }

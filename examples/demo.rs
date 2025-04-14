@@ -6,7 +6,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
 
     let buckets = client.get_buckets(&EndPoint::CN_QINGDAO).await?;
 
-    let objects = buckets[0].get_objects(&ObjectQuery::new(), &client).await?;
+    let objects = buckets[0].get_objects(&client).await?;
 
     let _obj_info = objects[0].get_info(&client).await?;
 
@@ -41,8 +41,11 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         Key: String,
     }
 
-    let (list, next_token): (Vec<MyObject>, _) =
-        buckets[0].export_objects(&condition, &client).await?;
+    let (list, next_token): (Vec<MyObject>, _) = buckets[0]
+        .clone()
+        .object_query(condition)
+        .export_objects(&client)
+        .await?;
     Ok(())
 }
 
