@@ -228,7 +228,7 @@ impl Object {
         )?;
         Ok(ObjectInfo {
             last_modified: date.with_timezone(&Utc),
-            etag: etag.to_str()?.to_string(),
+            etag: etag.to_str()?.trim_matches('"').to_string(),
             size: content_length.to_str()?.parse()?,
         })
     }
@@ -433,6 +433,10 @@ mod tests {
         let info = object.get_info(&set_client()).await.unwrap();
 
         println!("{info:?}");
+
+        // 确保没有双引号
+        assert!(!info.etag().starts_with('"'));
+        assert!(!info.etag().ends_with('"'));
     }
 
     #[tokio::test]
