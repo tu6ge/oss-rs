@@ -45,7 +45,11 @@ pub enum OssError {
 
     InvalidEndPoint,
 
+    InvalidRegion,
+
     InvalidBucket,
+
+    InvalidBucketUrl,
 
     InvalidOssError(String),
 

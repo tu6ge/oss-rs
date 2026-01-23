@@ -10,7 +10,7 @@ use crate::{
     client::Client,
     error::OssError,
     object::{Object, Objects},
-    types::{CanonicalizedResource, EndPoint, ObjectQuery, StorageClass},
+    types::{CanonicalizedResource, EndPoint, EndPointUrl, ObjectQuery, StorageClass},
 };
 
 #[derive(Debug, Clone)]
@@ -67,10 +67,14 @@ impl Bucket {
     /// let bucket_internal = Bucket::new("bar", endpoint_internal);
     /// assert_eq!(bucket_internal.to_url(), Url::parse("https://bar.oss-cn-qingdao-internal.aliyuncs.com").unwrap());
     /// ```
-    pub fn to_url(&self) -> Url {
-        let url = format!("https://{}.{}", self.name.as_str(), self.endpoint.host());
+    pub fn to_url(&self) -> Result<Url, OssError> {
+        let url = format!(
+            "https://{}.{}",
+            self.name.as_str(),
+            EndPointUrl::new(&self.endpoint)?.host()
+        );
 
-        Url::parse(&url).unwrap_or_else(|_| panic!("covert to url failed, bucket: {}", url))
+        Url::parse(&url).map_err(|_| OssError::InvalidBucketUrl)
     }
 
     /// 调用 api 导出 bucket 详情信息到自定义类型
@@ -120,7 +124,7 @@ impl Bucket {
     pub async fn export_info<B: DeserializeOwned>(&self, client: &Client) -> Result<B, OssError> {
         const BUCKET_INFO: &str = "bucketInfo";
 
-        let mut url = self.to_url();
+        let mut url = self.to_url()?;
         url.set_query(Some(BUCKET_INFO));
         let method = Method::GET;
         let resource = CanonicalizedResource::from_bucket_info(self);
@@ -156,7 +160,7 @@ impl Bucket {
     pub async fn get_info(&self, client: &Client) -> Result<BucketInfo, OssError> {
         const BUCKET_INFO: &str = "bucketInfo";
 
-        let mut url = self.to_url();
+        let mut url = self.to_url()?;
         url.set_query(Some(BUCKET_INFO));
         let method = Method::GET;
         let resource = CanonicalizedResource::from_bucket_info(self);
@@ -257,7 +261,7 @@ impl Bucket {
         &self,
         client: &Client,
     ) -> Result<(Vec<Obj>, NextContinuationToken), OssError> {
-        let mut url = self.to_url();
+        let mut url = self.to_url()?;
         url.set_query(Some(&self.query.to_oss_query()));
         let method = Method::GET;
         let resource = CanonicalizedResource::from_object_list(self, self.query.get_next_token());
@@ -293,7 +297,7 @@ impl Bucket {
     }
 
     pub async fn get_objects(&self, client: &Client) -> Result<Objects, OssError> {
-        let mut url = self.to_url();
+        let mut url = self.to_url()?;
         url.set_query(Some(&self.query.to_oss_query()));
         let method = Method::GET;
         let resource = CanonicalizedResource::from_object_list(self, self.query.get_next_token());
@@ -420,9 +424,18 @@ mod tests {
 
     use super::Bucket;
 
+    fn build_bucket() -> Bucket {
+        use crate::types::KnownRegion;
+        use crate::types::Region;
+        Bucket::new(
+            "honglei123",
+            EndPoint::new(Region::Known(KnownRegion::CnShanghai)),
+        )
+    }
+
     #[tokio::test]
     async fn test_get_info() {
-        let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
+        let bucket = build_bucket();
         let info = bucket.get_info(&init_client()).await.unwrap();
 
         println!("{info:?}");
@@ -431,8 +444,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_export_info() {
-        let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
-
+        let bucket = build_bucket();
         #[derive(Debug, Deserialize)]
         struct DemoData {
             Name: String,
@@ -444,7 +456,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_export_objects() {
-        let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
+        let bucket = build_bucket();
         let condition = {
             let mut map = ObjectQuery::new();
             map.insert(ObjectQuery::MAX_KEYS, "5");
@@ -467,7 +479,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_objects() {
-        let bucket = Bucket::new("honglei123", EndPoint::CN_SHANGHAI);
+        let bucket = build_bucket();
         let condition = {
             let mut map = ObjectQuery::new();
             map.insert(ObjectQuery::MAX_KEYS, "5");

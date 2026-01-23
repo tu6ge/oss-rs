@@ -3,7 +3,8 @@ use std::{collections::HashMap, env::VarError};
 use crate::{bucket::Bucket, Object};
 
 mod endpoint;
-pub use endpoint::{EndPoint, EndPointKind};
+pub use endpoint::{EndPoint, EndPointUrl, KnownRegion, Region};
+
 use serde::{de::Visitor, Deserialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
