@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use reqwest::Method;
@@ -10,19 +10,19 @@ use crate::{
     client::Client,
     error::OssError,
     object::{Object, Objects},
-    types::{CanonicalizedResource, EndPoint, EndPointUrl, ObjectQuery, StorageClass},
+    types::{CanonicalizedResource, EndPointUrl, ObjectQuery, StorageClass},
 };
 
 #[derive(Debug, Clone)]
 pub struct Bucket {
     name: String,
-    endpoint: EndPoint,
+    client: Arc<Client>,
     query: ObjectQuery,
 }
 
 impl PartialEq<Bucket> for Bucket {
     fn eq(&self, other: &Bucket) -> bool {
-        self.name.eq(&other.name) && self.endpoint.eq(&other.endpoint)
+        self.name.eq(&other.name)
     }
 }
 impl Eq for Bucket {}
@@ -30,10 +30,10 @@ impl Eq for Bucket {}
 type NextContinuationToken = Option<String>;
 
 impl Bucket {
-    pub fn new<N: Into<String>>(name: N, endpoint: EndPoint) -> Bucket {
+    pub fn new<N: Into<String>>(name: N, client: Arc<Client>) -> Bucket {
         Bucket {
             name: name.into(),
-            endpoint,
+            client,
             query: ObjectQuery::new(),
         }
     }
@@ -41,11 +41,11 @@ impl Bucket {
     pub fn from_env() -> Result<Bucket, OssError> {
         let name = std::env::var("ALIYUN_BUCKET").map_err(|_| OssError::InvalidBucket)?;
 
-        let endpoint = EndPoint::from_env()?;
+        let client = Arc::new(Client::from_env()?);
 
         Ok(Bucket {
             name,
-            endpoint,
+            client,
             query: ObjectQuery::new(),
         })
     }
@@ -71,7 +71,7 @@ impl Bucket {
         let url = format!(
             "https://{}.{}",
             self.name.as_str(),
-            EndPointUrl::new(&self.endpoint)?.host()
+            EndPointUrl::new(&self.client.endpoint)?.host()
         );
 
         Url::parse(&url).map_err(|_| OssError::InvalidBucketUrl)
@@ -320,14 +320,14 @@ impl Bucket {
 
         //println!("{content}");
 
-        let list = Self::parse_xml_objects(&content)?;
+        let list = self.parse_xml_objects(&content)?;
 
         let token = Self::parse_item(&content, "NextContinuationToken").map(|t| t.to_owned());
 
         Ok(Objects::new(list, token))
     }
 
-    pub(crate) fn parse_xml_objects(xml: &str) -> Result<Vec<Object>, OssError> {
+    pub(crate) fn parse_xml_objects(&self, xml: &str) -> Result<Vec<Object>, OssError> {
         let mut start_positions = vec![];
         let mut end_positions = vec![];
         let mut start = 0;
@@ -347,7 +347,7 @@ impl Bucket {
         let mut list = vec![];
         for i in 0..start_positions.len() {
             let path = &xml[start_positions[i] + 5..end_positions[i]];
-            list.push(Object::new(path))
+            list.push(Object::new(path, self.client.clone()))
         }
 
         Ok(list)
@@ -415,22 +415,16 @@ impl FromStr for DataRedundancyType {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use serde::Deserialize;
 
-    use crate::{
-        client::init_client,
-        types::{EndPoint, ObjectQuery},
-    };
+    use crate::{client::init_client, types::ObjectQuery};
 
     use super::Bucket;
 
     fn build_bucket() -> Bucket {
-        use crate::types::KnownRegion;
-        use crate::types::Region;
-        Bucket::new(
-            "honglei123",
-            EndPoint::new(Region::Known(KnownRegion::CnShanghai)),
-        )
+        Bucket::new("honglei123", Arc::new(init_client()))
     }
 
     #[tokio::test]
