@@ -1,6 +1,7 @@
 use std::{
     fmt::Debug,
     ops::{Index, IndexMut},
+    sync::Arc,
 };
 
 use chrono::{DateTime, Utc};
@@ -85,13 +86,21 @@ impl IndexMut<usize> for Objects {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct Object {
     path: String,
+    client: Arc<Client>,
     content: Vec<u8>,
     content_type: String,
     copy_source: Option<String>,
 }
+
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        self.path.eq(&other.path)
+    }
+}
+
+impl Eq for Object {}
 
 impl Debug for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -99,21 +108,11 @@ impl Debug for Object {
     }
 }
 
-impl From<String> for Object {
-    fn from(value: String) -> Self {
-        Self::new(value)
-    }
-}
-impl From<&str> for Object {
-    fn from(value: &str) -> Self {
-        Self::new(value)
-    }
-}
-
 impl Object {
-    pub fn new<P: Into<String>>(path: P) -> Object {
+    pub fn new<P: Into<String>>(path: P, client: Arc<Client>) -> Object {
         Object {
             path: path.into(),
+            client,
             content: Vec::new(),
             content_type: String::new(),
             copy_source: None,
@@ -410,22 +409,17 @@ impl ObjectInfo {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
+    use std::{fs::File, sync::Arc};
 
     use super::Object;
     use crate::{
         bucket::Bucket,
         client::{init_client, Client},
-        types::{EndPoint, ObjectQuery},
+        types::ObjectQuery,
     };
 
     fn build_bucket() -> Bucket {
-        use crate::types::KnownRegion;
-        use crate::types::Region;
-        Bucket::new(
-            "honglei123",
-            EndPoint::new(Region::Known(KnownRegion::CnShanghai)),
-        )
+        Bucket::new("honglei123", Arc::new(init_client()))
     }
 
     fn set_client() -> Client {
@@ -437,7 +431,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_object_info() {
-        let object = Object::new("aaabbc.txt");
+        let client = init_client();
+        let object = Object::new("aaabbc.txt", Arc::new(client));
 
         let info = object.get_info(&set_client()).await.unwrap();
 
@@ -446,7 +441,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_upload() {
-        let info = Object::new("abc2.txt")
+        let info = Object::new("abc2.txt", Arc::new(init_client()))
             .content("aaab".into())
             .content_type("text/plain;charset=utf-8")
             .upload(&set_client())
@@ -459,7 +454,7 @@ mod tests {
     #[tokio::test]
     async fn test_upload_file() {
         let mut f = File::open("example_file.txt").unwrap();
-        let info = Object::new("abc_file.txt")
+        let info = Object::new("abc_file.txt", Arc::new(init_client()))
             .file(&mut f)
             .unwrap()
             .content_type("text/plain;charset=utf-8")
@@ -472,7 +467,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_down() {
-        let object = Object::new("abc.txt");
+        let object = Object::new("abc.txt", Arc::new(init_client()));
 
         let info = object.download(&set_client()).await.unwrap();
 
@@ -481,7 +476,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_copy() {
-        let object = Object::new("def2.txt");
+        let object = Object::new("def2.txt", Arc::new(init_client()));
         let _ = object
             .copy_source("/honglei123/abc2.txt")
             .content_type("text/plain;charset=utf-8")
@@ -492,7 +487,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete() {
-        let object = Object::new("abc.txt");
+        let object = Object::new("abc.txt", Arc::new(init_client()));
 
         let info = object.delete(&set_client()).await.unwrap();
     }
@@ -520,7 +515,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_upload_empty_file() {
-        let object = Object::new("empty.txt");
+        let object = Object::new("empty.txt", Arc::new(init_client()));
 
         let info = object.upload(&set_client()).await;
         assert!(info.is_ok())

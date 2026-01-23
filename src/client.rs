@@ -1,4 +1,4 @@
-use std::env::VarError;
+use std::{env::VarError, sync::Arc};
 
 use chrono::Utc;
 use reqwest::{
@@ -19,15 +19,17 @@ use crate::{
 pub struct Client {
     key: Key,
     secret: Secret,
+    pub(crate) endpoint: EndPoint,
     bucket: Option<Bucket>,
     security_token: Option<String>,
 }
 
 impl Client {
-    pub fn new<K: Into<Key>, S: Into<Secret>>(key: K, secret: S) -> Client {
+    pub fn new<K: Into<Key>, S: Into<Secret>>(key: K, secret: S, endpoint: EndPoint) -> Client {
         Self {
             key: key.into(),
             secret: secret.into(),
+            endpoint,
             bucket: None,
             security_token: None,
         }
@@ -36,20 +38,27 @@ impl Client {
     pub fn from_env() -> Result<Self, VarError> {
         let key = Key::from_env()?;
         let secret = Secret::from_env()?;
-        let bucket = Bucket::from_env().ok();
+        let endpoint = EndPoint::from_env().map_err(|_| VarError::NotPresent)?;
 
         Ok(Client {
             key,
             secret,
-            bucket,
+            endpoint,
+            bucket: None,
             security_token: None,
         })
     }
 
-    pub fn new_with_sts(key: Key, secret: Secret, security_token: String) -> Self {
+    pub fn new_with_sts(
+        key: Key,
+        secret: Secret,
+        security_token: String,
+        endpoint: EndPoint,
+    ) -> Self {
         Self {
             key,
             secret,
+            endpoint,
             bucket: None,
             security_token: Some(security_token),
         }
@@ -249,10 +258,10 @@ impl Client {
 
         // println!("{content}");
 
-        Self::parse_xml(content, endpoint)
+        self.parse_xml(content)
     }
 
-    fn parse_xml(xml: String, endpoint: &EndPoint) -> Result<Vec<Bucket>, OssError> {
+    fn parse_xml(&self, xml: String) -> Result<Vec<Bucket>, OssError> {
         let mut start_positions = vec![];
         let mut end_positions = vec![];
         let mut start = 0;
@@ -273,9 +282,10 @@ impl Client {
         debug_assert!(start_positions.len() == end_positions.len());
 
         let mut bucket = vec![];
+        let arc_client = Arc::new(self.clone());
         for i in 0..start_positions.len() {
             let name = &xml[start_positions[i] + pattern_len..end_positions[i]];
-            bucket.push(Bucket::new(name.to_owned(), endpoint.clone()))
+            bucket.push(Bucket::new(name.to_owned(), arc_client.clone()))
         }
 
         Ok(bucket)
@@ -375,6 +385,10 @@ pub fn init_client() -> Client {
     let key = env::var("ALIYUN_KEY_ID").unwrap();
     let secret = env::var("ALIYUN_KEY_SECRET").unwrap();
 
-    Client::new(Key::new(key), Secret::new(secret))
+    Client::new(
+        Key::new(key),
+        Secret::new(secret),
+        EndPoint::from_env().unwrap(),
+    )
     //Client::new_with_sts(Key::new("STS."), Secret::new(""), "".to_string())
 }

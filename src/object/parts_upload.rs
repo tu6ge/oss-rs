@@ -241,15 +241,12 @@ impl PartsUpload {
 
 #[cfg(test)]
 mod tests {
-    use crate::{client::init_client, object::PartsUpload, Bucket, Client, EndPoint};
+    use std::sync::Arc;
+
+    use crate::{client::init_client, object::PartsUpload, Bucket, Client};
 
     fn build_bucket() -> Bucket {
-        use crate::types::KnownRegion;
-        use crate::types::Region;
-        Bucket::new(
-            "honglei123",
-            EndPoint::new(Region::Known(KnownRegion::CnShanghai)),
-        )
+        Bucket::new("honglei123", Arc::new(init_client()))
     }
 
     fn set_client() -> Client {
