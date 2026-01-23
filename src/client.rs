@@ -189,7 +189,7 @@ impl Client {
         &self,
         endpoint: &EndPoint,
     ) -> Result<Vec<B>, OssError> {
-        let url = endpoint.to_url();
+        let url = endpoint.to_url()?.as_url().clone();
         let method = Method::GET;
         let resource = CanonicalizedResource::default();
 
@@ -229,7 +229,7 @@ impl Client {
     }
 
     pub async fn get_buckets(&self, endpoint: &EndPoint) -> Result<Vec<Bucket>, OssError> {
-        let url = endpoint.to_url();
+        let url = endpoint.to_url()?.as_url().clone();
         let method = Method::GET;
         let resource = CanonicalizedResource::default();
 
@@ -329,7 +329,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_buckets() {
-        let list = init_client().get_buckets(&EndPoint::CN_QINGDAO).await;
+        let list = init_client()
+            .get_buckets(&EndPoint::new(crate::types::Region::Known(
+                crate::types::KnownRegion::CnShanghai,
+            )))
+            .await;
 
         println!("{list:?}");
     }
@@ -351,7 +355,9 @@ mod tests {
         }
 
         let list: Vec<MyBucket> = init_client()
-            .export_buckets(&EndPoint::CN_QINGDAO)
+            .export_buckets(&EndPoint::new(crate::types::Region::Known(
+                crate::types::KnownRegion::CnShanghai,
+            )))
             .await
             .unwrap();
 

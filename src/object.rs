@@ -190,16 +190,16 @@ impl Object {
         &self.path
     }
 
-    pub fn to_url(&self, bucket: &Bucket) -> Url {
-        let mut url = bucket.to_url();
+    pub fn to_url(&self, bucket: &Bucket) -> Result<Url, OssError> {
+        let mut url = bucket.to_url()?;
         url.set_path(&self.path);
-        url
+        Ok(url)
     }
 
     /// 获取 object 的 meta 信息
     pub async fn get_info(&self, client: &Client) -> Result<ObjectInfo, OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let mut url = self.to_url(bucket);
+        let mut url = self.to_url(bucket)?;
         url.set_query(Some("objectMeta"));
         let method = Method::GET;
         let resource =
@@ -260,7 +260,7 @@ impl Object {
     /// 上传文件
     pub async fn upload(self, client: &Client) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let url = self.to_url(bucket);
+        let url = self.to_url(bucket)?;
         let method = Method::PUT;
         let resource = CanonicalizedResource::from_object(bucket, &self);
 
@@ -292,7 +292,7 @@ impl Object {
     /// 下载文件
     pub async fn download(&self, client: &Client) -> Result<Vec<u8>, OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let url = self.to_url(bucket);
+        let url = self.to_url(bucket)?;
         let method = Method::GET;
         let resource = CanonicalizedResource::from_object(bucket, self);
 
@@ -328,7 +328,7 @@ impl Object {
     /// ```
     pub async fn copy(self, client: &Client) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let url = self.to_url(bucket);
+        let url = self.to_url(bucket)?;
         let method = Method::PUT;
         let resource = CanonicalizedResource::from_object(bucket, &self);
 
@@ -359,7 +359,7 @@ impl Object {
     /// 删除文件
     pub async fn delete(&self, client: &Client) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let url = self.to_url(bucket);
+        let url = self.to_url(bucket)?;
         let method = Method::DELETE;
         let resource = CanonicalizedResource::from_object(bucket, self);
 
@@ -419,9 +419,18 @@ mod tests {
         types::{EndPoint, ObjectQuery},
     };
 
+    fn build_bucket() -> Bucket {
+        use crate::types::KnownRegion;
+        use crate::types::Region;
+        Bucket::new(
+            "honglei123",
+            EndPoint::new(Region::Known(KnownRegion::CnShanghai)),
+        )
+    }
+
     fn set_client() -> Client {
         let mut client = init_client();
-        client.set_bucket(Bucket::new("honglei123", EndPoint::CN_SHANGHAI));
+        client.set_bucket(build_bucket());
 
         client
     }

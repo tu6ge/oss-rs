@@ -30,10 +30,10 @@ impl PartsUpload {
         }
     }
 
-    pub fn to_url(&self, bucket: &Bucket) -> Url {
-        let mut url = bucket.to_url();
+    pub fn to_url(&self, bucket: &Bucket) -> Result<Url, OssError> {
+        let mut url = bucket.to_url()?;
         url.set_path(&self.path);
-        url
+        Ok(url)
     }
 
     pub fn file_path(mut self, file_path: String) -> Self {
@@ -70,7 +70,7 @@ impl PartsUpload {
 
     pub async fn init_mulit(&mut self, client: &Client) -> Result<(), OssError> {
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let mut url = self.to_url(bucket);
+        let mut url = self.to_url(bucket)?;
         url.set_query(Some("uploads"));
         let method = Method::POST;
         let resource =
@@ -108,7 +108,7 @@ impl PartsUpload {
         }
 
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let mut url = self.to_url(bucket);
+        let mut url = self.to_url(bucket)?;
         url.set_query(Some(&format!(
             "partNumber={}&uploadId={}",
             index, self.upload_id
@@ -158,7 +158,7 @@ impl PartsUpload {
         }
 
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let mut url = self.to_url(bucket);
+        let mut url = self.to_url(bucket)?;
         url.set_query(Some(&format!("uploadId={}", self.upload_id)));
         let resource = CanonicalizedResource::new(format!(
             "/{}/{}?uploadId={}",
@@ -216,7 +216,7 @@ impl PartsUpload {
             return Err(OssError::NoFoundUploadId);
         }
         let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let mut url = self.to_url(bucket);
+        let mut url = self.to_url(bucket)?;
         url.set_query(Some(&format!("uploadId={}", self.upload_id)));
         let resource = CanonicalizedResource::new(format!(
             "/{}/{}?uploadId={}",
@@ -243,10 +243,18 @@ impl PartsUpload {
 mod tests {
     use crate::{client::init_client, object::PartsUpload, Bucket, Client, EndPoint};
 
+    fn build_bucket() -> Bucket {
+        use crate::types::KnownRegion;
+        use crate::types::Region;
+        Bucket::new(
+            "honglei123",
+            EndPoint::new(Region::Known(KnownRegion::CnShanghai)),
+        )
+    }
+
     fn set_client() -> Client {
         let mut client = init_client();
-        client.set_bucket(Bucket::new("honglei123", EndPoint::CN_SHANGHAI));
-
+        client.set_bucket(build_bucket());
         client
     }
 
