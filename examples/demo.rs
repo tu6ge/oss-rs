@@ -12,7 +12,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
 
     let buckets = client.get_buckets(&build_endpoint()).await?;
 
-    let objects = buckets[0].get_objects(&client).await?;
+    let objects = buckets[0].get_objects().await?;
 
     let _obj_info = objects[0].get_info(&client).await?;
 

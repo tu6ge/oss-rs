@@ -121,9 +121,7 @@ impl EndPoint {
     }
 
     pub fn from_env() -> Result<Self, OssError> {
-        let region = std::env::var("ALIYUN_REGION")
-            .or_else(|_| std::env::var("ALIYUN_ENDPOINT"))
-            .map_err(|_| OssError::InvalidRegion)?;
+        let region = std::env::var("ALIYUN_ENDPOINT").map_err(|_| OssError::InvalidRegion)?;
 
         let mut endpoint = EndPoint::new(Region::parse(&region)?);
 

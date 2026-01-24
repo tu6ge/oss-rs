@@ -11,12 +11,7 @@ use reqwest::{
 };
 use url::Url;
 
-use crate::{
-    client::Client,
-    error::OssError,
-    types::{CanonicalizedResource, ObjectQuery},
-    Bucket,
-};
+use crate::{client::Client, error::OssError, types::CanonicalizedResource, Bucket};
 
 mod parts_upload;
 pub use parts_upload::PartsUpload;
@@ -24,18 +19,13 @@ pub use parts_upload::PartsUpload;
 #[derive(Debug)]
 pub struct Objects {
     //bucket: Bucket,
-    list: Vec<Object>,
-    next_token: Option<String>,
-    query: ObjectQuery,
+    pub(crate) list: Vec<Object>,
+    pub(crate) next_token: Option<String>,
 }
 
 impl Objects {
     pub fn new(list: Vec<Object>, next_token: Option<String>) -> Objects {
-        Objects {
-            list,
-            next_token,
-            query: ObjectQuery::new(),
-        }
+        Objects { list, next_token }
     }
 
     pub fn next_token(&self) -> Option<&String> {
@@ -52,22 +42,6 @@ impl Objects {
 
     pub fn get_vec(&self) -> &Vec<Object> {
         &self.list
-    }
-
-    pub fn object_query(mut self, query: ObjectQuery) -> Self {
-        self.query = query;
-        self
-    }
-
-    pub async fn next_list(self, client: &Client) -> Result<Objects, OssError> {
-        let mut q = self.query.clone();
-        if let Some(token) = self.next_token {
-            q.insert(ObjectQuery::CONTINUATION_TOKEN, token);
-        } else {
-            return Err(OssError::NoFoundContinuationToken);
-        }
-
-        todo!()
     }
 }
 

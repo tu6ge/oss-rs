@@ -13,6 +13,7 @@
 
 ```rust
 use aliyun_oss_client::{types::ObjectQuery, Client, EndPoint};
+use futures_util::StreamExt;
 
 async fn run() -> Result<(), aliyun_oss_client::Error> {
     let client = Client::from_env()?;
@@ -20,14 +21,17 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     // 获取 buckets 列表
     let buckets = client.get_buckets(&EndPoint::CN_QINGDAO).await?;
 
-    // 获取某一个 bucket 的文件列表
-    let objects = buckets[0]
-        .clone()
-        //.object_query(ObjctQuery::new())
-        .get_objects(&client).await?;
+    // 获取文件列表
+    let stream = Client::from_env()?
+        .bucket("honglei123")?
+        .max_keys(5)
+        .objects_into_stream();
 
-    // 获取第二页数据
-    let second_objects = objects.next_list(&client).await?;
+    pin_mut!(stream);
+
+    while let Some(item) = stream.next().await {
+        println!("{item:?}");
+    }
 
     // 获取文件的详细信息
     let obj_info = objects[0].get_info(&client).await?;

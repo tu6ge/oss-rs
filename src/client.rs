@@ -360,11 +360,12 @@ pub fn init_client() -> Client {
     dotenv().ok();
     let key = env::var("ALIYUN_KEY_ID").unwrap();
     let secret = env::var("ALIYUN_KEY_SECRET").unwrap();
+    let endpoint = env::var("ALIYUN_ENDPOINT").unwrap();
 
     Client::new(
         Key::new(key),
         Secret::new(secret),
-        EndPoint::from_env().unwrap(),
+        EndPoint::infer_from_oss_url(&endpoint).unwrap(),
     )
     //Client::new_with_sts(Key::new("STS."), Secret::new(""), "".to_string())
 }
