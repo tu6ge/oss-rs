@@ -6,6 +6,9 @@ let bucket = client.bucket("my-bucket");
 
 // 不需要再传 &client，因为 bucket 内部持有 client 的引用
 let objects = bucket.get_objects().await?;
+
+// 查询条件 builder
+let query = ObjectQuery::new().max_keys(10).prefix("dir1/").delimiter("/");
 ```
 
 get bucket info;
