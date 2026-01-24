@@ -22,6 +22,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     let buckets = client.get_buckets(&EndPoint::CN_QINGDAO).await?;
 
     // 获取文件列表
+    // 接口每次请求只读取5个文件，随着 next() 函数的不断调用，每隔五个会重新调用一次接口，获取下一页的文件
     let stream = Client::from_env()?
         .bucket("honglei123")?
         .max_keys(5)
