@@ -8,7 +8,7 @@ use url::Url;
 
 use crate::{
     client::Client,
-    error::OssError,
+    error::{BucketNameError, OssError},
     object::{Object, Objects},
     types::{CanonicalizedResource, EndPointUrl, ObjectQuery, StorageClass},
 };
@@ -30,12 +30,15 @@ impl Eq for Bucket {}
 type NextContinuationToken = Option<String>;
 
 impl Bucket {
-    pub fn new<N: Into<String>>(name: N, client: Arc<Client>) -> Bucket {
-        Bucket {
-            name: name.into(),
+    pub fn new<N: Into<String>>(name: N, client: Arc<Client>) -> Result<Bucket, OssError> {
+        let name = name.into();
+        validate_bucket_name(&name)?;
+
+        Ok(Bucket {
+            name,
             client,
             query: ObjectQuery::new(),
-        }
+        })
     }
 
     pub fn from_env() -> Result<Bucket, OssError> {
@@ -345,13 +348,63 @@ impl Bucket {
         }
 
         let mut list = vec![];
+        let arc_bucket = Arc::new(self.clone());
         for i in 0..start_positions.len() {
             let path = &xml[start_positions[i] + 5..end_positions[i]];
-            list.push(Object::new(path, self.client.clone()))
+            list.push(Object::new(path, arc_bucket.clone()))
         }
 
         Ok(list)
     }
+}
+
+pub fn validate_bucket_name(name: &str) -> Result<(), BucketNameError> {
+    let len = name.len();
+    if len < 3 || len > 63 {
+        return Err(BucketNameError::InvalidLength);
+    }
+
+    let mut chars = name.chars();
+
+    let first = chars.next().unwrap();
+    if !is_lowercase_letter_or_digit(first) {
+        return Err(BucketNameError::InvalidStart);
+    }
+
+    let last = name.chars().last().unwrap();
+    if !is_lowercase_letter_or_digit(last) {
+        return Err(BucketNameError::InvalidEnd);
+    }
+
+    for c in name.chars() {
+        if !(is_lowercase_letter_or_digit(c) || c == '-') {
+            return Err(BucketNameError::InvalidCharacter(c));
+        }
+    }
+
+    if looks_like_ip(name) {
+        return Err(BucketNameError::LooksLikeIpAddress);
+    }
+
+    Ok(())
+}
+
+fn is_lowercase_letter_or_digit(c: char) -> bool {
+    matches!(c, 'a'..='z' | '0'..='9')
+}
+
+fn looks_like_ip(name: &str) -> bool {
+    let parts: Vec<&str> = name.split('.').collect();
+    if parts.len() != 4 {
+        return false;
+    }
+
+    parts.iter().all(|p| {
+        !p.is_empty()
+            && p.len() <= 3
+            && p.chars().all(|c| c.is_ascii_digit())
+            && p.parse::<u8>().is_ok()
+    })
 }
 
 #[derive(Debug)]
@@ -424,7 +477,7 @@ mod tests {
     use super::Bucket;
 
     fn build_bucket() -> Bucket {
-        Bucket::new("honglei123", Arc::new(init_client()))
+        Bucket::new("honglei123", Arc::new(init_client())).unwrap()
     }
 
     #[tokio::test]

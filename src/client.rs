@@ -20,7 +20,6 @@ pub struct Client {
     key: Key,
     secret: Secret,
     pub(crate) endpoint: EndPoint,
-    bucket: Option<Bucket>,
     security_token: Option<String>,
 }
 
@@ -30,7 +29,6 @@ impl Client {
             key: key.into(),
             secret: secret.into(),
             endpoint,
-            bucket: None,
             security_token: None,
         }
     }
@@ -44,7 +42,6 @@ impl Client {
             key,
             secret,
             endpoint,
-            bucket: None,
             security_token: None,
         })
     }
@@ -59,34 +56,13 @@ impl Client {
             key,
             secret,
             endpoint,
-            bucket: None,
             security_token: Some(security_token),
         }
     }
 
-    /// 设置默认的 bucket(bucket 也会包含 endpoint 信息)
-    /// 当设置的时候，会返回上次设置的值，默认值为 None
-    /// ```
-    /// # use aliyun_oss_client::{Client, Key, Secret, EndPoint, Bucket};
-    /// # let mut client = Client::new(Key::new("foo"), Secret::new("bar"));
-    /// # let bucket = Bucket::new("bucket1", EndPoint::CN_QINGDAO);
-    /// # let bucket2 = Bucket::new("bucket2", EndPoint::CN_QINGDAO);
-    /// assert!(client.bucket().is_none());
-    /// let res = client.set_bucket(bucket.clone());
-    /// assert!(res.is_none());
-    /// assert_eq!(client.bucket(), Some(&bucket));
-    ///
-    /// let res2 = client.set_bucket(bucket2.clone());
-    /// assert_eq!(res2, Some(bucket));
-    /// assert_eq!(client.bucket(), Some(&bucket2));
-    /// ```
-    pub fn set_bucket(&mut self, bucket: Bucket) -> Option<Bucket> {
-        self.bucket.replace(bucket)
-    }
-
     /// 返回当前设置的 bucket 信息
-    pub fn bucket(&self) -> Option<&Bucket> {
-        self.bucket.as_ref()
+    pub fn bucket(&self, name: &str) -> Result<Bucket, OssError> {
+        Bucket::new(name, Arc::new(self.clone()))
     }
 
     pub fn authorization(
@@ -285,7 +261,7 @@ impl Client {
         let arc_client = Arc::new(self.clone());
         for i in 0..start_positions.len() {
             let name = &xml[start_positions[i] + pattern_len..end_positions[i]];
-            bucket.push(Bucket::new(name.to_owned(), arc_client.clone()))
+            bucket.push(Bucket::new(name.to_owned(), arc_client.clone())?)
         }
 
         Ok(bucket)

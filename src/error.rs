@@ -49,6 +49,10 @@ pub enum OssError {
 
     InvalidBucket,
 
+    NotSetDefaultBucket,
+
+    BucketName(BucketNameError),
+
     InvalidBucketUrl,
 
     InvalidOssError(String),
@@ -95,5 +99,29 @@ impl ServiceXML {
     fn new(xml: &str) -> Result<Self, serde_xml_rs::Error> {
         //println!("{xml}");
         serde_xml_rs::from_str(xml)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum BucketNameError {
+    #[error("bucket name length must be between 3 and 63 characters")]
+    InvalidLength,
+
+    #[error("bucket name contains invalid character: '{0}'")]
+    InvalidCharacter(char),
+
+    #[error("bucket name must start with a letter or digit")]
+    InvalidStart,
+
+    #[error("bucket name must end with a letter or digit")]
+    InvalidEnd,
+
+    #[error("bucket name must not be formatted like an IP address")]
+    LooksLikeIpAddress,
+}
+
+impl From<BucketNameError> for OssError {
+    fn from(value: BucketNameError) -> Self {
+        Self::BucketName(value)
     }
 }

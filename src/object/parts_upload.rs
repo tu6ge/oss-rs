@@ -1,6 +1,7 @@
 use std::{
     fs::File,
     io::{BufReader, Read},
+    sync::Arc,
 };
 
 use reqwest::{
@@ -13,6 +14,7 @@ use crate::{types::CanonicalizedResource, Bucket, Client, Error as OssError};
 
 pub struct PartsUpload {
     path: String,
+    bucket: Arc<Bucket>,
     upload_id: String,
     etags: Vec<(usize, String)>,
     file_path: String,
@@ -20,9 +22,10 @@ pub struct PartsUpload {
 }
 
 impl PartsUpload {
-    pub fn new<P: Into<String>>(path: P) -> PartsUpload {
+    pub fn new<P: Into<String>>(path: P, bucket: Arc<Bucket>) -> PartsUpload {
         PartsUpload {
             path: path.into(),
+            bucket,
             upload_id: String::new(),
             etags: Vec::new(),
             file_path: String::new(),
@@ -30,8 +33,8 @@ impl PartsUpload {
         }
     }
 
-    pub fn to_url(&self, bucket: &Bucket) -> Result<Url, OssError> {
-        let mut url = bucket.to_url()?;
+    pub fn to_url(&self) -> Result<Url, OssError> {
+        let mut url = self.bucket.to_url()?;
         url.set_path(&self.path);
         Ok(url)
     }
@@ -69,12 +72,12 @@ impl PartsUpload {
     }
 
     pub async fn init_mulit(&mut self, client: &Client) -> Result<(), OssError> {
-        let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let mut url = self.to_url(bucket)?;
+        let mut url = self.to_url()?;
         url.set_query(Some("uploads"));
         let method = Method::POST;
+
         let resource =
-            CanonicalizedResource::new(format!("/{}/{}?uploads", bucket.as_str(), self.path));
+            CanonicalizedResource::new(format!("/{}/{}?uploads", self.bucket.as_str(), self.path));
 
         let header_map = client.authorization(&method, resource)?;
 
@@ -107,15 +110,14 @@ impl PartsUpload {
             return Err(OssError::NoFoundUploadId);
         }
 
-        let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let mut url = self.to_url(bucket)?;
+        let mut url = self.bucket.to_url()?;
         url.set_query(Some(&format!(
             "partNumber={}&uploadId={}",
             index, self.upload_id
         )));
         let resource = CanonicalizedResource::new(format!(
             "/{}/{}?partNumber={}&uploadId={}",
-            bucket.as_str(),
+            self.bucket.as_str(),
             self.path,
             index,
             self.upload_id
@@ -157,12 +159,11 @@ impl PartsUpload {
             return Err(OssError::NoFoundEtag);
         }
 
-        let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let mut url = self.to_url(bucket)?;
+        let mut url = self.bucket.to_url()?;
         url.set_query(Some(&format!("uploadId={}", self.upload_id)));
         let resource = CanonicalizedResource::new(format!(
             "/{}/{}?uploadId={}",
-            bucket.as_str(),
+            self.bucket.as_str(),
             self.path,
             self.upload_id
         ));
@@ -215,12 +216,11 @@ impl PartsUpload {
         if self.upload_id.is_empty() {
             return Err(OssError::NoFoundUploadId);
         }
-        let bucket = client.bucket().ok_or(OssError::NoFoundBucket)?;
-        let mut url = self.to_url(bucket)?;
+        let mut url = self.bucket.to_url()?;
         url.set_query(Some(&format!("uploadId={}", self.upload_id)));
         let resource = CanonicalizedResource::new(format!(
             "/{}/{}?uploadId={}",
-            bucket.as_str(),
+            self.bucket.as_str(),
             self.path,
             self.upload_id
         ));
@@ -246,18 +246,18 @@ mod tests {
     use crate::{client::init_client, object::PartsUpload, Bucket, Client};
 
     fn build_bucket() -> Bucket {
-        Bucket::new("honglei123", Arc::new(init_client()))
+        Bucket::new("honglei123", Arc::new(init_client())).unwrap()
     }
 
     fn set_client() -> Client {
         let mut client = init_client();
-        client.set_bucket(build_bucket());
+        //client.set_bucket(build_bucket());
         client
     }
 
     #[tokio::test]
     async fn test_upload() {
-        let object = PartsUpload::new("myvideo23.mov");
+        let object = PartsUpload::new("myvideo23.mov", Arc::new(build_bucket()));
 
         let info = object
             .file_path("./video.mov".into())
