@@ -18,7 +18,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Bucket {
     name: String,
-    client: Arc<Client>,
+    pub(crate) client: Arc<Client>,
     query: ObjectQuery,
 }
 
@@ -109,6 +109,10 @@ impl Bucket {
     pub fn fetch_owner(mut self, fetch_owner: bool) -> Self {
         self.query = self.query.fetch_owner(fetch_owner);
         self
+    }
+
+    pub fn object(&self, path: &str) -> Object {
+        Object::new(path, Arc::new(self.clone()))
     }
 
     /// 调用 api 导出 bucket 详情信息到自定义类型
