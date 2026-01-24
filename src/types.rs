@@ -226,10 +226,43 @@ impl ObjectQuery {
             map: HashMap::new(),
         }
     }
+
+    pub fn max_keys(mut self, max_keys: u32) -> Self {
+        self.map.insert(Self::MAX_KEYS.into(), max_keys.to_string());
+        self
+    }
+    pub fn prefix(mut self, prefix: &str) -> Self {
+        self.map.insert(Self::PREFIX.into(), prefix.into());
+        self
+    }
+    pub fn delimiter(mut self, delimiter: &str) -> Self {
+        self.map.insert(Self::DELIMITER.into(), delimiter.into());
+        self
+    }
+    pub fn continuation_token(mut self, continuation_token: &str) -> Self {
+        self.map
+            .insert(Self::CONTINUATION_TOKEN.into(), continuation_token.into());
+        self
+    }
+    pub fn encoding_type(mut self, encoding_type: &str) -> Self {
+        self.map
+            .insert(Self::ENCODING_TYPE.into(), encoding_type.into());
+        self
+    }
+    pub fn start_after(mut self, start_after: &str) -> Self {
+        self.map
+            .insert(Self::START_AFTER.into(), start_after.into());
+        self
+    }
+    pub fn fetch_owner(mut self, fetch_owner: bool) -> Self {
+        self.map
+            .insert(Self::FETCH_OWNER.into(), fetch_owner.to_string());
+        self
+    }
+
     pub fn insert<K: Into<String>, V: Into<String>>(&mut self, key: K, value: V) -> Option<String> {
         self.map.insert(key.into(), value.into())
     }
-
     pub(crate) fn get_next_token(&self) -> Option<&String> {
         self.map.get(Self::CONTINUATION_TOKEN)
     }
