@@ -38,35 +38,36 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     let obj_info = objects[0].get_info(&client).await?;
 
     // 上传文件
-    let res = Object::new("abc2.txt")
-        .content("aaab".into())
+    let res = Client::from_env()?
+        .bucket("honglei123")?
+        .object("abc2.txt")
         .content_type("text/plain;charset=utf-8")
-        .upload(&client)
+        .upload("aaab")
         .await?;
 
     // 使用文件句柄上传文件
-    let mut f = File::open("example_file.txt").unwrap();
-    let info = Object::new("abc_file.txt")
-        .file(&mut f)?
+    let mut f = tokio::fs::File::open("example_file.txt").await.unwrap();
+    let info = Client::from_env()?
+        .bucket("honglei123")?
+        .object("abc_file.txt")
         .content_type("text/plain;charset=utf-8")
-        .upload(&client)
-        .await?;
-
-    // 使用文件路径上传文件
-    let info = Object::new("abc_file.txt")
-        .file_path("example_file.txt")?
-        .content_type("text/plain;charset=utf-8")
-        .upload(&client)
+        .upload(f)
         .await?;
 
     // 下载文件内容
-    let content = object.download(&client).await?;
+    let content = Client::from_env()?
+        .bucket("honglei123")?
+        .object("download1.jpg")
+        .download()
+        .await?;
 
     // 复制文件
-    let res = Object::new("new_file.txt")
+    let res = Client::from_env()?
+        .bucket("honglei123")?
+        .object("new_file.txt")
         .copy_source("/bucket_name/source_file.txt")
         .content_type("text/plain;charset=utf-8")
-        .copy(&client)
+        .copy()
         .await?;
 
     // 分片上传（大文件）
@@ -76,8 +77,10 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .await;
 
     // 删除文件
-    let result = Object::new("abc.txt")
-        .delete(&client)
+    let result = Client::from_env()?
+        .bucket("honglei123")?
+        .object("abc.txt")
+        .delete()
         .await;
 
     Ok(())

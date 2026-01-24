@@ -7,13 +7,15 @@ use std::{
 use chrono::{DateTime, Utc};
 use reqwest::{
     header::{HeaderMap, CONTENT_LENGTH, CONTENT_TYPE},
-    Method,
+    Body, Method,
 };
 use url::Url;
 
 use crate::{client::Client, error::OssError, types::CanonicalizedResource, Bucket};
 
+mod body;
 mod parts_upload;
+pub use body::IntoBody;
 pub use parts_upload::PartsUpload;
 
 #[derive(Debug)]
@@ -61,7 +63,6 @@ impl IndexMut<usize> for Objects {
 pub struct Object {
     path: String,
     bucket: Arc<Bucket>,
-    content: Vec<u8>,
     content_type: String,
     copy_source: Option<String>,
 }
@@ -85,7 +86,6 @@ impl Object {
         Object {
             path: path.into(),
             bucket,
-            content: Vec::new(),
             content_type: String::new(),
             copy_source: None,
         }
@@ -168,8 +168,8 @@ impl Object {
     }
 
     /// 获取 object 的 meta 信息
-    pub async fn get_info(&self, client: &Client) -> Result<ObjectInfo, OssError> {
-        let mut url = self.bucket.to_url()?;
+    pub async fn get_info(&self) -> Result<ObjectInfo, OssError> {
+        let mut url = self.to_url()?;
         url.set_query(Some("objectMeta"));
         let method = Method::GET;
         let resource = CanonicalizedResource::new(format!(
@@ -178,7 +178,7 @@ impl Object {
             self.path
         ));
 
-        let header_map = client.authorization(&method, resource)?;
+        let header_map = self.bucket.client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
             .request(method, url)
@@ -206,33 +206,14 @@ impl Object {
         })
     }
 
-    pub fn content(mut self, content: Vec<u8>) -> Self {
-        self.content = content;
-        self
-    }
-
-    pub fn file(mut self, file: &mut dyn std::io::Read) -> Result<Self, OssError> {
-        let mut buf = Vec::new();
-
-        file.read_to_end(&mut buf)?;
-        self.content = buf;
-
-        Ok(self)
-    }
-
-    pub fn file_path<P: AsRef<std::path::Path>>(self, path: P) -> Result<Self, OssError> {
-        let mut f = std::fs::File::open(path)?;
-        self.file(&mut f)
-    }
-
     pub fn content_type<T: Into<String>>(mut self, content_type: T) -> Self {
         self.content_type = content_type.into();
         self
     }
 
     /// 上传文件
-    pub async fn upload(self, client: &Client) -> Result<(), OssError> {
-        let url = self.bucket.to_url()?;
+    pub async fn upload(self, body: impl IntoBody) -> Result<(), OssError> {
+        let url = self.to_url()?;
         let method = Method::PUT;
         let resource = CanonicalizedResource::from_object(&self.bucket, &self);
 
@@ -241,15 +222,22 @@ impl Object {
             header_map.insert(CONTENT_TYPE, self.content_type.try_into()?);
         }
 
-        header_map = client.authorization_header(&method, resource, header_map)?;
-        if self.content.is_empty() {
-            header_map.insert(CONTENT_LENGTH, 0.into());
+        header_map = self
+            .bucket
+            .client
+            .authorization_header(&method, resource, header_map)?;
+        if let Some(content_length) = body.content_length() {
+            if content_length == 0 {
+                header_map.insert(CONTENT_LENGTH, 0.into());
+            }
         }
+        let body_stream = body.into_body();
+        let req_body = Body::wrap_stream(body_stream);
 
         let response = reqwest::Client::new()
             .request(method, url)
             .headers(header_map)
-            .body(self.content)
+            .body(req_body)
             .send()
             .await?;
 
@@ -262,12 +250,12 @@ impl Object {
     }
 
     /// 下载文件
-    pub async fn download(&self, client: &Client) -> Result<Vec<u8>, OssError> {
-        let url = self.bucket.to_url()?;
+    pub async fn download(&self) -> Result<Vec<u8>, OssError> {
+        let url = self.to_url()?;
         let method = Method::GET;
         let resource = CanonicalizedResource::from_object(&self.bucket, self);
 
-        let header_map = client.authorization(&method, resource)?;
+        let header_map = self.bucket.client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
             .request(method, url)
@@ -286,19 +274,8 @@ impl Object {
     }
 
     /// 复制文件
-    /// ```
-    /// # use aliyun_oss_client::{Client,Object,Error, Bucket, EndPoint};
-    /// async fn run(){
-    /// let mut client = Client::new("key","secret");
-    /// client.set_bucket(Bucket::new("bucket1", EndPoint::CN_QINGDAO));
-    ///
-    /// let res = Object::new("file.txt")
-    ///     .copy(&client).await.unwrap_err();
-    /// assert!(matches!(res, Error::CopySourceNotFound));
-    /// }
-    /// ```
-    pub async fn copy(self, client: &Client) -> Result<(), OssError> {
-        let url = self.bucket.to_url()?;
+    pub async fn copy(self) -> Result<(), OssError> {
+        let url = self.to_url()?;
         let method = Method::PUT;
         let resource = CanonicalizedResource::from_object(&self.bucket, &self);
 
@@ -310,7 +287,10 @@ impl Object {
             headers.insert(CONTENT_TYPE, self.content_type.try_into()?);
         }
 
-        let header_map = client.authorization_header(&method, resource, headers)?;
+        let header_map = self
+            .bucket
+            .client
+            .authorization_header(&method, resource, headers)?;
 
         let response = reqwest::Client::new()
             .request(method, url)
@@ -327,12 +307,12 @@ impl Object {
     }
 
     /// 删除文件
-    pub async fn delete(&self, client: &Client) -> Result<(), OssError> {
-        let url = self.bucket.to_url()?;
+    pub async fn delete(&self) -> Result<(), OssError> {
+        let url = self.to_url()?;
         let method = Method::DELETE;
         let resource = CanonicalizedResource::from_object(&self.bucket, self);
 
-        let header_map = client.authorization(&method, resource)?;
+        let header_map = self.bucket.client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
             .request(method, url)
@@ -379,41 +359,29 @@ impl ObjectInfo {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, sync::Arc};
+    use std::sync::Arc;
 
-    use super::Object;
-    use crate::{
-        bucket::Bucket,
-        client::{init_client, Client},
-        types::ObjectQuery,
-    };
+    use crate::{bucket::Bucket, client::init_client};
 
     fn build_bucket() -> Bucket {
         Bucket::new("honglei123", Arc::new(init_client())).unwrap()
     }
 
-    fn set_client() -> Client {
-        let mut client = init_client();
-
-        client
-    }
-
     #[tokio::test]
     async fn test_object_info() {
-        let client = init_client();
-        let object = Object::new("aaabbc.txt", Arc::new(build_bucket()));
+        let object = build_bucket().object("aaabbc.txt");
 
-        let info = object.get_info(&set_client()).await.unwrap();
+        let info = object.get_info().await.unwrap();
 
         println!("{info:?}");
     }
 
     #[tokio::test]
     async fn test_upload() {
-        let info = Object::new("abc2.txt", Arc::new(build_bucket()))
-            .content("aaab".into())
+        let info = build_bucket()
+            .object("abc2.txt")
             .content_type("text/plain;charset=utf-8")
-            .upload(&set_client())
+            .upload("aaab")
             .await
             .unwrap();
 
@@ -422,12 +390,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_upload_file() {
-        let mut f = File::open("example_file.txt").unwrap();
-        let info = Object::new("abc_file.txt", Arc::new(build_bucket()))
-            .file(&mut f)
-            .unwrap()
+        let f = tokio::fs::File::open("example_file.txt").await.unwrap();
+        let info = build_bucket()
+            .object("abc_file.txt")
             .content_type("text/plain;charset=utf-8")
-            .upload(&set_client())
+            .upload(f)
             .await
             .unwrap();
 
@@ -436,48 +403,36 @@ mod tests {
 
     #[tokio::test]
     async fn test_down() {
-        let object = Object::new("abc.txt", Arc::new(build_bucket()));
+        let object = build_bucket().object("abc.txt");
 
-        let info = object.download(&set_client()).await.unwrap();
+        let info = object.download().await.unwrap();
 
         println!("{:?}", std::str::from_utf8(&info).unwrap());
     }
 
     #[tokio::test]
     async fn test_copy() {
-        let object = Object::new("def2.txt", Arc::new(build_bucket()));
+        let object = build_bucket().object("def2.txt");
         let _ = object
             .copy_source("/honglei123/abc2.txt")
             .content_type("text/plain;charset=utf-8")
-            .copy(&set_client())
+            .copy()
             .await
             .unwrap();
     }
 
     #[tokio::test]
     async fn test_delete() {
-        let object = Object::new("abc.txt", Arc::new(build_bucket()));
+        let object = build_bucket().object("abc.txt");
 
-        let info = object.delete(&set_client()).await.unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_next_list() {
-        let client = set_client();
-        let condition = {
-            let mut map = ObjectQuery::new();
-            map.insert(ObjectQuery::MAX_KEYS, "5");
-            map
-        };
-
-        todo!()
+        let info = object.delete().await.unwrap();
     }
 
     #[tokio::test]
     async fn test_upload_empty_file() {
-        let object = Object::new("empty.txt", Arc::new(build_bucket()));
+        let object = build_bucket().object("empty.txt");
 
-        let info = object.upload(&set_client()).await;
+        let info = object.upload("").await;
         assert!(info.is_ok())
     }
 }
