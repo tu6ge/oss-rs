@@ -1,6 +1,8 @@
 use std::{str::FromStr, sync::Arc};
 
+use async_stream::try_stream;
 use chrono::{DateTime, Utc};
+use futures_core::Stream;
 use reqwest::Method;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_xml_rs::from_str;
@@ -78,6 +80,35 @@ impl Bucket {
         );
 
         Url::parse(&url).map_err(|_| OssError::InvalidBucketUrl)
+    }
+
+    pub fn max_keys(mut self, max_keys: u32) -> Self {
+        self.query = self.query.max_keys(max_keys);
+        self
+    }
+    pub fn prefix(mut self, prefix: &str) -> Self {
+        self.query = self.query.prefix(prefix);
+        self
+    }
+    pub fn delimiter(mut self, delimiter: &str) -> Self {
+        self.query = self.query.delimiter(delimiter);
+        self
+    }
+    pub fn continuation_token(mut self, continuation_token: &str) -> Self {
+        self.query = self.query.continuation_token(continuation_token);
+        self
+    }
+    pub fn encoding_type(mut self, encoding_type: &str) -> Self {
+        self.query = self.query.encoding_type(encoding_type);
+        self
+    }
+    pub fn start_after(mut self, start_after: &str) -> Self {
+        self.query = self.query.start_after(start_after);
+        self
+    }
+    pub fn fetch_owner(mut self, fetch_owner: bool) -> Self {
+        self.query = self.query.fetch_owner(fetch_owner);
+        self
     }
 
     /// 调用 api 导出 bucket 详情信息到自定义类型
@@ -299,13 +330,40 @@ impl Bucket {
         Ok((res.contents, res.next_token))
     }
 
-    pub async fn get_objects(&self, client: &Client) -> Result<Objects, OssError> {
+    pub fn objects_into_stream(mut self) -> impl Stream<Item = Result<Object, OssError>> {
+        try_stream! {
+            let mut marker: Option<String> = None;
+
+            loop {
+               if let Some(token) = marker {
+                    self.query.insert(ObjectQuery::CONTINUATION_TOKEN, &token);
+                }
+                let resp = self.get_objects().await?;
+
+                for obj in resp.list {
+                    yield obj;
+                }
+
+                match resp.next_token{
+                    Some(token)=> {
+                        marker = Some(token);
+                    },
+                    None => {
+                        break;
+                    }
+                }
+
+            }
+        }
+    }
+
+    pub async fn get_objects(&self) -> Result<Objects, OssError> {
         let mut url = self.to_url()?;
         url.set_query(Some(&self.query.to_oss_query()));
         let method = Method::GET;
         let resource = CanonicalizedResource::from_object_list(self, self.query.get_next_token());
 
-        let header_map = client.authorization(&method, resource)?;
+        let header_map = self.client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
             .get(url)
@@ -470,6 +528,7 @@ impl FromStr for DataRedundancyType {
 mod tests {
     use std::sync::Arc;
 
+    use futures_util::pin_mut;
     use serde::Deserialize;
 
     use crate::{client::init_client, types::ObjectQuery};
@@ -526,20 +585,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_objects() {
-        let bucket = build_bucket();
-        let condition = {
-            let mut map = ObjectQuery::new();
-            map.insert(ObjectQuery::MAX_KEYS, "5");
-            map
-        };
+        use futures_util::StreamExt;
 
-        let list = bucket
-            .clone()
-            .object_query(condition)
-            .get_objects(&init_client())
-            .await
-            .unwrap();
+        let client = init_client();
+        let stream = client
+            .bucket("honglei123")
+            .unwrap()
+            .max_keys(5)
+            .objects_into_stream();
 
-        println!("{list:?}");
+        pin_mut!(stream);
+
+        while let Some(item) = stream.next().await {
+            println!("{item:?}");
+        }
     }
 }
