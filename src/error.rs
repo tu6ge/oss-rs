@@ -23,6 +23,8 @@ pub enum OssError {
 
     IoError(#[from] io::Error),
 
+    InvalidUtf8(#[from] std::string::FromUtf8Error),
+
     NoFoundCreationDate,
 
     NoFoundStorageClass,

@@ -30,6 +30,7 @@ async-stream = "0.3"
 futures-core = "0.3"
 bytes = "1.11"
 futures-util = "0.3"
+async-trait = "0.1.89"
 
 [dependencies.tokio]
 version = "1.19.2"
