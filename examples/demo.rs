@@ -14,7 +14,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
 
     let objects = buckets[0].get_objects().await?;
 
-    let _obj_info = objects[0].get_info(&client).await?;
+    let _obj_info = objects[0].get_info().await?;
 
     #[derive(Debug, Deserialize)]
     struct MyBucket {

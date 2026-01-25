@@ -1,6 +1,8 @@
 use std::{
     fmt::Debug,
+    io::Cursor,
     ops::{Index, IndexMut},
+    path::Path,
     sync::Arc,
 };
 
@@ -9,9 +11,10 @@ use reqwest::{
     header::{HeaderMap, CONTENT_LENGTH, CONTENT_TYPE},
     Body, Method,
 };
+use tokio::io::AsyncWrite;
 use url::Url;
 
-use crate::{client::Client, error::OssError, types::CanonicalizedResource, Bucket};
+use crate::{error::OssError, types::CanonicalizedResource, Bucket};
 
 mod body;
 mod parts_upload;
@@ -250,22 +253,61 @@ impl Object {
     }
 
     /// 下载文件
-    pub async fn download(&self) -> Result<Vec<u8>, OssError> {
+    #[cfg(feature = "tokio")]
+    pub async fn download<W>(&self, writer: &mut W) -> Result<(), OssError>
+    where
+        W: AsyncWrite + Unpin,
+    {
+        use futures_util::TryStreamExt;
+        use tokio_util::io::StreamReader;
+
         let url = self.to_url()?;
         let method = Method::GET;
         let resource = CanonicalizedResource::from_object(&self.bucket, self);
 
         let header_map = self.bucket.client.authorization(&method, resource)?;
 
-        let response = reqwest::Client::new()
+        let resp = reqwest::Client::new()
             .request(method, url)
             .headers(header_map)
             .send()
-            .await?
-            .bytes()
-            .await?;
+            .await
+            .map_err(OssError::Reqwest)?;
 
-        Ok(response.into())
+        let status = resp.status();
+        if !status.is_success() {
+            let body = resp.text().await?;
+            return Err(OssError::from_service(&body));
+        }
+
+        let stream = resp
+            .bytes_stream()
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
+
+        let mut reader = StreamReader::new(stream);
+
+        tokio::io::copy(&mut reader, writer).await?;
+
+        Ok(())
+    }
+
+    #[cfg(feature = "tokio")]
+    pub async fn download_to_path<P: AsRef<Path>>(&self, path: P) -> Result<(), OssError> {
+        let mut file = tokio::fs::File::create(path).await?;
+        self.download(&mut file).await
+    }
+
+    #[cfg(feature = "tokio")]
+    pub async fn download_to_bytes(&self) -> Result<Vec<u8>, OssError> {
+        let mut buf = Cursor::new(Vec::new());
+        self.download(&mut buf).await?;
+        Ok(buf.into_inner())
+    }
+
+    #[cfg(feature = "tokio")]
+    pub async fn download_to_string(&self) -> Result<String, OssError> {
+        let bytes = self.download_to_bytes().await?;
+        String::from_utf8(bytes).map_err(OssError::InvalidUtf8)
     }
 
     pub fn copy_source<T: Into<String>>(mut self, source: T) -> Self {
@@ -379,7 +421,7 @@ mod tests {
     #[tokio::test]
     async fn test_upload() {
         let info = build_bucket()
-            .object("abc2.txt")
+            .object("abc.txt")
             .content_type("text/plain;charset=utf-8")
             .upload("aaab")
             .await
@@ -403,11 +445,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_down() {
+        use tokio::fs::File;
         let object = build_bucket().object("abc.txt");
 
-        let info = object.download().await.unwrap();
+        let mut file = File::create("aaa.txt").await.unwrap();
+        let result: () = object.download(&mut file).await.unwrap();
 
-        println!("{:?}", std::str::from_utf8(&info).unwrap());
+        std::fs::remove_file("aaa.txt").unwrap();
     }
 
     #[tokio::test]

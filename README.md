@@ -46,7 +46,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .await?;
 
     // 使用文件句柄上传文件
-    let mut f = tokio::fs::File::open("example_file.txt").await.unwrap();
+    let mut f = tokio::fs::File::open("example_file.txt").await?;
     let info = Client::from_env()?
         .bucket("honglei123")?
         .object("abc_file.txt")
@@ -54,11 +54,33 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .upload(f)
         .await?;
 
-    // 下载文件内容
+    // 下载文件到文件句柄
+    let mut file = tokio::fs::File::create("aaa.txt").await?;
+    let res = Client::from_env()?
+        .bucket("honglei123")?
+        .object("download1.jpg")
+        .download(&mut file)
+        .await?;
+
+    //下载文件到指定目录
+    let res = Client::from_env()?
+        .bucket("honglei123")?
+        .object("download1.jpg")
+        .download_to_path("local.jpg")
+        .await?;
+
+    //获取下载文件的 Vec<u8> 内容
     let content = Client::from_env()?
         .bucket("honglei123")?
         .object("download1.jpg")
-        .download()
+        .download_to_bytes()
+        .await?;
+
+    //获取下载文件的 String 内容
+    let content = Client::from_env()?
+        .bucket("honglei123")?
+        .object("download1.jpg")
+        .download_to_string()
         .await?;
 
     // 复制文件
