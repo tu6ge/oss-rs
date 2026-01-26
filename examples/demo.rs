@@ -1,16 +1,10 @@
 use aliyun_oss_client::{types::ObjectQuery, Client, EndPoint};
 use serde::Deserialize;
 
-fn build_endpoint() -> EndPoint {
-    use aliyun_oss_client::types::KnownRegion;
-    use aliyun_oss_client::types::Region;
-    EndPoint::new(Region::Known(KnownRegion::CnShanghai))
-}
-
 async fn run() -> Result<(), aliyun_oss_client::Error> {
     let client = Client::from_env()?;
 
-    let buckets = client.get_buckets(&build_endpoint()).await?;
+    let buckets = client.get_buckets().await?;
 
     let objects = buckets[0].get_objects().await?;
 
@@ -28,7 +22,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         StorageClass: String,
     }
 
-    let list: Vec<MyBucket> = client.export_buckets(&build_endpoint()).await?;
+    let list: Vec<MyBucket> = client.export_buckets().await?;
 
     #[derive(Debug, Deserialize)]
     struct MyBucketInfo {

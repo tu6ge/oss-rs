@@ -170,11 +170,8 @@ impl Client {
     ///     Name: String,
     /// }
     /// ```
-    pub async fn export_buckets<B: DeserializeOwned>(
-        &self,
-        endpoint: &EndPoint,
-    ) -> Result<Vec<B>, OssError> {
-        let url = endpoint.to_url()?.as_url().clone();
+    pub async fn export_buckets<B: DeserializeOwned>(&self) -> Result<Vec<B>, OssError> {
+        let url = self.endpoint.to_url()?.as_url().clone();
         let method = Method::GET;
         let resource = CanonicalizedResource::default();
 
@@ -194,8 +191,6 @@ impl Client {
             return Err(OssError::from_service(&content));
         }
 
-        //println!("{}", content);
-
         #[derive(Debug, Deserialize)]
         struct ListAllMyBucketsResult<T> {
             #[serde(rename = "Buckets")]
@@ -213,8 +208,8 @@ impl Client {
         Ok(xml_res.buckets.bucket)
     }
 
-    pub async fn get_buckets(&self, endpoint: &EndPoint) -> Result<Vec<Bucket>, OssError> {
-        let url = endpoint.to_url()?.as_url().clone();
+    pub async fn get_buckets(&self) -> Result<Vec<Bucket>, OssError> {
+        let url = self.endpoint.to_url()?.as_url().clone();
         let method = Method::GET;
         let resource = CanonicalizedResource::default();
 
@@ -315,11 +310,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_buckets() {
-        let list = init_client()
-            .get_buckets(&EndPoint::new(crate::types::Region::Known(
-                crate::types::KnownRegion::CnShanghai,
-            )))
-            .await;
+        let list = init_client().get_buckets().await;
 
         println!("{list:?}");
     }
@@ -340,12 +331,7 @@ mod tests {
             StorageClass: StorageClass,
         }
 
-        let list: Vec<MyBucket> = init_client()
-            .export_buckets(&EndPoint::new(crate::types::Region::Known(
-                crate::types::KnownRegion::CnShanghai,
-            )))
-            .await
-            .unwrap();
+        let list: Vec<MyBucket> = init_client().export_buckets().await.unwrap();
 
         println!("{list:?}");
     }
