@@ -140,7 +140,12 @@ impl EndPoint {
 
     /// 从 oss endpoint url 推断（用于响应 / 反序列化）
     pub fn infer_from_oss_url(url: &str) -> Result<Self, OssError> {
-        let url = Url::parse(url).map_err(|_| OssError::InvalidEndPoint)?;
+        let url = if url.contains("://") {
+            url.to_string()
+        } else {
+            format!("https://{}", url)
+        };
+        let url = Url::parse(&url).map_err(|_| OssError::InvalidEndPoint)?;
         let host = url.host_str().ok_or(OssError::InvalidEndPoint)?;
 
         if !host.ends_with(OSS_DOMAIN) {
