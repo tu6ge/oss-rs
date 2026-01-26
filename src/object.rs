@@ -94,6 +94,10 @@ impl Object {
         }
     }
 
+    pub fn multipart(&self) -> PartsUpload {
+        self.into()
+    }
+
     /// 确认文件是否在目录里面
     ///
     /// ```rust
