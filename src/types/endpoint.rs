@@ -99,6 +99,25 @@ pub struct EndPoint {
     internal: bool,
 }
 
+impl TryFrom<String> for EndPoint {
+    type Error = OssError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        EndPoint::infer_from_oss_url(&value)
+    }
+}
+impl TryFrom<&str> for EndPoint {
+    type Error = OssError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        EndPoint::infer_from_oss_url(value)
+    }
+}
+impl TryFrom<Url> for EndPoint {
+    type Error = OssError;
+    fn try_from(url: Url) -> Result<Self, Self::Error> {
+        Self::from_url(&url)
+    }
+}
+
 impl EndPoint {
     pub fn new(region: Region) -> Self {
         Self {
@@ -146,6 +165,11 @@ impl EndPoint {
             format!("https://{}", url)
         };
         let url = Url::parse(&url).map_err(|_| OssError::InvalidEndPoint)?;
+
+        Self::from_url(&url)
+    }
+
+    fn from_url(url: &Url) -> Result<Self, OssError> {
         let host = url.host_str().ok_or(OssError::InvalidEndPoint)?;
 
         if !host.ends_with(OSS_DOMAIN) {

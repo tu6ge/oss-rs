@@ -24,13 +24,20 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new<K: Into<Key>, S: Into<Secret>>(key: K, secret: S, endpoint: EndPoint) -> Client {
-        Self {
+    pub fn new<K: Into<Key>, S: Into<Secret>, E: TryInto<EndPoint>>(
+        key: K,
+        secret: S,
+        endpoint: E,
+    ) -> Result<Self, OssError>
+    where
+        OssError: From<E::Error>,
+    {
+        Ok(Self {
             key: key.into(),
             secret: secret.into(),
-            endpoint,
+            endpoint: endpoint.try_into()?,
             security_token: None,
-        }
+        })
     }
 
     pub fn from_env() -> Result<Self, VarError> {
@@ -348,10 +355,6 @@ pub fn init_client() -> Client {
     let secret = env::var("ALIYUN_KEY_SECRET").unwrap();
     let endpoint = env::var("ALIYUN_ENDPOINT").unwrap();
 
-    Client::new(
-        Key::new(key),
-        Secret::new(secret),
-        EndPoint::infer_from_oss_url(&endpoint).unwrap(),
-    )
+    Client::new(Key::new(key), Secret::new(secret), endpoint).unwrap()
     //Client::new_with_sts(Key::new("STS."), Secret::new(""), "".to_string())
 }
