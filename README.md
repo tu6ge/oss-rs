@@ -54,7 +54,16 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .upload(f)
         .await?;
 
+     // 使用目录上传文件
+    let res = Client::from_env()?
+        .bucket("honglei123")?
+        .object("abc2.txt")
+        .content_type("text/plain;charset=utf-8")
+        .upload_file("local.txt")
+        .await?;
+
     // 下载文件到文件句柄
+    // 使用流式下载，支持边下载边解压/压缩
     let mut file = tokio::fs::File::create("aaa.txt").await?;
     let res = Client::from_env()?
         .bucket("honglei123")?
@@ -66,7 +75,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     let res = Client::from_env()?
         .bucket("honglei123")?
         .object("download1.jpg")
-        .download_to_path("local.jpg")
+        .download_to_file("local.jpg")
         .await?;
 
     //获取下载文件的 Vec<u8> 内容
