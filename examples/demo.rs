@@ -44,7 +44,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     let (list, next_token): (Vec<MyObject>, _) = buckets[0]
         .clone()
         .object_query(condition)
-        .export_objects(&client)
+        .export_objects()
         .await?;
     Ok(())
 }

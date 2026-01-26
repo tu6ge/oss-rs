@@ -142,7 +142,7 @@ impl EndPoint {
     pub fn from_env() -> Result<Self, OssError> {
         let region = std::env::var("ALIYUN_ENDPOINT").map_err(|_| OssError::InvalidRegion)?;
 
-        let mut endpoint = EndPoint::new(Region::parse(&region)?);
+        let mut endpoint = EndPoint::infer_from_oss_url(&region)?;
 
         if let Ok(v) = std::env::var("ALIYUN_OSS_INTERNAL") {
             if matches!(v.as_str(), "1" | "true" | "yes" | "Y") {
