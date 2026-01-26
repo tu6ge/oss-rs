@@ -38,6 +38,19 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         }
     }
 
+    // 完整的查询条件示例
+    let mut stream = init_client()
+        .bucket("honglei123")
+        .unwrap()
+        .max_keys(5)
+        .prefix("prefix1/")
+        .delimiter("/")
+        .continuation_token("foo")
+        .encoding_type("foo2")
+        .start_after("foo3")
+        .fetch_owner(true)
+        .objects_into_stream();
+
     // 获取文件的详细信息
     let obj_info = objects[0].get_info(&client).await?;
 
