@@ -1,6 +1,7 @@
 use std::{
     fs::File,
     io::{BufReader, Read},
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
@@ -10,14 +11,14 @@ use reqwest::{
 };
 use url::Url;
 
-use crate::{types::CanonicalizedResource, Bucket, Client, Error as OssError};
+use crate::{types::CanonicalizedResource, Bucket, Client, Error as OssError, Object};
 
 pub struct PartsUpload {
     path: String,
     bucket: Arc<Bucket>,
     upload_id: String,
     etags: Vec<(usize, String)>,
-    file_path: String,
+    file_path: PathBuf,
     part_size: usize,
 }
 
@@ -28,7 +29,7 @@ impl PartsUpload {
             bucket,
             upload_id: String::new(),
             etags: Vec::new(),
-            file_path: String::new(),
+            file_path: PathBuf::new(),
             part_size: 1024 * 1024,
         }
     }
@@ -39,20 +40,20 @@ impl PartsUpload {
         Ok(url)
     }
 
-    pub fn file_path(mut self, file_path: String) -> Self {
-        self.file_path = file_path;
+    pub fn from_file<P: AsRef<Path>>(mut self, path: P) -> Self {
+        self.file_path = path.as_ref().to_path_buf();
         self
     }
     pub fn part_size(mut self, part_size: usize) -> Self {
         self.part_size = part_size;
         self
     }
-    pub async fn upload(&mut self, client: &Client) -> Result<(), OssError> {
+    pub async fn upload(&mut self) -> Result<(), OssError> {
         let file = File::open(self.file_path.clone())?;
         let mut reader = BufReader::new(file);
         let mut buffer = vec![0u8; self.part_size];
 
-        self.init_mulit(client).await?;
+        self.init_mulit().await?;
 
         let mut index = 1_usize;
 
@@ -62,16 +63,16 @@ impl PartsUpload {
                 break; // EOF
             }
 
-            self.upload_part(index, buffer[..bytes_read].to_vec(), client)
+            self.upload_part(index, buffer[..bytes_read].to_vec())
                 .await?;
 
             index += 1;
         }
 
-        self.complete(client).await
+        self.complete().await
     }
 
-    pub async fn init_mulit(&mut self, client: &Client) -> Result<(), OssError> {
+    pub async fn init_mulit(&mut self) -> Result<(), OssError> {
         let mut url = self.to_url()?;
         url.set_query(Some("uploads"));
         let method = Method::POST;
@@ -79,7 +80,7 @@ impl PartsUpload {
         let resource =
             CanonicalizedResource::new(format!("/{}/{}?uploads", self.bucket.as_str(), self.path));
 
-        let header_map = client.authorization(&method, resource)?;
+        let header_map = self.bucket.client.authorization(&method, resource)?;
 
         let xml = reqwest::Client::new()
             .request(method, url)
@@ -100,12 +101,7 @@ impl PartsUpload {
         }
     }
 
-    pub async fn upload_part(
-        &mut self,
-        index: usize,
-        content: Vec<u8>,
-        client: &Client,
-    ) -> Result<(), OssError> {
+    pub async fn upload_part(&mut self, index: usize, content: Vec<u8>) -> Result<(), OssError> {
         if self.upload_id.is_empty() {
             return Err(OssError::NoFoundUploadId);
         }
@@ -131,7 +127,10 @@ impl PartsUpload {
 
         let method = Method::PUT;
 
-        let header_map = client.authorization_header(&method, resource, headers)?;
+        let header_map = self
+            .bucket
+            .client
+            .authorization_header(&method, resource, headers)?;
 
         let response = reqwest::Client::new()
             .request(method, url)
@@ -151,7 +150,7 @@ impl PartsUpload {
         Err(OssError::NoFoundEtag)
     }
 
-    pub async fn complete(&mut self, client: &Client) -> Result<(), OssError> {
+    pub async fn complete(&mut self) -> Result<(), OssError> {
         if self.upload_id.is_empty() {
             return Err(OssError::NoFoundUploadId);
         }
@@ -178,7 +177,10 @@ impl PartsUpload {
 
         let method = Method::POST;
 
-        let header_map = client.authorization_header(&method, resource, headers)?;
+        let header_map = self
+            .bucket
+            .client
+            .authorization_header(&method, resource, headers)?;
 
         let response = reqwest::Client::new()
             .request(method, url)
@@ -239,31 +241,27 @@ impl PartsUpload {
     }
 }
 
+impl From<&Object> for PartsUpload {
+    fn from(object: &Object) -> Self {
+        PartsUpload::new(&object.path, object.bucket.clone())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
-    use crate::{client::init_client, object::PartsUpload, Bucket, Client};
-
-    fn build_bucket() -> Bucket {
-        Bucket::new("honglei123", Arc::new(init_client())).unwrap()
-    }
-
-    fn set_client() -> Client {
-        let mut client = init_client();
-        //client.set_bucket(build_bucket());
-        client
-    }
+    use crate::client::init_client;
 
     #[tokio::test]
     async fn test_upload() {
-        let object = PartsUpload::new("myvideo23.mov", Arc::new(build_bucket()));
-
-        let info = object
-            .file_path("./video.mov".into())
-            .upload(&set_client())
+        let res = init_client()
+            .bucket("honglei123")
+            .unwrap()
+            .object("myvideo23.mov")
+            .multipart()
+            .from_file("./video.mov")
+            .upload()
             .await;
 
-        println!("{info:?}");
+        println!("{res:?}");
     }
 }

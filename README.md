@@ -88,7 +88,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .download(&mut file)
         .await?;
 
-    //下载文件到指定目录
+    //下载文件到指定文件路径
     let res = Client::from_env()?
         .bucket("honglei123")?
         .object("download1.jpg")
@@ -119,17 +119,20 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .await?;
 
     // 分片上传（大文件）
-    let result = PartsUpload::new("myvideo23.mov")
-        .file_path("./video.mov".into())
-        .upload(&client)
-        .await;
+    let result = Client::from_env()?
+        .bucket("honglei123")?
+        .object("myvideo23.mov")
+        .multipart()
+        .from_file("./video.mov")
+        .upload()
+        .await?;
 
     // 删除文件
     let result = Client::from_env()?
         .bucket("honglei123")?
         .object("abc.txt")
         .delete()
-        .await;
+        .await?;
 
     Ok(())
 }
