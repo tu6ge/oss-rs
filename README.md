@@ -123,6 +123,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .bucket("honglei123")?
         .object("myvideo23.mov")
         .multipart()
+        //.part_size(3 * 1024 * 1024) // 调整分片大小，默认 1M
         .from_file("./video.mov")
         .upload()
         .await?;
