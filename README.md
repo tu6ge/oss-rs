@@ -19,7 +19,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     let client = Client::from_env()?;
 
     // 获取 buckets 列表
-    let buckets = client.get_buckets(&EndPoint::CN_QINGDAO).await?;
+    let buckets = client.get_buckets().await?;
 
     // 用流的方式获取文件列表
     // 接口每次请求只读取5个文件，随着 next() 函数的不断调用，每隔五个会重新调用一次接口，获取下一页的文件
@@ -40,8 +40,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
 
     // 完整的查询条件示例
     let mut stream = init_client()
-        .bucket("honglei123")
-        .unwrap()
+        .bucket("honglei123")?
         .max_keys(5)
         .prefix("prefix1/")
         .delimiter("/")
@@ -52,7 +51,11 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .objects_into_stream();
 
     // 获取文件的详细信息
-    let obj_info = objects[0].get_info(&client).await?;
+    let obj_info = init_client()
+        .bucket("honglei123")?
+        .object("abc.txt")
+        .get_info()
+        .await?;
 
     // 上传文件
     let res = Client::from_env()?
