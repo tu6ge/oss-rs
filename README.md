@@ -12,7 +12,7 @@
 1. 基本操作
 
 ```rust
-use aliyun_oss_client::{types::ObjectQuery, Client, EndPoint};
+use aliyun_oss_client::{Client, Bucket};
 use futures_util::StreamExt;
 
 async fn run() -> Result<(), aliyun_oss_client::Error> {
@@ -39,7 +39,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     }
 
     // 完整的查询条件示例
-    let mut stream = init_client()
+    let mut stream = Client::from_env()?
         .bucket("honglei123")?
         .max_keys(5)
         .prefix("prefix1/")
@@ -51,15 +51,13 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .objects_into_stream();
 
     // 获取文件的详细信息
-    let obj_info = init_client()
-        .bucket("honglei123")?
+    let obj_info = Bucket::from_env()?
         .object("abc.txt")
         .get_info()
         .await?;
 
-    // 上传文件
-    let res = Client::from_env()?
-        .bucket("honglei123")?
+    // 上传文件m
+    let res = Bucket::from_env()?
         .object("abc2.txt")
         .content_type("text/plain;charset=utf-8")
         .upload("aaab")
@@ -67,16 +65,14 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
 
     // 使用文件句柄上传文件
     let mut f = tokio::fs::File::open("example_file.txt").await?;
-    let info = Client::from_env()?
-        .bucket("honglei123")?
+    let info = Bucket::from_env()?
         .object("abc_file.txt")
         .content_type("text/plain;charset=utf-8")
         .upload(f)
         .await?;
 
      // 使用目录上传文件
-    let res = Client::from_env()?
-        .bucket("honglei123")?
+    let res = Bucket::from_env()?
         .object("abc2.txt")
         .content_type("text/plain;charset=utf-8")
         .upload_file("local.txt")
@@ -85,36 +81,31 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     // 下载文件到文件句柄
     // 使用流式下载，支持边下载边解压/压缩
     let mut file = tokio::fs::File::create("aaa.txt").await?;
-    let res = Client::from_env()?
-        .bucket("honglei123")?
+    let res = Bucket::from_env()?
         .object("download1.jpg")
         .download(&mut file)
         .await?;
 
     //下载文件到指定文件路径
-    let res = Client::from_env()?
-        .bucket("honglei123")?
+    let res = Bucket::from_env()?
         .object("download1.jpg")
         .download_to_file("local.jpg")
         .await?;
 
     //获取下载文件的 Vec<u8> 内容
-    let content = Client::from_env()?
-        .bucket("honglei123")?
+    let content = Bucket::from_env()?
         .object("download1.jpg")
         .download_to_bytes()
         .await?;
 
     //获取下载文件的 String 内容
-    let content = Client::from_env()?
-        .bucket("honglei123")?
+    let content = Bucket::from_env()?
         .object("download1.jpg")
         .download_to_string()
         .await?;
 
     // 复制文件
-    let res = Client::from_env()?
-        .bucket("honglei123")?
+    let res = Bucket::from_env()?
         .object("new_file.txt")
         .copy_source("/bucket_name/source_file.txt")
         .content_type("text/plain;charset=utf-8")
@@ -122,8 +113,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .await?;
 
     // 分片上传（大文件）
-    let result = Client::from_env()?
-        .bucket("honglei123")?
+    let result = Bucket::from_env()?
         .object("myvideo23.mov")
         .multipart()
         //.part_size(3 * 1024 * 1024) // 调整分片大小，默认 1M
@@ -132,8 +122,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .await?;
 
     // 删除文件
-    let result = Client::from_env()?
-        .bucket("honglei123")?
+    let result = Bucket::from_env()?
         .object("abc.txt")
         .delete()
         .await?;
