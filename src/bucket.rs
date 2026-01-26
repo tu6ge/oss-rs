@@ -600,8 +600,13 @@ mod tests {
 
         pin_mut!(stream);
 
+        let mut i = 0;
         while let Some(item) = stream.next().await {
             println!("{item:?}");
+            i = i + 1;
+            if i > 7 {
+                break;
+            }
         }
     }
 }

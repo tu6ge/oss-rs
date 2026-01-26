@@ -21,17 +21,24 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     // 获取 buckets 列表
     let buckets = client.get_buckets(&EndPoint::CN_QINGDAO).await?;
 
-    // 获取文件列表
+    // 用流的方式获取文件列表
     // 接口每次请求只读取5个文件，随着 next() 函数的不断调用，每隔五个会重新调用一次接口，获取下一页的文件
     let stream = Client::from_env()?
         .bucket("honglei123")?
         .max_keys(5)
         .objects_into_stream();
 
+    use futures_util::pin_mut;
     pin_mut!(stream);
 
+    let mut i = 0;
     while let Some(item) = stream.next().await {
         println!("{item:?}");
+        i = i + 1;
+        if i > 7 {
+            // 不加限制的话，会获取所有文件
+            break;
+        }
     }
 
     // 获取文件的详细信息
