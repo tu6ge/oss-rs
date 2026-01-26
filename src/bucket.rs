@@ -2,7 +2,7 @@ use std::{str::FromStr, sync::Arc};
 
 use async_stream::try_stream;
 use chrono::{DateTime, Utc};
-use futures_core::Stream;
+use futures_core::{stream::BoxStream, Stream};
 use reqwest::Method;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_xml_rs::from_str;
@@ -334,7 +334,11 @@ impl Bucket {
         Ok((res.contents, res.next_token))
     }
 
-    pub fn objects_into_stream(mut self) -> impl Stream<Item = Result<Object, OssError>> {
+    pub fn objects_into_stream(self) -> BoxStream<'static, Result<Object, OssError>> {
+        Box::pin(self.objects_into_stream_impl())
+    }
+
+    fn objects_into_stream_impl(mut self) -> impl Stream<Item = Result<Object, OssError>> {
         try_stream! {
             let mut marker: Option<String> = None;
 
@@ -532,7 +536,6 @@ impl FromStr for DataRedundancyType {
 mod tests {
     use std::sync::Arc;
 
-    use futures_util::pin_mut;
     use serde::Deserialize;
 
     use crate::{client::init_client, types::ObjectQuery};
@@ -592,13 +595,11 @@ mod tests {
         use futures_util::StreamExt;
 
         let client = init_client();
-        let stream = client
+        let mut stream = client
             .bucket("honglei123")
             .unwrap()
             .max_keys(5)
             .objects_into_stream();
-
-        pin_mut!(stream);
 
         let mut i = 0;
         while let Some(item) = stream.next().await {
