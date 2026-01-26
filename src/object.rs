@@ -215,14 +215,14 @@ impl Object {
     }
 
     /// 上传文件
-    pub async fn upload(self, body: impl IntoBody) -> Result<(), OssError> {
+    pub async fn upload(&self, body: impl IntoBody) -> Result<(), OssError> {
         let url = self.to_url()?;
         let method = Method::PUT;
         let resource = CanonicalizedResource::from_object(&self.bucket, &self);
 
         let mut header_map = HeaderMap::new();
         if !self.content_type.is_empty() {
-            header_map.insert(CONTENT_TYPE, self.content_type.try_into()?);
+            header_map.insert(CONTENT_TYPE, self.content_type.clone().try_into()?);
         }
 
         header_map = self
@@ -250,6 +250,12 @@ impl Object {
             let body = response.text().await?;
             Err(OssError::from_service(&body))
         }
+    }
+
+    #[cfg(feature = "tokio")]
+    pub async fn upload_file<P: AsRef<Path>>(&self, path: P) -> Result<(), OssError> {
+        let file = tokio::fs::File::open(path).await?;
+        self.upload(file).await
     }
 
     /// 下载文件
@@ -292,7 +298,7 @@ impl Object {
     }
 
     #[cfg(feature = "tokio")]
-    pub async fn download_to_path<P: AsRef<Path>>(&self, path: P) -> Result<(), OssError> {
+    pub async fn download_to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), OssError> {
         let mut file = tokio::fs::File::create(path).await?;
         self.download(&mut file).await
     }
