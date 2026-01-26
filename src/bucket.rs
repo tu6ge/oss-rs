@@ -274,6 +274,40 @@ impl Bucket {
         self
     }
 
+    pub fn export_objects_stream<Obj>(self) -> BoxStream<'static, Result<Obj, OssError>>
+    where
+        Obj: DeserializeOwned + Send + 'static,
+    {
+        Box::pin(self.export_objects_stream_impl::<Obj>())
+    }
+
+    pub fn export_objects_stream_impl<Obj>(mut self) -> impl Stream<Item = Result<Obj, OssError>>
+    where
+        Obj: DeserializeOwned,
+    {
+        try_stream! {
+            let mut token: Option<String> = None;
+
+            loop {
+                // 设置 continuation token
+                if let Some(ref t) = token {
+                    self.query.insert(ObjectQuery::CONTINUATION_TOKEN, t);
+                }
+
+                let (objects, next) = self.export_objects::<Obj>().await?;
+
+                for obj in objects {
+                    yield obj;
+                }
+
+                match next {
+                    Some(t) => token = Some(t),
+                    None => break,
+                }
+            }
+        }
+    }
+
     /// 调用 aliyun api 返回 object 列表到自定义类型，它还会返回用于翻页的 `NextContinuationToken`
     ///
     /// aliyun api 返回的 xml 是如下格式：
@@ -297,14 +331,13 @@ impl Bucket {
     /// ```
     pub async fn export_objects<Obj: DeserializeOwned>(
         &self,
-        client: &Client,
     ) -> Result<(Vec<Obj>, NextContinuationToken), OssError> {
         let mut url = self.to_url()?;
         url.set_query(Some(&self.query.to_oss_query()));
         let method = Method::GET;
         let resource = CanonicalizedResource::from_object_list(self, self.query.get_next_token());
 
-        let header_map = client.authorization(&method, resource)?;
+        let header_map = self.client.authorization(&method, resource)?;
 
         let response = reqwest::Client::new()
             .get(url)
@@ -536,6 +569,7 @@ impl FromStr for DataRedundancyType {
 mod tests {
     use std::sync::Arc;
 
+    use futures_util::StreamExt;
     use serde::Deserialize;
 
     use crate::{client::init_client, types::ObjectQuery};
@@ -569,25 +603,29 @@ mod tests {
 
     #[tokio::test]
     async fn test_export_objects() {
-        let bucket = build_bucket();
-        let condition = {
-            let mut map = ObjectQuery::new();
-            map.insert(ObjectQuery::MAX_KEYS, "5");
-            map
-        };
+        use dotenv::dotenv;
+
+        dotenv().ok();
 
         #[derive(Debug, Deserialize)]
         struct MyObject {
             Key: String,
         }
 
-        let (list, _): (Vec<MyObject>, _) = bucket
-            .object_query(condition)
-            .export_objects(&init_client())
-            .await
-            .unwrap();
+        let mut stream = Bucket::from_env()
+            .unwrap()
+            .max_keys(5)
+            .export_objects_stream::<MyObject>();
 
-        println!("{list:?}");
+        let mut i = 0;
+        while let Some(item) = stream.next().await {
+            println!("{item:?}");
+
+            i = i + 1;
+            if i > 7 {
+                break;
+            }
+        }
     }
 
     #[tokio::test]
