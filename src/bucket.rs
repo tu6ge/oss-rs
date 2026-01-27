@@ -274,14 +274,14 @@ impl Bucket {
         self
     }
 
-    pub fn export_objects_stream<Obj>(self) -> BoxStream<'static, Result<Obj, OssError>>
+    pub fn objects_as<Obj>(self) -> BoxStream<'static, Result<Obj, OssError>>
     where
         Obj: DeserializeOwned + Send + 'static,
     {
-        Box::pin(self.export_objects_stream_impl::<Obj>())
+        Box::pin(self.objects_as_impl::<Obj>())
     }
 
-    pub fn export_objects_stream_impl<Obj>(mut self) -> impl Stream<Item = Result<Obj, OssError>>
+    pub fn objects_as_impl<Obj>(mut self) -> impl Stream<Item = Result<Obj, OssError>>
     where
         Obj: DeserializeOwned,
     {
@@ -367,11 +367,11 @@ impl Bucket {
         Ok((res.contents, res.next_token))
     }
 
-    pub fn objects_into_stream(self) -> BoxStream<'static, Result<Object, OssError>> {
-        Box::pin(self.objects_into_stream_impl())
+    pub fn objects(self) -> BoxStream<'static, Result<Object, OssError>> {
+        Box::pin(self.objects_impl())
     }
 
-    fn objects_into_stream_impl(mut self) -> impl Stream<Item = Result<Object, OssError>> {
+    fn objects_impl(mut self) -> impl Stream<Item = Result<Object, OssError>> {
         try_stream! {
             let mut marker: Option<String> = None;
 
@@ -615,7 +615,7 @@ mod tests {
         let mut stream = Bucket::from_env()
             .unwrap()
             .max_keys(5)
-            .export_objects_stream::<MyObject>();
+            .objects_as::<MyObject>();
 
         let mut i = 0;
         while let Some(item) = stream.next().await {
@@ -633,11 +633,7 @@ mod tests {
         use futures_util::StreamExt;
 
         let client = init_client();
-        let mut stream = client
-            .bucket("honglei123")
-            .unwrap()
-            .max_keys(5)
-            .objects_into_stream();
+        let mut stream = client.bucket("honglei123").unwrap().max_keys(5).objects();
 
         let mut i = 0;
         while let Some(item) = stream.next().await {
