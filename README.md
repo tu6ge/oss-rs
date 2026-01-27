@@ -26,7 +26,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     let mut stream = Client::from_env()?
         .bucket("honglei123")?
         .max_keys(5)
-        .objects_into_stream();
+        .objects();
 
     let mut i = 0;
     while let Some(item) = stream.next().await {
@@ -48,7 +48,17 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .encoding_type("foo2")
         .start_after("foo3")
         .fetch_owner(true)
-        .objects_into_stream();
+        .objects();
+
+    // 查询 Object 并转化成自定义类型
+    #[derive(Debug, Deserialize)]
+    struct MyObject {
+        Key: String,
+    }
+    let mut stream = Client::from_env()?
+        .bucket("honglei123")?
+        .max_keys(5)
+        .objects_as::<MyObject>();
 
     // 获取文件的详细信息
     let obj_info = Bucket::from_env()?
