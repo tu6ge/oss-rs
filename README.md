@@ -66,7 +66,7 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
         .get_info()
         .await?;
 
-    // 上传文件m
+    // 上传文件
     let res = Bucket::from_env()?
         .object("abc2.txt")
         .content_type("text/plain;charset=utf-8")
@@ -156,7 +156,7 @@ struct MyBucket {
     StorageClass: String,
 }
 
-let list: Vec<MyBucket> = client.export_buckets(&EndPoint::CN_QINGDAO).await?;
+let list: Vec<MyBucket> = client.export_buckets().await?;
 ```
 
 3. 导出 bucket 详细信息到自定义类型
@@ -166,101 +166,7 @@ let list: Vec<MyBucket> = client.export_buckets(&EndPoint::CN_QINGDAO).await?;
 struct MyBucketInfo {
     Name: String,
 }
-let res: MyBucketInfo = buckets[0].export_info(&client).await?;
-```
-
-4. 导出 object 列表到自定义
-
-```rust
-let condition = {
-    let mut map = ObjectQuery::new();
-    map.insert(ObjectQuery::MAX_KEYS, "5");
-    map
-};
-
-#[derive(Debug, Deserialize)]
-struct MyObject {
-    Key: String,
-}
-
-let (list, next_token): (Vec<MyObject>, _) =
-    buckets[0].export_objects(&condition, &client).await?;
-```
-
-# RFC
-
-get Buckets
-
-```rust
-struct Client {
-   key: String,
-   secret: String,
-}
-
-impl Client {
-    async fn get_buckets(&self, endpoint: EndPoint) -> Vec<Bucket> {
-        todo!()
-    }
-
-    // 导出到自定义的类型
-    pub async fn export_buckets<B: DeserializeOwned>(
-        &self,
-        endpoint: &EndPoint,
-    ) -> Result<Vec<B>, OssError> {
-        //...
-    }
-}
-```
-
-get bucket info;
-
-```rust
-struct Bucket {
-    name: String,
-    endpoint: EndPoint,
-}
-impl Bucket{
-    async fn get_info(&self, client: &Client) -> BucketInfo {
-        todo!()
-    }
-
-    // 导出到自定义的类型
-    pub async fn export_info<B: DeserializeOwned>(&self, client: &Client) -> Result<B, OssError> {
-        //...
-    }
-
-    async fn get_object(&self, client: &Client) -> Vec<Object> {
-        todo!()
-    }
-
-    // 导出到自定义的类型
-    pub async fn export_objects<Obj: DeserializeOwned>(
-        &self,
-        query: &ObjectQuery,
-        client: &Client,
-    ) -> Result<(Vec<Obj>, NextContinuationToken), OssError> {
-        //...
-    }
-}
-```
-
-get object info
-
-```rust
-struct Object {
-    bucket: Bucket,
-    path: ObjectPath,
-}
-impl Object {
-    async fn get_info(&self, client: &Client) -> ObjectInfo {
-        todo!()
-    }
-
-    async fn upload(&self, client: &Client, content: Vec<u8>) -> Result<(), Error>{
-        todo!()
-    }
-    async fn download(&self, client: &Client) -> Result<Vec<u8>, Error>{
-        todo!()
-    }
-}
+let res: MyBucketInfo = Bucket::from_env()?
+    .export_info()
+    .await?;
 ```
