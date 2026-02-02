@@ -17,6 +17,7 @@ use futures_util::StreamExt;
 
 async fn run() -> Result<(), aliyun_oss_client::Error> {
     let client = Client::from_env()?;
+    // or let client = Client::new("key_xxx", "secret_yyy", "endpoint_url")?;
 
     // 获取 buckets 列表
     let buckets = client.get_buckets().await?;
