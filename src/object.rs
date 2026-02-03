@@ -94,6 +94,11 @@ impl Object {
         }
     }
 
+    #[doc(hidden)]
+    pub fn mock(path: &str) -> Object {
+        Object::new(path, Arc::new(Bucket::mock("mock-bucket")))
+    }
+
     pub fn multipart(&self) -> PartsUpload {
         self.into()
     }
@@ -102,10 +107,10 @@ impl Object {
     ///
     /// ```rust
     /// # use aliyun_oss_client::Object;
-    /// let obj1 = Object::new("foo.txt");
+    /// let obj1 = Object::mock("foo.txt");
     /// assert!(!obj1.in_dir());
     ///
-    /// let obj2 = Object::new("path/foo.txt");
+    /// let obj2 = Object::mock("path/foo.txt");
     /// assert!(obj2.in_dir());
     /// ```
     pub fn in_dir(&self) -> bool {
@@ -115,10 +120,10 @@ impl Object {
     /// 获取文件的各级目录
     /// ```rust
     /// # use aliyun_oss_client::Object;
-    /// let obj1 = Object::new("foo.txt");
+    /// let obj1 = Object::mock("foo.txt");
     /// let dirs = obj1.get_dirs();
     /// assert!(dirs.len()==0);
-    /// let obj2 = Object::new("path1/path2/foo.txt");
+    /// let obj2 = Object::mock("path1/path2/foo.txt");
     /// let dirs2 = obj2.get_dirs();
     /// assert_eq!(dirs2[0], "path1".to_string());
     /// assert_eq!(dirs2[1], "path2".to_string());
@@ -134,10 +139,10 @@ impl Object {
     /// 根据目录层级，获取绝对路径
     /// ```rust
     /// # use aliyun_oss_client::Object;
-    /// let obj1 = Object::new("foo.txt");
+    /// let obj1 = Object::mock("foo.txt");
     /// let path1 = obj1.absolute_dir_nth(10);
     /// assert!(path1.is_none());
-    /// let obj2 = Object::new("path3/path22/bar.txt");
+    /// let obj2 = Object::mock("path3/path22/bar.txt");
     /// let path21 = obj2.absolute_dir_nth(1);
     /// assert_eq!(path21, Some("path3".to_string()));
     /// let path22 = obj2.absolute_dir_nth(2);
