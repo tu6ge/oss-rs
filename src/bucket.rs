@@ -43,6 +43,15 @@ impl Bucket {
         })
     }
 
+    #[doc(hidden)]
+    pub fn mock(name: &str) -> Bucket {
+        Bucket::new(
+            name,
+            Arc::new(Client::new("foo", "bar", "https://oss-cn-shanghai.aliyuncs.com").unwrap()),
+        )
+        .unwrap()
+    }
+
     pub fn from_env() -> Result<Bucket, OssError> {
         let name = std::env::var("ALIYUN_BUCKET").map_err(|_| OssError::InvalidBucket)?;
 
@@ -64,13 +73,8 @@ impl Bucket {
     /// ```
     /// # use aliyun_oss_client::{Bucket, EndPoint};
     /// # use url::Url;
-    /// let bucket = Bucket::new("foo", EndPoint::CN_QINGDAO);
-    /// assert_eq!(bucket.to_url(), Url::parse("https://foo.oss-cn-qingdao.aliyuncs.com").unwrap());
-    ///
-    /// let mut endpoint_internal = EndPoint::CN_QINGDAO;
-    /// endpoint_internal.set_internal(true);
-    /// let bucket_internal = Bucket::new("bar", endpoint_internal);
-    /// assert_eq!(bucket_internal.to_url(), Url::parse("https://bar.oss-cn-qingdao-internal.aliyuncs.com").unwrap());
+    /// let bucket = Bucket::mock("foo");
+    /// assert_eq!(bucket.to_url().unwrap(), Url::parse("https://foo.oss-cn-shanghai.aliyuncs.com").unwrap());
     /// ```
     pub fn to_url(&self) -> Result<Url, OssError> {
         let url = format!(
