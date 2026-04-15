@@ -22,16 +22,12 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
     let mut stream = Client::from_env()?
         .bucket("honglei123")?
         .max_keys(5)
-        .objects();
+        .objects()
+        .take(8);
 
-    let mut i = 0;
+    // 只演示读取前 8 个对象，避免示例中拉取全部文件
     while let Some(item) = stream.next().await {
         println!("{item:?}");
-        i = i + 1;
-        if i > 7 {
-            // 不加限制的话，会获取所有文件
-            break;
-        }
     }
 
     // 完整的查询条件示例
