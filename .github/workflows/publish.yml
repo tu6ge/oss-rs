@@ -17,6 +17,10 @@ jobs:
 
     environment: cargo
 
+    outputs:
+      published: ${{ steps.publish.outputs.publish }}
+      new_version: ${{ steps.publish.outputs.new_version }}
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -33,6 +37,7 @@ jobs:
           cargo test --doc
 
       - name: Run publish-action of oss
+        id: publish
         uses: tu6ge/publish-action@v0.4.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -41,3 +46,48 @@ jobs:
         with:
           DIR: "/"
           TAG_PREFIX: "v"
+  
+  release:
+    runs-on: ubuntu-latest
+    name: Create Release
+    needs: publish
+    # 只在真正发布成功时才运行
+    if: needs.publish.outputs.published == 'true'
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 从 Cargo.toml 读取版本号，用于后续步骤
+      - name: Get version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      # 用 git-cliff 生成本次版本的 changelog
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        id: cliff
+        with:
+          config: cliff.toml   # 如果没有此文件，git-cliff 会使用默认配置
+          args: --latest --strip header
+        env:
+          OUTPUT: CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      # 创建 GitHub Release，body 使用上一步生成的内容
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: ${{ steps.cliff.outputs.content }}
+          draft: false
+          prerelease: false
+
