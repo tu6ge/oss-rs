@@ -1,8 +1,6 @@
-# aliyun_oss_client 打算采用一种全新的方式来实现
+# aliyun_oss_client 一个符合人体工程学的 aliyun oss 的 rust SDK
 
-**巨大更新，之前使用过的，慎重升级 0.13**
-
-详细使用案例如下：
+使用案例如下：
 
 1. 基本操作
 
