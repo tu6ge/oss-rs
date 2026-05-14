@@ -20,6 +20,7 @@ jobs:
     outputs:
       published: ${{ steps.publish.outputs.publish }}
       new_version: ${{ steps.publish.outputs.new_version }}
+      new_version_value: ${{ steps.publish.outputs.new_version_value }}
 
     steps:
       - uses: actions/checkout@v3
@@ -38,7 +39,7 @@ jobs:
 
       - name: Run publish-action of oss
         id: publish
-        uses: tu6ge/publish-action@v0.4.9
+        uses: tu6ge/publish-action@v0.5.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -62,11 +63,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 从 Cargo.toml 读取版本号，用于后续步骤
-      - name: Get version from Cargo.toml
+      # 与 publish 任务中实际发布的版本一致（来自 publish-action）
+      - name: Get version from publish job
         id: version
         run: |
-          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          VERSION="${{ needs.publish.outputs.new_version_value }}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
