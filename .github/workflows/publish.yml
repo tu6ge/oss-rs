@@ -37,8 +37,10 @@ jobs:
         run: |
           cargo test --doc
 
+      # 仅 master 分支 push 时执行发布（PR / 其他分支只跑检查与测试）
       - name: Run publish-action of oss
         id: publish
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: tu6ge/publish-action@v0.5.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
