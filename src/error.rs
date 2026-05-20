@@ -64,6 +64,8 @@ pub enum OssError {
     NoFoundUploadId,
 
     NoFoundContinuationToken,
+
+    Mime(#[from] mime::FromStrError),
 }
 
 impl OssError {

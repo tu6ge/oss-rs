@@ -33,6 +33,7 @@ futures-core = "0.3"
 bytes = "1.11"
 futures-util = "0.3"
 async-trait = "0.1.89"
+mime = "0.3.17"
 
 [dependencies.tokio]
 version = "1.19.2"

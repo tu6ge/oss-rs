@@ -223,11 +223,26 @@ impl Object {
         self
     }
 
+    pub fn content_type_mime(mut self, content_type: mime::Mime) -> Self {
+        self.content_type = content_type.to_string();
+        self
+    }
+
+    fn parse_content_type(s: &str) -> Result<(), OssError> {
+        if s.is_empty() {
+            return Ok(());
+        }
+        let _: mime::Mime = s.parse()?;
+        Ok(())
+    }
+
     /// 上传文件
     pub async fn upload(&self, body: impl IntoBody) -> Result<(), OssError> {
         let url = self.to_url()?;
         let method = Method::PUT;
         let resource = CanonicalizedResource::from_object(&self.bucket, &self);
+
+        Self::parse_content_type(&self.content_type)?;
 
         let mut header_map = HeaderMap::new();
         if !self.content_type.is_empty() {
@@ -339,6 +354,8 @@ impl Object {
         let mut headers = HeaderMap::new();
         let source = self.copy_source.ok_or(OssError::CopySourceNotFound)?;
         headers.insert("x-oss-copy-source", source.try_into()?);
+
+        Self::parse_content_type(&self.content_type)?;
 
         if !self.content_type.is_empty() {
             headers.insert(CONTENT_TYPE, self.content_type.try_into()?);
