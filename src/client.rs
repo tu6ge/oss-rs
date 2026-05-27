@@ -14,7 +14,7 @@ use crate::{
     types::{CanonicalizedResource, EndPoint, Key, Secret},
 };
 
-/// 存放 key, secret 以及默认 bucket 信息，几乎每个 api 都会用到它的引用
+/// 存放 key, secret 以及默认 bucket 信息
 #[derive(Clone)]
 pub struct Client {
     key: Key,
