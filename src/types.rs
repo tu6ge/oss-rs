@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env::VarError};
+use std::{collections::HashMap, env::VarError, fmt};
 
 use crate::{bucket::Bucket, Object};
 
@@ -36,8 +36,14 @@ impl Key {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Secret(String);
+
+impl fmt::Debug for Secret {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Secret([REDACTED])")
+    }
+}
 
 impl From<String> for Secret {
     fn from(value: String) -> Self {
@@ -61,7 +67,7 @@ impl Secret {
     }
 
     /// # 加密数据
-    /// 这种加密方式可保证秘钥明文只会存在于 `Secret` 类型内，不会被读取或复制
+    /// 秘钥明文不通过公开 API 读取；`Debug` 输出已脱敏。
     /// ```rust
     /// # use aliyun_oss_client::Secret;
     /// let secret = Secret::new("secret");

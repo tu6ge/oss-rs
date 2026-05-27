@@ -1,4 +1,4 @@
-use std::{env::VarError, sync::Arc};
+use std::{env::VarError, fmt, sync::Arc};
 
 use chrono::Utc;
 use reqwest::{
@@ -15,12 +15,26 @@ use crate::{
 };
 
 /// 存放 key, secret 以及默认 bucket 信息，几乎每个 api 都会用到它的引用
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Client {
     key: Key,
     secret: Secret,
     pub(crate) endpoint: EndPoint,
     security_token: Option<String>,
+}
+
+impl fmt::Debug for Client {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Client")
+            .field("key", &self.key)
+            .field("secret", &self.secret)
+            .field("endpoint", &self.endpoint)
+            .field(
+                "security_token",
+                &self.security_token.as_ref().map(|_| "[REDACTED]"),
+            )
+            .finish()
+    }
 }
 
 impl Client {
