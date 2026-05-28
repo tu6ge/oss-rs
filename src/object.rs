@@ -113,6 +113,7 @@ impl Object {
     /// let obj2 = Object::mock("path/foo.txt");
     /// assert!(obj2.in_dir());
     /// ```
+    #[deprecated]
     pub fn in_dir(&self) -> bool {
         self.path.find('/').is_some()
     }
@@ -129,6 +130,7 @@ impl Object {
     /// assert_eq!(dirs2[1], "path2".to_string());
     /// assert!(dirs2.len() ==2);
     /// ```
+    #[deprecated]
     pub fn get_dirs(&self) -> Vec<String> {
         let mut dirs: Vec<&str> = self.path.split('/').collect();
         dirs.pop();
@@ -150,6 +152,7 @@ impl Object {
     /// let path23 = obj2.absolute_dir_nth(3);
     /// assert_eq!(path23, Some("path3/path22".to_string()));
     /// ```
+    #[deprecated]
     pub fn absolute_dir_nth(&self, num: usize) -> Option<String> {
         let dirs = self.get_dirs();
         if dirs.is_empty() {
