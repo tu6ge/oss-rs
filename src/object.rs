@@ -440,27 +440,23 @@ mod tests {
 
     #[tokio::test]
     async fn test_upload() {
-        let info = build_bucket()
+        build_bucket()
             .object("abc.txt")
             .content_type("text/plain;charset=utf-8")
             .upload("aaab")
             .await
             .unwrap();
-
-        println!("{info:?}");
     }
 
     #[tokio::test]
     async fn test_upload_file() {
         let f = tokio::fs::File::open("example_file.txt").await.unwrap();
-        let info = build_bucket()
+        build_bucket()
             .object("abc_file.txt")
             .content_type("text/plain;charset=utf-8")
             .upload(f)
             .await
             .unwrap();
-
-        println!("{info:?}");
     }
 
     #[tokio::test]
@@ -469,7 +465,7 @@ mod tests {
         let object = build_bucket().object("abc.txt");
 
         let mut file = File::create("aaa.txt").await.unwrap();
-        let result: () = object.download(&mut file).await.unwrap();
+        let _result: () = object.download(&mut file).await.unwrap();
 
         std::fs::remove_file("aaa.txt").unwrap();
     }
@@ -477,7 +473,7 @@ mod tests {
     #[tokio::test]
     async fn test_copy() {
         let object = build_bucket().object("def2.txt");
-        let _ = object
+        object
             .copy_source("/honglei123/abc2.txt")
             .content_type("text/plain;charset=utf-8")
             .copy()
@@ -489,14 +485,13 @@ mod tests {
     async fn test_delete() {
         let object = build_bucket().object("abc.txt");
 
-        let info = object.delete().await.unwrap();
+        object.delete().await.unwrap();
     }
 
     #[tokio::test]
     async fn test_upload_empty_file() {
         let object = build_bucket().object("empty.txt");
 
-        let info = object.upload("").await;
-        assert!(info.is_ok())
+        object.upload("").await.unwrap();
     }
 }

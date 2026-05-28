@@ -323,6 +323,21 @@ fn to_oss_header(headers: &HeaderMap) -> String {
 }
 
 #[cfg(test)]
+pub fn init_client() -> Client {
+    use std::env;
+
+    use dotenv::dotenv;
+
+    dotenv().ok();
+    let key = env::var("ALIYUN_KEY_ID").unwrap();
+    let secret = env::var("ALIYUN_KEY_SECRET").unwrap();
+    let endpoint = env::var("ALIYUN_ENDPOINT").unwrap();
+
+    Client::new(Key::new(key), Secret::new(secret), endpoint).unwrap()
+    //Client::new_with_sts(Key::new("STS."), Secret::new(""), "".to_string())
+}
+
+#[cfg(test)]
 mod tests {
     use crate::{
         client::init_client,
@@ -342,33 +357,41 @@ mod tests {
 
         #[derive(Debug, Deserialize)]
         struct MyBucket {
-            Comment: String,
-            CreationDate: String,
-            ExtranetEndpoint: EndPoint,
-            IntranetEndpoint: String,
-            Location: String,
-            Name: String,
-            Region: String,
-            StorageClass: StorageClass,
+            #[serde(rename = "Comment")]
+            #[allow(unused)]
+            comment: String,
+
+            #[serde(rename = "CreationDate")]
+            #[allow(unused)]
+            creation_date: String,
+
+            #[serde(rename = "ExtranetEndpoint")]
+            #[allow(unused)]
+            extranet_endpoint: EndPoint,
+
+            #[serde(rename = "IntranetEndpoint")]
+            #[allow(unused)]
+            intranet_endpoint: String,
+
+            #[serde(rename = "Location")]
+            #[allow(unused)]
+            location: String,
+
+            #[serde(rename = "Name")]
+            #[allow(unused)]
+            name: String,
+
+            #[serde(rename = "Region")]
+            #[allow(unused)]
+            region: String,
+
+            #[serde(rename = "StorageClass")]
+            #[allow(unused)]
+            storage_class: StorageClass,
         }
 
         let list: Vec<MyBucket> = init_client().export_buckets().await.unwrap();
 
         println!("{list:?}");
     }
-}
-
-#[cfg(test)]
-pub fn init_client() -> Client {
-    use std::env;
-
-    use dotenv::dotenv;
-
-    dotenv().ok();
-    let key = env::var("ALIYUN_KEY_ID").unwrap();
-    let secret = env::var("ALIYUN_KEY_SECRET").unwrap();
-    let endpoint = env::var("ALIYUN_ENDPOINT").unwrap();
-
-    Client::new(Key::new(key), Secret::new(secret), endpoint).unwrap()
-    //Client::new_with_sts(Key::new("STS."), Secret::new(""), "".to_string())
 }

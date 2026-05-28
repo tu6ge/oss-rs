@@ -1,6 +1,7 @@
 use aliyun_oss_client::{types::ObjectQuery, Client, EndPoint};
 use serde::Deserialize;
 
+#[allow(unused)]
 async fn run() -> Result<(), aliyun_oss_client::Error> {
     let client = Client::from_env()?;
 
@@ -12,23 +13,48 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
 
     #[derive(Debug, Deserialize)]
     struct MyBucket {
-        Comment: String,
-        CreationDate: String,
-        ExtranetEndpoint: EndPoint,
-        IntranetEndpoint: String,
-        Location: String,
-        Name: String,
-        Region: String,
-        StorageClass: String,
+        #[serde(rename = "Comment")]
+        #[allow(unused)]
+        comment: String,
+
+        #[serde(rename = "CreationDate")]
+        #[allow(unused)]
+        creation_date: String,
+
+        #[serde(rename = "ExtranetEndpoint")]
+        #[allow(unused)]
+        extranet_endpoint: EndPoint,
+
+        #[serde(rename = "IntranetEndpoint")]
+        #[allow(unused)]
+        intranet_endpoint: String,
+
+        #[serde(rename = "Location")]
+        #[allow(unused)]
+        location: String,
+
+        #[serde(rename = "Name")]
+        #[allow(unused)]
+        name: String,
+
+        #[serde(rename = "Region")]
+        #[allow(unused)]
+        region: String,
+
+        #[serde(rename = "StorageClass")]
+        #[allow(unused)]
+        storage_class: String,
     }
 
-    let list: Vec<MyBucket> = client.export_buckets().await?;
+    let _list: Vec<MyBucket> = client.export_buckets().await?;
 
     #[derive(Debug, Deserialize)]
     struct MyBucketInfo {
-        Name: String,
+        #[serde(rename = "Name")]
+        #[allow(unused)]
+        name: String,
     }
-    let res: MyBucketInfo = buckets[0].export_info(&client).await?;
+    let _res: MyBucketInfo = buckets[0].export_info(&client).await?;
 
     let condition = {
         let mut map = ObjectQuery::new();
@@ -38,10 +64,12 @@ async fn run() -> Result<(), aliyun_oss_client::Error> {
 
     #[derive(Debug, Deserialize)]
     struct MyObject {
-        Key: String,
+        #[serde(rename = "Key")]
+        #[allow(unused)]
+        key: String,
     }
 
-    let (list, next_token): (Vec<MyObject>, _) = buckets[0]
+    let (_list, _next_token): (Vec<MyObject>, _) = buckets[0]
         .clone()
         .object_query(condition)
         .export_objects()

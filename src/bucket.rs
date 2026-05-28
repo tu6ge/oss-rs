@@ -597,7 +597,9 @@ mod tests {
         let bucket = build_bucket();
         #[derive(Debug, Deserialize)]
         struct DemoData {
-            Name: String,
+            #[serde(rename = "Name")]
+            #[allow(unused)]
+            name: String,
         }
         let res: DemoData = bucket.export_info(&init_client()).await.unwrap();
 
@@ -612,22 +614,19 @@ mod tests {
 
         #[derive(Debug, Deserialize)]
         struct MyObject {
-            Key: String,
+            #[serde(rename = "Key")]
+            #[allow(unused)]
+            key: String,
         }
 
         let mut stream = Bucket::from_env()
             .unwrap()
             .max_keys(5)
-            .objects_as::<MyObject>();
+            .objects_as::<MyObject>()
+            .take(7);
 
-        let mut i = 0;
         while let Some(item) = stream.next().await {
             println!("{item:?}");
-
-            i = i + 1;
-            if i > 7 {
-                break;
-            }
         }
     }
 
@@ -636,15 +635,15 @@ mod tests {
         use futures_util::StreamExt;
 
         let client = init_client();
-        let mut stream = client.bucket("honglei123").unwrap().max_keys(5).objects();
+        let mut stream = client
+            .bucket("honglei123")
+            .unwrap()
+            .max_keys(5)
+            .objects()
+            .take(7);
 
-        let mut i = 0;
         while let Some(item) = stream.next().await {
             println!("{item:?}");
-            i = i + 1;
-            if i > 7 {
-                break;
-            }
         }
     }
 }
