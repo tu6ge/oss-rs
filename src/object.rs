@@ -14,7 +14,7 @@ use reqwest::{
 use tokio::io::AsyncWrite;
 use url::Url;
 
-use crate::{error::OssError, types::CanonicalizedResource, Bucket};
+use crate::{error::OssError, response::OssResponseExt, types::CanonicalizedResource, Bucket};
 
 mod body;
 mod parts_upload;
@@ -271,12 +271,7 @@ impl Object {
             .send()
             .await?;
 
-        if response.status().is_success() {
-            Ok(())
-        } else {
-            let body = response.text().await?;
-            Err(OssError::from_service(&body))
-        }
+        response.into_oss_empty_result().await
     }
 
     #[cfg(feature = "tokio")]
@@ -376,12 +371,7 @@ impl Object {
             .send()
             .await?;
 
-        if response.status().is_success() {
-            Ok(())
-        } else {
-            let body = response.text().await?;
-            Err(OssError::from_service(&body))
-        }
+        response.into_oss_empty_result().await
     }
 
     /// 删除文件
@@ -398,12 +388,7 @@ impl Object {
             .send()
             .await?;
 
-        if response.status().is_success() {
-            Ok(())
-        } else {
-            let body = response.text().await?;
-            Err(OssError::from_service(&body))
-        }
+        response.into_oss_empty_result().await
     }
 }
 

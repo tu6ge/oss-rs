@@ -576,7 +576,7 @@ mod tests {
     use futures_util::StreamExt;
     use serde::Deserialize;
 
-    use crate::{client::init_client, types::ObjectQuery};
+    use crate::client::init_client;
 
     use super::Bucket;
 

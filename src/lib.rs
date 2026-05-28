@@ -1,3 +1,5 @@
+mod response;
+
 pub mod bucket;
 pub mod client;
 pub mod error;
