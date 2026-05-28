@@ -343,6 +343,7 @@ impl Object {
         String::from_utf8(bytes).map_err(OssError::InvalidUtf8)
     }
 
+    /// 格式：/bucket_name/object_name
     pub fn copy_source<T: Into<String>>(mut self, source: T) -> Self {
         self.copy_source = Some(source.into());
         self
