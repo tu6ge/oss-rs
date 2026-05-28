@@ -49,9 +49,7 @@ impl IntoBody for Vec<u8> {
 #[cfg(feature = "tokio")]
 impl IntoBody for File {
     fn into_body(self) -> BodyStream {
-        use futures_util::StreamExt;
-
-        let stream = ReaderStream::new(self).map(|res| res.map(Bytes::from));
+        let stream = ReaderStream::new(self);
         Box::pin(stream)
     }
     fn content_length(&self) -> Option<usize> {

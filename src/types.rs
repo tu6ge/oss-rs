@@ -204,6 +204,13 @@ impl<'de> Visitor<'de> for StorageClassVisitor {
     {
         StorageClass::new(&v).ok_or(E::custom(format!("{} is not StorageClass", v)))
     }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        StorageClass::new(v).ok_or(E::custom(format!("{} is not StorageClass", v)))
+    }
 }
 impl<'de> Deserialize<'de> for StorageClass {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

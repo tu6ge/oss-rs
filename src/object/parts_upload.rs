@@ -94,7 +94,7 @@ impl PartsUpload {
     }
     fn parse_upload_id(&mut self, xml: &str) -> Result<(), OssError> {
         if let (Some(start), Some(end)) = (xml.find("<UploadId>"), xml.find("</UploadId>")) {
-            self.upload_id = (&xml[start + 10..end]).to_owned();
+            self.upload_id = xml[start + 10..end].to_owned();
             Ok(())
         } else {
             Err(OssError::NoFoundUploadId)

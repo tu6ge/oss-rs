@@ -162,7 +162,6 @@ impl Bucket {
     ///     Name: String,
     /// }
     /// ```
-
     pub async fn export_info<B: DeserializeOwned>(&self, client: &Client) -> Result<B, OssError> {
         const BUCKET_INFO: &str = "bucketInfo";
 
@@ -463,7 +462,7 @@ impl Bucket {
 
 pub fn validate_bucket_name(name: &str) -> Result<(), BucketNameError> {
     let len = name.len();
-    if len < 3 || len > 63 {
+    if !(3..=63).contains(&len) {
         return Err(BucketNameError::InvalidLength);
     }
 

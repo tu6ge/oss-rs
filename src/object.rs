@@ -154,13 +154,14 @@ impl Object {
     /// ```
     #[deprecated]
     pub fn absolute_dir_nth(&self, num: usize) -> Option<String> {
+        #[allow(deprecated)]
         let dirs = self.get_dirs();
         if dirs.is_empty() {
             return None;
         }
         let n = if num > dirs.len() { dirs.len() } else { num };
         let mut dir = String::new();
-        for i in 0..n {
+        for (i, _) in dirs.iter().enumerate().take(n) {
             if i == 0 {
                 dir.push_str(&dirs[i]);
             } else {
@@ -243,7 +244,7 @@ impl Object {
     pub async fn upload(&self, body: impl IntoBody) -> Result<(), OssError> {
         let url = self.to_url()?;
         let method = Method::PUT;
-        let resource = CanonicalizedResource::from_object(&self.bucket, &self);
+        let resource = CanonicalizedResource::from_object(&self.bucket, self);
 
         Self::parse_content_type(&self.content_type)?;
 
@@ -308,9 +309,7 @@ impl Object {
             return Err(OssError::from_service(&body));
         }
 
-        let stream = resp
-            .bytes_stream()
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
+        let stream = resp.bytes_stream().map_err(std::io::Error::other);
 
         let mut reader = StreamReader::new(stream);
 
