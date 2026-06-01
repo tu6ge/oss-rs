@@ -4,7 +4,7 @@ resolver = "2"
 
 [package]
 name = "aliyun-oss-client"
-version = "0.13.2"
+version = "0.13.3"
 edition = "2021"
 description = "an aliyun oss client"
 keywords = ["aliyun", "oss", "sdk"]
