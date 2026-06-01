@@ -54,16 +54,16 @@ jobs:
           DIR: "/"
           TAG_PREFIX: "v"
 
-      # - name: Publish aliyun-oss-object-store
-      #   id: publish_object_store
-      #   if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      #   uses: tu6ge/publish-action@v0.6.0-beta.3
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      #   with:
-      #     DIR: "/crates/object_store/"
-      #     TAG_PREFIX: "object-store-v"
+      - name: Publish aliyun-oss-object-store
+        id: publish_object_store
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: tu6ge/publish-action@v0.6.0-beta.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        with:
+          DIR: "/crates/object_store/"
+          TAG_PREFIX: "object-store-v"
   
   release-client:
     runs-on: ubuntu-latest
