@@ -210,10 +210,7 @@ impl PartsUpload {
         Ok(etag)
     }
 
-    fn parse_complete_etag(
-        headers: &HeaderMap,
-        body: &str,
-    ) -> Result<String, OssError> {
+    fn parse_complete_etag(headers: &HeaderMap, body: &str) -> Result<String, OssError> {
         if let Some(value) = headers.get("etag") {
             if let Ok(etag) = value.to_str() {
                 return Ok(etag.trim_matches('"').to_string());

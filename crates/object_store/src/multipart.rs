@@ -6,9 +6,7 @@ use std::sync::{
 use aliyun_oss_client::object::PartsUpload;
 use async_trait::async_trait;
 use bytes::Bytes;
-use object_store::{
-    path::Path, Error, MultipartUpload, PutPayload, PutResult, Result, UploadPart,
-};
+use object_store::{path::Path, Error, MultipartUpload, PutPayload, PutResult, Result, UploadPart};
 use tokio::sync::Mutex;
 
 fn oss_error(err: aliyun_oss_client::Error) -> Error {
@@ -36,10 +34,7 @@ impl OssMultipartUpload {
         bucket: Arc<aliyun_oss_client::Bucket>,
     ) -> Result<Self, Error> {
         let mut upload = PartsUpload::new(location.as_ref(), bucket);
-        upload
-            .init_mulit()
-            .await
-            .map_err(oss_error)?;
+        upload.init_mulit().await.map_err(oss_error)?;
 
         Ok(Self {
             next_part_number: AtomicUsize::new(1),
