@@ -152,6 +152,11 @@ impl PartsUpload {
     }
 
     pub async fn complete(&mut self) -> Result<(), OssError> {
+        self.complete_with_etag().await.map(|_| ())
+    }
+
+    /// 完成分片上传，返回合并后对象的 ETag（已去掉引号）。
+    pub async fn complete_with_etag(&mut self) -> Result<String, OssError> {
         if self.upload_id.is_empty() {
             return Err(OssError::NoFoundUploadId);
         }
@@ -190,14 +195,37 @@ impl PartsUpload {
             .send()
             .await?;
 
-        if response.status().is_success() {
-            self.upload_id = String::new();
-            self.etags = Vec::new();
-            Ok(())
-        } else {
-            let body = response.text().await?;
-            Err(OssError::from_service(&body))
+        let is_success = response.status().is_success();
+        let headers = response.headers().clone();
+        let body = response.text().await?;
+
+        if !is_success {
+            return Err(OssError::from_service(&body));
         }
+
+        let etag = Self::parse_complete_etag(&headers, &body)?;
+
+        self.upload_id = String::new();
+        self.etags = Vec::new();
+        Ok(etag)
+    }
+
+    fn parse_complete_etag(
+        headers: &HeaderMap,
+        body: &str,
+    ) -> Result<String, OssError> {
+        if let Some(value) = headers.get("etag") {
+            if let Ok(etag) = value.to_str() {
+                return Ok(etag.trim_matches('"').to_string());
+            }
+        }
+
+        if let (Some(start), Some(end)) = (body.find("<ETag>"), body.find("</ETag>")) {
+            let etag = &body[start + 6..end];
+            return Ok(etag.trim_matches('"').to_string());
+        }
+
+        Err(OssError::NoFoundEtag)
     }
 
     fn etag_list_xml(&self) -> String {

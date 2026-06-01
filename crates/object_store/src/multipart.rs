@@ -67,15 +67,16 @@ impl MultipartUpload for OssMultipartUpload {
     }
 
     async fn complete(&mut self) -> Result<PutResult> {
-        self.upload
+        let etag = self
+            .upload
             .lock()
             .await
-            .complete()
+            .complete_with_etag()
             .await
             .map_err(oss_error)?;
 
         Ok(PutResult {
-            e_tag: None,
+            e_tag: Some(etag),
             version: None,
         })
     }
