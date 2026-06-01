@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use aliyun_oss_client::{Bucket, Client};
+use aliyun_oss_client::Bucket;
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
 use object_store::{
@@ -10,7 +10,6 @@ use object_store::{
 
 #[derive(Debug)]
 pub struct AliyunOssObjectStore {
-    client: Client,
     bucket: Bucket,
 }
 
@@ -21,8 +20,8 @@ impl Display for AliyunOssObjectStore {
 }
 
 impl AliyunOssObjectStore {
-    pub fn new(client: Client, bucket: Bucket) -> Self {
-        Self { client, bucket }
+    pub fn new(bucket: Bucket) -> Self {
+        Self { bucket }
     }
 }
 
