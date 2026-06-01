@@ -180,7 +180,7 @@ impl ObjectStore for AliyunOssObjectStore {
 
     fn list(&self, prefix: Option<&Path>) -> BoxStream<'static, Result<ObjectMeta>> {
         use async_stream::try_stream;
-        use list::{ListedObject, should_include, to_meta};
+        use list::{should_include, to_meta, ListedObject};
 
         let prefix_len = prefix.map(|p| p.as_ref().len()).unwrap_or_default();
         let prefix_filter = prefix.cloned();
@@ -211,7 +211,7 @@ impl ObjectStore for AliyunOssObjectStore {
     }
 
     async fn list_with_delimiter(&self, prefix: Option<&Path>) -> Result<ListResult> {
-        todo!()
+        list::fetch_list_with_delimiter(self.bucket.clone(), prefix).await
     }
 
     async fn copy_opts(&self, from: &Path, to: &Path, options: CopyOptions) -> Result<()> {

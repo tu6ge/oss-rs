@@ -370,6 +370,53 @@ impl Bucket {
         Ok((res.contents, res.next_token))
     }
 
+    /// ListObjectsV2 单页结果，支持 `delimiter` 时的 `CommonPrefixes`。
+    pub async fn list_objects_page<Obj, ComPrefix>(
+        &self,
+    ) -> Result<(Vec<Obj>, Vec<ComPrefix>, Option<String>), OssError>
+    where
+        Obj: DeserializeOwned,
+        ComPrefix: DeserializeOwned,
+    {
+        let mut url = self.to_url()?;
+        url.set_query(Some(&self.query.to_oss_query()));
+        let method = Method::GET;
+        let resource = CanonicalizedResource::from_object_list(self, self.query.get_next_token());
+
+        let header_map = self.client.authorization(&method, resource)?;
+
+        let response = reqwest::Client::new()
+            .get(url)
+            .headers(header_map)
+            .send()
+            .await?;
+
+        let is_success = response.status().is_success();
+        let content = response.text().await?;
+
+        if !is_success {
+            return Err(OssError::from_service(&content));
+        }
+
+        #[derive(Debug, Deserialize)]
+        struct ListBucketResult<Obj, ComPrefix> {
+            #[serde(rename = "Contents")]
+            contents: Option<Vec<Obj>>,
+            #[serde(rename = "CommonPrefixes")]
+            common_prefixes: Option<Vec<ComPrefix>>,
+            #[serde(rename = "NextContinuationToken")]
+            next_token: Option<String>,
+        }
+
+        let res: ListBucketResult<Obj, ComPrefix> = from_str(&content)?;
+
+        Ok((
+            res.contents.unwrap_or_default(),
+            res.common_prefixes.unwrap_or_default(),
+            res.next_token,
+        ))
+    }
+
     pub fn objects(self) -> BoxStream<'static, Result<Object, OssError>> {
         Box::pin(self.objects_impl())
     }
