@@ -63,13 +63,13 @@ impl ObjectStore for AliyunOssObjectStore {
             object = object.content_type(content_type.as_ref());
         }
 
-        object
-            .upload(BuiltinPutPayload::new(payload))
+        let etag = object
+            .upload_with_etag(BuiltinPutPayload::new(payload))
             .await
             .map_err(|e| to_object_store_error(e, location))?;
 
         Ok(PutResult {
-            e_tag: None,
+            e_tag: Some(etag),
             version: None,
         })
     }

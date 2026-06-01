@@ -242,6 +242,11 @@ impl Object {
 
     /// 上传文件
     pub async fn upload(&self, body: impl IntoBody) -> Result<(), OssError> {
+        self.upload_with_etag(body).await.map(|_| ())
+    }
+
+    /// 上传文件并返回响应中的 ETag（已去掉引号）。
+    pub async fn upload_with_etag(&self, body: impl IntoBody) -> Result<String, OssError> {
         let url = self.to_url()?;
         let method = Method::PUT;
         let resource = CanonicalizedResource::from_object(&self.bucket, self);
@@ -272,7 +277,7 @@ impl Object {
             .send()
             .await?;
 
-        response.into_oss_empty_result().await
+        response.into_oss_put_result().await
     }
 
     #[cfg(feature = "tokio")]
