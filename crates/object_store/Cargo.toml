@@ -1,9 +1,9 @@
 [package]
-name = "aliyun-oss-client-opendal"
+name = "aliyun-oss-object-store"
 version = "0.0.1"
 edition = "2021"
 resolver = "2"
-description = "OpenDAL adapter for aliyun-oss-client"
+description = "Object store implementation for aliyun-oss-client"
 
 [dependencies]
 aliyun-oss-client = { path = "../..", features = ["tokio"] }
