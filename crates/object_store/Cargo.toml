@@ -1,6 +1,6 @@
 [package]
 name = "aliyun-oss-object-store"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 resolver = "2"
 description = "Object store implementation for aliyun-oss-client"
