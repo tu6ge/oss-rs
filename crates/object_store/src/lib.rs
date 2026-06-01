@@ -160,7 +160,21 @@ impl ObjectStore for AliyunOssObjectStore {
         &self,
         locations: BoxStream<'static, Result<Path, Error>>,
     ) -> BoxStream<'static, Result<Path, Error>> {
-        todo!()
+        let bucket = self.bucket.clone();
+        locations
+            .map(move |location| {
+                let bucket = bucket.clone();
+                async move {
+                    let location = location?;
+                    Object::new(location.to_string(), Arc::new(bucket))
+                        .delete()
+                        .await
+                        .map_err(|e| to_object_store_error(e, &location))?;
+                    Ok(location)
+                }
+            })
+            .buffered(10)
+            .boxed()
     }
 
     fn list(&self, prefix: Option<&Path>) -> BoxStream<'static, Result<ObjectMeta>> {
