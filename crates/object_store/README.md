@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-aliyun-oss-object-store = "0.0.1"
+aliyun-oss-object-store = "0.0.2"
 aliyun-oss-client = { version = "0.13", features = ["tokio"] }
 object_store = "0.13"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
