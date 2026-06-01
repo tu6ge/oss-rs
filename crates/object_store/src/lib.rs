@@ -5,9 +5,9 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures_util::{stream::BoxStream, StreamExt as _};
 use object_store::{
-    path::Path, Attribute, Attributes, CopyOptions, Error, GetOptions, GetResult, GetResultPayload,
-    ListResult, MultipartUpload, ObjectMeta, ObjectStore, PutMultipartOptions, PutOptions,
-    PutPayload, PutResult, Result,
+    path::Path, Attribute, Attributes, CopyMode, CopyOptions, Error, GetOptions, GetResult,
+    GetResultPayload, ListResult, MultipartUpload, ObjectMeta, ObjectStore, PutMultipartOptions,
+    PutOptions, PutPayload, PutResult, Result,
 };
 
 mod list;
@@ -215,6 +215,21 @@ impl ObjectStore for AliyunOssObjectStore {
     }
 
     async fn copy_opts(&self, from: &Path, to: &Path, options: CopyOptions) -> Result<()> {
-        todo!()
+        if matches!(options.mode, CopyMode::Create) {
+            if self.object(to).get_info().await.is_ok() {
+                return Err(Error::AlreadyExists {
+                    path: to.to_string(),
+                    source: "destination object already exists".into(),
+                });
+            }
+        }
+
+        let copy_source = format!("/{}/{}", self.bucket.name(), from.as_ref());
+
+        self.object(to)
+            .copy_source(copy_source)
+            .copy()
+            .await
+            .map_err(|e| to_object_store_error(e, from))
     }
 }

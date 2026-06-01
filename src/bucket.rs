@@ -64,8 +64,12 @@ impl Bucket {
         })
     }
 
-    pub(crate) fn as_str(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub(crate) fn as_str(&self) -> &str {
+        self.name()
     }
 
     /// # 返回 bucket 对应的链接地址
