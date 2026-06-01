@@ -11,6 +11,7 @@ use object_store::{
 };
 
 mod list;
+mod multipart;
 mod put_payload;
 use put_payload::BuiltinPutPayload;
 
@@ -76,9 +77,12 @@ impl ObjectStore for AliyunOssObjectStore {
     async fn put_multipart_opts(
         &self,
         location: &Path,
-        opts: PutMultipartOptions,
+        _opts: PutMultipartOptions,
     ) -> Result<Box<dyn MultipartUpload>> {
-        todo!()
+        let upload =
+            multipart::OssMultipartUpload::new(location.clone(), Arc::new(self.bucket.clone()))
+                .await?;
+        Ok(Box::new(upload))
     }
 
     async fn get_opts(&self, location: &Path, opts: GetOptions) -> Result<GetResult> {
@@ -230,6 +234,8 @@ impl ObjectStore for AliyunOssObjectStore {
             .copy_source(copy_source)
             .copy()
             .await
-            .map_err(|e| to_object_store_error(e, from))
+            .map_err(|e| to_object_store_error(e, from))?;
+
+        Ok(())
     }
 }
