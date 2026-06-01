@@ -1,11 +1,13 @@
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, io::Cursor, sync::Arc};
 
-use aliyun_oss_client::{Bucket, Object};
+use aliyun_oss_client::{Bucket, Error as OssError, Object};
 use async_trait::async_trait;
-use futures_util::stream::BoxStream;
+use bytes::Bytes;
+use futures_util::{stream::BoxStream, StreamExt as _};
 use object_store::{
-    path::Path, Attribute, CopyOptions, Error, GetOptions, GetResult, ListResult, MultipartUpload,
-    ObjectMeta, ObjectStore, PutMultipartOptions, PutOptions, PutPayload, PutResult, Result,
+    path::Path, Attribute, Attributes, CopyOptions, Error, GetOptions, GetResult, GetResultPayload,
+    ListResult, MultipartUpload, ObjectMeta, ObjectStore, PutMultipartOptions, PutOptions,
+    PutPayload, PutResult, Result,
 };
 
 mod put_payload;
@@ -32,6 +34,19 @@ impl AliyunOssObjectStore {
     }
 }
 
+fn to_object_store_error(err: OssError, path: &Path) -> Error {
+    match err.service_code() {
+        Some("NoSuchKey") => Error::NotFound {
+            path: path.to_string(),
+            source: Box::new(err),
+        },
+        _ => Error::Generic {
+            store: "AliyunOssObjectStore",
+            source: Box::new(err),
+        },
+    }
+}
+
 #[async_trait]
 impl ObjectStore for AliyunOssObjectStore {
     async fn put_opts(
@@ -49,16 +64,14 @@ impl ObjectStore for AliyunOssObjectStore {
         object
             .upload(BuiltinPutPayload::new(payload))
             .await
-            .map_err(|e| Error::Generic {
-                store: "AliyunOssObjectStore",
-                source: Box::new(e),
-            })?;
+            .map_err(|e| to_object_store_error(e, location))?;
 
         Ok(PutResult {
             e_tag: None,
             version: None,
         })
     }
+
     async fn put_multipart_opts(
         &self,
         location: &Path,
@@ -66,8 +79,81 @@ impl ObjectStore for AliyunOssObjectStore {
     ) -> Result<Box<dyn MultipartUpload>> {
         todo!()
     }
-    async fn get_opts(&self, location: &Path, opts: GetOptions) -> Result<GetResult, Error> {
-        todo!()
+
+    async fn get_opts(&self, location: &Path, opts: GetOptions) -> Result<GetResult> {
+        let object = self.object(location);
+
+        let info = object
+            .get_info()
+            .await
+            .map_err(|e| to_object_store_error(e, location))?;
+
+        let meta = ObjectMeta {
+            location: location.clone(),
+            last_modified: *info.last_modified(),
+            size: info.size(),
+            e_tag: Some(info.etag().to_string()),
+            version: None,
+        };
+
+        opts.check_preconditions(&meta)?;
+
+        if opts.version.is_some() {
+            return Err(Error::NotImplemented {
+                operation: "get with version".into(),
+                implementer: "AliyunOssObjectStore".into(),
+            });
+        }
+
+        let range = match &opts.range {
+            Some(r) => r.as_range(meta.size).map_err(|source| Error::Generic {
+                store: "AliyunOssObjectStore",
+                source: Box::new(source),
+            })?,
+            None => 0..meta.size,
+        };
+
+        if opts.head {
+            return Ok(GetResult {
+                payload: GetResultPayload::Stream(futures_util::stream::empty().boxed()),
+                meta,
+                range,
+                attributes: Attributes::new(),
+            });
+        }
+
+        let stream = if range == (0..meta.size) {
+            object
+                .download_stream()
+                .await
+                .map_err(|e| to_object_store_error(e, location))?
+                .map(|chunk| {
+                    chunk.map_err(|e| Error::Generic {
+                        store: "AliyunOssObjectStore",
+                        source: Box::new(e),
+                    })
+                })
+                .boxed()
+        } else {
+            let mut buf = Cursor::new(Vec::with_capacity(meta.size as usize));
+            object
+                .download(&mut buf)
+                .await
+                .map_err(|e| to_object_store_error(e, location))?;
+
+            let bytes = Bytes::from(buf.into_inner());
+            let start = range.start as usize;
+            let end = range.end as usize;
+            let data = bytes.slice(start..end.min(bytes.len()));
+            futures_util::stream::once(futures_util::future::ready(Ok(data))).boxed()
+        };
+
+        Ok(GetResult {
+            payload: GetResultPayload::Stream(stream),
+            meta,
+            range,
+            attributes: Attributes::new(),
+        })
     }
 
     fn delete_stream(

@@ -104,6 +104,19 @@ impl ServiceXML {
         //println!("{xml}");
         serde_xml_rs::from_str(xml)
     }
+
+    pub fn code(&self) -> &str {
+        &self.code
+    }
+}
+
+impl OssError {
+    pub fn service_code(&self) -> Option<&str> {
+        match self {
+            Self::Service(xml) => Some(xml.code()),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

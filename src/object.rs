@@ -281,14 +281,11 @@ impl Object {
         self.upload(file).await
     }
 
-    /// 下载文件
+    /// 以字节流方式下载，适合对接 `object_store` 等流式 API。
+    /// TODO: 支持 range 下载
     #[cfg(feature = "tokio")]
-    pub async fn download<W>(&self, writer: &mut W) -> Result<(), OssError>
-    where
-        W: AsyncWrite + Unpin,
-    {
+    pub async fn download_stream(&self) -> Result<BodyStream, OssError> {
         use futures_util::TryStreamExt;
-        use tokio_util::io::StreamReader;
 
         let url = self.to_url()?;
         let method = Method::GET;
@@ -309,12 +306,20 @@ impl Object {
             return Err(OssError::from_service(&body));
         }
 
-        let stream = resp.bytes_stream().map_err(std::io::Error::other);
+        Ok(Box::pin(resp.bytes_stream().map_err(std::io::Error::other)))
+    }
 
+    /// 下载文件
+    #[cfg(feature = "tokio")]
+    pub async fn download<W>(&self, writer: &mut W) -> Result<(), OssError>
+    where
+        W: AsyncWrite + Unpin,
+    {
+        use tokio_util::io::StreamReader;
+
+        let stream = self.download_stream().await?;
         let mut reader = StreamReader::new(stream);
-
         tokio::io::copy(&mut reader, writer).await?;
-
         Ok(())
     }
 
