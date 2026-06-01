@@ -10,6 +10,7 @@ use object_store::{
     PutPayload, PutResult, Result,
 };
 
+mod list;
 mod put_payload;
 use put_payload::BuiltinPutPayload;
 
@@ -178,7 +179,35 @@ impl ObjectStore for AliyunOssObjectStore {
     }
 
     fn list(&self, prefix: Option<&Path>) -> BoxStream<'static, Result<ObjectMeta>> {
-        todo!()
+        use async_stream::try_stream;
+        use list::{ListedObject, should_include, to_meta};
+
+        let prefix_len = prefix.map(|p| p.as_ref().len()).unwrap_or_default();
+        let prefix_filter = prefix.cloned();
+
+        let mut bucket = self.bucket.clone();
+        if let Some(ref p) = prefix_filter {
+            bucket = bucket.prefix(p.as_ref());
+        }
+
+        try_stream! {
+            let mut objects = std::pin::pin!(bucket.objects_as_impl::<ListedObject>());
+            while let Some(item) = objects.next().await {
+                let obj = item.map_err(|e| Error::Generic {
+                    store: "AliyunOssObjectStore",
+                    source: Box::new(e),
+                })?;
+
+                let Some(meta) = to_meta(obj)? else {
+                    continue;
+                };
+
+                if should_include(&meta.location, prefix_filter.as_ref(), prefix_len) {
+                    yield meta;
+                }
+            }
+        }
+        .boxed()
     }
 
     async fn list_with_delimiter(&self, prefix: Option<&Path>) -> Result<ListResult> {
