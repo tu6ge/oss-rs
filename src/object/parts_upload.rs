@@ -13,6 +13,7 @@ use url::Url;
 
 use crate::{types::CanonicalizedResource, Bucket, Client, Error as OssError, Object};
 
+#[derive(Debug)]
 pub struct PartsUpload {
     path: String,
     bucket: Arc<Bucket>,
@@ -238,6 +239,12 @@ impl PartsUpload {
         self.upload_id = String::new();
         self.etags = Vec::new();
         Ok(())
+    }
+
+    /// 取消分片上传（使用 bucket 内嵌的 client）。
+    pub async fn abort_multipart(&mut self) -> Result<(), OssError> {
+        let client = self.bucket.client.clone();
+        self.abort(&client).await
     }
 }
 
