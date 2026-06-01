@@ -18,9 +18,10 @@ jobs:
     environment: cargo
 
     outputs:
-      published: ${{ steps.publish.outputs.publish }}
-      new_version: ${{ steps.publish.outputs.new_version }}
-      new_version_value: ${{ steps.publish.outputs.new_version_value }}
+      root_published: ${{ steps.publish_root.outputs.publish }}
+      root_version: ${{ steps.publish_root.outputs.new_version_value }}
+      object_store_published: ${{ steps.publish_object_store.outputs.publish }}
+      object_store_version: ${{ steps.publish_object_store.outputs.new_version_value }}
 
     steps:
       - uses: actions/checkout@v3
@@ -41,24 +42,34 @@ jobs:
           cargo test --doc
 
       # 仅 master 分支 push 时执行发布（PR / 其他分支只跑检查与测试）
-      - name: Run publish-action of oss
-        id: publish
+      # 先发布主 crate，再发布 object_store（依赖前者）
+      - name: Publish aliyun-oss-client
+        id: publish_root
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: tu6ge/publish-action@v0.6.0-beta.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-
         with:
           DIR: "/"
           TAG_PREFIX: "v"
+
+      - name: Publish aliyun-oss-object-store
+        id: publish_object_store
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: tu6ge/publish-action@v0.6.0-beta.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        with:
+          DIR: "/crates/object_store/"
+          TAG_PREFIX: "object-store-v"
   
-  release:
+  release-client:
     runs-on: ubuntu-latest
-    name: Create Release
+    name: Create Release (aliyun-oss-client)
     needs: publish
-    # 只在真正发布成功时才运行
-    if: needs.publish.outputs.published == 'true'
+    if: needs.publish.outputs.root_published == 'true'
 
     permissions:
       contents: write
@@ -68,31 +79,68 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 与 publish 任务中实际发布的版本一致（来自 publish-action）
-      - name: Get version from publish job
+      - name: Resolve tag from publish job
         id: version
         run: |
-          VERSION="${{ needs.publish.outputs.new_version_value }}"
+          VERSION="${{ needs.publish.outputs.root_version }}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
 
-      # 用 git-cliff 生成本次版本的 changelog
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
         id: cliff
         with:
-          config: cliff.toml   # 如果没有此文件，git-cliff 会使用默认配置
-          args: --latest --strip header
+          config: cliff/client.toml
+          args: --tag ${{ steps.version.outputs.tag }} --strip header
         env:
           OUTPUT: CHANGES.md
           GITHUB_REPO: ${{ github.repository }}
 
-      # 创建 GitHub Release，body 使用上一步生成的内容
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: ${{ steps.version.outputs.tag }}
+          name: aliyun-oss-client ${{ steps.version.outputs.tag }}
+          body: ${{ steps.cliff.outputs.content }}
+          draft: false
+          prerelease: false
+
+  release-object-store:
+    runs-on: ubuntu-latest
+    name: Create Release (aliyun-oss-object-store)
+    needs: publish
+    if: needs.publish.outputs.object_store_published == 'true'
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag from publish job
+        id: version
+        run: |
+          VERSION="${{ needs.publish.outputs.object_store_version }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=object-store-v${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        id: cliff
+        with:
+          config: cliff/object-store.toml
+          args: --tag ${{ steps.version.outputs.tag }} --strip header
+        env:
+          OUTPUT: CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: aliyun-oss-object-store ${{ steps.version.outputs.tag }}
           body: ${{ steps.cliff.outputs.content }}
           draft: false
           prerelease: false

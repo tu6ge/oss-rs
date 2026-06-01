@@ -1,0 +1,40 @@
+# Changelog for aliyun-oss-client (root crate).
+# https://git-cliff.org/docs/usage/monorepos/
+
+[changelog]
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}*({{ commit.scope }})* {% endif %}\
+{% if commit.breaking %}[**breaking**] {% endif %}\
+{{ commit.message | upper_first }}
+{% endfor %}
+{% endfor %}
+"""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+tag_pattern = "v[0-9].*"
+include_paths = ["src/**", "Cargo.toml", "examples/**"]
+exclude_paths = ["crates/**"]
+commit_parsers = [
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Bug Fixes" },
+    { message = "^doc", group = "Documentation" },
+    { message = "^perf", group = "Performance" },
+    { message = "^refactor", group = "Refactor" },
+    { message = "^test", group = "Testing" },
+    { message = "^chore\\(release\\): prepare for", skip = true },
+    { message = "^chore|^ci", group = "Miscellaneous" },
+    { message = ".*", group = "Other" },
+]
+filter_commits = false
+sort_commits = "oldest"
