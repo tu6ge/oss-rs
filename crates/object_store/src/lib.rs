@@ -1,6 +1,6 @@
 use std::{fmt::Display, io::Cursor, sync::Arc};
 
-use aliyun_oss_client::{Bucket, Error as OssError, Object};
+use aliyun_oss_client::{Bucket, Client, EndPoint, Error as OssError, Key, Object, Secret};
 use async_trait::async_trait;
 use bytes::Bytes;
 use futures_util::{stream::BoxStream, StreamExt as _};
@@ -26,26 +26,66 @@ impl Display for AliyunOssObjectStore {
     }
 }
 
+const STORE: &str = "AliyunOssObjectStore";
+
+/// 将 [`OssError`] 转为 [`Error`]，用于 `Client::from_env`、`bucket` 等尚未涉及对象路径的场景。
+pub fn map_oss_error(err: OssError) -> Error {
+    map_oss_error_at(err, None)
+}
+
+fn map_oss_error_at(err: OssError, path: Option<&Path>) -> Error {
+    match (err.service_code(), path) {
+        (Some("NoSuchKey"), Some(path)) => Error::NotFound {
+            path: path.to_string(),
+            source: Box::new(err),
+        },
+        _ => Error::Generic {
+            store: STORE,
+            source: Box::new(err),
+        },
+    }
+}
+
+fn to_object_store_error(err: OssError, path: &Path) -> Error {
+    map_oss_error_at(err, Some(path))
+}
+
 impl AliyunOssObjectStore {
     pub fn new(bucket: Bucket) -> Self {
         Self { bucket }
     }
 
+    /// 使用 AccessKey、Secret 与 Endpoint 打开指定 Bucket。
+    pub fn try_new<K, S, E>(
+        key: K,
+        secret: S,
+        endpoint: E,
+        bucket: impl AsRef<str>,
+    ) -> Result<Self, Error>
+    where
+        K: Into<Key>,
+        S: Into<Secret>,
+        E: TryInto<EndPoint>,
+        OssError: From<E::Error>,
+    {
+        let client = Client::new(key, secret, endpoint).map_err(map_oss_error)?;
+        Self::try_from_client(client, bucket)
+    }
+
+    /// 从环境变量（`ALIYUN_KEY_ID`、`ALIYUN_KEY_SECRET`、`ALIYUN_ENDPOINT`）读取凭证并打开 Bucket。
+    pub fn try_from_env(bucket: impl AsRef<str>) -> Result<Self, Error> {
+        let client = Client::from_env().map_err(|e| map_oss_error(e.into()))?;
+        Self::try_from_client(client, bucket)
+    }
+
+    /// 使用已有的 [`Client`] 打开指定 Bucket（适用于 STS 等自定义构造方式）。
+    pub fn try_from_client(client: Client, bucket: impl AsRef<str>) -> Result<Self, Error> {
+        let bucket = client.bucket(bucket.as_ref()).map_err(map_oss_error)?;
+        Ok(Self::new(bucket))
+    }
+
     pub fn object(&self, path: &Path) -> Object {
         Object::new(path.to_string(), Arc::new(self.bucket.clone()))
-    }
-}
-
-fn to_object_store_error(err: OssError, path: &Path) -> Error {
-    match err.service_code() {
-        Some("NoSuchKey") => Error::NotFound {
-            path: path.to_string(),
-            source: Box::new(err),
-        },
-        _ => Error::Generic {
-            store: "AliyunOssObjectStore",
-            source: Box::new(err),
-        },
     }
 }
 
