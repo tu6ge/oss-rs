@@ -1,8 +1,11 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
 [package]
 name = "aliyun-oss-client"
 version = "0.13.2"
 edition = "2021"
-resolver = "2"
 description = "an aliyun oss client"
 keywords = ["aliyun", "oss", "sdk"]
 license = "MIT"
