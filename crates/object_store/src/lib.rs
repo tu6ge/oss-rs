@@ -1,12 +1,15 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 
-use aliyun_oss_client::Bucket;
+use aliyun_oss_client::{Bucket, Object};
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
 use object_store::{
-    path::Path, CopyOptions, Error, GetOptions, GetResult, ListResult, MultipartUpload, ObjectMeta,
-    ObjectStore, PutMultipartOptions, PutOptions, PutPayload, PutResult, Result,
+    path::Path, Attribute, CopyOptions, Error, GetOptions, GetResult, ListResult, MultipartUpload,
+    ObjectMeta, ObjectStore, PutMultipartOptions, PutOptions, PutPayload, PutResult, Result,
 };
+
+mod put_payload;
+use put_payload::BuiltinPutPayload;
 
 #[derive(Debug)]
 pub struct AliyunOssObjectStore {
@@ -23,6 +26,10 @@ impl AliyunOssObjectStore {
     pub fn new(bucket: Bucket) -> Self {
         Self { bucket }
     }
+
+    pub fn object(&self, path: &Path) -> Object {
+        Object::new(path.to_string(), Arc::new(self.bucket.clone()))
+    }
 }
 
 #[async_trait]
@@ -32,8 +39,25 @@ impl ObjectStore for AliyunOssObjectStore {
         location: &Path,
         payload: PutPayload,
         opts: PutOptions,
-    ) -> Result<PutResult, Error> {
-        todo!()
+    ) -> Result<PutResult> {
+        let mut object = self.object(location);
+
+        if let Some(content_type) = opts.attributes.get(&Attribute::ContentType) {
+            object = object.content_type(content_type.as_ref());
+        }
+
+        object
+            .upload(BuiltinPutPayload::new(payload))
+            .await
+            .map_err(|e| Error::Generic {
+                store: "AliyunOssObjectStore",
+                source: Box::new(e),
+            })?;
+
+        Ok(PutResult {
+            e_tag: None,
+            version: None,
+        })
     }
     async fn put_multipart_opts(
         &self,

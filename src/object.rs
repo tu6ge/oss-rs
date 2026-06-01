@@ -18,7 +18,7 @@ use crate::{error::OssError, response::OssResponseExt, types::CanonicalizedResou
 
 mod body;
 mod parts_upload;
-pub use body::IntoBody;
+pub use body::{BodyStream, IntoBody};
 pub use parts_upload::PartsUpload;
 
 #[derive(Debug)]
