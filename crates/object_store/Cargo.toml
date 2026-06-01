@@ -4,6 +4,7 @@ version = "0.0.1"
 edition = "2021"
 resolver = "2"
 description = "Object store implementation for aliyun-oss-client"
+readme = "README.md"
 license = "MIT"
 repository = "https://github.com/tu6ge/oss-rs"
 documentation = "https://docs.rs/aliyun-oss-object-store"
@@ -20,3 +21,8 @@ async-stream = "0.3"
 serde = { version = "1", features = ["derive"] }
 chrono = "0.4"
 tokio = { version = "1", features = ["sync"] }
+
+[dev-dependencies]
+bytes = "1"
+dotenv = "0.15.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
